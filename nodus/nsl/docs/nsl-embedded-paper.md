@@ -1,34 +1,42 @@
-# Objects on a 256 KB radio node: remote debug, profiling and agent-written code over Zephyr
+# rete: a lifecycle for small radio nodes on Zephyr — what is built, what it costs, and what is not
 
-_DRAFT 1, 2026-10-08, for iteration with David. The companion paper, on the language, is [nsl-design-paper.md]; each topic has one owner and the other paper cites it._
+_DRAFT 2, 2026-10-09, for iteration with David. The companion paper, on the language, is [nsl-design-paper.md]; each topic has one owner and the other paper cites it._
 
 Sources are bracketed keys, e.g. [VM], resolved in the References; in this Markdown they are links, and only there.
 Anything that is designed but not built says so in the sentence that describes it.
 
 ## Abstract
 
-Zephyr reaches more than 900 boards, with connectivity, security and drivers built in; its community names the
-learning curve as its most persistent cost [ZT10]. This paper asks what a small object language on top of Zephyr
-could buy a Zephyr engineer, and what it costs.
-
-The case has three parts. A program can be changed without reflashing the firmware. Debugging and profiling can be
-driven from a host over the one USB cable already on the bench. And, designed but not built, the same tools could
-reach a node over the radio, including one that is asleep. A fourth follows: the loop is short enough to check, by
-running it, the code an agent wrote.
+This is a report on a system called rete: what was built, why, what it costs, what it does not do, and how it tries to
+improve the develop, deploy and manage lifecycle of a small radio node. Zephyr reaches more than 900 boards, with
+connectivity, security and drivers built in; its community names the learning curve as its most persistent cost
+[ZT10]. rete puts a small object language, nsl, on top of Zephyr, and builds the lifecycle tools around it.
 
 The costs come first. The interpreter is about a hundred times slower than C on the one method measured both ways, the
-VM takes 112 KB of a 256 KB part, and no model was trained on nsl. What is built and gated today is the desktop and
-USB half. Remote debug through a gateway is a host spike that passes its gate (`SLEEPY DEBUG OK`), not a board
-result. Program over-the-air load is likewise designed, not built.
+VM takes 112 KB of a 256 KB part, and no model was trained on nsl. In return, a program can be changed without
+reflashing the firmware; debugging, patching and profiling are driven from a host over the one USB cable already on the
+bench; a gateway holds what a sleeping node is to be told until it next wakes; and the loop is short enough to check, by
+running it, the code an agent wrote.
+
+*Status: a lifecycle system whose desk half (host VM, USB load, debug, patch, profile) is built and measured, and whose
+field half (debug and profile through the gateway, program over the air) is designed; version 0.1 ships when the field
+half is built (decided 2026-10-09), so nothing in the release is labelled "designed".* Remote debug through a gateway is
+today a host spike that passes its gate (`SLEEPY DEBUG OK`), not a board result.
 
 ## 1. The problem
 
-Three problems sit under this paper. None is new or claimed solved.
+Shipping a node is an obstacle course of five things: the chip (choose, source, bring up and live with it for a decade);
+the drivers (every sensor and bus, written and then maintained); the software (application logic safe enough to run
+unattended); deployment (the first version out, and the fiftieth); and maintenance (diagnosing and fixing a fault in a
+device you cannot reach). Only one of them is a language problem, and it is not the one benchmarks measure [Perf].
+Zephyr removes the first two. This paper is about the last three, and how rete tries to improve them [Script].
+
+Three problems sit under that frame. None is new or claimed solved.
 
 **The learning curve.** Zephyr's ten-year survey reports it as the most persistent challenge for contributors
 [ZT10]. A newcomer who wants a sensor reading on a radio node meets devicetree, Kconfig, west and the
-network stack's configuration before any application logic runs. This paper does not argue Zephyr's layers should be
-smaller; it asks whether the application on top can be easier to start.
+network stack's configuration before any application logic runs. The layers are not the subject here; the application
+on top of them is.
 
 **The field node you cannot reach with a probe.** On the bench, a node has a debug probe or a cable. In a wall, on a
 roof or in a box, it has neither. It reports through a weak, slow radio and often sleeps for minutes or hours between
@@ -38,76 +46,87 @@ after a week, on the node that is hard to reach, is the one you would most like 
 **Code an agent wrote, and no way to trust it.** Zephyr's contributors already use AI to write code and do not trust it. Of 125 contributors surveyed, 54 % say it helps them write code faster, and 54 % say it gives unexpected or
 incorrect output they must fix frequently; 33 % spend more time validating its output than they would writing from
 scratch; 18 % say it helps them write code with fewer errors; and 78 % do not trust its suggestions without heavy
-review ([ZT10], Figure 35). This is a verification problem: an engineer who must read every line of generated C closely has gained little.
+review ([ZT10], Figure 35). This is a verification problem: generated C must be read closely, line by line.
 
-## 2. Why objects, on a microcontroller?
+## 2. Lineage: the 1996 answer, with the liveness moved off the node
 
-A Zephyr `struct device` carries a `const void *api` pointer. For a sensor, it points at a struct of function
-pointers that the driver fills in, and the caller calls through that struct: dispatch through a vtable, written by
-hand, with the class defined by convention. Object languages make the same move uniform: every operation,
-including arithmetic, is a send, and a send finds its method in a table.
+The idea of a high-level object language on an embedded target is old. Kim Clohessy of Object Technology International
+(IBM) described it in *Using object-oriented programming tools to build real-time embedded systems* [Clo96]. His
+account, in the facts this paper uses:
 
-**The cost comes first.** One method activation in nsl costs about 12 µs: 11.83 µs on the ESP32-C6 and 11.13 µs on
-the RP2350 [RP2350]. The one direct comparison, the Hanoi spike, found C about a hundred times faster on that method [Hanoi]. There is no JIT, because a 256 KB part
-has no room for a code cache. The radio, the crypto and the drivers stay in C, under Zephyr, and nsl makes decisions at the rate events arrive. A
-timer, a packet and a button are slow enough. A codec that walks every value is not, and it is the one place the
-cost has been felt; the worked example below is that codec.
+- In most real-time embedded systems only about 10 % of the code is time-critical; the rest runs at human speeds. A
+  high-level language is used for that rest, and C or assembly for interrupt service routines and hot mathematics.
+- The VM and the executable part of the image are burned into ROM, with object state in RAM.
+- Development happens on a host, and a packaged image is downloaded to the target.
+- The target hardware and its environment are modelled in software, so the application runs before the hardware exists.
+- He closes by claiming that the three historical barriers, no cross-development tools, images too large and
+  inadequate performance, "have been overcome", and remarks that profiling tools "will probably never be considered
+  good enough".
+- His Smalltalk kept on the target a live image, an in-image debugger, a process model, an easy call to C and "fixed"
+  (non-moving) objects.
 
-**What a uniform send buys.** Three consequences of one mechanism.
+rete keeps the first four. A 256 KB radio part cannot carry what his Smalltalk kept on the target: a live image and an
+in-image debugger cost more RAM and flash than the part has to give. So the liveness is moved off the node. The node holds a frozen, read-only
+image and a confined mirror that a debugger can use; the gateway (porta) and the desk peer (custos) hold the rest of
+what a live image gave, and reach the node through the wire. The same split decides where the debugger, the patcher
+and the profiler live (§8, §9). Barry's OOPSLA '89 paper, *Prototyping Real Time Embedded Systems in Smalltalk*
+[Bar89], is Clohessy's own reference and is the earlier record.
 
-- **Native substitution.** Whether a method is interpreted or C is one field of its binding, so a hot method moves
-  to C without its callers, the interpreter or the image format changing. On a Towers of Hanoi spike, a best case with
-  all the work in one method, the C version ran 116–119× faster [Hanoi]; the CBOR encoder below is the real workload.
-- **A swapped `platform`.** A program reaches every device through one object, `platform`, so a different `platform`
-  can carry a simulated device without a line of the program changing. Version 0.1 does not use this: `platform`
-  hands out every device, and there is one kernel (ledger row 32 [Ledger]).
-- **Capabilities.** For the same reason, a narrower `platform` can be handed down, so a module given only the
-  network can use only the network, and says so in its header. The companion paper owns this argument [Lang]; §9 uses one consequence.
+One mechanism carries over from this lineage and is owned by the companion paper [Lang]: every operation is a send,
+and a send finds its method in a table, so whether a method is interpreted or C is one field of its binding. A hot
+method can move to C without its callers, the interpreter or the image format changing. That is native substitution.
+Its per-activation cost, and the one direct comparison with C, are in the costs table (§11).
 
-**A worked example: the CBOR encoder.** Every node encodes what it sends to the gateway as CBOR. The encoder is nsl,
-with C only at the leaves: integers, floats and the decode heads have been primitives since the codec's first version (2026-07-09). On
-an ESP32-C6, encoding the gateway's real 425-byte push frame took 124 ms; a fix in nsl alone (less copying, a
-cheaper byte buffer) halved it, to 53 ms, about a quarter of a check-in [Checkin]. Measuring where the rest went
-showed that the cost is the walk itself: about nine interpreted activations per byte, of which the CBOR logic is half a
-percent [CborShape]. At a check-in every two seconds that is tolerable. At a 50 Hz control loop it is the whole tick.
+## 3. Where the time goes: two measurements
 
-A spike then tried four ways of encoding the same frame, all producing identical bytes, on the host (2026-10-04)
-[CborArms]:
+The VM is not the bottleneck on one workload, and is on another. Both are real.
+
+**(a) A sensor and a web page.** Rung #61 (2026-07-21) measured `ThermalHttpNode` on a classic ESP32 (WROOM-32): a
+Grid-EYE thermal sensor read over I2C, with 310 thermal jobs and 296 paced HTTP requests, timed on the board with
+seven spans [Spans]. Four of them:
+
+| Span | Mean | Max / min |
+|---|---:|---:|
+| `acquire` (the I2C read) | 12,798 µs | 1.24× |
+| `vmCompute` | 4,101 µs | 1.21× |
+| `publish` | 8,225 µs | 1.15× |
+| `egress` (the network, C-owned; provisional, see below) | 1,319 µs | 727× |
+
+Everything the VM does for a job (`vmCompute` plus `publish`) is 12.3 ms, at parity with the sensor read. Two thirds of
+the VM's share was copying the same 64 numbers twice, an OrderedCollection build and then a `List fromCollection:`.
+The network half is provisional: it comes from a run paced below the node's connection ceiling, on a build whose
+receive-packet slab was itself the bottleneck (#65, fixed 2026-07-22, not re-taken). On that run the client's median
+round trip was 159 ms and `egress` spread 727× from its minimum; the roughly 119 ms of network (75 %) is a subtraction,
+not a measurement. The VM's work is predictable and at parity with the sensor; on that provisional run the network is
+the wild part; and garbage collection on a saturated heap sat inside the mean, not in the tail: the heap was pegged at
+53,228 of 53,248 B with 1,523 collections during the run, and `vmCompute` still showed a max/min of 1.21×.
+
+**(b) The CBOR encoder, the one place the cost was felt.** Every node encodes what it sends to the gateway as CBOR.
+The encoder is nsl, with C only at the leaves: integers, floats and the decode heads have been primitives since the
+codec's first version (2026-07-09). On an ESP32-C6, encoding the gateway's real 425-byte push frame took 124 ms; a fix
+in nsl alone (less copying, a cheaper byte buffer) halved it, to 53 ms, about a quarter of a check-in [Checkin].
+Measuring where the rest went showed that the cost is the walk itself: about nine interpreted activations per byte, of
+which the CBOR logic is half a percent [CborShape]. At a check-in every two seconds that is tolerable. At a 50 Hz
+control loop it is the whole tick.
+
+A spike tried four ways of encoding the same frame, all producing identical bytes, on the host (2026-10-04) [CborArms]:
 
 | Arm | ns per encode, host | Against today |
 |---|---:|---:|
-| Today: the walk in nsl, C leaves | 259 950 | 1× |
-| More of the leaves in C, the walk still in nsl | 86 595 | 3× |
-| The whole walk in C, which knows the container classes | 1 904 | 137× |
-| The walk in C, finding each container's encoding through its class's method table | 2 045 | 127× |
+| Today: the walk in nsl, C leaves | 259,950 | 1× |
+| More of the leaves in C, the walk still in nsl | 86,595 | 3× |
+| The whole walk in C, which knows the container classes | 1,904 | 137× |
+| The walk in C, finding each container's encoding through its class's method table | 2,045 | 127× |
 
-Moving more bytes into C buys only 3×, because what remains is roughly 400 ns of interpreted sends per element. The
-walk has to move. The last two rows are the choice, and it is the reason this section is about dispatch.
+More leaves in C buys only 3×; the walk has to move. The chosen design is the last row: each container class declares
+in one line of nsl that its encoding is native, and the C walk asks each class's method table for that binding, so C
+does not name the class hierarchy, and the nsl encoder stays as the authority for anything C refuses [CborNative]. The
+price on the device has not been measured, and host ratios are not device numbers. **This is designed and planned
+(rete #297), not built.**
 
-The pure C walk is the fastest, and it is what a C programmer would write: a switch on the four container classes the
-encoder knows about. That switch is a copy of the class hierarchy, held in C, which has to change whenever an nsl
-class does. The chosen design instead has each container class declare, in one line of nsl, that its encoding is
-native (`cborWalk = native cborList`, and so on), and the C walk asks each container's method table for that binding.
-It costs 4–7 % on this frame, and up to 12 % on a small map, over the pure C walk, and the spike's emulation of the
-lookup overstates it [CborNative]. What it buys:
+Decisions are cheap, per-byte walks are not, and the fix for a walk is native substitution [Lang].
 
-- **C does not know the class hierarchy.** A class's method table says whether its encoding is native; nothing in C
-  names List, Map or Record.
-- **The nsl encoder stays, as the authority.** Anything the C walk does not recognise — an unknown class, nesting
-  deeper than 32, a NaN — it refuses, and the unchanged nsl walk produces the exact bytes or the exact error. Error
-  texts and edge cases stay defined in one place.
-- **A shape change is caught at build time.** Each native declares the instance variables its C reads; the image
-  build refuses a class whose declaration does not match, naming the class.
-- **Callers and the image format do not change.** It is native substitution (above), applied to a real workload.
-
-The price on the device has not been measured. The issue estimates about 1 ms on the C6 for the frame that takes 53 ms
-today; the host ratio would suggest less, and the design says plainly that host ratios are not device numbers. **This
-is designed and planned (rete #297), not built.**
-
-A vtable costs time on a part with little of it, and returns substitution, simulation and attenuation. For a tight
-sensor loop, C is the better answer, and nsl would call it.
-
-## 3. The system at a glance
+## 4. The system at a glance
 
 ![The system](img/nsl-system.svg)
 
@@ -120,6 +139,15 @@ Reaching a field node's debugger through porta is designed, not built [Porta], [
 
 porta (Go, always on), custos (Go, on the desk) and the node meet only in the wire format `protocol/` [Porta], [Peer].
 
+**porta** is one always-on Go binary on the gateway host, with a SQLite store. It mirrors each node's `obs/` and `tel/`
+paths. It holds intent written under `goal/` until a node that is asleep, and so has no address to be called on, next
+wakes and asks. It refuses any write the manifest does not declare. And it judges each node's liveness from outside,
+against the cadence the node declared [Porta]. Retaining each commissioned image and its symbol map at porta, as "the
+custodian of what runs in the field", is decided and not built.
+
+**custos** runs on the desk, holds the board's cable and serves the HTTP verbs; a person and an agent make the same
+calls [Peer]. **The node** runs the VM as one Zephyr thread over a read-only program image, with Zephyr in C beneath it.
+
 ![The node's stack](img/e-node-stack.svg)
 
 _Figure 2. One node. Zephyr, OpenThread and mbedTLS are C and unchanged. The VM is one Zephyr thread running a
@@ -130,7 +158,7 @@ RAM is the tight resource. On the nRF52840, with the Thread build of 2026-10-03,
 mbedTLS take about 140 KB of 256 KB, the VM's arena gets 112 KB, and 4 KB are spare at link time [Lang], [Boards]. The VM's code is about 42 KB of a 1 MB flash, so flash is not the
 axis that binds.
 
-## 4. What you write
+## 5. What you write
 
 An nsl program is a class whose header names what it was given. It keeps state under path names in a **space** and
 reacts to writes at those paths. Appendix A shows a whole Thread node in 36 lines; two parts follow.
@@ -189,7 +217,7 @@ and last NTP check. Photographed under the previous project name, `tuvm` [Clock]
 The cost: someone must write the C. The language moves driver work to the firmware's author and keeps it out of the
 application; it does not remove it.
 
-## 5. The reactor in practice
+## 6. The reactor in practice
 
 Zephyr is multithreaded and nsl is not. The VM runs on one Zephyr thread, with OpenThread, the network stack and the
 liveness observer in threads around it. Inside nsl, one reaction runs at a time, to completion.
@@ -220,9 +248,9 @@ node wakes, reads, exchanges with the gateway and sleeps; `platform deepSleep:` 
 full reboot, so the program is declared run-once. Deep sleep runs on the MagTag today.
 
 Every exchange is started by the node. A sleeping node has no address to be called on, so the gateway holds what it
-wants, a new setting or a new program, until the node next wakes and asks. §8 depends on this.
+wants, a new setting or a new program, until the node next wakes and asks. §9 depends on this.
 
-## 6. Develop without reflashing
+## 7. Develop without reflashing
 
 The firmware is flashed once. The program is a read-only image in its own flash partition, run in place, and the
 firmware reads the partition at boot [Image]. The first two steps need no board.
@@ -280,7 +308,7 @@ reopens the cable. Only the ESP32-C6 has a loader today.
 **What is not measured.** The loop has not been timed from an edit to a program running on a board, and this paper
 claims no number. It is shorter than a firmware reflash because no firmware is rebuilt or written.
 
-## 7. Debug, patch and profile over USB
+## 8. Debug, patch and profile over USB
 
 A small device usually means `printf` and a reflash. These tools reach into the running VM over the board's one USB
 cable, through custos, which holds it. Each is an HTTP call that answers JSON, with a web page and a
@@ -354,11 +382,12 @@ window closes answers 502 at once [Debugger].
 
 The patch row is one board, one method and one session: a demonstration, not a survey of patches.
 
-## 8. Remote: through the gateway, to a node that is asleep
+## 9. Remote: through the gateway, to a node that is asleep
 
 **Everything in this section is designed, not built, except one host spike** that runs a real porta and a host VM on
-the desktop and prints `SLEEPY DEBUG OK`. No board has been debugged through porta. Issues #375, #376, #377 and #380
-are the work that would change that; program over-the-air load (#233) is also unbuilt on boards.
+the desktop and prints `SLEEPY DEBUG OK`; and, by the rollout decision of 2026-10-09, it is built before version 0.1
+ships (#375–#377, #380, #379, #233). No board has been debugged through porta yet. Issues #375, #376, #377 and #380
+are the work that changes that; program over-the-air load (#233) is also unbuilt on boards.
 
 ![Remote debug sequence](img/e-remote-debug-seq.svg)
 
@@ -407,7 +436,7 @@ bridged node is always on [Spike].
 **Program over the air (#233).** A program push into the flash region the USB loader writes is proven on the desktop in a fleet-simulation gate and
 is inert on boards [Peer]. Until then, a sleepy node can be debugged only if its program is already the one the breakpoints were built against.
 
-## 9. Trusting code an agent wrote
+## 10. Trusting code an agent wrote
 
 The problem is verification, and an agent verifies by running things and reading what comes back. Two questions
 follow: what bounds what an agent's code can do, and what lets it check its own work? Whether the language suits an
@@ -439,32 +468,52 @@ An error from the compiler is a `file:line:col` message. A message not understoo
 receiver's class and the nearest selector it does understand [Lang].
 
 **What this does not show.** Nobody has measured anything about agents on this system, including whether an agent
-writes more correct nsl than C. The bet is that a short, repeatable loop makes each check cheap, and cheap checks are
-what the 33 % in §1 are missing. The test that would settle it gives the same small board tasks to an agent in nsl,
+writes more correct nsl than C. The expectation is that a short, repeatable loop makes each check cheap; the 33 % in §1 spend their time on
+checks that are not cheap. The test that would settle it gives the same small board tasks to an agent in nsl,
 with the language in its context, and in Zephyr C, scored on first-run correctness. It has not been run (rete issue
-#373); we will publish the result either way.
+#373); the result will be published either way.
 
 One more caution. Verification by running catches only what running reveals. A reaction that is wrong only under a
 timing or radio condition the host VM does not reproduce passes on the host and fails on the board; the host suite is
 blind to the interrupt seam, and nothing in this loop closes that gap.
 
-## 10. Costs compared with Zephyr C
+
+## 11. Costs compared with Zephyr C
 
 | Cost | Compared with Zephyr C | Would lift it |
 |---|---|---|
-| Speed per byte | about 12 µs per method activation; about a hundred times slower than C on the one method measured both ways [Hanoi]; no JIT | native substitution of a hot method (§2); or leave it in C |
+| Speed per byte | about 12 µs per method activation: 11.83 µs on the ESP32-C6 and 11.13 µs on the RP2350 [RP2350]; about a hundred times slower than C on the one method measured both ways, and 116–119× on the Towers of Hanoi spike, a best case with all the work in one method [Hanoi]; no JIT, because a 256 KB part has no room for a code cache | native substitution of a hot method (§2, §3); or leave it in C |
 | RAM given to the arena | 112 KB of 256 KB on the nRF52840, with 4 KB spare at link [Boards] | a larger part; the C6 has 128 KB of arena by choice, and WiFi sets the classic ESP32 to 48 KB |
 | No compile-time types | a misspelt selector is found when it runs, not compiled | the error line names the nearest selector, which softens the cost [Lang] |
-| A language in no model's training data | an agent writes nsl from context, not habit | the test in §9 (#373); not yet run |
+| A language in no model's training data | an agent writes nsl from context, not habit | the test in §10 (#373); not yet run |
 | One kernel | no virtual classes, no per-target library, `platform` hands out everything [Ledger] | narrowed platforms (row 32) |
 | Tooling at version 0.1 | the compiler is a Python tool, and the loader exists for one board, the ESP32-C6 | more loaders; each board needs its own region and flasher |
 | Debug images are separate | 11.6 % per bytecode and about 500 B of flash [Debugger] | not planned; the standard image stays lean |
 | Remote debug is unbuilt | no board has been debugged through porta; the spike is host only [Spike] | #375–#377 and the C6 demo #380, then the MagTag demo #379 |
 | A single maintainer | one maintainer for the VM, kernel and tools | not planned |
 
-For nodes that decide rather than compute, the cost of interpretation is small beside a reflash cycle, a missing
-debugger and a site visit. That is shown on the desktop and over USB on one board. It is not shown on a field node,
-over a radio, or against an agent writing C; those are next.
+### Against MicroPython
+
+MicroPython has a decade of use, a large library of drivers written in Python, a REPL over the serial cable, deep
+sleep on the ESP32 family, and program load by copying files; and it is in every model's training data. Per call it is
+likely faster than nsl, and that is unmeasured.
+
+What rete has that MicroPython's core does not: a gateway that holds intent for a sleeping node behind a
+manifest-checked wire; a source-line debugger and a per-method profiler over the cable; a liveness observer that dumps a
+wedged node and says why; and a closed primitive set with no ambient device module.
+
+The July review decks already placed nsl beside Toit, MicroPython on Zephyr and AtomVM, and bet that confinement,
+supervision, remote serviceability and Zephyr's driver catalogue decide whether a scripting layer survives production,
+not types or benchmarks [Script]. The comparison that answers the question is rete #383: the same C6 node written in
+MicroPython, scored on measured rows; several rows MicroPython wins, which is the point of running it [MP].
+
+### Where this stands
+
+Today rete is a lifecycle system whose desk half (host VM, USB load, debug, patch, profile) is built and measured, and
+whose field half (debug and profile through the gateway, program over the air) is designed. Version 0.1 ships when the
+field half is built (decided 2026-10-09), so nothing in the release is labelled "designed". What is shown today is the
+desktop and USB half on one board. Not yet shown: a field node, a debugger over a radio, or an agent writing C against
+an agent writing nsl.
 
 <div style="page-break-before: always"></div>
 
@@ -532,7 +581,7 @@ class ThreadSensorNode usingPlatform: platform net: net = (
 
 The node never names an address inside the program except the gateway's. Everything else is a path in its space:
 porta writes `goal/name` and reads `obs/name` and `tel/log` at the node's next check-in, and the timers reach the
-program at `sys/timer` and `sys/tick` the same way (§5).
+program at `sys/timer` and `sys/tick` the same way (§6).
 
 <div style="page-break-before: always"></div>
 
@@ -571,6 +620,19 @@ did on its own, and uses `lend` only when a tool outside custos must hold the ca
   Evolution*, The Linux Foundation, March 2026, CC BY-ND 4.0 —
   [copy in this repository](../../../docs/ZephyrTurns10_Report_Revised_051826.pdf). 900+ boards; the learning curve;
   Figure 35 (p. 30), GenAI.
+- **[Clo96]** K. Clohessy, *Using object-oriented programming tools to build real-time embedded systems*, Real-Time
+  Engineering, Fall 1996 (Object Technology International / IBM). Cited only; not copied into the repository.
+- **[Bar89]** B. Barry, *Prototyping Real Time Embedded Systems in Smalltalk*, Proceedings of OOPSLA '89, New Orleans, ACM SIGPLAN 1989; named as Clohessy's own
+  reference [Clo96], not read for this paper.
+- **[Spans]** The job-latency instrumentation rung (#61, closed 2026-07-21): the entry in
+  [the program ladder](../../../review/program-sequence.md) and
+  [its design](../../../docs/design/2026-07-21-job-latency-instrumentation-design.md).
+- **[Perf]** [Optimize the right thing](../../../review/performance_slides.html), review deck, 2026-07-22: the
+  obstacle course.
+- **[Script]** [Script Zephyr, don't replace it](../../../review/slides.html), review deck, 2026-07-11: the comparator
+  posture.
+- **[MP]** [rete #383](https://github.com/davidg238/rete/issues/383), the same C6 node in MicroPython, scored on
+  measured rows.
 - **[Lang]** [nsl: a Newspeak dialect in 112 KB — what it keeps, what it drops, and why](nsl-design-paper.md), the
   companion paper: the RAM tables, the VM, capabilities, the dialect, and the fit of the language to an agent.
 - **[Ledger]** [The nsl dialect ledger](NEWSPEAK_DIALECT.md): every divergence from Newspeak, its reason and what

@@ -1,6 +1,6 @@
 # nsl: a Newspeak dialect in 112 KB — what it keeps, what it drops, and why
 
-_DRAFT 3, 2026-10-08, for iteration with David. The companion paper, for the embedded developer, is [nsl-embedded-paper.md](nsl-embedded-paper.md); each topic has one owner and the other paper cites it._
+_DRAFT 4, 2026-10-09, for iteration with David. The companion paper, for the embedded developer, is [nsl-embedded-paper.md](nsl-embedded-paper.md); each topic has one owner and the other paper cites it._
 
 Sources are bracketed keys, e.g. [VM], resolved in the References; in this Markdown they are links, and only there.
 Anything that is designed but not built says so in the sentence that describes it.
@@ -16,6 +16,11 @@ traffic: the radio, the crypto and the drivers stay in C, and the interpreter pa
 compiler produces a read-only image that a small C VM runs in place from flash, in the roughly 112 KB that Zephyr,
 OpenThread and mbedTLS leave on a 256 KB nRF52840. nsl keeps Newspeak's structure — modules as objects, no globals,
 capabilities as the unit of authority — and drops most of its dynamism, each drop with its reason and its cost.
+
+Nothing here is new. Modules as objects and capabilities are Newspeak's, the object model is Piumarta and Warth's,
+the space is Linda's, and image-based deployment is Smalltalk's. This paper is an engineering account of fitting those
+techniques into what Zephyr leaves of 256 KB, and of what each one cost. It is written for a small audience that
+knows them, and it wants to be solid rather than exceptional.
 
 Last, what makes a language fit for an agent. Agents can't smell trouble, but they can find patterns in data, so the
 language is judged on what it puts in front of one: it fits in a context window, its authority is visible in a
@@ -99,21 +104,56 @@ has been timed, on the host or a board, and that is the first number an embedded
 The kernel is nsl, not C: collections, the value algebra, the CBOR codec (with C leaves for integers and floats), channels, the space, timers, the supervisor
 and the gateway bridge are all nsl source. C carries data, nsl carries policy.
 
-**Binding a driver: no FFI, one primitive.** nsl code cannot call an arbitrary C function. A device is reached through
-a *primitive*: a selector on a closed list, 160 of them today, each backed by one C function that calls the Zephyr
-driver API. Binding a new driver means appending one name to that list, writing the C function, and adding the
-kernel method that hands the device out — through `platform` — as a capability (§3). The change is additive: nothing
-already on the list moves, and no app can add a primitive of its own [Serial]. The firmware's author extends the
-machine; the program only uses what it was given. The companion paper walks one such binding through every layer, for
-an e-paper display on a MagTag [Embedded].
+### 2.1 Three kinds of C, and the line between them
 
-**Native code replaces nsl code without anyone noticing.** Because every operation is a send through a vtable, a
-method is a binding from a selector to a closure, and whether that closure is interpreted or native is one field. To
-move a hot method to C, write the C and bind it: the callers, the interpreter and the image format do not change. A
-spike did this for the Towers of Hanoi on an ESP32, and the native method ran 116–119 times faster than the
-interpreted one at two problem sizes [Hanoi]. That is a best-case ceiling — all the work in one method, the recursion
-fully native — not a steady-state figure for a whole program. The point is the mechanism: a VM that dispatches on
-type tags would need a special case on every call path; this one needs one binding.
+Three different things are easy to run together, because each is "write some C". They differ in what changes and in
+what has to be rebuilt:
+
+| Kind | What changes | What is rebuilt | Who |
+|---|---|---|---|
+| **A primitive** (the closed list) | one name appended to the list, one C function, one kernel method that hands the device out through `platform` | the firmware — a reflash | the firmware's author |
+| **A native method** (`cborWalk = native cborList`) | the *binding* of an existing selector, plus one primitive as its entry; the callers, the interpreter and the image format do not change; the nsl walk stays, as the oracle C falls back to | the firmware | the firmware's author |
+| **nsl source — the application or the kernel** | the `.nsl` | the image only: a whole-program bake by the host compiler, loaded beside the firmware | anyone |
+
+A primitive is a selector on a closed list, 160 of them today, each backed by one C function, as the serial device was
+added [Serial]. The change is additive: nothing already on the list moves, and no app can add a primitive of its own.
+The companion paper walks one such binding through every layer, for an e-paper display on a MagTag [Embedded].
+
+A native method rests on the fact that every operation is a send through a vtable, so a method is a binding from a
+selector to a closure, and whether that closure is interpreted or native is one field. To move a hot method to C,
+write the C and bind it. A spike did this for the Towers of Hanoi on an ESP32, and the native method ran 116–119 times
+faster than the interpreted one at two problem sizes [Hanoi]. That is a best-case ceiling — all the work in one
+method, the recursion fully native — not a steady-state figure for a whole program. The spike ran. The use that would
+make it a production mechanism, a native walk for the CBOR encoder, is designed on a branch (rete #297) and not
+built; the points below about declared shapes, refusal and the unsendable selector are that design's, not measured
+behaviour.
+
+**The boundaries.** What a native may touch, and what it may not:
+
+- C never names an nsl class. A native is found by asking the receiver's method table for the binding, so List, Map
+  and Record are not named in C. The alternative, C comparing against the classes it is passed, would hard-code class
+  identity in C (rete #297, D1).
+- A native declares, in its registry row, the instance variables its C reads, in order. The image build refuses,
+  naming the native and the class, an image where the class's declaration does not match. A shape change is therefore
+  a registry edit.
+- The C walk refuses anything it does not recognise (another binding, nesting deeper than 32, a NaN) by answering one
+  sentinel. The nsl walk, kept as the oracle, then produces the exact bytes or the exact error, so error texts and
+  edge cases stay defined in one place.
+- A native's selector cannot be sent from nsl. The single entry is one new primitive, so a native costs one row on
+  the closed list as well as its binding.
+- The image never contains C. A primitive or a native is C compiled into the firmware, and the image refers to it by
+  a registry reference.
+- "Recompiling all source" is the ordinary image build: every program is a whole-program bake of the kernel plus the
+  application, so an nsl change to the kernel costs the same as one to the application. The costly rebuild is the
+  firmware, and only C triggers it.
+
+**Why there is no FFI.** Four reasons. An FFI is ambient authority, and a module's authority is meant to be visible in
+its header (§3). C that holds an object reference across an allocation is the classic collector bug; with a closed
+list every such site is reviewed once, in the VM, rather than in each application. A read-only image executed in
+place has no dynamic linker to resolve a call through. And an agent cannot wander into C to get around the first two.
+The cost is plain: someone must write the C, and moving a hot method to C is a firmware change, not an application
+change. The Smalltalk that OTI shipped to embedded targets in the 1990s had the easy C call and "fixed" non-moving
+objects for C to reach [Clo96]; nsl drops both on purpose.
 
 ## 3. Capabilities
 
@@ -394,7 +434,7 @@ We will run that comparison and publish the result: shown, not told (rete issue 
 | No non-local return | loops that would `^` out of a `do:` are rewritten as `detect:ifNone:` or a flag | not planned | 21 |
 | No processes | a long computation starves timers | split it across reactions; the liveness observer shows the stall | 22 |
 | No resumable exceptions | a handler cannot supply a value and continue at the raise | `on:do:` answering the default | 24 |
-| Per-byte work is interpreted | the CBOR codec is nsl, and every value it walks costs method activations | move the hot methods to C by native substitution (§2); the encode walk is designed and planned for C (rete #297), not built | — |
+| Per-byte work is interpreted | the CBOR codec is nsl, and every value it walks costs method activations | move the hot methods to C by native substitution (§2); the encode walk is designed on a branch for C (rete #297), not built | — |
 | `platform` is all-powerful | any app holds every device | narrowed platforms, or `serial:`/`net:`-style header grants for devices | 32 |
 | Access modifiers unenforced | `private` documents intent and nothing more | emit them and check, or delete the check (#372) | 25 |
 | Hot patch limited to known constants | a fix that names a new selector or string cannot be patched | intern in RAM; carry offsets in the image map | 30, 31 |
@@ -549,6 +589,8 @@ NsLite {
 - **[Porta]** [porta's architecture](../../../porta/docs/ARCHITECTURE.md), §5: power modes and app lifecycle.
 - **[Serial]** [Adding the serial device](design/2026-06-22-ns-oevm-stdlib-step3c3b-serial-design.md): a device
   target is purely additive.
+- **[Clo96]** K. Clohessy, *Using object-oriented programming tools to build real-time embedded systems*,
+  Real-Time Engineering, Fall 1996.
 - **[Hanoi]** [Native substitution, the Hanoi spike](../../../docs/design/2026-07-17-oeom-native-substitution-hanoi-spike-design.md).
 - **[Peer]** [custos, the developer's peer](../../../docs/design/2026-10-04-custos-peer-design.md): agent first
   (D11–D13).
