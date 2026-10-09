@@ -1,0 +1,32 @@
+(*
+A narrowed platform is an ordinary object: the component it is handed to reaches the space
+under sensor/ and nothing else; asking it for timers is a DNU on the facade.
+expect-runtime-fail: Message 'timers' not understood by receiver
+*)
+class NarrowedPlatformTest packageUsing: manifest = () (
+  (* A narrowed platform: an object that answers only what it was built to hand out. *)
+  class SpaceOnly on: platform = (
+  | private p = platform. |
+  )(
+    public space = ( ^ p space channel: 'sensor' )   (* narrowed twice: only the space, only under sensor/ *)
+  )
+
+  (* A component that is handed the narrowed platform and nothing else. *)
+  class Sensor given: cap = (
+  | private cap_ = cap. |
+  )(
+    public report: v = ( cap_ space out: 'temp' value: v )
+    public reachForTimers = ( ^ cap_ timers )
+  )
+
+  public main: platform args: args = (
+    | sensor |
+    sensor:: Sensor given: (SpaceOnly on: platform).
+    sensor report: 21.
+    ((platform space take: 'sensor/temp' ifEmpty: [ nil ]) printString) println.
+    sensor reachForTimers.
+    'SHOULD NOT REACH' println.
+    ^ 0
+  )
+) : (
+)

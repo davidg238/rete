@@ -11,9 +11,9 @@ blocks are in `docs/status/focus-history.md`; live state is in the issues and `d
   starts with:** a branch off master for #377 — the held state brackets the debugger's command loop whichever link serves it (a stop held
   through porta reads as APP_STALE today): read `observer_core.h` §3.2 and `platform_debug_held`, decide the primitive, prove on `c6spare`
   that a hold longer than appCad is not rebooted. Then #380, #379, #233.
-- **Papers** on `paper-split` (pushed, not merged): L draft 4, E draft 2 + Barry 1989 folded in (2809fbd; the gw copy is NOT refreshed).
+- **Papers** merged to master (2026-10-09): L draft 4, E draft 2 + Barry 1989 folded in (2809fbd; the gw copy is NOT refreshed).
   Copies at `http://gw85224-01:6971/dev/papers/` (markdown_it + the page's own `<style>`, scp to `gw85224-01:porta-v2/docs/papers/`).
-- **Awaiting David:** read E and L, merge `paper-split` (yes/no); LICENSE and history rewrite (#368); close #314 (yes/no); when c6bench moves
+- **Awaiting David:** read E and L; LICENSE and history rewrite (#368); close #314 (yes/no); when c6bench moves
   to `rete-custos`; `review/` names the deleted console tools.
 - **Bench:** `c6bench` in the soak — never flash it. `rete-custos` (desktop, :6971) serves `c6` (the bell, cable unplugged = normal) and `c6spare`
   (CP2102N only today: flash with `ESPTOOL_PORT`+`CONSOLE_PORT` = its by-id, run.sh lends the cable itself); `custos.env` carries `--esptool` (#370).
