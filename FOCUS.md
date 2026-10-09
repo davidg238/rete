@@ -18,7 +18,8 @@ blocks are in `docs/status/focus-history.md`; live state is in the issues and `d
   when c6bench moves to `rete-custos`; `review/` names the deleted console tools.
 - **Bench:** `c6bench` in the soak — never flash it. `rete-custos` (desktop, :6971) serves `c6` (the bell, cable unplugged = normal)
   and `c6spare`; `custos.env` carries `--esptool` (#370). `opti7040` has an RP2350.
-- **Decided — do not re-litigate:** custos = nsl peer, porta language-neutral (D1–D2); share only `protocol/` (#338); agent first, HTTP the only agent
+- **Decided — do not re-litigate:** the 0.1 demos are the ship's bell twice — wall C6 always-on (#380) and MagTag deep-sleep (#379), one program, two
+  power modes, no third node (#384 waits; David, 2026-10-09); custos = nsl peer, porta language-neutral (D1–D2); share only `protocol/` (#338); agent first, HTTP the only agent
   surface (D11–D12); D13–D19; hot patch debug-build only (#313); one suite lock (#314); one `platform` is a 0.1 convenience (ledger row 32);
   two papers, one owner per topic; agent-first split by question; Thread node stays E's appendix; L carries the grammar (split outlines doc).
 - **Weekly review, not scheduled:** #280, #282–#287, #290, #291, #298, #299, #303, #304, #306–#309, #315–#322, #324–#328,
