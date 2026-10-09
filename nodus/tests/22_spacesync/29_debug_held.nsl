@@ -1,0 +1,23 @@
+(*
+expect:
+true
+false
+done
+*)
+(* rete#377 — `platform debugHeld: aBoolean` tells the liveness observer the debugger
+   holds the VM, and answers what the observer will now read. The Supervisor's Debugger
+   sends it with a LITERAL `true` before its command loop and `false` on the continue.
+
+   A literal `true` in nsl source is the image's own Symbol (kernel_boot.c KSym_true),
+   not the VM's built-in true_sym_obj that `==` answers — the divergence is_truthy's
+   comment records (dispatch.c). The first build of this prim compared `== true_symbol`,
+   so every hold read as a release: on c6spare a stop held through porta still rebooted
+   at 16 s, three times, with `fed_at` frozen in the observer's trace (issue #377). This
+   test sends the literal, so an identity compare answers false on the first line. *)
+class DebugHeld packageUsing: manifest = () (
+public main: platform args: args = (
+  (platform debugHeld: true) println.
+  (platform debugHeld: false) println.
+  'done' println.
+)
+)

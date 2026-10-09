@@ -297,8 +297,9 @@ anyone has spoken, never how long.
 
    A board with this image is running when custos opens the cable, and the first command
    pauses it (`-- stopped (pause)`), as in the transcript below. The rest is §3 to §6, over
-   the cable. A board held at a breakpoint is not rebooted as wedged: the
-   observer knows the VM is held and restarts its clock when you continue.
+   the cable. A board held at a breakpoint is not rebooted as wedged, whether the cable
+   or porta serves the stop (rete#377): the debugger tells the observer it holds the VM
+   around its whole command loop, and the clock restarts when you continue.
 
 From `c6spare`, 2026-10-05 21:48 MST, `DebugProbeC6.nsl` (a 1 s ticker whose ticks call
 `countTo:` and `scaled:`, whose kept block captures `k` and `acc`), firmware built from

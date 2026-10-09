@@ -443,3 +443,9 @@ deliberately not held off: a repeating timer whose ISR has stopped is a wedge wh
 the VM. Property 10 in `tests/test_observer_core.c` holds this and fails against the rule
 without the field. Proven on `c6bench` 2026-10-02: held 21 s against an 8 s declaration, no
 reset (`docs/results/2026-10-02-311-line-in-spike.md`, part 2).
+
+*Addendum 2026-10-09 (rete#377):* `held` is now set by the debugger around its whole command
+loop (`platform_debug_hold`, sent from `Debugger>>held:at:` / `resumed`), not by the Zephyr
+read around its block. A stop served through porta never enters that read, and was scored
+APP_STALE 16.7 s after the breakpoint on `c6spare`; with the loop bracketed the same stop held
+97 s with no verdict. The rule here is unchanged — only who tells it. Record: peer design D19.

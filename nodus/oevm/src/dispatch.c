@@ -1042,6 +1042,11 @@ enum {
        computed). Appended after boardName; no pre-existing id shifts.
        Platform-dispatched (mirrored in prim_ids.h). */
     PRIM_pf_consoleLine,
+    /* rete#377: `platform debugHeld: aBoolean` — the 161st PRIM_NAMES entry (counted,
+       not computed). Appended after consoleLine; no pre-existing id shifts.
+       Platform-dispatched (mirrored in prim_ids.h). The debugger's hold, told to the
+       observer: true before the command loop, false on the continue. */
+    PRIM_pf_debugHeld,
 };
 
 /* Must stay parallel to the enum above (index i -> id i+1).
@@ -1064,7 +1069,7 @@ static const char *const PRIM_NAMES[] = {
    — this catches it at build time instead. C99-safe (no _Static_assert under
    -std=c99): a false condition makes a negative-sized array, which is a hard
    compile error. ADVANCE THIS to the new last id whenever prims are appended. */
-typedef char prim_names_enum_parity_check[(N_PRIM_NAMES == PRIM_pf_consoleLine) ? 1 : -1];
+typedef char prim_names_enum_parity_check[(N_PRIM_NAMES == PRIM_pf_debugHeld) ? 1 : -1];
 
 /* rete#226 — CLASSIFICATION HAPPENS ONCE, WHERE THE SYMBOL IS MADE.
 

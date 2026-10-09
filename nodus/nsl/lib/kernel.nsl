@@ -4086,6 +4086,10 @@ class Kernel usingPlatform: platform = (
   )
 
   public readLine = ( ^ platform readLine )
+  (* rete#377: the debugger's hold, told to the liveness observer — true before its
+     command loop, false on the continue — so a stop served through porta is a HELD VM
+     and not a wedged one. The cable read no longer says it; the loop does. *)
+  public debugHeld: aBoolean = ( ^ platform debugHeld: aBoolean )
   public protectedFire: aBlock value: v = ( ^ platform protectedFire: aBlock value: v )
   public valueRank: v = ( ^ platform valueRank: v )
   (* The restart-sweep verb (Milestone D Task 4): the Supervisor (Task 5) calls

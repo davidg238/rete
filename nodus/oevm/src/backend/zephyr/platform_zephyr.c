@@ -73,8 +73,10 @@ void platform_console_flush(void) { }
    no framing: the spike asked whether SLIP is needed for one cable, and this
    degenerate case answered no on all three board families (docs/results/
    2026-10-02-311-line-in-spike.md). Blocks until a newline, as the posix fgets does —
-   a blocked VM is a HELD VM, and `debug_held` is how the liveness observer is told
-   not to count the hold as a wedge (observer_core.h §3.2).
+   a blocked VM is a HELD VM. `debug_held` is how the liveness observer is told not to
+   count the hold as a wedge (observer_core.h §3.2), and since rete#377 the DEBUGGER
+   sets it around its whole command loop (platform_debug_hold), not this read around
+   its block: a stop served through porta never blocks here, and read as a wedge.
 
    THE ENABLE FOLLOWS THE BUILD. A board has no environment to carry OEVM_DEBUG, so a
    hooks-enabled image (OEVM_DEBUG_HOOKS=1) is the debug image: the Supervisor prints
@@ -104,7 +106,7 @@ void platform_console_flush(void) { }
 #if defined(CONFIG_UART_CONSOLE) && DT_HAS_CHOSEN(zephyr_console)
 #include <zephyr/device.h>
 #include <zephyr/drivers/uart.h>
-static volatile int debug_held;   /* written by the VM thread, read by the observer and the ISR */
+static volatile int debug_held;   /* written by the VM thread (platform_debug_hold), read by the observer and the ISR */
 volatile int platform_debug_pending;
 #define RL_IS_CDC DT_NODE_HAS_COMPAT(DT_CHOSEN(zephyr_console), zephyr_cdc_acm_uart)
 
@@ -220,17 +222,18 @@ int platform_debug_readline(char *buf, int cap) {
     int n = 0;
     if (cap < 1 || !device_is_ready(dev)) return -1;
     if (rl_nobody(dev)) return -1;   /* rete#376: a silent cable is nobody's -> EOF */
-    debug_held = 1;
     for (;;) {
         int c = rl_getc(dev);
         if (c == '\n') break;
         if (c == '\r') continue;
         if (n < cap - 1) buf[n++] = (char)c;
     }
-    debug_held = 0;
     buf[n] = '\0';
     return n;
 }
+/* rete#377: the debugger brackets its command loop with these; the read above no
+   longer touches the flag (platform_backend.h). */
+void platform_debug_hold(int held) { debug_held = held ? 1 : 0; }
 int platform_debug_held(void) { return debug_held; }
 static void rl_arm_boot(void) {
     const struct device *dev = DEVICE_DT_GET(DT_CHOSEN(zephyr_console));
@@ -248,6 +251,7 @@ int platform_debug_readline(char *buf, int cap) {
     return -1;   /* no console device to read a line from */
 }
 int platform_debug_held(void) { return 0; }
+void platform_debug_hold(int held) { (void)held; }
 int platform_console_arm(int chan_id) { (void)chan_id; return 0; }
 int platform_console_take_line(char *buf, int cap) { (void)buf; (void)cap; return -1; }
 volatile int platform_debug_pending;

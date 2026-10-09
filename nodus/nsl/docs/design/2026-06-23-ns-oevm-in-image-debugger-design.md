@@ -248,6 +248,19 @@ question is "has anyone spoken", never "how long". The porta link is handed to t
 debugger by the bridge at construction (no opt-in), and a stop reads whichever transport
 speaks first. Record and measurements: peer design D19, addendum 2026-10-09 (#376).
 
+## Addendum — the held state brackets the command loop (2026-10-09, rete#377)
+
+The 2026-10-02 addendum told the liveness observer about a hold from inside the cable read,
+which was the only place a hold happened. With the porta link (#376) a stop is served by held
+exchanges between lines and the read is never entered, so a node stopped through porta was
+rebooted as wedged at appCad. The hold is now the debugger's to declare, not the transport's:
+`Debugger>>held:at:` sends `platform debugHeld: true` before `commandLoop`, `resumed` sends
+`false` on the continue, and `platform_debug_readline` writes nothing — one writer, whichever
+link serves the stop. A step pauses again before anything clears it, so a stepping VM stays
+held until the continue. Trap, measured: the prim's argument is a literal `true`, the image's
+own Symbol, so the compare is `is_truthy` and never identity (`tests/22_spacesync/29_debug_held.nsl`).
+Record and measurements: peer design D19, addendum 2026-10-09 (#377).
+
 **`dbg:inspect` must not kill the program.** A pause lands anywhere, and a frame's
 registers hold blocks, contexts and vtables, which answer no `printString`; `describe:`
 tells them apart by vtable identity against an exemplar and prints a bracketed note.

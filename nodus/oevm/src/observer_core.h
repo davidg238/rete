@@ -115,10 +115,11 @@ static inline int observer_core_verdict(struct ObsCore *st, const struct ObsSamp
         uint32_t now        = s->now_ms ? s->now_ms : 1u;   /* 0 is the sentinel */
         int      progressed = (s->drained != st->last_drained_seen);
         st->last_drained_seen = s->drained;
-        /* rete#311 — a HELD VM is not a wedged one. The debugger holds the VM by
-           blocking it in the debug read (at a breakpoint, or in the boot-time command
-           loop), and from here that is indistinguishable from a wedge: the feed stops
-           and the ISR keeps firing. So the hold is told to the sampler, and while it
+        /* rete#311 — a HELD VM is not a wedged one. The debugger holds the VM in its
+           command loop (at a breakpoint, or at the boot stop) — blocked in the cable
+           read, or running held exchanges through porta (rete#377) — and from here
+           that is indistinguishable from a wedge: the feed stops and the ISR keeps
+           firing. So the hold is told to the sampler (platform_debug_hold), and while it
            lasts the feed age is re-latched every sample — the clock restarts from the
            RELEASE, so a board held longer than appCad is not rebooted on the first
            sample after `dbg:continue`. §3.1 above is deliberately NOT held off: a
