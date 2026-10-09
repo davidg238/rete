@@ -515,6 +515,19 @@ field half is built (decided 2026-10-09), so nothing in the release is labelled 
 desktop and USB half on one board. Not yet shown: a field node, a debugger over a radio, or an agent writing C against
 an agent writing nsl.
 
+Version 0.1 is defined as one node, every verb, through the gateway, over the radio, while the node sleeps. By
+lifecycle stage, against the C toolchain the reader already has:
+
+| Stage | The C toolchain | rete today | Version 0.1 |
+|---|---|---|---|
+| write | edit, compile, link | the same program runs first on the host VM; authority in the header; 160 closed primitives | the same |
+| deploy | flash the firmware | load an image beside the firmware over the cable (ESP32-C6 only); a manifest-checked wire | over the cable or through the gateway (#233) |
+| debug | `printf`; a probe and gdb | source-line breakpoints, the stack and named locals, patch and restart, over one USB cable | over the cable or through the gateway, on a node that sleeps (#375–#377, #380, #379) |
+| observe | nothing | a per-method profile on the shipped image (1.3 %); heap statistics every check-in; a liveness observer that dumps and leaves a note | the profile through the gateway as well |
+| manage | a site visit | the gateway holds intent for a node that is asleep and judges its liveness from outside | and keeps each commissioned image with its symbol map |
+
+The cable is the desk. The last column is what 0.1 is.
+
 <div style="page-break-before: always"></div>
 
 ## Appendix A. A Thread node in 36 lines of code

@@ -3,12 +3,16 @@
 _Rewritten (never appended) at every `/conclude`; under ~15 lines. History: `git log -p FOCUS.md`; the pre-2026-09-30
 blocks are in `docs/status/focus-history.md`; live state is in the issues and `docs/status/dev-status.html`._
 
+- **0.1 is defined (David, 2026-10-09): one node (the C6, then the MagTag), every verb — load, debug, patch, profile — through porta,
+  over the radio, while it sleeps** (#380/#379 with #375–#377 and #233 inside; tracker #26 has the lifecycle table). Nobody is waiting;
+  holes the papers expose are filled before 0.1, not labelled. Everything off that path is P3 for 0.1.
 - **FOCUS (David, 2026-10-08): remote debug of sleepy and running nodes over porta** (#342, peer design D19). **Next session starts
   with:** a branch off master for #375: update `Debug{…}` in `protocol/MANIFEST.cddl` to carry the breakpoints (+ sha) and add `obs/debug`, editing
   the manifest, `records.yaml`, the goldens and porta together; then make `sleepy_debug_host.sh` leg B manifest-armed. Then #376, #377.
-- **Paper thread (2026-10-09):** split into L (language, `nodus/nsl/docs/nsl-design-paper.md`, draft 3) and E (embedded developer,
-  `nsl-embedded-paper.md`, draft 1) on branch `paper-split` (pushed, not merged); reading copies at `http://gw85224-01:6971/dev/papers/`
-  (render + scp by hand). Outline and decisions: `nodus/nsl/docs/design/2026-10-08-paper-split-outlines.md`.
+- **Paper thread (2026-10-09):** L (language, `nodus/nsl/docs/nsl-design-paper.md`, draft 4: an engineering account for three readers,
+  three kinds of C) and E (`nsl-embedded-paper.md`, draft 2: a report, not a defence; Clohessy 1996 as lineage; #61 beside CBOR; MicroPython
+  straight, #383) on branch `paper-split`; reading copies at `http://gw85224-01:6971/dev/papers/` (markdown_it + the page's style, scp
+  to `gw85224-01:porta-v2/docs/papers/`). Outline and decisions: `nodus/nsl/docs/design/2026-10-08-paper-split-outlines.md`.
 - **Queue:** #375 → #376 → #377 → #380 (C6 demo) → #379 (MagTag demo), both with program OTA (#233); #378 open; #381 cold-boot profile; #297 (CBOR walk to C).
 - **Awaiting David:** read E and L, and merge `paper-split` (yes/no); LICENSE and history rewrite (#368, a force-push); close #314 (yes/no);
   when c6bench moves to `rete-custos`; `review/` names the deleted console tools.
