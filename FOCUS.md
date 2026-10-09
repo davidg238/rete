@@ -11,7 +11,7 @@ blocks are in `docs/status/focus-history.md`; live state is in the issues and `d
   starts with:** a branch off master for #377 — the held state brackets the debugger's command loop whichever link serves it (a stop held
   through porta reads as APP_STALE today): read `observer_core.h` §3.2 and `platform_debug_held`, decide the primitive, prove on `c6spare`
   that a hold longer than appCad is not rebooted. Then #380, #379, #233.
-- **Papers** merged to master (2026-10-09): L draft 4, E draft 2 + Barry 1989 folded in (2809fbd; the gw copy is NOT refreshed).
+- **Papers** merged to master (2026-10-09): L draft 4, E draft 2 + Barry 1989 folded in (2809fbd; gw copy refreshed 2026-10-09).
   Copies at `http://gw85224-01:6971/dev/papers/` (markdown_it + the page's own `<style>`, scp to `gw85224-01:porta-v2/docs/papers/`).
 - **Awaiting David:** read E and L; LICENSE and history rewrite (#368); close #314 (yes/no); when c6bench moves
   to `rete-custos`; `review/` names the deleted console tools.
