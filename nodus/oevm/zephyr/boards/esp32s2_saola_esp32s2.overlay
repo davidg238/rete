@@ -340,3 +340,14 @@
 		zephyr,code-partition = &slot0_partition;
 	};
 };
+
+/* rete#379 — the console RX (GPIO44, the UART Debug header) pulled up. The base
+ * pinctrl leaves it floating; with the console now interrupt-driven
+ * (prj_esp32s2.conf) a floating RX reads noise as bytes, and one byte is "someone
+ * spoke" to the debug image's boot stop (rete#376) — or a newline is a pause. An
+ * idle UART line is high, so the pull-up makes an unplugged header read as idle. */
+&uart0_default {
+	group2 {
+		bias-pull-up;
+	};
+};

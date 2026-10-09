@@ -34,8 +34,14 @@ class MagTagSleepyDebugNode usingPlatform: platform net: net = (
   | space bridge wakes ::= 0. total ::= 0. |
 ) (
   nodeId    = ( ^ platform nodeId )
-  (* gw85224-01 on the LAN the MagTag's WiFi joins: the real gateway, not an injector. *)
-  gwAddr    = ( ^ '192.168.0.176' )
+  (* gw85224-01 on the LAN the MagTag's WiFi joins: the real gateway, not an injector —
+     by its stable (EUI-64) ULA, not 192.168.0.176. The bridge awaits porta's reply on
+     the socket it bound (udpBindPort:, AF_INET6), but udp_zephyr.c sends to an IPv4
+     literal from a second, unbound AF_INET socket, so porta's reply lands on an
+     ephemeral port nobody reads and no exchange can complete (rete#390). Over IPv6 the
+     send and the reply share the one socket, as on Thread. The LAN advertises the
+     fd3f:2e87:5f7:5554::/64 prefix, so the S2 configures itself by SLAAC: no DHCP. *)
+  gwAddr    = ( ^ 'fd3f:2e87:5f7:5554:6662:66ff:fe2f:710' )
   gwPort    = ( ^ 6969 )
   localPort = ( ^ 16976 )
   sleepSec  = ( ^ 30 )
