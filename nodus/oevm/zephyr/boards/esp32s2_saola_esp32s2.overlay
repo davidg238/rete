@@ -309,3 +309,34 @@
 &i2c0 {
 	status = "disabled";
 };
+
+/* rete#379 — the nsl program in its own flash partition, the carve the C6 overlay made
+ * for rete#310 (esp32c6_devkitc_esp32c6_hpcore.overlay): the S2's default 4 MB table
+ * is the same table (partitions_0x1000_default_4M.dtsi), so the same offsets hold.
+ * Without this the S2 linked its program into the firmware and knew no sha, so a
+ * Debug goal could not be checked against the running program and `custos load`
+ * had nothing to write. The chosen code partition is restated because it named the
+ * deleted node. */
+/delete-node/ &slot0_partition;
+/delete-node/ &slot1_partition;
+&flash0 {
+	partitions {
+		slot0_partition: partition@20000 {
+			label = "image-0";
+			reg = <0x20000 DT_SIZE_K(1536)>;
+		};
+		slot1_partition: partition@1a0000 {
+			label = "image-1";
+			reg = <0x1A0000 DT_SIZE_K(1536)>;
+		};
+		program_partition: partition@320000 {
+			label = "program";
+			reg = <0x320000 DT_SIZE_K(512)>;
+		};
+	};
+};
+/ {
+	chosen {
+		zephyr,code-partition = &slot0_partition;
+	};
+};

@@ -855,7 +855,7 @@ int bell_target_strike(int bells)
 
 #include "platform_backend.h"   /* OEVM_DISPLAY_ROWS/COLS — the one place the grid is named (tuvm#88) */
 
-#if DT_HAS_CHOSEN(zephyr_display)
+#if defined(CONFIG_DISPLAY) && DT_HAS_CHOSEN(zephyr_display)
 #include <zephyr/drivers/display.h>
 #include <zephyr/display/cfb.h>
 #include <string.h>   /* memcpy in display_target_put — not pulled in unconditionally
@@ -887,7 +887,7 @@ int bell_target_strike(int bells)
  * arrives once afterwards. The async driver-job alternative is the clock rung's
  * problem, per design D6.
  */
-#if DT_HAS_CHOSEN(zephyr_display)
+#if defined(CONFIG_DISPLAY) && DT_HAS_CHOSEN(zephyr_display)
 static const struct device *disp_dev;
 static int disp_rows, disp_cols, disp_font_h;
 
@@ -948,7 +948,7 @@ static int disp_render(void)
 #endif
 static bool disp_ok;
 
-#if DT_HAS_CHOSEN(zephyr_display)
+#if defined(CONFIG_DISPLAY) && DT_HAS_CHOSEN(zephyr_display)
 static void display_bringup(void)
 {
 	uint8_t fw, fh;
@@ -1048,11 +1048,11 @@ static void display_bringup(void)
 	disp_ok = true;
 	printk("DISPLAY OK rows=%d cols=%d font=%ux%u\n", disp_rows, disp_cols, fw, fh);
 }
-#endif /* DT_HAS_CHOSEN(zephyr_display) */
+#endif /* CONFIG_DISPLAY && DT_HAS_CHOSEN(zephyr_display) */
 
 int display_target_available(void)
 {
-#if DT_HAS_CHOSEN(zephyr_display)
+#if defined(CONFIG_DISPLAY) && DT_HAS_CHOSEN(zephyr_display)
 	/* LAZY bringup (tuvm#94 stage 5): every display prim funnels through this check,
 	 * and bringup must NOT run on wakes that never paint. The reason is in the uc81xx
 	 * driver: display_blanking_off() is implemented as a full panel refresh of the
@@ -1076,7 +1076,7 @@ int display_target_available(void)
 
 int display_target_clear(void)
 {
-#if DT_HAS_CHOSEN(zephyr_display)
+#if defined(CONFIG_DISPLAY) && DT_HAS_CHOSEN(zephyr_display)
 	disp_grid_reset();
 	return 0;
 #else
@@ -1086,7 +1086,7 @@ int display_target_clear(void)
 
 int display_target_put(int row, int col, const char *s, int n)
 {
-#if DT_HAS_CHOSEN(zephyr_display)
+#if defined(CONFIG_DISPLAY) && DT_HAS_CHOSEN(zephyr_display)
 	if (row < 0 || row >= disp_rows) return 1;
 	if (col < 0 || n < 0 || col + n > disp_cols) return 1;
 
@@ -1103,7 +1103,7 @@ int display_target_put(int row, int col, const char *s, int n)
 
 int display_target_refresh(void)
 {
-#if DT_HAS_CHOSEN(zephyr_display)
+#if defined(CONFIG_DISPLAY) && DT_HAS_CHOSEN(zephyr_display)
 	int err = disp_render();
 
 	if (err) return err;
@@ -1115,7 +1115,7 @@ int display_target_refresh(void)
 
 int display_target_refresh_row(int row)
 {
-#if DT_HAS_CHOSEN(zephyr_display)
+#if defined(CONFIG_DISPLAY) && DT_HAS_CHOSEN(zephyr_display)
 	int width = cfb_get_display_parameter(disp_dev, CFB_DISPLAY_WIDTH);
 	int err;
 
