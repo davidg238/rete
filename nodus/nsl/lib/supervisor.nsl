@@ -84,6 +84,11 @@ class Supervisor usingMirror: mirror = () (
     (* A line arrived through the space while the program ran: stop at the next
        bytecode, the same pause a line on the cable causes (platform_debug_pending). *)
     public wake = ( m requestStep: 1. ^ self )
+    (* rete#375: held, and where — the link publishes obs/debug; the cable has no
+       cell to write, so with no link these are nothing. Written at every stop and
+       on continue; a step pauses again and rewrites the where. *)
+    held: blob at: off = ( link == nil ifFalse: [ link held: blob at: off ]. ^ self )
+    resumed = ( link == nil ifFalse: [ link resumed ]. ^ self )
 
     (* Parse a non-negative integer from a String of ASCII digits (no asInteger
        in this dialect): n:: n*10 + (byte - 48). Empty string answers 0. *)
@@ -220,6 +225,7 @@ class Supervisor usingMirror: mirror = () (
             ws nextPutAll: ' '.
             ws print: off ].
         self say: ws contents.
+        self held: blob at: off.
         self commandLoop.
         ^ self ].
       (* STEP path: decide whether to pause based on stepMode + sender-chain depth. *)
@@ -235,6 +241,7 @@ class Supervisor usingMirror: mirror = () (
       ws nextPutAll: ' '.
       ws print: off.
       self say: ws contents.
+      self held: blob at: off.
       self commandLoop.
       ^ self )
 
@@ -347,7 +354,7 @@ class Supervisor usingMirror: mirror = () (
            else was_stepping keeps the app single-stepping forever; the boot stop and a
            pause arrived as a step too, so the 0 is what lets the program run. *)
         (line == nil or: [ verb:: self verbOf: line. verb = 'dbg:continue' or: [ verb = 'dbg:run' ] ])
-          ifTrue: [ stepMode:: nil. m requestStep: 0. ^ self ].
+          ifTrue: [ stepMode:: nil. m requestStep: 0. self resumed. ^ self ].
         verb = 'dbg:pause' ifTrue: [ self say: 'dbg:ok pause' ] ifFalse: [
         verb = 'dbg:break' ifTrue: [ self doBreak: line ] ifFalse: [
         verb = 'dbg:clear' ifTrue: [ self doClear: line ] ifFalse: [

@@ -37,6 +37,7 @@ sym-BlobRef     = #6.39("BlobRef")
 sym-Build       = #6.39("Build")
 sym-CHeap       = #6.39("CHeap")
 sym-Debug       = #6.39("Debug")
+sym-DebugObs    = #6.39("DebugObs")
 sym-Health      = #6.39("Health")
 sym-LatencySpan = #6.39("LatencySpan")
 sym-Liveness    = #6.39("Liveness")
@@ -80,6 +81,11 @@ sym-fal         = #6.39("fal")
 sym-fre         = #6.39("fre")
 sym-gcc         = #6.39("gcc")
 sym-hash        = #6.39("hash")
+sym-sha         = #6.39("sha")
+sym-breaks      = #6.39("breaks")
+sym-off         = #6.39("off")
+sym-blob        = #6.39("blob")
+sym-held        = #6.39("held")
 sym-hhw         = #6.39("hhw")
 sym-hnhw        = #6.39("hnhw")
 sym-hnl         = #6.39("hnl")
@@ -175,8 +181,21 @@ mode = #6.27([sym-Mode, {
 config-cell = scalar
 
 ;# path=goal/debug/<app>  kind=cell  class=routine  dir=down
+; The WHOLE breakpoint set for the program named by sha (rete#375): a blob offset
+; means nothing in another image. An empty set is the detach; the cell is what a
+; cold-booting node re-arms from (a dbg/req row is not replayed, rete#262).
 debug = #6.27([sym-Debug, {
-  sym-action => #6.39("attach") / #6.39("detach"),
+  sym-sha    => bstr,
+  sym-breaks => [* [blob: uint, off: uint]],
+}])
+
+;# path=obs/debug  kind=cell  class=routine  dir=up
+; Held, and where: written by the node at every stop and on continue (rete#375), so
+; porta and the monitor show a held node with no debugger attached.
+debug-obs = #6.27([sym-DebugObs, {
+  sym-off  => uint,
+  sym-blob => uint,
+  sym-held => bool,
 }])
 
 ;# path=goal/profile/<app>  kind=cell  class=routine  dir=down

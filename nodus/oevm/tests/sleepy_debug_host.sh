@@ -7,10 +7,13 @@
 #      at porta for the next check-in, the node stops in `work:`, reports the stop on
 #      dbg/resp, and is stepped and inspected through porta while held.
 #   B. a node whose sleep is a cold boot (deep sleep): the breakpoint lives in the
-#      goal/debug/main CELL, which porta replays to a fresh boot (a dbg/req row is not
-#      replayed, #262), so the node re-arms it on every wake. Killing the process is
-#      the simulated sleep. Runs WITHOUT --manifest: the spike's goal shape (a List of
-#      lines) is not the manifest's Debug{action} record.
+#      goal/debug/main CELL — the manifest's Debug{sha, breaks} record (#375) — which
+#      porta replays to a fresh boot (a dbg/req row is not replayed, #262), so the node
+#      re-arms it on every wake. Killing the process is the simulated sleep. Manifest-
+#      armed, and the guard is broken first: the same record under another program's
+#      sha arms nothing (the node answers `dbg:error sha`), so the stop that follows
+#      can only have come from the sha check passing.
+#      Leg A also reads obs/debug: held true at the stop, false after the continue.
 #   D. profile in the same debug image: a `profile <ms>` row goes to the kernel's
 #      Profiler, not the debugger, so the window opens at the next check-in, closes on
 #      its own timer while the node sleeps, and never holds the node.
@@ -58,6 +61,25 @@ gcc -std=c99 -DOEVM_METHOD_PROFILE -Isrc \
 OFF=$(python3 -c "import json,sys; m=json.load(open(sys.argv[1]))['methods']; print([k for k,v in m.items() if v['name']=='SleepyDebugNode>>work:'][0])" "$W/node.oimg.map.json")
 BRK="dbg:break $OFF 0"; HIT="dbg:paused break $OFF 0"
 echo "  work: is blob offset $OFF"
+# The program's hash, as the node reports it in obs/apps/main and as a Debug goal
+# names it (#375). The host node learns its own from OEVM_IMAGE_HASH (ota.c).
+SHA=$(sha256sum "$W/node.oimg" | awk '{print $1}')
+goal_hex() {  # $1 = sha hex, $2 = blob offset -> hex of Debug{sha, breaks: [[off 0]]}
+  python3 - "$1" "$2" <<'PY'
+import sys
+def head(major, n):
+    if n < 24: return bytes([major << 5 | n])
+    if n < 256: return bytes([major << 5 | 24, n])
+    if n < 65536: return bytes([major << 5 | 25]) + n.to_bytes(2, "big")
+    return bytes([major << 5 | 26]) + n.to_bytes(4, "big")
+def sym(s): return b"\xd8\x27" + head(3, len(s)) + s.encode()
+sha = bytes.fromhex(sys.argv[1]); off = int(sys.argv[2])
+rec = (b"\xd8\x1b" + head(4, 2) + sym("Debug") + head(5, 2)
+       + sym("sha") + head(2, len(sha)) + sha
+       + sym("breaks") + head(4, 1) + head(4, 2) + head(0, off) + head(0, 0))
+print(rec.hex())
+PY
+}
 
 serve() {  # $1 = db, $2.. = extra flags
   local db=$1; shift
@@ -69,10 +91,10 @@ serve() {  # $1 = db, $2.. = extra flags
 stop_porta() { kill "$PORTA_PID" 2>/dev/null || true; wait "$PORTA_PID" 2>/dev/null || true; PORTA_PID=""; }
 start_node() {  # $1 = log, $2 = "debug" or "std"
   if [ "$2" = debug ]; then
-    OEVM_DEBUG=1 OEVM_TIMER_WALLCLOCK=1 OEVM_BOOTID_FILE="$W/bootid" OEVM_NODE_ID="$NODE" \
+    OEVM_DEBUG=1 OEVM_TIMER_WALLCLOCK=1 OEVM_BOOTID_FILE="$W/bootid" OEVM_NODE_ID="$NODE" OEVM_IMAGE_HASH="$SHA" \
       "$W/oevm" "$W/node.oimg" </dev/null >>"$1" 2>&1 &
   else
-    OEVM_TIMER_WALLCLOCK=1 OEVM_BOOTID_FILE="$W/bootid" OEVM_NODE_ID="$NODE" \
+    OEVM_TIMER_WALLCLOCK=1 OEVM_BOOTID_FILE="$W/bootid" OEVM_NODE_ID="$NODE" OEVM_IMAGE_HASH="$SHA" \
       "$W/oevm" "$W/node.oimg" </dev/null >>"$1" 2>&1 &
   fi
   NODE_PID=$!
@@ -104,6 +126,10 @@ req "$DB" "$BRK"; req "$DB" "dbg:continue"
 MS=$(await_resp "$DB" "$HIT" 0 25)
 [ "$MS" = TIMEOUT ] && { echo "FAIL: no '$HIT' on dbg/resp within 25 s"; tail -20 "$W/a.log"; exit 1; }
 echo "  stopped in work: and reported it through porta, $MS ms after the breakpoint was written (cadence 10000 ms)"
+# #375: the hold is a cell, obs/debug, so a monitor with no debugger attached sees it.
+OBS=$("$W/porta" get --db "$DB" "$NODE" obs/debug 2>/dev/null || true)
+echo "$OBS" | grep -qF "#blob: $OFF, #held: true" || { echo "FAIL: obs/debug does not report the hold: $OBS"; exit 1; }
+echo "  obs/debug while held: $OBS"
 for c in "dbg:backtrace|dbg:frames $OFF@" "dbg:inspect|dbg:stack off=" "dbg:step|dbg:paused step $OFF"; do
   cmd=${c%%|*}; want=${c#*|}
   n=$(resp_count "$DB" "$want"); req "$DB" "$cmd"
@@ -123,13 +149,29 @@ LAST=$(plog "$DB" "$NODE" --limit 100000 | grep 'tel/log' | head -1)
 echo "$LAST" | grep -q "held [1-9]" || { echo "FAIL: no tick after continue, or it counts no held exchange: $LAST"; exit 1; }
 HELD=$(echo "$LAST" | grep -o 'held [0-9]*' | awk '{print $2}')
 echo "  resumed; $HELD held exchanges were run while stopped"
+OBS=$("$W/porta" get --db "$DB" "$NODE" obs/debug 2>/dev/null || true)
+echo "$OBS" | grep -qF "#held: false" || { echo "FAIL: obs/debug still reads held after the continue: $OBS"; exit 1; }
+echo "  obs/debug after continue: $OBS"
 stop_node; stop_porta
 
 echo "[3/6] leg B: the breakpoint is a goal cell, re-armed on every cold boot"
 DB="$W/b.db"; echo 50 > "$W/bootid"
-serve "$DB"
-HEX=$(python3 -c "import sys; s=sys.argv[1].encode(); print((b'\x81'+(bytes([0x60+len(s)]) if len(s)<24 else b'\x78'+bytes([len(s)]))+s).hex())" "$BRK")
-"$W/porta" put --db "$DB" --raw "$NODE" goal/debug/main "$HEX" >/dev/null
+serve "$DB" --manifest "$ROOT/protocol/MANIFEST.cddl"
+# Break the guard first: the same breakpoint under another program's sha must arm
+# nothing — the node refuses on dbg/resp, then ticks through work: unheld.
+WRONG=$(printf 'a%.0s' $(seq 1 64))
+"$W/porta" put --db "$DB" --raw "$NODE" goal/debug/main "$(goal_hex "$WRONG" "$OFF")" >/dev/null
+start_node "$W/b.log" debug
+MS=$(await_resp "$DB" "dbg:error sha" 0 25)
+[ "$MS" = TIMEOUT ] && { echo "FAIL: a goal under another program's sha was not refused"; tail -20 "$W/b.log"; exit 1; }
+for _ in $(seq 1 250); do
+  plog "$DB" "$NODE" --limit 1000 | grep -q 'tel/log' && break; sleep 0.1
+done
+plog "$DB" "$NODE" --limit 1000 | grep -q 'tel/log' || { echo "FAIL: the node never ticked after the refusal"; exit 1; }
+[ "$(resp_count "$DB" "$HIT")" = 0 ] || { echo "FAIL: a goal under another program's sha armed a breakpoint"; exit 1; }
+echo "  another program's sha: refused in $MS ms, ticked on, nothing armed"
+stop_node
+"$W/porta" put --db "$DB" --raw "$NODE" goal/debug/main "$(goal_hex "$SHA" "$OFF")" >/dev/null
 for wake in 1 2; do
   n=$(resp_count "$DB" "$HIT")
   start_node "$W/b.log" debug

@@ -1632,19 +1632,44 @@ class Kernel usingPlatform: platform = (
      next push, and `readLine` answers the next line, running held exchanges while
      there is none. nil (the debugger's EOF, which resumes) when an exchange is
      already on the stack. *)
-  class DebugLink = ( | bridge lines | ) (
-    setBridge: b = ( bridge:: b. lines:: OrderedCollection new. ^ self )
+  class DebugLink = ( | bridge space lines armed | ) (
+    setBridge: b space: s = (
+      bridge:: b. space:: s.
+      lines:: OrderedCollection new. armed:: OrderedCollection new.
+      ^ self )
     public accept: line = ( lines add: line. ^ self )
-    (* goal/debug/main: a List of command lines (spike shape — the manifest's
-       Debug{action} carries no breakpoints). Untrusted: anything but a List of
-       Strings is ignored. The goal means "set these and run", so a continue
-       follows them. *)
+    (* goal/debug/main is the WHOLE breakpoint set, `Debug{sha, breaks: [[blob off]…]}`
+       (rete#375). The sha names the program the offsets belong to: a blob offset
+       means nothing in another image, so a goal for another program arms nothing
+       and says so on dbg/resp. The previous goal's breakpoints are cleared first —
+       the cell is a set, not a sum — and an empty set is the detach. The goal means
+       "set these and run", so a continue follows. Untrusted: anything off-shape is
+       ignored, field by field. A node that knows no hash (a bare host run) cannot
+       check, and arms. *)
     public acceptGoal: v = (
-      | i |
-      (outer rankOf: v) = 7 ifFalse: [ ^ self ].
+      | sha mine breaks i bp at |
+      (outer rankOf: v) = 9 ifFalse: [ ^ self ].
+      v tag = #Debug ifFalse: [ ^ self ].
+      breaks:: v at: #breaks ifAbsent: [ nil ].
+      (outer rankOf: breaks) = 7 ifFalse: [ ^ self ].
+      mine:: outer otaRunningHash.
+      mine == nil ifFalse: [
+        sha:: v at: #sha ifAbsent: [ nil ].
+        ((outer rankOf: sha) = 5 and: [ sha = mine ]) ifFalse: [
+          self say: 'dbg:error sha'. ^ self ] ].
       i:: 1.
-      [ i <= v size ] whileTrue: [
-        (outer rankOf: (v at: i)) = 4 ifTrue: [ lines add: (v at: i) ].
+      [ i <= armed size ] whileTrue: [ lines add: 'dbg:clear ' , (armed at: i). i:: i + 1 ].
+      armed:: OrderedCollection new.
+      i:: 1.
+      [ i <= breaks size ] whileTrue: [
+        bp:: breaks at: i.
+        ((outer rankOf: bp) = 7 and: [ bp size = 2
+            and: [ (outer rankOf: (bp at: 1)) = 2 and: [ (outer rankOf: (bp at: 2)) = 2
+            and: [ (bp at: 1) >= 0 and: [ (bp at: 2) >= 0 ] ] ] ] ])
+          ifTrue: [
+            at:: (bp at: 1) printString , ' ' , (bp at: 2) printString.
+            armed add: at.
+            lines add: 'dbg:break ' , at ].
         i:: i + 1 ].
       lines add: 'dbg:continue'.
       ^ self )
@@ -1653,8 +1678,19 @@ class Kernel usingPlatform: platform = (
     public readLine = (
       [ lines isEmpty ] whileTrue: [ bridge heldExchange ifFalse: [ ^ nil ] ].
       ^ lines removeFirst )
+    (* obs/debug (rete#375): held, and where. A cell, so the next push carries it —
+       the held exchange's own push while stopped, the tick's after a continue. The
+       blob is -1 in a Path A image (no blob); the wire says uint, so 0 stands in. *)
+    public held: blob at: off = ( ^ self publishHeld: true blob: blob off: off )
+    public resumed = ( ^ self publishHeld: false blob: 0 off: 0 )
+    publishHeld: h blob: b off: o = (
+      space put: 'obs/debug' value: (Record tag: #DebugObs
+        with: #off -> (o < 0 ifTrue: [ 0 ] ifFalse: [ o ])
+        with: #blob -> (b < 0 ifTrue: [ 0 ] ifFalse: [ b ])
+        with: #held -> h).
+      ^ self )
   ) : (
-    public onBridge: b = ( ^ self new setBridge: b )
+    public onBridge: b space: s = ( ^ self new setBridge: b space: s )
   )
 
   class PortaBridge = (
@@ -1890,7 +1926,7 @@ class Kernel usingPlatform: platform = (
        one pull and one push, back to back, until a line arrives. *)
     public debugOverSpace = (
       outer debugger == nil ifTrue: [ ^ false ].
-      dbgLink:: DebugLink onBridge: self.
+      dbgLink:: DebugLink onBridge: self space: space.
       outer debugger useLink: dbgLink.
       ^ true )
     (* Only `dbg:` lines are the debugger's. `profile <ms>` stays with the kernel's
@@ -2002,11 +2038,11 @@ class Kernel usingPlatform: platform = (
         ^ self ].
       kind = 2 ifTrue: [
         space put: path value: value.
-        (* #342 spike: the breakpoints a cold-booting node must re-arm. A cell is
-           replayed to a fresh boot's cursor 0 and a dbg/req row is not (#262), so
-           the goal is what survives deep sleep. Applied here and not in a reaction:
-           a node that wakes, checks in, works and sleeps would run its work before
-           any drain set the breakpoint. *)
+        (* #342 spike, #375: the breakpoint set a cold-booting node must re-arm. A
+           cell is replayed to a fresh boot's cursor 0 and a dbg/req row is not
+           (#262), so the goal is what survives deep sleep. Applied here and not in
+           a reaction: a node that wakes, checks in, works and sleeps would run its
+           work before any drain set the breakpoint. *)
         (dbgLink == nil or: [ (path = 'goal/debug/main') not ]) ifFalse: [
           dbgLink acceptGoal: value ].
         ^ self ].
