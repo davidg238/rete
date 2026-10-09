@@ -69,8 +69,18 @@ rete keeps the first four. A 256 KB radio part cannot carry what his Smalltalk k
 in-image debugger cost more RAM and flash than the part has to give. So the liveness is moved off the node. The node holds a frozen, read-only
 image and a confined mirror that a debugger can use; the gateway (porta) and the desk peer (custos) hold the rest of
 what a live image gave, and reach the node through the wire. The same split decides where the debugger, the patcher
-and the profiler live (§8, §9). Barry's OOPSLA '89 paper, *Prototyping Real Time Embedded Systems in Smalltalk*
-[Bar89], is Clohessy's own reference and is the earlier record.
+and the profiler live (§8, §9).
+
+The earlier record is Barry's OOPSLA '89 paper [Bar89], Clohessy's own reference: a radar signal processor
+prototyped in Smalltalk on 68k VME boards, with the live image on the target. Three of its practices are rete's,
+unchanged after thirty-five years. The system was begun as a simulation and grown by stages, developed on PCs and
+moved to the target unmodified, which is Clohessy's fourth point and rete's host VM first (§5, §7). Optimisation was
+deliberately postponed until the architecture was stable and then measured, "no guesswork", which is §3. And the
+first of its three optimisation options was to re-code a frequently invoked method as a primitive in C or assembler,
+which is the mechanism below. The paper also records a cost this one concedes in §11: its experienced C programmers
+took two to four months to become effective in Smalltalk, and "most found the long training period discouraging". Its
+closing open question, whether there is room for code at an intermediate level between Smalltalk and assembler and
+where the boundary falls, is the question rete #383 and the companion paper's three kinds of C are still answering.
 
 One mechanism carries over from this lineage and is owned by the companion paper [Lang]: every operation is a send,
 and a send finds its method in a table, so whether a method is interpreted or C is one field of its binding. A hot
@@ -486,6 +496,7 @@ blind to the interrupt seam, and nothing in this loop closes that gap.
 | RAM given to the arena | 112 KB of 256 KB on the nRF52840, with 4 KB spare at link [Boards] | a larger part; the C6 has 128 KB of arena by choice, and WiFi sets the classic ESP32 to 48 KB |
 | No compile-time types | a misspelt selector is found when it runs, not compiled | the error line names the nearest selector, which softens the cost [Lang] |
 | A language in no model's training data | an agent writes nsl from context, not habit | the test in §10 (#373); not yet run |
+| A dialect to learn | a C programmer learns a Smalltalk dialect; the 1989 record put it at two to four months for experienced C programmers, with the training period itself the discouraging part [Bar89] | unmeasured for nsl; the surface is one kernel and 160 primitives rather than a Smalltalk image [Lang] |
 | One kernel | no virtual classes, no per-target library, `platform` hands out everything [Ledger] | narrowed platforms (row 32) |
 | Tooling at version 0.1 | the compiler is a Python tool, and the loader exists for one board, the ESP32-C6 | more loaders; each board needs its own region and flasher |
 | Debug images are separate | 11.6 % per bytecode and about 500 B of flash [Debugger] | not planned; the standard image stays lean |
@@ -635,8 +646,10 @@ did on its own, and uses `lend` only when a tool outside custos must hold the ca
   Figure 35 (p. 30), GenAI.
 - **[Clo96]** K. Clohessy, *Using object-oriented programming tools to build real-time embedded systems*, Real-Time
   Engineering, Fall 1996 (Object Technology International / IBM). Cited only; not copied into the repository.
-- **[Bar89]** B. Barry, *Prototyping Real Time Embedded Systems in Smalltalk*, Proceedings of OOPSLA '89, New Orleans, ACM SIGPLAN 1989; named as Clohessy's own
-  reference [Clo96], not read for this paper.
+- **[Bar89]** B. M. Barry (Defence Research Establishment Ottawa), *Prototyping a Real-Time Embedded System in
+  Smalltalk*, Proceedings of OOPSLA '89, New Orleans, ACM SIGPLAN 1989, pp. 255–265; Clohessy's own reference [Clo96].
+  Read for §2 and §11. Its "five times the effort in C or Ada" is the author's estimate without a control and is not
+  used here.
 - **[Spans]** The job-latency instrumentation rung (#61, closed 2026-07-21): the entry in
   [the program ladder](../../../review/program-sequence.md) and
   [its design](../../../docs/design/2026-07-21-job-latency-instrumentation-design.md).
