@@ -25,14 +25,19 @@ class Supervisor usingMirror: mirror = () (
     debugFlag = 1 ifTrue: [
       dbg:: Debugger usingMirror: mirror channel: plat.
       dbg registerEntry: entry.
-      (* #342 spike: the kernel knows its debugger, so a PortaBridge can hand it a
-         line link through the space (`debugOverSpace`). The mirror stays here. *)
+      (* The kernel knows its debugger, so a PortaBridge built in this image hands
+         it a line link through the space at construction (rete#376, no opt-in).
+         The mirror stays here. *)
       plat debugger: dbg.
       mirror onBreak: [ :ctx | dbg onBreakContext: ctx ].
       (* The boot wait IS the first pause (rete#311): arm one step, so the next
          bytecode fires the hook with no breakpoint and no step mode -- the pause
          path -- which announces `dbg:ready` the first time and runs the ONE command
-         loop. There is no separate boot loop: every verb works at boot. *)
+         loop. There is no separate boot loop: every verb works at boot.
+         rete#376: the boot stop HOLDS only for a transport someone is on. stdin says
+         so itself (data, or EOF from /dev/null); a board's cable cannot, so its
+         readline answers EOF until the first byte ever arrives on it, and a debug
+         image nobody is on prints `dbg:ready` and runs. The first line stops it. *)
       mirror requestStep: 1 ].
     (* rete#312 Q1: the kernel's one profile handler, in every image. The cable feeds it
        only in a standard image; in a debug image the cable belongs to the loop below,
@@ -71,12 +76,23 @@ class Supervisor usingMirror: mirror = () (
   public class Debugger usingMirror: m channel: io = ( | entry bpBlobs bpOffs stepMode stepDepth curCtx ready link | ) (
     public registerEntry: anEntry = ( entry:: anEntry. ^ self )
 
-    (* #342 spike: where the command lines come from and the replies go. nil is the
-       cable (`io`); a DebugLink is porta's space, whose readLine runs the bridge's
-       held exchange while the program is stopped. Every reply is echoed to the
-       console as well, so a board's log still shows the session. *)
+    (* Where the command lines come from and the replies go (#342 spike, rete#376).
+       The cable (`io`) is always there; a DebugLink is porta's space, handed over
+       by the bridge in a bridged image. With a link, a stop is served by WHICHEVER
+       speaks first: the link's queued lines, then a line already on the cable
+       (`consoleLine`, never blocking -- a cable line is what stopped the program
+       when porta did not), else one held exchange and look again. Without a link
+       the cable read blocks, as before. Every reply is echoed to the console as
+       well, so a board's log still shows the session. *)
     public useLink: aLink = ( link:: aLink. ^ self )
-    readLine = ( ^ link == nil ifTrue: [ io readLine ] ifFalse: [ link readLine ] )
+    readLine = (
+      | l |
+      link == nil ifTrue: [ ^ io readLine ].
+      [ true ] whileTrue: [
+        link pending ifTrue: [ ^ link next ].
+        l:: io consoleLine.
+        (l == nil or: [ l == false ]) ifFalse: [ ^ l ].
+        link heldExchange ifFalse: [ ^ nil ] ] )
     say: s = (
       s println.
       link == nil ifFalse: [ link say: s ].

@@ -121,7 +121,6 @@ echo "[2/6] leg A: a breakpoint waits at porta for a sleeping node's next check-
 DB="$W/a.db"; echo 40 > "$W/bootid"
 serve "$DB" --manifest "$ROOT/protocol/MANIFEST.cddl"
 start_node "$W/a.log" debug
-grep -q "debug over space: true" "$W/a.log" || { echo "FAIL: debugOverSpace answered false in a debug image"; exit 1; }
 req "$DB" "$BRK"; req "$DB" "dbg:continue"
 MS=$(await_resp "$DB" "$HIT" 0 25)
 [ "$MS" = TIMEOUT ] && { echo "FAIL: no '$HIT' on dbg/resp within 25 s"; tail -20 "$W/a.log"; exit 1; }
@@ -189,7 +188,6 @@ echo "[4/6] leg C (control): the same rows to a standard image get no answer"
 DB="$W/c.db"; echo 60 > "$W/bootid"
 serve "$DB" --manifest "$ROOT/protocol/MANIFEST.cddl"
 start_node "$W/c.log" std
-grep -q "debug over space: false" "$W/c.log" || { echo "FAIL: debugOverSpace answered true without OEVM_DEBUG"; exit 1; }
 req "$DB" "$BRK"; req "$DB" "dbg:continue"
 for _ in $(seq 1 250); do
   plog "$DB" "$NODE" --limit 1000 | grep -q 'tel/log' && break; sleep 0.1

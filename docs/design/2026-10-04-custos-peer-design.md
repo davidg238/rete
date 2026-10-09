@@ -100,6 +100,17 @@ custos's query engine.
   hash (a bare host run) cannot check and arms. `obs/debug` = `DebugObs{off, blob, held}`, written at every stop and on
   continue; the stop's lines stay on `dbg/resp`. Record of truth: `protocol/PROTOCOL-NSL-RECORDS.md` §4.1; gate:
   `nodus/oevm/tests/sleepy_debug_host.sh` leg B, manifest-armed, the sha guard broken first.
+  *Addendum 2026-10-09 (#376, built):* a debug image boots with no cable. The boot stop holds only for a transport
+  someone is on: stdin says so itself (data, or EOF from `/dev/null`); a board's cable cannot, so its readline answers
+  EOF until the first byte ever arrives on it (`platform_zephyr.c`, armed when `platform_debug_enabled()` is asked at
+  boot), a silent cable is nobody's, and the image runs — the first line sent stops it. No timeout: the question is
+  "has anyone spoken", never "how long". The bridge hands the debugger its porta link at construction, so there is no
+  opt-in (`debugOverSpace` is deleted), and a stop is served by whichever transport speaks first: the link's queued
+  lines, a line already on the cable, else one held exchange (`Debugger>>readLine`). custos reads `dbg:ready` as
+  `ready` — booted; held at boot or running is settled by the first command's pause. Measured on `c6spare`: the
+  a1d8ff4 image sat at `dbg:ready` for 28 s with the collector reading; the fixed image ticked 4 ms after
+  `dbg:ready`, and a scripted `custos debug` over the same cable paused it in `pumpEvents`, broke in `countTo:`
+  and resumed (issue #376). Hole, filed: the polled USB-CDC console cannot stop a running image from the cable (#387).
 
 ## 2. The picture
 

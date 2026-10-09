@@ -4,10 +4,10 @@ check-ins, through porta, with no cable. The host twin of a sleepy node: it chec
 once per `cadence` and does nothing in between (the reactor blocks in pumpEvents).
 Each tick calls `work:` — the method a breakpoint goes in.
 
-The debugger is the Supervisor's, unchanged; `bridge debugOverSpace` hands it a link
-whose lines are dbg/req and whose replies are dbg/resp. In a standard image (no
-OEVM_DEBUG) debugOverSpace answers false and the node is an ordinary bridged node.
-Gate: tests/sleepy_debug_host.sh.
+The debugger is the Supervisor's, unchanged; the bridge hands it a link whose lines
+are dbg/req and whose replies are dbg/resp at construction (rete#376: no opt-in). In a
+standard image (no OEVM_DEBUG) there is no debugger and the node is an ordinary
+bridged node. Gate: tests/sleepy_debug_host.sh.
 expect (console):
 SLEEPY NODE READY
 *)
@@ -24,7 +24,7 @@ class SleepyDebugNode usingPlatform: platform net: net = (
   chip      = ( ^ #host )
 
   public main: platform2 args: args = (
-    | sock tickChan remote |
+    | sock tickChan |
     space:: platform space.
     sock:: net udpBindPort: self localPort.
     sock == nil ifTrue: [ 'bind' println. ^ 1 ].
@@ -32,8 +32,6 @@ class SleepyDebugNode usingPlatform: platform net: net = (
       socket: sock space: space id: self nodeId peer: self gwAddr port: self gwPort
       spans: platform Spans new.
     bridge subscribeStream: 'tel/log'.
-    remote:: bridge debugOverSpace.
-    ('debug over space: ' , remote printString) println.
     bridge liveness: self cadence misses: 4.
     bridge publishBuild: self chip.
     timers:: platform timers.

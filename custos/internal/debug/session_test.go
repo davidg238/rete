@@ -167,6 +167,7 @@ func TestNoAnswerIsAFailure(t *testing.T) {
 	s := NewSession(sm, &out)
 	s.Attach(silentVM{})
 	s.OnLine("dbg:ready")
+	s.OnLine("dbg:paused pause 200 2") // held, so no pause goes first (rete#376)
 	out.Reset()
 	r := s.Do("break 37")
 	if !strings.HasPrefix(r.Err, "no answer to dbg:break ") {

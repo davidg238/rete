@@ -78,8 +78,20 @@ void platform_console_flush(void) { }
 
    THE ENABLE FOLLOWS THE BUILD. A board has no environment to carry OEVM_DEBUG, so a
    hooks-enabled image (OEVM_DEBUG_HOOKS=1) is the debug image: the Supervisor prints
-   `dbg:ready` at boot and waits for the cable. The production image, hooks compiled
+   `dbg:ready` at boot and takes the boot stop. The production image, hooks compiled
    out, never enters the loop. One switch (platform_backend.h).
+
+   A CABLE NOBODY HAS SPOKEN ON IS NOBODY'S (rete#376, D19). A debug image is debugged
+   over USB or over porta, so it must boot with no cable attached -- a MagTag in a
+   drawer, a bell on the wall. stdin can say nobody is there (EOF); a UART cannot, and
+   the 2026-10-02 spike's boot wait (no timeout, "a debug image is on a cable by
+   definition") held such a node at `dbg:ready` forever. So readline answers EOF until
+   the FIRST BYTE EVER arrives on the cable: the boot stop resumes at once on a silent
+   cable and the image runs; a driver that then speaks stops it (pending, below), and
+   from that byte on every read blocks as the posix one does. No timeout, still: the
+   decision is "has anyone spoken", never "how long". The receive path is armed when
+   platform_debug_enabled() is asked at boot, before any `dbg:ready`, so a line sent
+   the moment that prompt is seen cannot be lost.
 
    TWO receive paths, because the bench said so on 2026-10-02 (docs/spikes/):
      USB-CDC console (dongle, RP2350)  POLLED, zero RAM. The class driver never starts
@@ -103,6 +115,7 @@ K_MSGQ_DEFINE(rl_q, 1, 256, 1);
    paused loop consumes the line. */
 /* rete#312 Q1: complete lines queued, and the channel that announces each one. */
 static atomic_t rl_lines;
+static volatile int rl_spoken;   /* rete#376: any byte ever received on the cable */
 static int console_chan = -1;
 static int console_seq;
 static void rl_isr(const struct device *dev, void *user) {
@@ -110,6 +123,7 @@ static void rl_isr(const struct device *dev, void *user) {
     (void)user;
     while (uart_irq_update(dev) && uart_irq_rx_ready(dev)) {
         if (uart_fifo_read(dev, &c, 1) != 1) break;
+        rl_spoken = 1;
         if (k_msgq_put(&rl_q, &c, K_NO_WAIT) != 0 || c != '\n') continue;   /* full queue: dropped */
         atomic_inc(&rl_lines);
         if (!debug_held) {
@@ -138,6 +152,12 @@ static int rl_getc(const struct device *dev) {
     if (c == '\n') rl_line_taken();
     return c;
 }
+/* rete#376: nobody has ever spoken on this cable. Armed first, so a byte that
+   landed in the FIFO before the question is counted, not lost. */
+static int rl_nobody(const struct device *dev) {
+    rl_arm(dev);
+    return !rl_spoken;
+}
 int platform_console_arm(int chan_id) {
     const struct device *dev = DEVICE_DT_GET(DT_CHOSEN(zephyr_console));
     if (!device_is_ready(dev)) return 0;
@@ -159,14 +179,38 @@ int platform_console_take_line(char *buf, int cap) {
 #else
 /* Polled: nothing runs between reads, so nothing can count a line in. A line sent
    while the program runs waits in the FIFO for the next hold. */
-static int rl_getc(const struct device *dev) {
-    unsigned char c;
+static int rl_spoken;
+static unsigned char rl_held_byte;   /* a byte the nobody-probe took; rl_getc hands it back */
+static int rl_have_byte;
+static void rl_arm(const struct device *dev) {
 #if RL_IS_CDC && defined(CONFIG_UART_INTERRUPT_DRIVEN)
     static bool armed;
     if (!armed) { uart_irq_rx_enable(dev); armed = true; }
+#else
+    (void)dev;
 #endif
+}
+static int rl_getc(const struct device *dev) {
+    unsigned char c;
+    rl_arm(dev);
+    if (rl_have_byte) { rl_have_byte = 0; return rl_held_byte; }
     while (uart_poll_in(dev, &c) != 0) k_msleep(2);
+    rl_spoken = 1;
     return c;
+}
+/* rete#376 on the polled path: nothing runs between reads, so "ever spoken" can
+   only be learned by polling now. A byte found is kept for rl_getc. Once spoken,
+   every later read blocks. KNOWN HOLE: a polled console raises no pending flag
+   (rete#311), so a driver that attaches AFTER the boot stop resumed can never stop
+   the program from this cable; it is debugged through porta, or the console goes
+   interrupt-driven like the C6's. */
+static int rl_nobody(const struct device *dev) {
+    unsigned char c;
+    rl_arm(dev);
+    if (rl_spoken || rl_have_byte) return 0;
+    if (uart_poll_in(dev, &c) != 0) return 1;
+    rl_held_byte = c; rl_have_byte = 1; rl_spoken = 1;
+    return 0;
 }
 #endif
 
@@ -175,6 +219,7 @@ int platform_debug_readline(char *buf, int cap) {
     const struct device *dev = DEVICE_DT_GET(DT_CHOSEN(zephyr_console));
     int n = 0;
     if (cap < 1 || !device_is_ready(dev)) return -1;
+    if (rl_nobody(dev)) return -1;   /* rete#376: a silent cable is nobody's -> EOF */
     debug_held = 1;
     for (;;) {
         int c = rl_getc(dev);
@@ -187,12 +232,17 @@ int platform_debug_readline(char *buf, int cap) {
     return n;
 }
 int platform_debug_held(void) { return debug_held; }
+static void rl_arm_boot(void) {
+    const struct device *dev = DEVICE_DT_GET(DT_CHOSEN(zephyr_console));
+    if (device_is_ready(dev)) rl_arm(dev);
+}
 #if RL_IS_CDC || !defined(CONFIG_UART_INTERRUPT_DRIVEN)
 /* Polled: nothing runs between reads, so nothing can announce a line (rete#312). */
 int platform_console_arm(int chan_id) { (void)chan_id; return 0; }
 int platform_console_take_line(char *buf, int cap) { (void)buf; (void)cap; return -1; }
 #endif
 #else
+static void rl_arm_boot(void) { }
 int platform_debug_readline(char *buf, int cap) {
     (void)buf; (void)cap;
     return -1;   /* no console device to read a line from */
@@ -210,7 +260,8 @@ int platform_debug_enabled(void) {
 #ifdef OEVM_NO_DEBUG_HOOKS
     return 0;   /* production image: the hooks are compiled out, so is the loop */
 #else
-    return 1;   /* debug image (OEVM_DEBUG_HOOKS=1): wait at boot for the cable */
+    rl_arm_boot();   /* rete#376: a debug image listens from boot; see readline */
+    return 1;        /* debug image (OEVM_DEBUG_HOOKS=1): the boot stop, then run */
 #endif
 }
 

@@ -10,7 +10,12 @@ void platform_console_write(const char *bytes, size_t n);  /* write n bytes to t
 void platform_console_flush(void);                         /* flush buffered output (called after a newline) */
 /* Read one line from the debug transport (stdin on posix, the console cable on a
    board); newline stripped. Returns byte length >= 0, or -1 at EOF/error. BLOCKS
-   until a line arrives: a VM in here is a HELD VM. */
+   until a line arrives: a VM in here is a HELD VM.
+   rete#376: -1 also means NOBODY IS ON THIS TRANSPORT. stdin says so by itself
+   (/dev/null, a closed pipe); a board's cable cannot, so the Zephyr backend answers
+   -1 until the first byte ever arrives on it, and blocks from then on. That is what
+   lets a debug image boot with no cable: the boot stop reads EOF and the program
+   runs, and the first line a driver sends stops it (platform_debug_pending). */
 int platform_debug_readline(char *buf, int cap);
 
 /* rete#311 — the two facts the in-image debugger needs from the target.
@@ -19,8 +24,10 @@ int platform_debug_readline(char *buf, int cap);
    take `dbg:*` lines, hold at breakpoints)? Read ONCE at boot by both image paths.
    posix: the OEVM_DEBUG environment variable, as before. Zephyr: a board has no
    environment, so the answer follows the BUILD — an image built with the per-bytecode
-   hooks (OEVM_DEBUG_HOOKS=1, zephyr/CMakeLists.txt) is a debug image and waits at boot
-   for its cable; the production image, hooks compiled out, answers 0 and the
+   hooks (OEVM_DEBUG_HOOKS=1, zephyr/CMakeLists.txt) is a debug image: it takes the
+   boot stop, which holds only if someone is on the cable (readline above), and it arms
+   the cable's receive path in this very call so nothing sent after `dbg:ready` is
+   lost (rete#376); the production image, hooks compiled out, answers 0 and the
    Supervisor is transparent. One switch, not two: the hooks are useless without the
    loop and the loop is useless without the hooks.
 

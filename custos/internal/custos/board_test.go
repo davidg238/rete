@@ -196,7 +196,7 @@ func TestABoardOnACableIsCollectedAndItsVerbsSubscribe(t *testing.T) {
 	}
 
 	w.Write([]byte("oevm: build-id B1\ndbg:ready\n"))
-	waitState(t, srv.URL+"/board/c6/debug/state", "boot")
+	waitState(t, srv.URL+"/board/c6/debug/state", "ready")
 
 	// A capture subscribes, sends its request down the cable, and reads the window.
 	done := make(chan int)

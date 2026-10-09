@@ -1674,10 +1674,11 @@ class Kernel usingPlatform: platform = (
       lines add: 'dbg:continue'.
       ^ self )
     public pending = ( ^ lines isEmpty not )
+    public next = ( ^ lines removeFirst )
     public say: s = ( bridge offer: 'dbg/resp' value: s. ^ self )
-    public readLine = (
-      [ lines isEmpty ] whileTrue: [ bridge heldExchange ifFalse: [ ^ nil ] ].
-      ^ lines removeFirst )
+    (* One pull and one push; false when an exchange is already on the stack. The
+       Supervisor's readLine (rete#376) looks at the cable between exchanges. *)
+    public heldExchange = ( ^ bridge heldExchange )
     (* obs/debug (rete#375): held, and where. A cell, so the next push carries it —
        the held exchange's own push while stopped, the tick's after a continue. The
        blob is -1 in a Path A image (no blob); the wire says uint, so 0 stands in. *)
@@ -1697,9 +1698,9 @@ class Kernel usingPlatform: platform = (
     | socket space nodeId peerHost peerPort
       cursor ::= 0. acked ::= 0. rejected ::= 0. misses ::= 0. dropped ::= 0.
       crossed ::= 0.
-      (* #342 spike: the debugger's link through the space (nil until
-         `debugOverSpace`), and whether an exchange is on the stack — a stop inside
-         one must not start another. *)
+      (* The debugger's link through the space (rete#376: set at construction in
+         a debug image, nil in a standard one), and whether an exchange is on the
+         stack — a stop inside one must not start another. *)
       dbgLink ::= nil. exchanging ::= false. heldExchanges ::= 0.
       (* rete#272 D3.3 — this boot's check-ins, counted in `checkIn` and sent as
          #wak in every pull. Per-boot and deliberately not persisted. *)
@@ -1843,6 +1844,18 @@ class Kernel usingPlatform: platform = (
          registrations, for the same reason they live here: the bridge must
          not be constructible in a shape that silently cannot deliver. *)
       self subscribeStream: 'sys/panic'.
+      (* rete#376 (D19): a debug image is debugged over USB or porta, with no
+         opt-in. So a bridge built in a debug image hands the kernel's debugger
+         its link here, at construction, beside the other things a bridge must
+         not be constructible without. A standard image has no debugger and the
+         bridge is an ordinary bridge. The link's lines are dbg/req rows and the
+         goal/debug cell; its replies are dbg/resp rows. While the program is
+         stopped no reaction runs, so the link drives `heldExchange` itself: one
+         pull and one push, back to back, until a line arrives on it or on the
+         cable (Supervisor `Debugger>>readLine`). *)
+      outer debugger == nil ifFalse: [
+        dbgLink:: DebugLink onBridge: self space: space.
+        outer debugger useLink: dbgLink ].
       ^ self )
 
     (* bootId rides the batch envelope, not every record — it is constant for
@@ -1919,16 +1932,8 @@ class Kernel usingPlatform: platform = (
        reactor kills the event on delivery. So each outbound stream path is
        subscribed here and its writes are captured into `pending`, stamped with
        `space stamp` so they share ONE ascending sequence with the cell writes. *)
-    (* ---- #342 spike: debugging through the space ------------------------
-       `debugOverSpace` hands the kernel's debugger (debug images only) a link
-       whose lines are dbg/req and whose replies are dbg/resp. While the program
-       is stopped no reaction runs, so the link drives `heldExchange` itself:
-       one pull and one push, back to back, until a line arrives. *)
-    public debugOverSpace = (
-      outer debugger == nil ifTrue: [ ^ false ].
-      dbgLink:: DebugLink onBridge: self space: space.
-      outer debugger useLink: dbgLink.
-      ^ true )
+    (* ---- debugging through the space (#342 spike; the link is handed over at
+       construction, rete#376) ------------------------------------------- *)
     (* Only `dbg:` lines are the debugger's. `profile <ms>` stays with the kernel's
        Profiler, so a profile request never holds the node. ASCII d b g : = 100 98 103 58. *)
     isDbgLine: v = (
