@@ -11,8 +11,8 @@ blocks are in `docs/status/focus-history.md`; live state is in the issues and `d
   with:** read `sys/metrics` for the 20:00 watch end (36 KB arena under sync+paint), then `ShipsBellNodeC6.nsl` → the same classes
   minus `StatsPage` plus the striker as its own class, flash `c6spare` first (never `c6` without `flash-bell.sh`, daylight), debug+profile
   image through porta; its `main:` goes beside the 14-line one in paper E Appendix A. Then #233.
-- **Awaiting David:** the gateway swap to `porta-379` + `MANIFEST-377.cddl` (three ssh calls, in the 2026-10-09 handoff; the harness denies
-  it from here); read E and L; LICENSE and history rewrite (#368); close #314. Appendix A form decided: lifted references — apply next session.
+- **Awaiting David:** read E and L; LICENSE and history rewrite (#368); close #314. Gateway runs `porta-379` + `MANIFEST-377.cddl` since
+  2026-10-09 19:55. Appendix A form decided: lifted references — apply next session.
 - **Bench:** MagTag `7cdfa11aaaaa` is the fridge clock again — `MagTagDeepSleepNode`, bridged, debug+profile, 30-min sleeps, panel live,
   UDP console to the desktop's stable ULA:54330 (a listener may still be running from 2026-10-09). `c6bench` in the soak — never flash.
   `rete-custos` (desktop, :6971) serves `c6` and `c6spare`. `opti7040` has an RP2350.
