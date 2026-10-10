@@ -590,3 +590,9 @@ at 19:21, `sys/metrics` live 32,068 after a cold boot and 27,876 after a strike 
 
 **Found, not fixed:** porta reads the cold-boot kind as `#stalled` after every wake (the rate rule sees `wak` restart) — #393.
 The gain-1 integrator (§2 above, tuvm#101) is unchanged by the refactor: `Drift>>record:` is the same line, now named.
+
+**2026-10-09, later — the dial is its own class.** `BellClock>>isBehind:of:`, `secondsToBoundaryAfter:from:`,
+`wrapDrift:`, `nextHalf`'s increment and the slot constants moved to `Dial`, given nothing, because the always-on
+bell (`ShipsBellNodeC6`, the 2026-08-03 design's addendum of this date) needs exactly that arithmetic and none of
+the record. `BellClock` is given the dial and keeps the predicted clock, the sync and the schedule; `main:` is one
+line longer. Host gates unchanged in their assertions.

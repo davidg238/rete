@@ -4,118 +4,148 @@ slot 79200 44
 slot 79199 43
 slot 86399 47
 slot 0 0
-decide 44 last nil seed
 decide 44 last 44 silent
 decide 45 last 44 ring
 decide 43 last 44 silent
 decide 0 last 47 ring
 decide 0 last 0 silent
+decide 0 last 2 silent
+decide 40 last 44 ring
+boundary 79195 5
+boundary 79200 1800
+wrapDay -5 86395
+wrapDay 86405 5
+hms 79195 21:59:55
 count 0 8
 count 1 1
 count 24 8
 count 37 5
 count 44 4
 count 47 7
-accept 4 idle ring
-accept 4 striking refused-inflight
-accept 0 idle refused-bounds
-accept 9 idle refused-bounds
+rtc 79195
+ntp ok 20261009 22:00:00
+rtc 22:00:00  slot 44
+synced 79200
+trigger=WATCHDOG ONLY — rtcAlarm refused (image built without prj_esp32c6_rtcalarm.conf?)
+alarmOk false
+near 79195 true
+near 79190 false
+armedFor 0
+armedFor again 0
+bells 0 REFUSED (allowed 1..8)
+bells 9 REFUSED (allowed 1..8)
+ring 3 true
+bells 4 REFUSED — a pattern is already in flight
+bells done
 gap 1 500
 gap 2 1600
 gap 3 500
-bench 79200 1320
+pin low true
 finished
+env: OEVM_TIMER_WALLCLOCK=1
+env: OEVM_WALLCLOCK_SECONDS=79195
+env: OEVM_NTP_SECONDS=79200
+env: OEVM_NTP_DATE=20261009
 *)
-(* The C6 ship's-bell node's SCHEDULE, on the host, with no seam and no wall clock
-   (design docs/design/2026-08-03-c6-shipsbell-always-on-node-design.md §5).
+(* The always-on bell's classes on the host (rete#380): Dial, RtcClock, Trigger and
+   Striker from lib/Bells.nsl, the same library 13_bell_classes.nsl pins for the
+   deep-sleep node — the Dial lines here and the `behind` lines there are ONE method.
 
-   The host clock does not tick: OEVM_WALLCLOCK_SECONDS is loaded once into
-   g_wc_secs and never advances (src/platform.c), so a host run cannot witness a
-   boundary ARRIVING of its own accord. The decisions are therefore written as pure
-   functions of (slot, lastSlot) and pinned here — spelled EXACTLY as
-   zephyr/ShipsBellNodeC6.nsl spells them, the same bargain 09_bell_math.nsl makes
-   with the deep-sleep node: this test and the node cannot silently diverge.
+   The host clock does not tick (OEVM_WALLCLOCK_SECONDS is loaded once, src/platform.c),
+   so a boundary cannot ARRIVE here; the decisions are pinned as functions of (slot,
+   lastSlot) and the trigger's arming is exercised on the host's refusing alarm seam.
+   The striker's pattern DOES run: the host gpio creates a slot on set, the timers are on
+   the wall clock, and three bells is the pattern that proves both gap branches (~2 s).
 
-   Modulo is `\\` (rete#246), floored like `//`.
+   `decide 0 last 2 silent` is the line that changed with the dial: the old node read
+   slot 0 as "midnight however it was reached" and rang eight bells on a clock corrected
+   back across midnight; the modular rule holds. `decide 40 last 44 ring` is the other
+   side of the same coin — four slots back is beyond the hold and reads as a lag; the
+   node never sees it, because a sync re-seeds its marker before any tick can.
 
-   The COUNT is deliberately NOT re-implemented here. It comes from the real
-   `Bell>>bellsForHalfHour:` through the platform, because D3's whole point is that
-   the node does not own the convention — a copy in this file would pass while the
-   node rang the wrong number. *)
+   The COUNT is NOT re-implemented here: it comes from `Bell>>bellsForHalfHour:`, because
+   D3's whole point is that the node does not own the convention.
+
+uses: ../../oevm/zephyr/lib/Bells.nsl *)
 class ShipsBellSchedule packageUsing: manifest = () (
   public main: platform args: args = (
+    | dial rtc trigger striker space timers tick bellCh |
+    dial:: Dial new.
+
     (* D2 — the slot is DERIVED from the clock. 79200 = 22:00:00 exactly. *)
-    ('slot 79200 ' , (self slotFor: 79200) printString) out.
-    ('slot 79199 ' , (self slotFor: 79199) printString) out.   (* 21:59:59 *)
-    ('slot 86399 ' , (self slotFor: 86399) printString) out.   (* 23:59:59 — the last slot *)
-    ('slot 0 '     , (self slotFor: 0) printString) out.       (* midnight *)
+    ('slot 79200 ' , (dial slotOf: 79200) printString) out.
+    ('slot 79199 ' , (dial slotOf: 79199) printString) out.   (* 21:59:59 *)
+    ('slot 86399 ' , (dial slotOf: 86399) printString) out.   (* 23:59:59 — the last slot *)
+    ('slot 0 '     , (dial slotOf: 0) printString) out.       (* midnight *)
 
-    (* D4/D5 — the boot seed, the ratchet, and the wrap. `nil` is "nothing has rung
-       yet", which is the state a cold boot is in: it seeds and stays silent, so a
-       reboot loop is inaudible and power restored at 21:45 does not ring 21:30. *)
-    ('decide 44 last nil ' , (self decideSlot: 44 last: nil)) out.
-    ('decide 44 last 44 '  , (self decideSlot: 44 last: 44)) out.
-    ('decide 45 last 44 '  , (self decideSlot: 45 last: 44)) out.
-    ('decide 43 last 44 '  , (self decideSlot: 43 last: 44)) out.  (* clock corrected back: silent *)
-    ('decide 0 last 47 '   , (self decideSlot: 0 last: 47)) out.   (* THE WRAP — rings 8 *)
-    ('decide 0 last 0 '    , (self decideSlot: 0 last: 0)) out.    (* and rings it once *)
+    (* D4/D5 — the ratchet and the wrap, the dial's. *)
+    ('decide 44 last 44 ' , (self decide: dial slot: 44 last: 44)) out.
+    ('decide 45 last 44 ' , (self decide: dial slot: 45 last: 44)) out.
+    ('decide 43 last 44 ' , (self decide: dial slot: 43 last: 44)) out.  (* corrected back: silent *)
+    ('decide 0 last 47 '  , (self decide: dial slot: 0 last: 47)) out.   (* THE WRAP — rings 8 *)
+    ('decide 0 last 0 '   , (self decide: dial slot: 0 last: 0)) out.    (* and rings it once *)
+    ('decide 0 last 2 '   , (self decide: dial slot: 0 last: 2)) out.    (* back across midnight: silent *)
+    ('decide 40 last 44 ' , (self decide: dial slot: 40 last: 44)) out.  (* beyond the hold: a lag *)
 
-    (* D3 — the convention, from Bell itself. Anchors: 00:30 -> 1, 12:00 -> 8,
-       18:30 -> 5. Plain modulo, so no dog watches. *)
-    ('count 0 '  , ((platform bell) bellsForHalfHour: 0) printString) out.   (* midnight: 8 *)
-    ('count 1 '  , ((platform bell) bellsForHalfHour: 1) printString) out.   (* 00:30 *)
-    ('count 24 ' , ((platform bell) bellsForHalfHour: 24) printString) out.  (* 12:00 *)
-    ('count 37 ' , ((platform bell) bellsForHalfHour: 37) printString) out.  (* 18:30 *)
-    ('count 44 ' , ((platform bell) bellsForHalfHour: 44) printString) out.  (* 22:00 *)
-    ('count 47 ' , ((platform bell) bellsForHalfHour: 47) printString) out.  (* 23:30 *)
+    (* The boundary arithmetic the trigger arms by: a full slot AT a boundary, never 0. *)
+    ('boundary 79195 ' , (dial secondsToBoundaryAfter: (dial slotOf: 79195) from: 79195) printString) out.
+    ('boundary 79200 ' , (dial secondsToBoundaryAfter: (dial slotOf: 79200) from: 79200) printString) out.
+    ('wrapDay -5 '    , (dial wrapDay: 0 - 5) printString) out.
+    ('wrapDay 86405 ' , (dial wrapDay: 86405) printString) out.
+    ('hms 79195 '     , (dial hms: 79195)) out.
 
-    (* §4 — the two refusals. In-flight is unreachable at 1800 s and reachable at
-       D8's 60 s bench slot; two rings interleaved on one pin is neither ring. *)
-    ('accept 4 idle '     , (self accept: 4 while: false)) out.
-    ('accept 4 striking ' , (self accept: 4 while: true)) out.
-    ('accept 0 idle '     , (self accept: 0 while: false)) out.
-    ('accept 9 idle '     , (self accept: 9 while: false)) out.
+    (* D3 — the convention, from Bell itself. Anchors: 00:30 -> 1, 12:00 -> 8, 18:30 -> 5. *)
+    ('count 0 '  , ((platform bell) bellsForHalfHour: 0) printString) out.
+    ('count 1 '  , ((platform bell) bellsForHalfHour: 1) printString) out.
+    ('count 24 ' , ((platform bell) bellsForHalfHour: 24) printString) out.
+    ('count 37 ' , ((platform bell) bellsForHalfHour: 37) printString) out.
+    ('count 44 ' , ((platform bell) bellsForHalfHour: 44) printString) out.
+    ('count 47 ' , ((platform bell) bellsForHalfHour: 47) printString) out.
 
-    (* §3 — the phrasing. Odd stroke (1-based) is the first of a pair, so the SHORT
-       gap follows it; even is the long gap between pairs. Three strokes therefore
-       phrase as pair-gap-lone, which is the ship's-bell odd tail. *)
-    ('gap 1 ' , (self gapAfter: 1) printString) out.
-    ('gap 2 ' , (self gapAfter: 2) printString) out.
-    ('gap 3 ' , (self gapAfter: 3) printString) out.
+    (* RtcClock — read the part, correct it from the network, read it back. *)
+    rtc:: RtcClock on: platform dial: dial.
+    ('rtc ' , rtc secondsOfDay printString) out.
+    rtc sync.
+    rtc show.
+    ('synced ' , rtc secondsOfDay printString) out.
 
-    (* D8 — the bench slot changes only how often the derived index changes. The
-       clock is untouched, which is what makes this safe where MagTagClockNode's
-       6x demo tick was not. *)
-    ('bench 79200 ' , (self slotFor: 79200 every: 60) printString) out.
+    (* Trigger — on the host the alarm seam REFUSES every arm, so arming exercises the
+       watchdog-only path the node must survive. The countdown is armed for the dial's
+       next slot: at 23:59:55 that is 0, where `slot + 1` read 48. *)
+    space::  platform space.
+    timers:: platform timers.
+    space whenever: 'sys/timer' do: [ :e | timers dispatch: e ].
+    tick::   space channel: 'clock/tick'.
+    trigger:: Trigger on: platform rtcAlarm timers: timers tick: tick dial: dial.
+    trigger armAfter: 79200.
+    ('alarmOk ' , trigger alarmOk printString) out.
+    ('near 79195 ' , (trigger nearBoundary: 79195) printString) out.
+    ('near 79190 ' , (trigger nearBoundary: 79190) printString) out.
+    trigger countdownAt: 86395.
+    ('armedFor ' , trigger armedFor printString) out.
+    trigger countdownAt: 86396.
+    ('armedFor again ' , trigger armedFor printString) out.
+
+    (* Striker — the two refusals, then three bells played out on the host timers. *)
+    bellCh:: space channel: 'bell/stroke'.
+    striker:: Striker on: platform gpio pin: 18 timers: timers channel: bellCh.
+    bellCh whenever: '' do: [ :m | striker step ].
+    striker ring: 0.
+    striker ring: 9.
+    ('ring 3 ' , (striker ring: 3) printString) out.
+    striker ring: 4.
+    [ striker striking ] whileTrue: [ platform pumpEvents. space drain ].
+    ('gap 1 ' , (striker gapAfter: 1) printString) out.
+    ('gap 2 ' , (striker gapAfter: 2) printString) out.
+    ('gap 3 ' , (striker gapAfter: 3) printString) out.
+    ('pin low ' , (((platform gpio) level: 18) = false) printString) out.
 
     'finished' out.
   )
 
-  slotFor: secs = ( ^ self slotFor: secs every: 1800 )
-  slotFor: secs every: slotSeconds = ( ^ secs // slotSeconds )
-
-  (* The node's onTick decision tree, minus the seam reads. *)
-  decideSlot: slot last: last = (
-    last == nil ifTrue: [ ^ 'seed' ].
-    (self advancedTo: slot from: last) ifTrue: [ ^ 'ring' ].
+  (* The node's onTick decision, minus the seam reads. *)
+  decide: dial slot: slot last: last = (
+    (dial isBehind: slot of: last) ifTrue: [ ^ 'ring' ].
     ^ 'silent' )
-
-  (* Forward is a boundary; equal is the same half hour, already rung; backward is
-     a clock correction and stays silent — UNLESS it lands on slot 0, which is
-     midnight however it was reached. `slot > prev` alone is false at 47 -> 0, and
-     that reading rang eight bells twice on 2026-07-24. *)
-  advancedTo: slot from: prev = (
-    slot = prev ifTrue: [ ^ false ].
-    slot > prev ifTrue: [ ^ true ].
-    ^ slot = 0 )
-
-  accept: n while: striking = (
-    striking ifTrue: [ ^ 'refused-inflight' ].
-    ((n < 1) or: [ n > 8 ]) ifTrue: [ ^ 'refused-bounds' ].
-    ^ 'ring' )
-
-  gapAfter: i = (
-    (i \\ 2) = 1 ifTrue: [ ^ 500 ].
-    ^ 1600 )
 ) : (
 )

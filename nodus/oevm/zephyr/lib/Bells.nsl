@@ -9,18 +9,35 @@ owns the COUNT convention (which half-hour calls for how many); everything here 
 SCHEDULE and the CLOCK, which are the product's.
 
 Class–Responsibility–Collaboration. Each header names what the class is given, and
-that is the whole of what it can reach:
+that is the whole of what it can reach. ONE PROGRAM, TWO POWER MODES: the deep-sleep
+clock (MagTagDeepSleepNode, the MagTag on the fridge) and the always-on bell
+(ShipsBellNodeC6, the wall C6 with a DS3231 and a piezo) are built from this one
+library, and the first row is the same object in both:
 
+  Dial        the 48 slots of the day: which slot a second is in, which comes next,
+              whether a count fell behind, how far to a boundary   <- nothing
+  --- the deep-sleep clock ---
   RtcRecord   the ten slots that survive a deep sleep        <- platform (rtcGet:/rtcPut:/rtcValid)
   Drift       ppm calibration: discipline a sleep, record a residual   <- record
-  BellClock   the modular ratchet, the predicted clock, the sync, the schedule
-                                                              <- record, drift, ntp (ntpSyncTz:)
+  BellClock   the predicted clock, the sync onto the record, the sleep schedule
+                                                              <- record, drift, ntp (ntpSyncTz:), dial
   StatsPage   the e-paper readout                            <- display, record, clock, heap stats
+  --- the always-on bell ---
+  RtcClock    the clock that is a part: read the DS3231, correct it from the network
+                                                              <- platform (wallClock, ntpSyncTz:, ntpDate,
+                                                                 wallClockSetDate:time:), dial
+  Trigger     what wakes the node at a boundary: the RTC alarm, its countdown, the
+              watchdog that says the alarm did not come       <- rtcAlarm, timers, the tick channel, dial
+  Striker     the piezo pattern as a state machine            <- gpio, timers, the stroke channel, a pin
 
 StatsPage holds the display and cannot reach the radio or the clock's sync; Drift
-cannot strike; the record knows nothing about time. A backtrace or a profile row now
-reads `Drift>>record:` rather than `Node>>recordDrift:plat:` — the observe row of the
-lifecycle table describes itself.
+cannot strike; the record knows nothing about time; the Striker cannot read the clock
+and the Trigger cannot ring. A backtrace or a profile row now reads `Drift>>record:`
+rather than `Node>>recordDrift:plat:` — the observe row of the lifecycle table
+describes itself. The always-on node has no record, no drift and no page, because a
+part that keeps the time needs no predicted clock and no calibration; the deep-sleep
+node has no trigger and no striker, because its wake is a timer in C and its strike is
+the kernel's blocking `Bell>>strike:`.
 
 The invariant comments travel with the class that owns them. They were paid for by the
 2026-07-24/25 overnight run (tuvm#94 design §11) and a rewrite may not delete them.
@@ -29,6 +46,117 @@ Modulo is `\\` (rete#246), floored like `//`. Everything stays inside a 31-bit S
 device (|v| < 2^30).
 *)
 class Bells = () (
+
+  (* --- Dial ----------------------------------------------------------------------- *)
+
+  (* THE 48-SLOT DIAL OF THE DAY, given nothing. Which slot a second of the day falls
+     in, which slot follows a count, whether a count has fallen behind true time, and
+     how far it is to a boundary: pure arithmetic both power modes share. The deep-sleep
+     clock COUNTS its slots and asks the dial whether a sync left the count behind; the
+     always-on bell DERIVES its slot from the DS3231 on every tick (2026-08-03 design
+     D2: a missed tick, a late tick, a GC pause and a reboot all answer the same,
+     because the answer is a property of the time and not of the node's history) and
+     asks the dial the same question. One ratchet, one midnight, for both. *)
+  class Dial = () (
+
+    (* THE CADENCE. One slot = one bell tick; a "watch" is 8 slots; the day is
+       86400//slotSec slots. SHIPPING is 1800 (the real ship's-bell half-hour). A demo
+       build may flip this to 60 (bells on real minute marks, sync+paint every 8 min —
+       still beyond the 180 s e-paper guidance) and everything scales: boundary math,
+       trueHalf, the stale accrual, the up row, the midnight wrap. The math is honest at
+       any slot ONLY because the deep-sleep clock accrues awake time too — without that
+       term a small slot runs visibly slow (25-30% at 60 s). *)
+    public slotSec     = ( ^ 1800 )
+    public slotsPerDay = ( ^ 86400 // self slotSec )
+
+    (* The slot a second of the day falls in. 79200 (22:00:00) is 44; 79199 is 43. *)
+    public slotOf: secs = ( ^ secs // self slotSec )
+
+    (* The slot after a count: a pure increment of the ratchet (design §2), wrapping the
+       last slot to 0. *)
+    public nextAfter: half = (
+      | n |
+      n:: half + 1.
+      n = self slotsPerDay ifTrue: [ n:: 0 ].
+      ^ n )
+
+    (* THE RATCHET INVARIANT IS MODULAR, NOT AN ORDERING. What is well defined is the
+       FORWARD distance from the count to true time, `(trueHalf - lastHalf) mod
+       slotsPerDay`. Small forward distance = we genuinely fell behind (missed wakes) ->
+       advance. Distance 0 = on the count -> hold. Distance close to a full day = true
+       time has not yet REACHED the count, i.e. we are running ahead of the world -> hold.
+
+       "Close to a full day" is deliberately narrow (holdAheadSlots). Modular arithmetic
+       cannot distinguish "3 slots ahead" from "45 slots behind", so the split is chosen
+       by which mistake is survivable: advancing wrongly rings one wrong count and
+       self-corrects next wake, while holding wrongly goes SILENT for the length of the
+       hold. A lead can only be accumulated drift since the last sync — the worst ever
+       measured is 155 s over a watch, well under one slot — so 3 slots is a 30x margin
+       and still bounds a wrong hold to 2 hours.
+
+       Stated as an ordering it fails at midnight, where 47 and 0 change places: the
+       2026-07-24 run read a 66 s lead as a 23.5 h lag and rang eight bells twice. The
+       always-on node's own spelling carried midnight as a special case (`slot = 0`,
+       "midnight however it was reached"), which rang eight bells on a clock corrected
+       BACK across midnight; here a step back is a hold, whichever slot it lands on. *)
+    public isBehind: trueHalf of: lastHalf = (
+      | n fwd |
+      n:: self slotsPerDay.
+      fwd:: trueHalf - lastHalf.
+      fwd < 0 ifTrue: [ fwd:: fwd + n ].          (* both are in [0, n), so one add suffices *)
+      fwd = 0 ifTrue: [ ^ false ].                (* exactly on the count: hold and measure *)
+      ^ fwd < (n - self holdAheadSlots) )
+
+    (* Seconds from `predicted` to the boundary of the count AFTER `lastHalf`, modular
+       over the day. The single `+ 86400` is enough because predicted is already reduced
+       to [0, 86400) and the target is at most 86400, so the difference cannot be more
+       than one day negative — and doing it this way means no division of a negative
+       number, whose rounding direction nsl does not pin down. At a boundary exactly this
+       is a FULL slot, never 0 — the edge 05_ntp_catchup.nsl pins: 0 would arm a one-shot
+       that fires at once and strikes the slot twice. *)
+    public secondsToBoundaryAfter: lastHalf from: predicted = (
+      | d |
+      d:: ((lastHalf + 1) * self slotSec) - predicted.
+      d < 0 ifTrue: [ d:: d + 86400 ].
+      d:: d \\ 86400.
+      d < 1 ifTrue: [ d:: 1 ].             (* boundary already reached: wake at once *)
+      ^ d )
+
+    (* Drift wrapped across midnight: a true 0 against a predicted 86399 is +1 s, not
+       -86399. *)
+    public wrapDrift: d = (
+      d > 43200 ifTrue: [ ^ d - 86400 ].
+      d < -43200 ifTrue: [ ^ d + 86400 ].
+      ^ d )
+
+    (* A time of day less a lead can be yesterday: 00:00 minus 5 s is 23:59:55, and the
+       RTC alarm matches a time of day, not an offset. *)
+    public wrapDay: secs = (
+      secs < 0     ifTrue: [ ^ secs + 86400 ].
+      secs > 86399 ifTrue: [ ^ secs - 86400 ].
+      ^ secs )
+
+    (* How far the count may legitimately lead true time before a sync reads it as a lag
+       instead (see isBehind:of:). Three slots; the worst lead ever measured is 155 s. *)
+    holdAheadSlots = ( ^ 3 )
+
+    (* The day this dial counts is Phoenix's: UTC-7 and no DST, so a constant is honest
+       here in a way it would not be anywhere that observes summer time. A product fact,
+       passed to the NTP prim by whichever clock syncs. *)
+    public tzOffset = ( ^ -25200 )
+
+    (* seconds-since-midnight -> 'HH:MM:SS', zero-padded so a log lines up. *)
+    public hms: secs = (
+      | h rem m s |
+      h::   secs // 3600.
+      rem:: secs \\ 3600.
+      m::   rem // 60.
+      s::   rem \\ 60.
+      ^ (self pad: h) , ':' , (self pad: m) , ':' , (self pad: s) )
+
+    pad: n = ( ^ n < 10 ifTrue: [ '0' , n printString ] ifFalse: [ n printString ] )
+  ) : (
+  )
 
   (* --- RtcRecord ------------------------------------------------------------------ *)
 
@@ -190,11 +318,10 @@ class Bells = () (
   (* THE HALF-HOUR INDEX IS A MONOTONIC RATCHET, AND MONOTONIC MEANS MODULAR (design §2 as
      restated by §11). A strike is a pure increment, so a strike wake CANNOT double-bell. A
      sync may push the count FORWARD (skip missed strikes, silently) but NEVER backward —
-     and "forward" is the FORWARD DISTANCE round the 48-slot dial, never `>`. Stated as an
-     ordering it fails at midnight, where 47 and 0 change places: the 2026-07-24 run read a
-     66 s lead as a 23.5 h lag and rang eight bells twice. When NTP says we are behind where
-     we already struck, we hold the count and lengthen the next sleep — really lengthen it,
-     out to the held count's OWN boundary. Drift never touches the count, only the sleep
+     and "forward" is the FORWARD DISTANCE round the 48-slot dial, never `>`: the dial
+     owns that rule (Dial>>isBehind:of:). When NTP says we are behind where we already
+     struck, we hold the count and lengthen the next sleep — really lengthen it, out to
+     the held count's OWN boundary. Drift never touches the count, only the sleep
      duration (phase).
 
      THE COUNT OWNS THE SCHEDULE. Every sleep runs to the boundary of the next count, less
@@ -206,58 +333,15 @@ class Bells = () (
      Wake-local state: `basisMillis` is the instant within this wake at which the predicted
      clock was last trued (nil = never this wake, the basis is boot); `lastDrift` and
      `syncOk` are this wake's sync outcome, read by StatsPage. *)
-  class BellClock = ( | record drift ntp basisMillis lastDrift syncOk | ) (
+  class BellClock = ( | record drift ntp dial basisMillis lastDrift syncOk | ) (
 
     (* --- the dial --- *)
 
-    (* The strike about to happen: a pure increment of the ratchet (design §2), wrapping
-       the last slot to 0. *)
-    public nextHalf = (
-      | half |
-      half:: record lastHalf + 1.
-      half = self slotsPerDay ifTrue: [ half:: 0 ].
-      ^ half )
+    (* The strike about to happen: the dial's next after the count. *)
+    public nextHalf = ( ^ dial nextAfter: record lastHalf )
 
-    (* THE RATCHET INVARIANT IS MODULAR, NOT AN ORDERING. What is well defined is the
-       FORWARD distance from the count to true time, `(trueHalf - lastHalf) mod
-       slotsPerDay`. Small forward distance = we genuinely fell behind (missed wakes) ->
-       advance. Distance 0 = on the count -> hold. Distance close to a full day = true
-       time has not yet REACHED the count, i.e. we are running ahead of the world -> hold.
-
-       "Close to a full day" is deliberately narrow (holdAheadSlots). Modular arithmetic
-       cannot distinguish "3 slots ahead" from "45 slots behind", so the split is chosen
-       by which mistake is survivable: advancing wrongly rings one wrong count and
-       self-corrects next wake, while holding wrongly goes SILENT for the length of the
-       hold. A lead can only be accumulated drift since the last sync — the worst ever
-       measured is 155 s over a watch, well under one slot — so 3 slots is a 30x margin
-       and still bounds a wrong hold to 2 hours. *)
-    public isBehind: trueHalf of: lastHalf = (
-      | n fwd |
-      n:: self slotsPerDay.
-      fwd:: trueHalf - lastHalf.
-      fwd < 0 ifTrue: [ fwd:: fwd + n ].          (* both are in [0, n), so one add suffices *)
-      fwd = 0 ifTrue: [ ^ false ].                (* exactly on the count: hold and measure *)
-      ^ fwd < (n - self holdAheadSlots) )
-
-    (* Seconds from `predicted` to the boundary of the count AFTER `lastHalf`, modular
-       over the day. The single `+ 86400` is enough because predicted is already reduced
-       to [0, 86400) and the target is at most 86400, so the difference cannot be more
-       than one day negative — and doing it this way means no division of a negative
-       number, whose rounding direction nsl does not pin down. *)
-    public secondsToBoundaryAfter: lastHalf from: predicted = (
-      | d |
-      d:: ((lastHalf + 1) * self slotSec) - predicted.
-      d < 0 ifTrue: [ d:: d + 86400 ].
-      d:: d \\ 86400.
-      d < 1 ifTrue: [ d:: 1 ].             (* boundary already reached: wake at once *)
-      ^ d )
-
-    (* Drift wrapped across midnight: a true 0 against a predicted 86399 is +1 s, not
-       -86399. *)
-    public wrapDrift: d = (
-      d > 43200 ifTrue: [ ^ d - 86400 ].
-      d < -43200 ifTrue: [ ^ d + 86400 ].
-      ^ d )
+    (* The clock's own cadence is the dial's; the page and the node read it here. *)
+    public slotSec = ( ^ dial slotSec )
 
     (* --- the predicted clock --- *)
 
@@ -307,7 +391,7 @@ class Bells = () (
     public trySync = (
       | secs |
       3 timesRepeat: [
-        secs:: ntp ntpSyncTz: self tzOffset.
+        secs:: ntp ntpSyncTz: dial tzOffset.
         (* Stamp the clock basis at the INSTANT true time was read — see awakeSinceBasis. *)
         secs == nil ifFalse: [
           basisMillis:: 0 millis.
@@ -323,10 +407,10 @@ class Bells = () (
        adjusts the sleep (phase) via the re-anchored predictedNow next wake. *)
     apply: trueSec = (
       | trueHalf lastHalf predicted d elapsed |
-      trueHalf:: trueSec // self slotSec.
+      trueHalf:: dial slotOf: trueSec.
       lastHalf:: record lastHalf.
       predicted:: self predictedAtSync.
-      (self neverSynced or: [ self isBehind: trueHalf of: lastHalf ])
+      (self neverSynced or: [ dial isBehind: trueHalf of: lastHalf ])
          ifTrue:  [ (* Fell behind (missed wakes / dead battery, or the clock ran slow):
                        advance SILENTLY — do NOT ring the skipped bells. `trueSec -
                        predicted` here is a CATCH-UP GAP, not oscillator drift (the board
@@ -341,7 +425,7 @@ class Bells = () (
                        the small signed gap between where the crystal put us and true
                        time, over the interval elapsedSec. This is the number the panel
                        reports. *)
-                    d:: self wrapDrift: (trueSec - predicted).
+                    d:: dial wrapDrift: (trueSec - predicted).
                     lastDrift:: d.
                     ('sync true ' , trueSec printString , ' predicted ' , predicted printString , ' -> hold half ' , lastHalf printString) out.
                     elapsed:: record elapsedSec.
@@ -368,7 +452,7 @@ class Bells = () (
     public neverSyncedSec = ( ^ 999999 )
 
     markSyncFailed = (
-      record staleSec: record staleSec + (self slotSec * 8).
+      record staleSec: record staleSec + (dial slotSec * 8).
       'sync failed, stale grows' out.
       ^ self )
 
@@ -407,7 +491,7 @@ class Bells = () (
     public sleepTarget = (
       | awakeSec sleepSec |
       awakeSec:: self awakeSinceBasis.
-      sleepSec:: (self secondsToBoundaryAfter: record lastHalf from: self predictedNow) - awakeSec.
+      sleepSec:: (dial secondsToBoundaryAfter: record lastHalf from: self predictedNow) - awakeSec.
       sleepSec < 1 ifTrue: [ sleepSec:: 1 ].    (* awake window longer than the slot *)
       record elapsedSec: record elapsedSec + sleepSec + awakeSec.
       ('sleep: target ' , sleepSec printString , ' s cal ' , (self signed: record calPpm)
@@ -415,16 +499,6 @@ class Bells = () (
       ^ sleepSec )
 
     (* --- constants --- *)
-
-    (* THE CADENCE. One slot = one bell tick; a "watch" is 8 slots; the day is
-       86400//slotSec slots. SHIPPING is 1800 (the real ship's-bell half-hour). A demo
-       build may flip this to 60 (bells on real minute marks, sync+paint every 8 min —
-       still beyond the 180 s e-paper guidance) and everything scales: boundary math,
-       trueHalf, the stale accrual, the up row, the midnight wrap. The math is honest at
-       any slot ONLY because elapsedSec accrues awake time too — without that term a
-       small slot runs visibly slow (25-30% at 60 s). *)
-    public slotSec     = ( ^ 1800 )
-    public slotsPerDay = ( ^ 86400 // self slotSec )
 
     (* A RATE NEEDS A LONG ENOUGH BASELINE (design §11, defect 3). drift is measured in
        whole seconds, so ppm carries +/-1e6/elapsed of pure quantisation: 278 ppm over an
@@ -438,22 +512,17 @@ class Bells = () (
        defensible" and bounds the whole-second quantisation to +/-278 ppm. Derived from
        slotSec so a 60 s demo build can still measure and discipline itself (floor 120 s)
        instead of never recording a rate at all. *)
-    driftFloorSec = ( ^ self slotSec * 2 )
-
-    (* How far the count may legitimately lead true time before a sync reads it as a lag
-       instead (see isBehind:of:). Three slots; the worst lead ever measured is 155 s. *)
-    holdAheadSlots = ( ^ 3 )
-
-    tzOffset = ( ^ -25200 )   (* Phoenix, UTC-7, no DST — a product fact passed to the prim *)
+    driftFloorSec = ( ^ dial slotSec * 2 )
 
     (* Signed integer, `+N` / `-N`. nsl has no unary minus display, so build it. *)
     public signed: n = (
       n < 0 ifTrue: [ ^ '-' , (0 - n) printString ].
       ^ '+' , n printString )
 
-    setRecord: r drift: d ntp: n = ( record:: r. drift:: d. ntp:: n. ^ self )
+    setRecord: r drift: d ntp: n dial: l = ( record:: r. drift:: d. ntp:: n. dial:: l. ^ self )
   ) : (
-    public on: record drift: drift ntp: ntp = ( ^ self new setRecord: record drift: drift ntp: ntp )
+    public on: record drift: drift ntp: ntp dial: dial = (
+      ^ self new setRecord: record drift: drift ntp: ntp dial: dial )
   )
 
   (* --- StatsPage ------------------------------------------------------------------ *)
@@ -541,6 +610,232 @@ class Bells = () (
   ) : (
     public on: display record: record clock: clock heap: heapStats = (
       ^ self new setDisp: display record: record clock: clock heap: heapStats )
+  )
+
+  (* --- RtcClock ------------------------------------------------------------------- *)
+
+  (* THE CLOCK THAT IS A PART. The always-on node keeps time on a DS3231 (shipsBellsV3
+     §16): this class reads its second of the day and corrects it from the network, and
+     that is all it can reach — wallClock, ntpSyncTz:, ntpDate and wallClockSetDate:time:
+     on the platform it is given, and the dial for the offset and the printing. The
+     deep-sleep node has no such part: its clock is a prediction over RtcRecord, which is
+     BellClock's, and the two never meet.
+
+     THE NETWORK MAY IMPROVE THIS CLOCK AND MAY NEVER STOP IT (2026-08-03 design D6): a
+     nil at any step leaves the part alone and the bell ringing off it. The date comes
+     from the same response as the time: the part will not accept a time without one,
+     and the bell itself never reads the date. *)
+  class RtcClock = ( | plat dial | ) (
+
+    (* Seconds since local midnight, or nil: no part, a bus fault, or never set. *)
+    public secondsOfDay = ( ^ plat wallClock )
+
+    (* One sync. Answers whether the part was corrected. Blocks up to the SNTP timeout,
+       so the caller chooses a moment when no bell can be late: boot, and after the
+       midnight pattern. *)
+    public sync = (
+      | secs date rc |
+      secs:: plat ntpSyncTz: dial tzOffset.
+      secs == nil ifTrue: [ 'ntp miss — keeping the RTC' out. ^ false ].
+      date:: plat ntpDate.
+      date == nil ifTrue: [ 'ntp date miss — keeping the RTC' out. ^ false ].
+      rc:: plat wallClockSetDate: date time: secs.
+      rc == nil ifTrue: [ 'rtc write REFUSED — keeping the RTC' out. ^ false ].
+      ('ntp ok ' , date printString , ' ' , (dial hms: secs)) out.
+      ^ true )
+
+    (* A write that answered 0 is not evidence the part holds the time: read it back. *)
+    public show = (
+      | secs |
+      secs:: self secondsOfDay.
+      secs == nil
+        ifTrue:  [ 'rtc nil (no DS3231, or never set)' out ]
+        ifFalse: [ ('rtc ' , (dial hms: secs) , '  slot ' , (dial slotOf: secs) printString) out ].
+      ^ self )
+
+    setPlat: p dial: d = ( plat:: p. dial:: d. ^ self )
+  ) : (
+    public on: platform dial: dial = ( ^ self new setPlat: platform dial: dial )
+  )
+
+  (* --- Trigger -------------------------------------------------------------------- *)
+
+  (* WHAT WAKES THE ALWAYS-ON NODE AT A BOUNDARY: the RTC says when; the MCU's own
+     timer only ever says "the RTC didn't" (shipsBellsV3 §16.4). The MCU timebase never
+     competes as a trigger, which is the entire reason for fitting a DS3231. A poll
+     measured the cost of the other arrangement: across one day its strikes walked from
+     174 ms to 465 ms after the boundary — about 15 ppm of MCU crystal against the RTC,
+     visible as a drift and not as jitter (2026-08-04).
+
+     THREE SOURCES, ONE CHANNEL. `clock/tick` is fed by:
+       1. THE ALARM, at boundary - lead. DS3231 Alarm1 (Alarm2 has no seconds register),
+          re-armed after every strike, delivered through the driver's own ISW workqueue.
+       2. THE COUNTDOWN, a one-shot armed by (1) for the boundary itself. This is what
+          actually strikes, so the strike instant is a local timer over 5 s rather than
+          an I2C read in the interrupt path.
+       3. THE WATCHDOG, a one-shot armed at each strike for the NEXT boundary + grace.
+     Nothing above `clock/tick` knows which one arrived: every tick re-derives the slot
+     from the part and lets the dial decide. Given the rtcAlarm, the timers, the channel
+     they all post on, and the dial; it never reads the clock itself — the node hands it
+     the second it just read.
+
+     WHY A WATCHDOG AND NOT A BACKSTOP POLL. The modes that can eat an alarm edge are
+     specific — a failed re-arm, or a failed flag clear (INT/SQW is a LEVEL, so an
+     uncleared flag means no new edge) — and both have one signature: an alarm we armed
+     did not fire when it was due. That is a DEADLINE, and a deadline wants a one-shot.
+     A 60 s poll would ring up to 60 s late; this rings 2 s late, and between boundaries
+     the MCU holds exactly one armed timer and is otherwise idle. In the healthy case
+     the watchdog fires 2 s INTO the pattern (eight bells run 6.88 s) and finds the slot
+     already rung, because the node moves its marker when the ring STARTS; it is also
+     the only diagnostic — when it finds the boundary unrung, that is positive evidence
+     the alarm failed, and the node says so. *)
+  class Trigger = ( | alarm timers tick dial armedFor. alarmOk ::= false. | ) (
+    public alarmOk  = ( ^ alarmOk )
+    public armedFor = ( ^ armedFor )
+
+    (* Arm both deadlines for the boundary after `secs`. The alarm time is wrapped into
+       the day, because 00:00 minus a lead is 23:59:55 and the part matches a time of
+       day. `at:post:on:` answers false rather than raising when it cannot arm — no RTC,
+       or an image built without CONFIG_RTC_ALARM — and the node runs on its watchdog
+       alone: correct behaviour, wrong image, so it is printed. The watchdog is never
+       cancelled: cheaper to let it fire into a dial that has nothing to do than to
+       carry cancel state. *)
+    public armAfter: secs = (
+      | toBoundary |
+      armedFor:: nil.
+      toBoundary:: dial secondsToBoundaryAfter: (dial slotOf: secs) from: secs.
+      alarmOk:: alarm at: (dial wrapDay: secs + toBoundary - self leadSeconds)
+                      post: #alarm on: tick.
+      alarmOk ifFalse: [
+        'trigger=WATCHDOG ONLY — rtcAlarm refused (image built without prj_esp32c6_rtcalarm.conf?)' out ].
+      timers after: (toBoundary * 1000) + self graceMillis post: #watchdog on: tick.
+      ^ self )
+
+    (* Is `secs` inside the alarm's lead of a boundary? Then a tick now is the alarm's
+       early wake. *)
+    public nearBoundary: secs = (
+      ^ (dial secondsToBoundaryAfter: (dial slotOf: secs) from: secs) <= self leadSeconds )
+
+    (* The alarm's early wake: one local one-shot for the remaining milliseconds, plus a
+       small margin so the RTC's second has certainly rolled over when the countdown
+       re-reads it — wallClock has 1 s resolution, and firing 1 ms early would read the
+       OLD slot and ring nothing until the watchdog. Guarded on `armedFor`, so a second
+       early tick does not arm a second countdown for the same boundary. The slot it is
+       armed for is the dial's next: the node's own `slot + 1` read 48 at 23:59:55, so
+       the midnight countdown was logged as a watchdog's late ring. *)
+    public countdownAt: secs = (
+      (armedFor == nil) ifFalse: [ ^ self ].
+      armedFor:: dial nextAfter: (dial slotOf: secs).
+      timers after: ((dial secondsToBoundaryAfter: (dial slotOf: secs) from: secs) * 1000)
+                    + self strikeMarginMillis
+             post: #countdown on: tick.
+      ^ self )
+
+    (* The part gave no reading: look again in a minute. The one place the MCU's timer
+       asks the question on its own, and it asks, it does not strike. *)
+    public retry = ( timers after: self retryMillis post: #retry on: tick. ^ self )
+
+    public leadSeconds = ( ^ 5 )       (* the alarm fires this early *)
+    public graceMillis = ( ^ 2000 )    (* the watchdog fires this late *)
+    strikeMarginMillis = ( ^ 200 )     (* countdown overshoot; see countdownAt: *)
+    retryMillis        = ( ^ 60000 )
+
+    setAlarm: a timers: t tick: c dial: d = ( alarm:: a. timers:: t. tick:: c. dial:: d. ^ self )
+  ) : (
+    public on: alarm timers: timers tick: tick dial: dial = (
+      ^ self new setAlarm: alarm timers: timers tick: tick dial: dial )
+  )
+
+  (* --- Striker -------------------------------------------------------------------- *)
+
+  (* THE RINGER AS A STATE MACHINE, so the node keeps reacting while a pattern plays.
+     Given a gpio, the timers, the channel its strokes come back on and the pin to
+     drive, and nothing else: it cannot read the clock and does not know what count a
+     half-hour calls for. `ring:` starts a pattern; each `step` is one stroke edge:
+     `set: true` -> one-shot at WIDTH -> `set: false` -> one-shot at the pair or set
+     gap -> next stroke. Odd stroke (1-based) = first of a pair, so the SHORT gap follows
+     it and holds the pair together; even = the long gap separates the pairs; the last
+     stroke gets no trailing gap, which is what produces the lone final stroke of an odd
+     count. Three bells is the pattern that proves both branches.
+
+     The deep-sleep node strikes through the kernel's `Bell>>strike:`, a blocking C leaf
+     on the MagTag's speaker; this is the wall's piezo on a GPIO, and the pattern is
+     nsl's — C keeps only gpioSet (2026-08-03 design D3). WIDTH IS 10 ms, NOT 50: 50 is
+     BELL_MAX_WIDTH_MS, the pattern-path duty cap in src/main.c. What rang on 2026-08-03
+     and was approved by ear was `width 10 ms, pair gap 500 ms, set gap 1600 ms`
+     (collector log 21:19:01 through 21:21:12, b4/b8/b3), a piezo result: §19 took the
+     solenoid off this device for good, so here the piezo is the ringer and not a
+     stand-in. *)
+  class Striker = ( | gpio timers chan pin
+                     striking ::= false. strokeCount ::= 0. strokeIndex ::= 0. pinOn ::= false.
+                     gpioMissing ::= false. | ) (
+    public striking = ( ^ striking )
+
+    (* Two refusals, and an answer of whether the pattern started. In flight is
+       unreachable at 1800 s and reachable at a 60 s bench slot: two rings interleaved
+       on one pin is neither ring. *)
+    public ring: n = (
+      striking ifTrue: [
+        ('bells ' , n printString , ' REFUSED — a pattern is already in flight') out.
+        ^ false ].
+      ((n < 1) or: [ n > 8 ]) ifTrue: [
+        ('bells ' , n printString , ' REFUSED (allowed 1..8)') out.
+        ^ false ].
+      strokeCount:: n.
+      strokeIndex:: 0.
+      striking:: true.
+      self strikeOn.
+      ^ true )
+
+    (* One stroke edge, from the channel. Answers whether the pattern is still playing,
+       so the node sees the last edge without the striker knowing what follows it. *)
+    public step = (
+      pinOn ifTrue: [ self strikeOff ] ifFalse: [ self strikeOn ].
+      ^ striking )
+
+    strikeOn = (
+      strokeIndex:: strokeIndex + 1.
+      pinOn:: true.
+      self pin: true.
+      timers after: self widthMillis post: #stroke on: chan.
+      ^ self )
+
+    strikeOff = (
+      pinOn:: false.
+      self pin: false.
+      strokeIndex = strokeCount ifTrue: [
+        striking:: false.
+        'bells done' out.
+        ^ self ].
+      timers after: (self gapAfter: strokeIndex) post: #stroke on: chan.
+      ^ self )
+
+    (* Odd index -> within a pair; even -> between pairs. *)
+    public gapAfter: i = (
+      (i \\ 2) = 1 ifTrue: [ ^ self pairGapMillis ].
+      ^ self setGapMillis )
+
+    (* A pin the board never declared RAISES rather than answering a plausible false
+       (tuvm#82). Caught here and said ONCE: a bell with no ringer should still keep
+       time and still say why it is silent. *)
+    pin: aBool = (
+      [ gpio set: pin to: aBool ]
+        on: [ :e | e tag = #gpioUndeclared ]
+        do: [ :e |
+          gpioMissing ifFalse: [
+            gpioMissing:: true.
+            ('bell: GPIO' , pin printString ,
+              ' not declared on this board — keeping time, ringing nothing') out ] ].
+      ^ self )
+
+    public widthMillis   = ( ^ 10 )
+    public pairGapMillis = ( ^ 500 )
+    public setGapMillis  = ( ^ 1600 )
+
+    setGpio: g pin: p timers: t channel: c = ( gpio:: g. pin:: p. timers:: t. chan:: c. ^ self )
+  ) : (
+    public on: gpio pin: pin timers: timers channel: channel = (
+      ^ self new setGpio: gpio pin: pin timers: timers channel: channel )
   )
 ) : (
 )

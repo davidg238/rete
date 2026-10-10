@@ -1,6 +1,6 @@
 # rete: a lifecycle for small radio nodes on Zephyr — what is built, what it costs, and what is not
 
-_DRAFT 2, 2026-10-09, for iteration with David. The companion paper, on the language, is [nsl-design-paper.md]; each topic has one owner and the other paper cites it._
+_DRAFT 3, 2026-10-09 (Appendices A–C in the lifted-references form, decided 2026-10-09), for iteration with David. The companion paper, on the language, is [nsl-design-paper.md]; each topic has one owner and the other paper cites it._
 
 Sources are bracketed keys, e.g. [VM], resolved in the References; in this Markdown they are links, and only there.
 Anything that is designed but not built says so in the sentence that describes it.
@@ -171,9 +171,10 @@ axis that binds.
 ## 5. What you write
 
 An nsl program is a class whose header names what it was given. It keeps state under path names in a **space** and
-reacts to writes at those paths. Appendix A shows a whole node: the ship's-bell clock that runs on the MagTag,
-written as four classes with one responsibility each and a `main:` that reads as the order of one wake. Two parts
-follow.
+reacts to writes at those paths. Appendices A and B show one whole program in its two power modes: the ship's-bell
+clock as the MagTag runs it, asleep between half-hours, and as the wall-powered C6 runs it, always on — both
+written over one library of classes with one responsibility each (Appendix C) and a `main:` that reads as the
+order of one wake, or of one boot. Two parts follow.
 
 The first is that order. The node is asleep between wakes and the VM does not exist while it sleeps, so there is no
 loop here: a wake strikes, syncs if it is a watch end, joins the gateway, reports, and sleeps.
@@ -208,7 +209,7 @@ paths across the wire:
 |---|---|---|---|
 | `goal/debug/main` | cell | the gateway, as intent: the breakpoint set | the node, at its first check-in of every wake |
 | `obs/build`, `obs/liveness` | cells | the node, as what it is and how often to expect it | the gateway |
-| `tel/log` | stream | the node, a row per wake | the gateway, every row |
+| `tel/log` | stream | the node, a row per wake (the wall node: a row per strike) | the gateway, every row |
 | `sys/metrics` | cell | the kernel, the arena's numbers | the gateway |
 
 A *cell* holds the latest value; a *stream* is append-only. Every path that crosses the wire has its kind and record
@@ -554,106 +555,49 @@ The cable is the desk. The last column is what 0.1 is.
 
 One program, two power modes. This is the deep-sleep mode: the MagTag (ESP32-S2, WiFi) sleeps between half-hours,
 and every wake is a cold boot that strikes, syncs at a watch end, exchanges once with the gateway, and sleeps again.
-The always-on mode, the wall-powered C6 with a DS3231 and a piezo, is the same classes without the page and with a
-striker, and follows [Wall]. The program was built on 2026-10-09 as the image a debugger and a profiler can reach
-(the debugger's hooks and the method profiler compiled in; 187,768 bytes of image), checked in with the gateway,
-and rang six bells at 19:00 [Example].
+The always-on mode is Appendix B; the classes both name are Appendix C. The program was built on 2026-10-09 as
+the image a debugger and a profiler can reach (the debugger's hooks and the method profiler compiled in; 187,768
+bytes of image), checked in with the gateway, and rang six bells at 19:00 [Example].
 
-Two files. The first is the node: its header names the platform and the network, and `main:` is the map of one
-wake. The second is the library it names with `uses:`, four classes with one responsibility each, whose headers
-name the only collaborators they can reach. The counts came from the kernel's `Bell`, not from here. The
-comments travel with the code on purpose: they are what an overnight run in July paid for.
+The node's header names the platform and the network, and `main:` is the map of one wake: it names the
+collaborators and the order, and nothing else. The clock's rules are in the library it names with `uses:`; the
+counts came from the kernel's `Bell`, not from here. The comments are lifted out of the code into numbered
+references after the file, and a `(* Ref n *)` on a line marks where each one stood; they are what an overnight
+run in July paid for, and the source file keeps them in place.
 
 **`nodus/oevm/zephyr/MagTagDeepSleepNode.nsl`**
 
 ```
-(*
-MagTagDeepSleepNode — the ship's-bell clock as a RUN-ONCE deep-sleep appliance that
-talks to porta (tuvm#94 stage 5; rete#379, #380).
-
-THE REACTOR IS GONE. Between wakes the CPU is off and THE VM DOES NOT EXIST: each timer
-wake is a fresh boot that lives a few seconds and dies. There is no drain loop, no
-channel, no VM timer — deepSleep: IS the idle point. This also DELETES the timer-instance
-bug class that cost the stage 2 overnight run (a timer registered on one Timers,
-dispatched on another): there are no VM timers left to misregister.
-
-THE PROGRAM IS ITS CLASSES (rete#380, David 2026-10-09). The clock's rules live in
-lib/Bells.nsl, one responsibility each — RtcRecord (the slots that survive sleep),
-BellClock (the modular ratchet, the predicted clock, the sync, the schedule), Drift (the
-ppm calibration), StatsPage (the e-paper) — and `main:` below is the map: it names the
-collaborators and the order of the wake, and nothing else. The invariant comments that
-the 2026-07-24 run paid for travel with the class that owns them; the COUNT stays the
-kernel's `Bell>>bellsForHalfHour:`. A backtrace or a profile row reads
-`Drift>>disciplined:`, not `Node>>disciplined:ppm:`.
-
-ONE WAKE, in order. The strike comes FIRST: the bell is the product, it blocks to
-completion before anything else (design §8), and the ratchet accounts for the whole awake
-window afterwards. A watch end (8 bells) then syncs and paints, a cold boot syncs and
-paints without striking. Only then does the node join porta: bind, bridge, one check-in
-— at which the `goal/debug/main` cell is replayed into this fresh boot, so a breakpoint
-set from porta arms here and stops the work that follows (rete#375, #379) — the wake's row
-on `tel/log`, a second check-in, and the sleep arithmetic last, so that `awakeSinceBasis`
-has seen every second this wake spent, exchanges included. Held, the node runs held
-exchanges through the same link (rete#377): a stop on a node that was asleep half an hour
-ago is stepped and inspected from porta with no cable on the board.
-
-No porta is not an error. `net udpBindPort:` nil (no radio in the image, or the host
-gate's OEVM_NO_NET) gives the bridge `socket: nil`, the #274 construction: it checks in
-nowhere, publishes locally, and the clock runs exactly as it did before it was bridged.
-The declared liveness is one slot plus an awake window, so porta reads a node that is
-asleep as live until it misses four of them.
-
-Build (debug + profile image, from nodus/oevm/zephyr; the env is prj_esp32s2_porta.conf's,
-the bell fragment brings the panel, the speaker and SNTP back after it):
-  OEVM_IRAM_HOT=0 VM_STACK_INIT_WORDS=2048 OEVM_HEAP_SIZE=36864 \
-  METHOD_CACHE_SIZE=128 SERIAL_FIFO_CAP=256 OEVM_DEBUG_HOOKS=1 OEVM_METHOD_PROFILE=1 \
-  OEVM_NTP_SERVER6=<the LAN's NTP by IPv6 literal> \
-  ./run.sh --board esp32s2 --model B --node MagTagDeepSleepNode.nsl \
-    --conf-extra "prj_esp32s2_wifi.conf;prj_esp32s2_porta.conf;prj_esp32s2_bell.conf" --flash
-  Bench: add OEVM_LOG_UDP6=<this desktop's STABLE ULA> and listen on UDP 54330 — the
-  console with no cable on the board (zephyr/src/log_udp.c; the last line before the sleep
-  never arrives, which is not a hang).
-
-expect (console, a strike wake):
-wake half 45 bells 5
-struck
-sleep: target 1785 s cal -10513 awake 15 s
-sleep: arming 1804 s
-
-uses: lib/Bells.nsl
-*)
-class MagTagDeepSleepNode usingPlatform: platform net: net = (
-  | record drift clock space bridge summary |
+class MagTagDeepSleepNode usingPlatform: platform net: net = (   (* Ref 1 *)
+  | dial record drift clock space bridge summary |
 ) (
-  gwAddr    = ( ^ 'fd3f:2e87:5f7:5554:6662:66ff:fe2f:710' )   (* gw85224-01 by its stable ULA (rete#390) *)
+  gwAddr    = ( ^ 'fd3f:2e87:5f7:5554:6662:66ff:fe2f:710' )   (* Ref 2 *)
   gwPort    = ( ^ 6969 )
   localPort = ( ^ 16976 )
   chip      = ( ^ #esp32s2 )
 
   public main: platform2 args: args = (
+    dial::   Dial new.
     record:: RtcRecord on: platform.
     drift::  Drift on: record.
-    clock::  BellClock on: record drift: drift ntp: platform.
+    clock::  BellClock on: record drift: drift ntp: platform dial: dial.
     space::  platform space.
 
     record valid
       ifTrue:  [ self strikeWake ]
       ifFalse: [ self coldBoot ].
 
-    self joinPorta.            (* the first check-in replays the breakpoint set *)
+    self joinPorta.            (* Ref 3 *)
     self report.
-    space drain.               (* the row above is captured by a reaction; only a drain runs it *)
+    space drain.               (* Ref 4 *)
     bridge checkIn.
-    ^ self sleep               (* NEVER RETURNS *)
+    ^ self sleep               (* Ref 5 *)
   )
 
-  (* The strike about to happen is a pure increment of the ratchet (design §2), and it
-     BLOCKS to completion before any sleep (design §8: a strike is never cut off). Eight
-     bells is a watch end: sync, then paint, so a FAIL shows on the glass. *)
-  strikeWake = (
+  strikeWake = (   (* Ref 6 *)
     | half bells |
     half::  clock nextHalf.
-    bells:: (platform bell) bellsForHalfHour: half.    (* the kernel owns the COUNT *)
+    bells:: (platform bell) bellsForHalfHour: half.    (* Ref 7 *)
     ('wake half ' , half printString , ' bells ' , bells printString) out.
     (platform bell) strike: bells.
     'struck' out.
@@ -663,18 +607,7 @@ class MagTagDeepSleepNode usingPlatform: platform net: net = (
     bells = 8 ifTrue: [ clock trySync. self paint ].
     ^ self )
 
-  (* A COLD BOOT MUST NOT STRIKE. Power returns at an arbitrary second, and a bell struck
-     then is a bell at a meaningless time — the 20:00:56 reset that produced "1 bell" is
-     the witness. Instead: free-run from 00:00 with the factory calibration seeded, sync at
-     once so the clock starts on the right footing (the ratchet adopts true time — an
-     advance from 0, silent, no skipped bells rung), paint the synced panel, and sleep to
-     the next TRUE boundary. The first strike is that boundary's bell with the RIGHT count.
-     If NTP fails all 3 attempts the free-run state stands (design §8): the next boundary
-     is a slot out and the count is wrong until the first good watch-end sync. Honest, and
-     no worse than before. Cold boots are rare (true power loss / reflash), so the paint
-     stays inside the e-paper refresh budget; ordinary strike wakes never touch the panel
-     (design §5). *)
-  coldBoot = (
+  coldBoot = (   (* Ref 8 *)
     'cold boot: free-run from 00:00' out.
     record coldInitCal: drift seedPpm stale: clock neverSyncedSec.
     clock trySync.
@@ -682,10 +615,7 @@ class MagTagDeepSleepNode usingPlatform: platform net: net = (
     summary:: 'cold boot'.
     ^ self )
 
-  (* The page is given the display and nothing else. A handler block is a real escaping
-     closure, so `^` inside it is a compile error under the no-NLR model — capture the
-     on:do: result (the display, or the nil sentinel) and decide in the method body. *)
-  paint = (
+  paint = (   (* Ref 9 *)
     | disp |
     disp:: [ | d | d:: platform display. d clear. d ]
       on: [ :e | e tag = #displayUnavailable ]
@@ -694,10 +624,7 @@ class MagTagDeepSleepNode usingPlatform: platform net: net = (
     (StatsPage on: disp record: record clock: clock heap: platform heapStats) paint.
     ^ self )
 
-  (* Bind, bridge, declare, check in. Over IPv6 to the gateway's ULA: the bridge awaits
-     porta's reply on the socket it bound, and only over IPv6 do the send and the reply
-     share that one socket on this board (rete#390). *)
-  joinPorta = (
+  joinPorta = (   (* Ref 10 *)
     | sock |
     sock:: net udpBindPort: self localPort.
     sock == nil ifTrue: [ 'no net: running unbridged' out ].
@@ -717,81 +644,516 @@ class MagTagDeepSleepNode usingPlatform: platform net: net = (
                         , ' held ' , bridge heldExchanges printString)).
     ^ self )
 
-  (* THE COUNT OWNS THE SCHEDULE: the clock answers the target, the calibration
-     disciplines it, the C leaf prints `sleep: arming N s` and arms the timer. *)
-  sleep = (
+  sleep = (   (* Ref 11 *)
     | target |
     target:: clock sleepTarget.
-    platform deepSleep: (self witnessSleepFor: (drift disciplined: target)).   (* NEVER RETURNS *)
+    platform deepSleep: (self witnessSleepFor: (drift disciplined: target)).   (* Ref 12 *)
     ^ self )
 
-  (* Witness seam (tuvm#94 stage 5, Task 9): the bench witness build flips this to
-     `^ 15` so the PHYSICAL deep-sleep compresses to seconds and several strike wakes, a
-     watch-end sync+paint, and a real deepSleep->timer-wake->cold-boot cycle all witness
-     within minutes. The CLOCK still advances a real half-hour per wake — elapsedSec
-     accrues the true target, unchanged — so the ratchet and watch-end (half 8) land
-     exactly as shipped; only the wall-clock wait shortens. SHIPPING state is this
-     pass-through. *)
-  witnessSleepFor: realSec = ( ^ realSec )
+  witnessSleepFor: realSec = ( ^ realSec )   (* Ref 13 *)
 
-  (* ms: one slot plus an awake window (boot, WiFi association, strike, two exchanges),
-     the period porta should expect between check-ins. *)
-  cadenceMillis = ( ^ (clock slotSec + 60) * 1000 )
+  cadenceMillis = ( ^ (dial slotSec + 60) * 1000 )   (* Ref 14 *)
 ) : (
   public packageUsing: manifest = ( ^ self new )
 )
 ```
 
+**References for `nodus/oevm/zephyr/MagTagDeepSleepNode.nsl`**
+
+**Ref 1** · `class MagTagDeepSleepNode usingPlatform: platform net: net = (`
+
+MagTagDeepSleepNode — the ship's-bell clock as a RUN-ONCE deep-sleep appliance that talks to porta (tuvm#94 stage 5; rete#379, #380).
+
+THE REACTOR IS GONE. Between wakes the CPU is off and THE VM DOES NOT EXIST: each timer wake is a fresh boot that lives a few seconds and dies. There is no drain loop, no channel, no VM timer — deepSleep: IS the idle point. This also DELETES the timer-instance bug class that cost the stage 2 overnight run (a timer registered on one Timers, dispatched on another): there are no VM timers left to misregister.
+
+THE PROGRAM IS ITS CLASSES (rete#380, David 2026-10-09). The clock's rules live in lib/Bells.nsl, one responsibility each — Dial (the 48 slots and the modular ratchet, shared with the always-on bell ShipsBellNodeC6), RtcRecord (the slots that survive sleep), BellClock (the predicted clock, the sync, the schedule), Drift (the ppm calibration), StatsPage (the e-paper) — and `main:` below is the map: it names the collaborators and the order of the wake, and nothing else. The invariant comments that the 2026-07-24 run paid for travel with the class that owns them; the COUNT stays the kernel's `Bell>>bellsForHalfHour:`. A backtrace or a profile row reads `Drift>>disciplined:`, not `Node>>disciplined:ppm:`.
+
+ONE WAKE, in order. The strike comes FIRST: the bell is the product, it blocks to completion before anything else (design §8), and the ratchet accounts for the whole awake window afterwards. A watch end (8 bells) then syncs and paints, a cold boot syncs and paints without striking. Only then does the node join porta: bind, bridge, one check-in — at which the `goal/debug/main` cell is replayed into this fresh boot, so a breakpoint set from porta arms here and stops the work that follows (rete#375, #379) — the wake's row on `tel/log`, a second check-in, and the sleep arithmetic last, so that `awakeSinceBasis` has seen every second this wake spent, exchanges included. Held, the node runs held exchanges through the same link (rete#377): a stop on a node that was asleep half an hour ago is stepped and inspected from porta with no cable on the board.
+
+No porta is not an error. `net udpBindPort:` nil (no radio in the image, or the host gate's OEVM_NO_NET) gives the bridge `socket: nil`, the #274 construction: it checks in nowhere, publishes locally, and the clock runs exactly as it did before it was bridged. The declared liveness is one slot plus an awake window, so porta reads a node that is asleep as live until it misses four of them.
+
+Build (debug + profile image, from nodus/oevm/zephyr; the env is prj_esp32s2_porta.conf's, the bell fragment brings the panel, the speaker and SNTP back after it):
+
+```
+  OEVM_IRAM_HOT=0 VM_STACK_INIT_WORDS=2048 OEVM_HEAP_SIZE=36864 \
+  METHOD_CACHE_SIZE=128 SERIAL_FIFO_CAP=256 OEVM_DEBUG_HOOKS=1 OEVM_METHOD_PROFILE=1 \
+  OEVM_NTP_SERVER6=<the LAN's NTP by IPv6 literal> \
+  ./run.sh --board esp32s2 --model B --node MagTagDeepSleepNode.nsl \
+    --conf-extra "prj_esp32s2_wifi.conf;prj_esp32s2_porta.conf;prj_esp32s2_bell.conf" --flash
+  Bench: add OEVM_LOG_UDP6=<this desktop's STABLE ULA> and listen on UDP 54330 — the
+  console with no cable on the board (zephyr/src/log_udp.c; the last line before the sleep
+  never arrives, which is not a hang).
+```
+
+expect (console, a strike wake): wake half 45 bells 5 struck sleep: target 1785 s cal -10513 awake 15 s sleep: arming 1804 s
+
+uses: lib/Bells.nsl
+
+**Ref 2** · `gwAddr    = ( ^ 'fd3f:2e87:5f7:5554:6662:66ff:fe2f:710' )`
+
+gw85224-01 by its stable ULA (rete#390)
+
+**Ref 3** · `self joinPorta.`
+
+the first check-in replays the breakpoint set
+
+**Ref 4** · `space drain.`
+
+the row above is captured by a reaction; only a drain runs it
+
+**Ref 5** · `^ self sleep`
+
+NEVER RETURNS
+
+**Ref 6** · `strikeWake = (`
+
+The strike about to happen is a pure increment of the ratchet (design §2), and it
+
+```
+    BLOCKS to completion before any sleep (design §8: a strike is never cut off). Eight
+    bells is a watch end: sync, then paint, so a FAIL shows on the glass. 
+```
+
+**Ref 7** · `bells:: (platform bell) bellsForHalfHour: half.`
+
+the kernel owns the COUNT
+
+**Ref 8** · `coldBoot = (`
+
+A COLD BOOT MUST NOT STRIKE. Power returns at an arbitrary second, and a bell struck
+
+```
+    then is a bell at a meaningless time — the 20:00:56 reset that produced "1 bell" is
+    the witness. Instead: free-run from 00:00 with the factory calibration seeded, sync at
+    once so the clock starts on the right footing (the ratchet adopts true time — an
+    advance from 0, silent, no skipped bells rung), paint the synced panel, and sleep to
+    the next TRUE boundary. The first strike is that boundary's bell with the RIGHT count.
+    If NTP fails all 3 attempts the free-run state stands (design §8): the next boundary
+    is a slot out and the count is wrong until the first good watch-end sync. Honest, and
+    no worse than before. Cold boots are rare (true power loss / reflash), so the paint
+    stays inside the e-paper refresh budget; ordinary strike wakes never touch the panel
+    (design §5). 
+```
+
+**Ref 9** · `paint = (`
+
+The page is given the display and nothing else. A handler block is a real escaping
+
+```
+    closure, so `^` inside it is a compile error under the no-NLR model — capture the
+    on:do: result (the display, or the nil sentinel) and decide in the method body. 
+```
+
+**Ref 10** · `joinPorta = (`
+
+Bind, bridge, declare, check in. Over IPv6 to the gateway's ULA: the bridge awaits
+
+```
+    porta's reply on the socket it bound, and only over IPv6 do the send and the reply
+    share that one socket on this board (rete#390). 
+```
+
+**Ref 11** · `sleep = (`
+
+THE COUNT OWNS THE SCHEDULE: the clock answers the target, the calibration
+
+```
+    disciplines it, the C leaf prints `sleep: arming N s` and arms the timer. 
+```
+
+**Ref 12** · `platform deepSleep: (self witnessSleepFor: (drift disciplined: target)).`
+
+NEVER RETURNS
+
+**Ref 13** · `witnessSleepFor: realSec = ( ^ realSec )`
+
+Witness seam (tuvm#94 stage 5, Task 9): the bench witness build flips this to
+
+```
+    `^ 15` so the PHYSICAL deep-sleep compresses to seconds and several strike wakes, a
+    watch-end sync+paint, and a real deepSleep->timer-wake->cold-boot cycle all witness
+    within minutes. The CLOCK still advances a real half-hour per wake — elapsedSec
+    accrues the true target, unchanged — so the ratchet and watch-end (half 8) land
+    exactly as shipped; only the wall-clock wait shortens. SHIPPING state is this
+    pass-through. 
+```
+
+**Ref 14** · `cadenceMillis = ( ^ (dial slotSec + 60) * 1000 )`
+
+ms: one slot plus an awake window (boot, WiFi association, strike, two exchanges),
+
+```
+    the period porta should expect between check-ins. 
+```
+
+<div style="page-break-before: always"></div>
+
+## Appendix B. The ship's bell as an always-on node
+
+The other power mode: the wall-powered ESP32-C6 with a DS3231 and a piezo, on Thread, always on. Its clock is a
+part, so it has no predicted clock and no calibration; its wake is the RTC's alarm, so it has no sleep; its strike
+is a pattern on a GPIO, so it has a striker. What it shares with Appendix A is the `Dial` — the 48 slots of the
+day, the modular ratchet, the boundary arithmetic — and the rule that a correction never rings: a sync advances the
+deep-sleep node's count silently in `BellClock>>apply:`, and re-seeds this node's marker silently in `resync`, so
+the only path that rings on either node is a boundary arriving on a count a tick set. Unifying the ratchet removed
+this node's own midnight case (`slot = 0`, "however it was reached"), which rang eight bells on a clock corrected
+back across midnight, and its `slot + 1`, which read 48 at 23:59:55 and logged every midnight countdown as a
+watchdog's late ring.
+
+Measured against the linear node it replaces, compiled for the same board: 199,304 bytes of image against
+178,784 (+20,520, +11.5 %), 972 methods against 861. Most of the difference is not this node's: the `uses:` pragma
+splices the whole library, so the four deep-sleep classes (`RtcRecord`, `Drift`, `BellClock`, `StatsPage`, 73
+methods) ride in the wall image unused. The program partition is 512 KB, so the cost is paid in flash the board
+has; a per-file split of the library is the remedy when the number matters, and is filed (rete#394). The full
+image, with the debugger's hooks and the profiler, links at 487,768 bytes of flash and 73 % of SRAM. As of this
+draft the image is built and its host gate is green; the flash to the wall is a daylight act and is recorded on
+[rete#380](https://github.com/davidg238/rete/issues/380).
+
+**`nodus/oevm/zephyr/ShipsBellNodeC6.nsl`**
+
+```
+class ShipsBellNodeC6 usingPlatform: platform net: net = (   (* Ref 1 *)
+  | dial rtc trigger striker space timers tick bridge
+    lastSlot. haveClock ::= false. midnightPending ::= false. checkIns ::= 0. |
+) (
+  gwAddr    = ( ^ 'fdc5:9109:9afe:97ea:9541:d963:f8d9:8567' )   (* Ref 2 *)
+  gwPort    = ( ^ 6969 )
+  localPort = ( ^ 16971 )   (* Ref 3 *)
+  cadence   = ( ^ 30000 )   (* Ref 4 *)
+  chip      = ( ^ #esp32c6 )
+  strikePin = ( ^ 18 )      (* Ref 5 *)
+
+  public main: platform2 args: args = (
+    | bellCh |
+    dial::    Dial new.
+    rtc::     RtcClock on: platform dial: dial.
+    space::   platform space.
+    timers::  platform timers.
+    space whenever: 'sys/timer' do: [ :e | timers dispatch: e ].
+    tick::    space channel: 'clock/tick'.
+    tick whenever: '' do: [ :m | self onTick ].
+    bellCh::  space channel: 'bell/stroke'.
+    bellCh whenever: '' do: [ :m | striker step ifFalse: [ self afterPattern ] ].
+    striker:: Striker on: platform gpio pin: self strikePin timers: timers channel: bellCh.
+    trigger:: Trigger on: platform rtcAlarm timers: timers tick: tick dial: dial.
+    self joinPorta.
+    self ready.
+    self resync.               (* Ref 6 *)
+    [ true ] whileTrue: [ platform pumpEvents. space drain ]
+  )
+
+  onTick = (   (* Ref 7 *) (* Ref 8 *)
+    | secs slot |
+    secs:: rtc secondsOfDay.
+    secs == nil ifTrue: [ ^ self noClock ].
+    haveClock ifFalse: [
+      haveClock:: true.
+      ('clock ' , (dial hms: secs) , ' — readings good') out.
+      ^ self seedAt: secs ].
+    slot:: dial slotOf: secs.
+    (dial isBehind: slot of: lastSlot) ifTrue: [
+      (trigger armedFor == slot) ifFalse: [   (* Ref 9 *)
+        ('watchdog: no alarm for slot ' , slot printString , ' — ringing late') out ].
+      lastSlot:: slot.
+      ^ self ringSlot: slot at: secs ].
+    (trigger nearBoundary: secs) ifTrue: [ trigger countdownAt: secs ].   (* Ref 10 *)
+    ^ self )
+
+  ringSlot: slot at: secs = (   (* Ref 11 *)
+    | n |
+    n:: (platform bell) bellsForHalfHour: slot.
+    ('bell slot ' , slot printString , ' at ' , (dial hms: secs) , ' — ' ,
+      n printString , (self bellWord: n)) out.
+    self report: ('slot ' , slot printString , ' bells ' , n printString).
+    slot = 0 ifTrue: [ midnightPending:: true ].
+    striker ring: n.
+    trigger armAfter: secs.
+    ^ self )
+
+  afterPattern = (
+    midnightPending ifTrue: [ midnightPending:: false. self resync ].
+    ^ self )
+
+  resync = (   (* Ref 12 *)
+    | secs |
+    rtc sync.
+    rtc show.
+    secs:: rtc secondsOfDay.
+    secs == nil ifTrue: [ ^ self noClock ].
+    haveClock:: true.
+    ^ self seedAt: secs )
+
+  seedAt: secs = (   (* Ref 13 *)
+    lastSlot:: dial slotOf: secs.
+    ('seed slot ' , lastSlot printString , ' at ' , (dial hms: secs) , ' — nothing rung') out.
+    trigger armAfter: secs.
+    ^ self )
+
+  noClock = (   (* Ref 14 *)
+    haveClock ifTrue: [
+      haveClock:: false.
+      'clock nil — no DS3231 reading; not striking until it returns' out ].
+    trigger retry.
+    ^ self )
+
+  joinPorta = (   (* Ref 15 *) (* Ref 16 *)
+    | sock beatCh |
+    sock:: net udpBindPort: self localPort.
+    sock == nil ifTrue: [ 'porta: bind FAILED — ringing on, ticking on, reporting nothing' out ].
+    bridge:: platform PortaBridge
+      socket: sock space: space id: platform nodeId peer: self gwAddr port: self gwPort
+      spans: platform Spans new.
+    bridge subscribeStream: 'tel/log'.
+    bridge liveness: self cadence misses: 8.
+    bridge publishBuild: self chip.
+    beatCh:: space channel: 'sys/tick'.
+    beatCh whenever: '' do: [ :m | self checkIn ].
+    bridge startTicking: timers on: beatCh.
+    ('porta: check-in every ' , (self cadence // 1000) printString , ' s as ' , platform nodeId) out.
+    ^ self )
+
+  checkIn = (   (* Ref 17 *)
+    striker striking ifTrue: [ ^ self ].
+    [ bridge checkIn. checkIns:: checkIns + 1 ]
+      on: [ :e | true ]
+      do: [ :e | 'porta: check-in raised — ringing on' out ].
+    ('porta: check-in ' , checkIns printString ,
+      ' misses ' , bridge misses printString ,
+      ' cursor ' , bridge cursor printString ,
+      ' acked ' , bridge acked printString) out.
+    ^ self )
+
+  report: txt = (
+    space out: 'tel/log' value:
+      (platform Record tag: #Log with: #lvl -> #info with: #txt -> txt).
+    ^ self )
+
+  ready = (   (* Ref 18 *)
+    ('shipsbell ready, slot ' , dial slotSec printString ,
+      ' s, lead ' , trigger leadSeconds printString ,
+      ' s, watchdog +' , (trigger graceMillis // 1000) printString , ' s, ' ,
+      striker widthMillis printString , '/' , striker pairGapMillis printString , '/' ,
+      striker setGapMillis printString , ' ms') out.
+    ^ self )
+
+  bellWord: n = ( ^ n = 1 ifTrue: [ ' bell' ] ifFalse: [ ' bells' ] )   (* Ref 19 *)
+) : (
+)
+```
+
+**References for `nodus/oevm/zephyr/ShipsBellNodeC6.nsl`**
+
+**Ref 1** · `class ShipsBellNodeC6 usingPlatform: platform net: net = (`
+
+ShipsBellNodeC6 — the ship's bell on the wall: always on, a DS3231 and a piezo, through porta over Thread (rete#380). Design: docs/design/2026-08-03-c6-shipsbell-always-on-node-design.md (D1-D10, amended 2026-10-09), the trigger from zephyr/boards/shipsBells/2026-07-26-shipsbellsv3-design.md §16.4.
+
+ONE PROGRAM, TWO POWER MODES. This is the always-on mode of the clock that MagTagDeepSleepNode runs as a deep-sleep appliance, over the same library (lib/Bells.nsl). The Dial — the 48 slots, the modular ratchet, the boundary arithmetic — is the same object in both. Where the MagTag has RtcRecord + BellClock + Drift, this node has RtcClock: a part that keeps the time needs no predicted clock and no calibration. Where the MagTag's wake is a timer in C, this node has a Trigger (the RTC alarm, its countdown, the watchdog); where the MagTag's strike is the kernel's blocking `Bell>>strike:`, this node has a Striker, the piezo pattern as a state machine. `main:` is the map: it names the collaborators and the order of the boot, and nothing else. The kernel still owns the COUNT (`Bell>>bellsForHalfHour:`).
+
+THE SLOT IS DERIVED, NEVER COUNTED (D2): every tick reads the part and asks the dial which slot it is in; `lastSlot` is a has-this-one-rung marker, not a clock. THE RATCHET IS THE DIAL'S: forward by a slot is a boundary and rings; the same slot is already rung; a step back holds, silently. Midnight is a forward step of one on the dial, not a case — the `slot = 0` special case this node used to carry is gone with the `slot > last` that rang eight bells twice on 2026-07-24. A SYNC RE-SEEDS THE MARKER SILENTLY, and so does a part whose readings return: the network may move the clock by seconds or by hours, and the only path that rings is a tick finding the dial one slot on from a marker a tick set — so a correction never rings a bell at a second that is not a half hour (D4; the MagTag's sync advances its count the same way, in `BellClock>>apply:`).
+
+THE BOOT, in order: the collaborators; the bridge, socket or none — a bell that stops for want of a gateway is a regression (rete#274); the first sync, which blocks up to the SNTP timeout while no bell can yet be late (D6, D7); the seed, which rings nothing and arms the first boundary; then the reactor. The check-in rides the bridge's own 30 s beat (rete#231) and yields to a pattern in flight: reporting yields to ringing. Each strike is a row on `tel/log`, so porta's log reads the bell's day. ONE `Timers` instance, held in a slot: its registry is nsl-side (rete#244), and `dispatch:` silently drops a token it does not know.
+
+Build (debug + profile image: the profiler is the C6 default, the hooks are not). Use zephyr/flash-bell.sh, which pins both of the bell's ports and carries the override (rete#185, #201) — never a bare run.sh at the bell. BOTH fragments, or it is a watchdog bell wearing this name: without prj_esp32c6_rtcalarm.conf `rtcAlarm at:` answers false, and the node says so at boot. OEVM_NTP_SERVER6 is read at CMake configure time (so --pristine); without it the daily sync answers `sntp_simple rc=-2` forever, which reads exactly like a network outage. OEVM_SOLENOID_CONSOLE stays ABSENT (rete#182): this is the unattended board, and a floating console RX is noise a strike parser acts on.
+
+```
+  OEVM_DEBUG_HOOKS=1 OEVM_NTP_SERVER6=<the mesh's NTP by IPv6 literal> \
+  ./run.sh --board esp32c6 --node ShipsBellNodeC6.nsl \
+           --conf-extra "prj_esp32c6_thread.conf;prj_esp32c6_rtcalarm.conf" --pristine --flash
+```
+
+expect (C6 console, wall-powered): shipsbell ready, slot 1800 s, lead 5 s, watchdog +2 s, 10/500/1600 ms rtcalarm: armed 14:59:55 bell slot 30 at 15:00:00 — 6 bells
+
+uses: lib/Bells.nsl
+
+**Ref 2** · `gwAddr    = ( ^ 'fdc5:9109:9afe:97ea:9541:d963:f8d9:8567' )`
+
+gw85224-01 on the mesh
+
+**Ref 3** · `localPort = ( ^ 16971 )`
+
+NOT 16970 — PortaBridgeNodeC6 owns that one
+
+**Ref 4** · `cadence   = ( ^ 30000 )`
+
+ms; well inside the 30-minute quiet gap, and nothing here needs finer
+
+**Ref 5** · `strikePin = ( ^ 18 )`
+
+§8/§15.1: GPIO18, ACTIVE_HIGH, de-energised at boot by wire_gpio_outputs()
+
+**Ref 6** · `self resync.`
+
+sync, show, seed: rings nothing, arms the first boundary
+
+**Ref 7** · `onTick = (`
+
+--- the schedule -------------------------------------------------------
+
+**Ref 8** · `onTick = (`
+
+Every tick, whatever produced it — the alarm, the countdown, the watchdog, a retry.
+
+```
+    Re-derive the slot and let the dial decide; a tick with nothing to do is the healthy
+    case: the watchdog fires 2 s into every pattern and finds the slot already rung,
+    because the marker moves when the ring STARTS. 
+```
+
+**Ref 9** · `(trigger armedFor == slot) ifFalse: [`
+
+A boundary is behind us: the countdown delivered us onto it, or the alarm never
+
+```
+        came and this is the watchdog earning its keep — the only diagnostic here. 
+```
+
+**Ref 10** · `(trigger nearBoundary: secs) ifTrue: [ trigger countdownAt: secs ].`
+
+Not a boundary. Close to one, this was the alarm's early wake: count down to it.
+
+**Ref 11** · `ringSlot: slot at: secs = (`
+
+The COUNT is the kernel's; this node owns only when a half hour happened and what to
+
+```
+    do about it. Midnight's sync waits for the pattern (D6: "only between strikes", by
+    construction). The next boundary is armed from here, so a strike and its successor's
+    arming are one event. 
+```
+
+**Ref 12** · `resync = (`
+
+The network may improve the clock and may never stop it (D6). Whatever it did, the
+
+```
+    marker is re-seeded from the part, silently, and the next boundary re-armed. 
+```
+
+**Ref 13** · `seedAt: secs = (`
+
+Seed and arm. Nothing rings here (D4): restored at 21:45, the next sound is 22:00.
+
+**Ref 14** · `noClock = (`
+
+D7. A nil is a dead part, a bus fault or a part never set: say so ONCE, strike
+
+```
+    nothing, and look again in a minute. Silence is the correct failure mode for a bell;
+    a guess is not. 
+```
+
+**Ref 15** · `joinPorta = (`
+
+--- porta ----------------------------------------------------------------
+
+**Ref 16** · `joinPorta = (`
+
+Bind, bridge, declare, beat. The bridge is built whether or not the bind succeeded
+
+```
+    (rete#274): `socket: nil` checks in nowhere and the bell rings on. The ID is the
+    board's factory address (rete#118, #186); porta writes `goal/name` and the bridge
+    converges `obs/name` onto it. The beat is the kernel's registration (rete#231), so a
+    bell that wedges between strokes stops beating instead of beating from a node that
+    is not ringing. 
+```
+
+**Ref 17** · `checkIn = (`
+
+ONE check-in, guarded on the striker: `checkIn` is a UDP round trip with a budget,
+
+```
+    and blocking inside a reaction while a pattern is in flight stretches the gap between
+    strokes. A missed check-in is idempotent — the next carries the same cells, by cursor
+    — but a bell that pauses mid-pattern is audibly wrong. A raised check-in is counted
+    and carried, never propagated: the bell outranks its own telemetry. Printed every
+    time, with the bridge's counters: a proof of life that cannot be told from silence is
+    not one, and `misses` rising is what separates "the mesh ate it" from "never tried". 
+```
+
+**Ref 18** · `ready = (`
+
+--- the console ------------------------------------------------------------
+
+**Ref 19** · `bellWord: n = ( ^ n = 1 ifTrue: [ ' bell' ] ifFalse: [ ' bells' ] )`
+
+One bell is a bell. The log is read by a person.
+
+<div style="page-break-before: always"></div>
+
+## Appendix C. The library both nodes name
+
+`lib/Bells.nsl`, reached by a `uses:` line in each node's header and spliced into it as nested classes: nothing
+joins the kernel and nothing is routed through `platform` (an application library, not a kernel library). Eight
+classes, one responsibility each; each header names what the class is given, and that is the whole of what it can
+reach. `Dial` is shared; `RtcRecord`, `Drift`, `BellClock` and `StatsPage` are the deep-sleep clock's; `RtcClock`,
+`Trigger` and `Striker` are the always-on bell's. A backtrace or a profile row reads `Drift>>record:` or
+`Striker>>strikeOn`, not `Node>>recordDrift:` — the observe row of the lifecycle table describes itself.
+
 **`nodus/oevm/zephyr/lib/Bells.nsl`**
 
 ```
-(*
-Bells — the ship's-bell clock as classes, one responsibility each (rete#380, David
-2026-10-09: "the demo bell is written factored, by CRC, not linear — otherwise we are
-just substituting nsl for C"). An application library, NOT the kernel: a node names it
-with a `uses: lib/Bells.nsl` line in its header comment and the compiler splices these
-classes into the node as nested classes, so `RtcRecord on: platform` resolves exactly
-as a class written in the node's own file would. The kernel keeps only `Bell`, which
-owns the COUNT convention (which half-hour calls for how many); everything here is the
-SCHEDULE and the CLOCK, which are the product's.
+class Bells = () (   (* Ref 1 *)
 
-Class–Responsibility–Collaboration. Each header names what the class is given, and
-that is the whole of what it can reach:
+  class Dial = () (   (* Ref 2 *) (* Ref 3 *)
 
-  RtcRecord   the ten slots that survive a deep sleep        <- platform (rtcGet:/rtcPut:/rtcValid)
-  Drift       ppm calibration: discipline a sleep, record a residual   <- record
-  BellClock   the modular ratchet, the predicted clock, the sync, the schedule
-                                                              <- record, drift, ntp (ntpSyncTz:)
-  StatsPage   the e-paper readout                            <- display, record, clock, heap stats
+    public slotSec     = ( ^ 1800 )   (* Ref 4 *)
+    public slotsPerDay = ( ^ 86400 // self slotSec )
 
-StatsPage holds the display and cannot reach the radio or the clock's sync; Drift
-cannot strike; the record knows nothing about time. A backtrace or a profile row now
-reads `Drift>>record:` rather than `Node>>recordDrift:plat:` — the observe row of the
-lifecycle table describes itself.
+    public slotOf: secs = ( ^ secs // self slotSec )   (* Ref 5 *)
 
-The invariant comments travel with the class that owns them. They were paid for by the
-2026-07-24/25 overnight run (tuvm#94 design §11) and a rewrite may not delete them.
+    public nextAfter: half = (   (* Ref 6 *)
+      | n |
+      n:: half + 1.
+      n = self slotsPerDay ifTrue: [ n:: 0 ].
+      ^ n )
 
-Modulo is `\\` (rete#246), floored like `//`. Everything stays inside a 31-bit SMI on
-device (|v| < 2^30).
-*)
-class Bells = () (
+    public isBehind: trueHalf of: lastHalf = (   (* Ref 7 *)
+      | n fwd |
+      n:: self slotsPerDay.
+      fwd:: trueHalf - lastHalf.
+      fwd < 0 ifTrue: [ fwd:: fwd + n ].          (* Ref 8 *)
+      fwd = 0 ifTrue: [ ^ false ].                (* Ref 9 *)
+      ^ fwd < (n - self holdAheadSlots) )
 
-  (* --- RtcRecord ------------------------------------------------------------------ *)
+    public secondsToBoundaryAfter: lastHalf from: predicted = (   (* Ref 10 *)
+      | d |
+      d:: ((lastHalf + 1) * self slotSec) - predicted.
+      d < 0 ifTrue: [ d:: d + 86400 ].
+      d:: d \\ 86400.
+      d < 1 ifTrue: [ d:: 1 ].             (* Ref 11 *)
+      ^ d )
 
-  (* STATE LIVES IN .rtc.data (design §3), reached through rtcGet:/rtcPut:value:, because
-     RAM does not survive the sleep. Field indices are the constants below and are
-     identical to the C struct order in zephyr/src/main.c (OEVM_RTC_FIELDS = 10). Cold
-     power-on leaves the struct UNDEFINED (not zeroed), so a magic mismatch means "no valid
-     state". *)
-  class RtcRecord = ( | plat | ) (
+    public wrapDrift: d = (   (* Ref 12 *)
+      d > 43200 ifTrue: [ ^ d - 86400 ].
+      d < -43200 ifTrue: [ ^ d + 86400 ].
+      ^ d )
+
+    public wrapDay: secs = (   (* Ref 13 *)
+      secs < 0     ifTrue: [ ^ secs + 86400 ].
+      secs > 86399 ifTrue: [ ^ secs - 86400 ].
+      ^ secs )
+
+    holdAheadSlots = ( ^ 3 )   (* Ref 14 *)
+
+    public tzOffset = ( ^ -25200 )   (* Ref 15 *)
+
+    public hms: secs = (   (* Ref 16 *)
+      | h rem m s |
+      h::   secs // 3600.
+      rem:: secs \\ 3600.
+      m::   rem // 60.
+      s::   rem \\ 60.
+      ^ (self pad: h) , ':' , (self pad: m) , ':' , (self pad: s) )
+
+    pad: n = ( ^ n < 10 ifTrue: [ '0' , n printString ] ifFalse: [ n printString ] )
+  ) : (
+  )
+
+  class RtcRecord = ( | plat | ) (   (* Ref 17 *) (* Ref 18 *)
     public valid = ( ^ plat rtcValid )
 
-    (* Free-run from 00:00: ratchet 0 (so the first strike is half 1), anchor 0, stale
-       large so the panel shows "never synced". Magic set LAST so a crash between writes
-       cannot leave a half-initialised struct reading valid. The calibration seed and the
-       never-synced sentinel are their owners' numbers, handed in. *)
-    public coldInitCal: seedPpm stale: neverSyncedSec = (
+    public coldInitCal: seedPpm stale: neverSyncedSec = (   (* Ref 19 *)
       plat rtcPut: self iLastHalf     value: 0.
       plat rtcPut: self iBootTicks    value: 0.
       plat rtcPut: self iAnchorSec    value: 0.
@@ -824,8 +1186,7 @@ class Bells = () (
     public drift24Min: v = ( plat rtcPut: self iDrift24Min value: v. ^ self )
     public syncsWin: v   = ( plat rtcPut: self iSyncsWin   value: v. ^ self )
 
-    (* design §3 table; identical order to the C struct *)
-    iMagic      = ( ^ 0 )
+    iMagic      = ( ^ 0 )   (* Ref 20 *)
     iLastHalf   = ( ^ 1 )
     iBootTicks  = ( ^ 2 )
     iAnchorSec  = ( ^ 3 )
@@ -835,75 +1196,34 @@ class Bells = () (
     iDrift24Max = ( ^ 7 )
     iDrift24Min = ( ^ 8 )
     iSyncsWin   = ( ^ 9 )
-    (* 0x14BE11C0 — MUST fit a 32-bit SMI (31-bit tag, so |value| < 2^30). The original
-       0x94BE11C0 overflowed: it round-tripped on the 64-bit host but stored garbage
-       through rtcPut: on the device, so rtcValid was false on every wake and the clock
-       cold-booted forever. *)
-    magicWord   = ( ^ 348000704 )
+    magicWord   = ( ^ 348000704 )   (* Ref 21 *)
 
     setPlat: p = ( plat:: p. ^ self )
   ) : (
     public on: platform = ( ^ self new setPlat: platform )
   )
 
-  (* --- Drift ---------------------------------------------------------------------- *)
+  class Drift = ( | record | ) (   (* Ref 22 *) (* Ref 23 *)
 
-  (* DISCIPLINE THE OSCILLATOR (design §11). Asleep, the sleep is counted by an internal
-     ~90 kHz RC oscillator — this module has no 32.768 kHz crystal — and the 2026-07-24 run
-     measured it at ~10,700 ppm FAST, 227x the navigator's 4 s/day, so bells landed up to
-     155 s early between the 4 h syncs. The error is STABLE (10,500 / 10,768 / 10,271 across
-     nine hours, +/-3%), and a stable rate error is correctable: command
-     `target / (1 + cal/1e6)` so that `target` REAL seconds elapse. Only the ~3% variation
-     survives, an estimated ~300 ppm — a watch going from 155 s of error to about 4 s, with
-     no new parts. The re-anchor at each sync fixes the PHASE; this class fixes the RATE.
-
-     Two different numbers, easily confused, so name them apart: a `residual` is the ppm
-     measured THIS watch — how far the disciplined clock still missed by; it feeds the
-     rolling 6-sync (24 h) extremes, the honest "how good is this board now" readout.
-     `record calPpm` is the CUMULATIVE calibration actually applied when arming a sleep,
-     so it ACCUMULATES the residual rather than being overwritten by it. Overwriting would
-     undo the correction the moment it started working: a well-disciplined watch measures
-     ~0, which as a replacement would set the calibration to zero and put the 1% error
-     straight back. Composing two rates is a multiply, but at these magnitudes adding the
-     ppm is accurate to ~3 ppm — far inside the residual — and the loop self-corrects. *)
-  class Drift = ( | record | ) (
-
-    (* ROUNDED, not truncated, and that is not a nicety. The correction is whole seconds,
-       so throwing the fraction away is itself a rate error: at the shipping slot a
-       truncating spelling lost up to 0.9 s per 1800 s = 500 ppm, the same order as the
-       residual this whole mechanism exists to remove, and it walked the bells ~30 s off
-       across a watch. Rounding leaves +/-0.5 s per slot, so +/-4 s across a watch before
-       the next sync re-anchors — which is the accuracy target. Sub-second correction
-       would need fractional state across a deep sleep, and is what tuvm#100's hardware
-       timebase buys instead.
-
-       The direct product is used wherever it cannot overflow (target under 20000 caps it
-       at 1e9); the rare long target — only a hold that waits out a multi-slot lead —
-       takes an eighth-scaled form that caps at 5.4e8. The magnitude is divided rather
-       than the signed value, so nothing depends on which way nsl rounds a negative
-       quotient. *)
-    public disciplined: target = (
+    public disciplined: target = (   (* Ref 24 *)
       | p mag corr |
       p:: record calPpm.
-      p >  50000 ifTrue: [ p::  50000 ].    (* a rate beyond 5% is a broken measurement, *)
-      p < -50000 ifTrue: [ p:: -50000 ].    (* not an oscillator; refuse to act on it *)
+      p >  50000 ifTrue: [ p::  50000 ].    (* Ref 25 *)
+      p < -50000 ifTrue: [ p:: -50000 ].    (* Ref 26 *)
       mag:: p.
       p < 0 ifTrue: [ mag:: 0 - p ].
       target < 20000
          ifTrue:  [ corr:: ((target * mag) + 500000) // 1000000 ]
          ifFalse: [ corr:: (((target // 8) * mag) + 62500) // 125000 ].
-      p < 0 ifTrue: [ ^ target + corr ].             (* running fast -> command LONGER *)
+      p < 0 ifTrue: [ ^ target + corr ].             (* Ref 27 *)
       target - corr < 1 ifTrue: [ ^ 1 ].
       ^ target - corr )
 
-    (* IDENTICAL spelling to 09_bell_math.nsl. *)
-    public ppmFor: driftSec over: elapsedSec = (
+    public ppmFor: driftSec over: elapsedSec = (   (* Ref 28 *)
       elapsedSec = 0 ifTrue: [ ^ 0 ].
       ^ (driftSec * 1000000) // elapsedSec )
 
-    (* Compose the residual onto the calibration and keep the rolling 24 h extremes
-       (6 syncs, reset at 6 — design §3). *)
-    public record: ppm = (
+    public record: ppm = (   (* Ref 29 *)
       | n mx mn |
       record calPpm: record calPpm + ppm.
       n:: record syncsWin + 1.
@@ -916,147 +1236,41 @@ class Bells = () (
       record syncsWin: n.
       ^ self )
 
-    (* FACTORY CALIBRATION — the calibration a never-synced board starts from, so the very
-       first sleep after a reflash is already disciplined instead of running a whole 4 h
-       watch at 155 s of error before the first sync has a number to work with. This is the
-       mean of the three measurements from the 2026-07-24/25 overnight run on THIS board
-       (10,500 / 10,768 / 10,271 ppm fast; negative here because a fast oscillator makes
-       predicted time outrun true time). It is a starting guess, not a constant: the first
-       watch-end sync composes the measured residual onto it, so a wrong seed self-heals
-       within one watch, and a board with a different RC part converges just as fast.
-       Retires when the DS3231M (tuvm#100, +/-5 ppm) takes over the timebase. *)
-    public seedPpm = ( ^ -10513 )
+    public seedPpm = ( ^ -10513 )   (* Ref 30 *)
 
     setRecord: r = ( record:: r. ^ self )
   ) : (
     public on: record = ( ^ self new setRecord: record )
   )
 
-  (* --- BellClock ------------------------------------------------------------------ *)
+  class BellClock = ( | record drift ntp dial basisMillis lastDrift syncOk | ) (   (* Ref 31 *) (* Ref 32 *)
 
-  (* THE HALF-HOUR INDEX IS A MONOTONIC RATCHET, AND MONOTONIC MEANS MODULAR (design §2 as
-     restated by §11). A strike is a pure increment, so a strike wake CANNOT double-bell. A
-     sync may push the count FORWARD (skip missed strikes, silently) but NEVER backward —
-     and "forward" is the FORWARD DISTANCE round the 48-slot dial, never `>`. Stated as an
-     ordering it fails at midnight, where 47 and 0 change places: the 2026-07-24 run read a
-     66 s lead as a 23.5 h lag and rang eight bells twice. When NTP says we are behind where
-     we already struck, we hold the count and lengthen the next sleep — really lengthen it,
-     out to the held count's OWN boundary. Drift never touches the count, only the sleep
-     duration (phase).
+    public nextHalf = ( ^ dial nextAfter: record lastHalf )   (* Ref 33 *) (* Ref 34 *)
 
-     THE COUNT OWNS THE SCHEDULE. Every sleep runs to the boundary of the next count, less
-     the awake window, corrected by the persisted calibration. Those three terms fix three
-     different errors — which boundary (§11 defect 5), the strike-to-sleep gap (§11 defect
-     6) and the RC oscillator's 1% rate (§11) — and the clock needs all three to ring on
-     time.
+    public slotSec = ( ^ dial slotSec )   (* Ref 35 *)
 
-     Wake-local state: `basisMillis` is the instant within this wake at which the predicted
-     clock was last trued (nil = never this wake, the basis is boot); `lastDrift` and
-     `syncOk` are this wake's sync outcome, read by StatsPage. *)
-  class BellClock = ( | record drift ntp basisMillis lastDrift syncOk | ) (
+    public predictedNow = ( ^ (record anchorSec + record elapsedSec) \\ 86400 )   (* Ref 36 *) (* Ref 37 *)
 
-    (* --- the dial --- *)
-
-    (* The strike about to happen: a pure increment of the ratchet (design §2), wrapping
-       the last slot to 0. *)
-    public nextHalf = (
-      | half |
-      half:: record lastHalf + 1.
-      half = self slotsPerDay ifTrue: [ half:: 0 ].
-      ^ half )
-
-    (* THE RATCHET INVARIANT IS MODULAR, NOT AN ORDERING. What is well defined is the
-       FORWARD distance from the count to true time, `(trueHalf - lastHalf) mod
-       slotsPerDay`. Small forward distance = we genuinely fell behind (missed wakes) ->
-       advance. Distance 0 = on the count -> hold. Distance close to a full day = true
-       time has not yet REACHED the count, i.e. we are running ahead of the world -> hold.
-
-       "Close to a full day" is deliberately narrow (holdAheadSlots). Modular arithmetic
-       cannot distinguish "3 slots ahead" from "45 slots behind", so the split is chosen
-       by which mistake is survivable: advancing wrongly rings one wrong count and
-       self-corrects next wake, while holding wrongly goes SILENT for the length of the
-       hold. A lead can only be accumulated drift since the last sync — the worst ever
-       measured is 155 s over a watch, well under one slot — so 3 slots is a 30x margin
-       and still bounds a wrong hold to 2 hours. *)
-    public isBehind: trueHalf of: lastHalf = (
-      | n fwd |
-      n:: self slotsPerDay.
-      fwd:: trueHalf - lastHalf.
-      fwd < 0 ifTrue: [ fwd:: fwd + n ].          (* both are in [0, n), so one add suffices *)
-      fwd = 0 ifTrue: [ ^ false ].                (* exactly on the count: hold and measure *)
-      ^ fwd < (n - self holdAheadSlots) )
-
-    (* Seconds from `predicted` to the boundary of the count AFTER `lastHalf`, modular
-       over the day. The single `+ 86400` is enough because predicted is already reduced
-       to [0, 86400) and the target is at most 86400, so the difference cannot be more
-       than one day negative — and doing it this way means no division of a negative
-       number, whose rounding direction nsl does not pin down. *)
-    public secondsToBoundaryAfter: lastHalf from: predicted = (
-      | d |
-      d:: ((lastHalf + 1) * self slotSec) - predicted.
-      d < 0 ifTrue: [ d:: d + 86400 ].
-      d:: d \\ 86400.
-      d < 1 ifTrue: [ d:: 1 ].             (* boundary already reached: wake at once *)
-      ^ d )
-
-    (* Drift wrapped across midnight: a true 0 against a predicted 86399 is +1 s, not
-       -86399. *)
-    public wrapDrift: d = (
-      d > 43200 ifTrue: [ ^ d - 86400 ].
-      d < -43200 ifTrue: [ ^ d + 86400 ].
-      ^ d )
-
-    (* --- the predicted clock --- *)
-
-    (* predictedNow = (anchor + elapsed) mod 86400 (design §3); cold/never-synced =>
-       anchor 0, elapsed accumulates. *)
-    public predictedNow = ( ^ (record anchorSec + record elapsedSec) \\ 86400 )
-
-    (* WHERE THE NODE'S CLOCK SAID IT WAS AT THE INSTANT NTP ANSWERED — the only thing
-       trueSec may be compared against. predictedNow is the clock at the STRIKE; the sync
-       happens an awake window later, so differencing the two scores boot and WiFi
-       association as oscillator drift. At a 15 s window that is a phantom +1041 ppm per
-       sync, which does not merely misreport: it feeds the calibration, so a PERFECT clock
-       gets "corrected" every watch end and the loop walks away from the truth instead of
-       converging on it. *)
-    predictedAtSync = (
+    predictedAtSync = (   (* Ref 38 *)
       | b |
       b:: basisMillis.
       b == nil ifTrue: [ b:: 0 ].
       ^ (self predictedNow + (b // 1000)) \\ 86400 )
 
-    (* Seconds of awake work since the moment predictedNow's basis was established — NOT
-       simply since boot. On a free-running wake those are the same thing: the clock comes
-       from RTC state that was already current when the VM booted, so the basis is boot
-       and `0 millis` is the answer.
-
-       A SYNCED wake is different, and getting it wrong just moves the error. There,
-       predictedNow is trueSec, which was true at the instant NTP answered — partway
-       through the awake window, not at boot. Subtracting the whole window would
-       over-correct by everything that happened before the NTP read (WiFi association is
-       most of it), turning a 15 s late bell into a 15 s early one. trySync stamps the
-       basis at that instant, so only the work AFTER the read is subtracted. *)
-    public awakeSinceBasis = (
+    public awakeSinceBasis = (   (* Ref 39 *)
       | b |
       b:: basisMillis.
-      b == nil ifTrue: [ b:: 0 ].       (* never synced this wake: the basis is boot *)
+      b == nil ifTrue: [ b:: 0 ].       (* Ref 40 *)
       ^ ((0 millis) - b) // 1000 )
 
-    (* --- the sync --- *)
-
-    public lastDrift = ( ^ lastDrift )
+    public lastDrift = ( ^ lastDrift )   (* Ref 41 *)
     public syncOk    = ( ^ syncOk )
 
-    (* 3 attempts fit one ~15 s awake window (design §4); "quit until next watch-end" is
-       just: return false, schedule nothing — the next attempt is 4 h on. sntp_simple's
-       own 4 s timeout spaces the retries. Answers whether the sync landed; the outcome is
-       also kept in `syncOk` for the page. *)
-    public trySync = (
+    public trySync = (   (* Ref 42 *)
       | secs |
       3 timesRepeat: [
-        secs:: ntp ntpSyncTz: self tzOffset.
-        (* Stamp the clock basis at the INSTANT true time was read — see awakeSinceBasis. *)
-        secs == nil ifFalse: [
+        secs:: ntp ntpSyncTz: dial tzOffset.
+        secs == nil ifFalse: [   (* Ref 43 *)
           basisMillis:: 0 millis.
           syncOk:: true.
           self apply: secs.
@@ -1066,151 +1280,59 @@ class Bells = () (
       self markSyncFailed.
       ^ false )
 
-    (* The §2 ratchet, both directions. NEVER moves the count backward; drift only ever
-       adjusts the sleep (phase) via the re-anchored predictedNow next wake. *)
-    apply: trueSec = (
+    apply: trueSec = (   (* Ref 44 *)
       | trueHalf lastHalf predicted d elapsed |
-      trueHalf:: trueSec // self slotSec.
+      trueHalf:: dial slotOf: trueSec.
       lastHalf:: record lastHalf.
       predicted:: self predictedAtSync.
-      (self neverSynced or: [ self isBehind: trueHalf of: lastHalf ])
-         ifTrue:  [ (* Fell behind (missed wakes / dead battery, or the clock ran slow):
-                       advance SILENTLY — do NOT ring the skipped bells. `trueSec -
-                       predicted` here is a CATCH-UP GAP, not oscillator drift (the board
-                       was off, so elapsedSec never accrued those sleeps), so it is
-                       deliberately NOT recorded — recording it would spike the 24 h drift
-                       window with a value that is hours, not the seconds real drift
-                       produces. This also skips the first-sync-after-cold-boot reset,
-                       which is almost always an advance. *)
+      (self neverSynced or: [ dial isBehind: trueHalf of: lastHalf ])
+         ifTrue:  [ (* Ref 45 *)
                     ('sync true ' , trueSec printString , ' predicted ' , predicted printString , ' -> advance half ' , trueHalf printString) out.
                     record lastHalf: trueHalf ]
-         ifFalse: [ (* On time / slightly ahead: HOLD the count and record the REAL drift —
-                       the small signed gap between where the crystal put us and true
-                       time, over the interval elapsedSec. This is the number the panel
-                       reports. *)
-                    d:: self wrapDrift: (trueSec - predicted).
+         ifFalse: [ (* Ref 46 *)
+                    d:: dial wrapDrift: (trueSec - predicted).
                     lastDrift:: d.
                     ('sync true ' , trueSec printString , ' predicted ' , predicted printString , ' -> hold half ' , lastHalf printString) out.
                     elapsed:: record elapsedSec.
                     elapsed < self driftFloorSec
                        ifTrue:  [ ('drift window ' , elapsed printString , ' s below floor ' , self driftFloorSec printString , ' s; ppm not recorded') out ]
                        ifFalse: [ drift record: (drift ppmFor: d over: elapsed) ] ].
-      (* Re-anchor the wall clock to true time; zero the accumulated sleep + stale. *)
-      record anchorSec: trueSec.
+      record anchorSec: trueSec.   (* Ref 47 *)
       record elapsedSec: 0.
       record staleSec: 0.
       ^ self )
 
-    (* A NEVER-SYNCED BOARD HAS NO RATCHET TO PROTECT, so its first good sync ADOPTS true
-       time whatever the modular distance says. This is the one case where a large
-       forward distance really is a lag: the free-run starts at 00:00, so a cold boot at
-       23:30 is a genuine 47 slots behind, which isBehind:of: would read as 1 slot ahead
-       and hold — going silent until tomorrow. Every other way of falling hours behind is
-       impossible, because a board that is merely failing NTP keeps ratcheting on its own
-       timebase.
-
-       `>=`, not `=`: markSyncFailed keeps ADDING to the sentinel, so a cold boot whose
-       NTP also failed reads 999999 + 14400 and must still count as never synced. *)
-    neverSynced = ( ^ record staleSec >= self neverSyncedSec )
+    neverSynced = ( ^ record staleSec >= self neverSyncedSec )   (* Ref 48 *)
     public neverSyncedSec = ( ^ 999999 )
 
     markSyncFailed = (
-      record staleSec: record staleSec + (self slotSec * 8).
+      record staleSec: record staleSec + (dial slotSec * 8).
       'sync failed, stale grows' out.
       ^ self )
 
-    (* --- the schedule --- *)
-
-    (* THE NEXT WAKE BELONGS TO THE COUNT, NOT TO THE CLOCK (design §11, defect 5). Having
-       just struck `lastHalf`, the next strike is `lastHalf + 1`, and it is due at THAT
-       half's boundary — so the sleep runs to ((lastHalf + 1) * slotSec) - predictedNow,
-       mod 86400, less this wake's awake window.
-
-       This is the same number as "seconds to the next boundary" on the free-running path
-       (count and clock are in step there), but it is DIFFERENT, and correct, after a sync
-       that held the count: the sleep is LENGTHENED until the world reaches the count. The
-       previous spelling re-anchored to true time and ran to the next TRUE boundary, so a
-       held count never re-converged and the gap grew one slot per watch end — the clock
-       rang the wrong number of bells from 04:00 onward on the 2026-07-24 run.
-
-       Accrue the INTENDED REAL interval to the next wake: the target sleep PLUS this
-       wake's awake window (boot + WiFi + strike, ~15-20 s on device). Without the awake
-       term the predicted clock runs slow by that much per wake — ~1% at the 1800 s slot,
-       which would swamp the RC-oscillator drift the panel exists to measure, and 25-30%
-       at a demo 60 s slot. The awake window is BOTH added here and subtracted from the
-       sleep, and it has to be both. Accruing it alone keeps the RATE honest but puts
-       every strike one awake window past its boundary, because the seconds fall between
-       this strike and the next; subtracting it alone would make the clock run fast.
-       Together they hold the invariant that makes the bell land on the minute:
-       predictedNow after this method is EXACTLY the boundary of the count about to be
-       struck.
-
-       This accrues `sleepSec`, NOT the disciplined value the caller arms. That is what
-       keeps the correction from double-counting: the predicted clock advances by the
-       real seconds we intend to pass, so the next sync measures only what the correction
-       FAILED to remove, and calibration composes instead of oscillating.
-
-       Answers the TARGET seconds; the caller disciplines and arms. *)
-    public sleepTarget = (
+    public sleepTarget = (   (* Ref 49 *) (* Ref 50 *)
       | awakeSec sleepSec |
       awakeSec:: self awakeSinceBasis.
-      sleepSec:: (self secondsToBoundaryAfter: record lastHalf from: self predictedNow) - awakeSec.
-      sleepSec < 1 ifTrue: [ sleepSec:: 1 ].    (* awake window longer than the slot *)
+      sleepSec:: (dial secondsToBoundaryAfter: record lastHalf from: self predictedNow) - awakeSec.
+      sleepSec < 1 ifTrue: [ sleepSec:: 1 ].    (* Ref 51 *)
       record elapsedSec: record elapsedSec + sleepSec + awakeSec.
       ('sleep: target ' , sleepSec printString , ' s cal ' , (self signed: record calPpm)
           , ' awake ' , awakeSec printString , ' s') out.
       ^ sleepSec )
 
-    (* --- constants --- *)
+    driftFloorSec = ( ^ dial slotSec * 2 )   (* Ref 52 *) (* Ref 53 *)
 
-    (* THE CADENCE. One slot = one bell tick; a "watch" is 8 slots; the day is
-       86400//slotSec slots. SHIPPING is 1800 (the real ship's-bell half-hour). A demo
-       build may flip this to 60 (bells on real minute marks, sync+paint every 8 min —
-       still beyond the 180 s e-paper guidance) and everything scales: boundary math,
-       trueHalf, the stale accrual, the up row, the midnight wrap. The math is honest at
-       any slot ONLY because elapsedSec accrues awake time too — without that term a
-       small slot runs visibly slow (25-30% at 60 s). *)
-    public slotSec     = ( ^ 1800 )
-    public slotsPerDay = ( ^ 86400 // self slotSec )
-
-    (* A RATE NEEDS A LONG ENOUGH BASELINE (design §11, defect 3). drift is measured in
-       whole seconds, so ppm carries +/-1e6/elapsed of pure quantisation: 278 ppm over an
-       hour, 14,700 ppm over a minute. The 2026-07-24 run resynced 68 s after the previous
-       sync and turned a 4 s error into `ppm +58823`. Below the floor `apply:` reports
-       the sync (the ntp row still shows the seconds) and skips the rate — a number that
-       bad is not a measurement, and since disciplining applies it to the SLEEP it would be
-       a 5.9% correction rather than a bad pixel.
-
-       Two slots = an hour at the shipping cadence, which is David's "an hour is
-       defensible" and bounds the whole-second quantisation to +/-278 ppm. Derived from
-       slotSec so a 60 s demo build can still measure and discipline itself (floor 120 s)
-       instead of never recording a rate at all. *)
-    driftFloorSec = ( ^ self slotSec * 2 )
-
-    (* How far the count may legitimately lead true time before a sync reads it as a lag
-       instead (see isBehind:of:). Three slots; the worst lead ever measured is 155 s. *)
-    holdAheadSlots = ( ^ 3 )
-
-    tzOffset = ( ^ -25200 )   (* Phoenix, UTC-7, no DST — a product fact passed to the prim *)
-
-    (* Signed integer, `+N` / `-N`. nsl has no unary minus display, so build it. *)
-    public signed: n = (
+    public signed: n = (   (* Ref 54 *)
       n < 0 ifTrue: [ ^ '-' , (0 - n) printString ].
       ^ '+' , n printString )
 
-    setRecord: r drift: d ntp: n = ( record:: r. drift:: d. ntp:: n. ^ self )
+    setRecord: r drift: d ntp: n dial: l = ( record:: r. drift:: d. ntp:: n. dial:: l. ^ self )
   ) : (
-    public on: record drift: drift ntp: ntp = ( ^ self new setRecord: record drift: drift ntp: ntp )
+    public on: record drift: drift ntp: ntp dial: dial = (
+      ^ self new setRecord: record drift: drift ntp: ntp dial: dial )
   )
 
-  (* --- StatsPage ------------------------------------------------------------------ *)
-
-  (* Painted ONLY at watch-ends and after a cold boot (design §5), AFTER the sync, so a
-     FAIL shows. Given the display, the record, the clock and a heap-stats value — and
-     nothing else: this class cannot reach the radio, the bell or the sleep. Per-row
-     best-effort: each row draws inside its own catch, so an over-wide value (e.g. the
-     16 MB host arena's heap row) skips just that row instead of blanking the panel. *)
-  class StatsPage = ( | disp record clock heap | ) (
+  class StatsPage = ( | disp record clock heap | ) (   (* Ref 55 *) (* Ref 56 *)
 
     public paint = (
       self row: 0 s: (self line: 'oevm' val: '').
@@ -1227,31 +1349,21 @@ class Bells = () (
                        do: [ :e | ('refresh skipped: ' , e tag printString) out ].
       ^ self )
 
-    (* Draw one row and echo it, catching a too-wide/faulted row so the rest still paint.
-       The echo is INSIDE the try and AFTER the draw, so a skipped row emits no `| ` line
-       — which is exactly what the host test keys on for the (skipped) heap row. *)
-    row: r s: s = (
+    row: r s: s = (   (* Ref 57 *)
       [ disp at: r col: 0 put: s. ('| ' , s) out ]
         on: [ :e | (e tag = #displayBounds) or: [ e tag = #displayFault ] ]
         do: [ :e | ('row ' , r printString , ' skipped: ' , e tag printString) out ].
       ^ self )
 
-    (* live rounded to whole KiB / arena in KiB. On device (20 KB) this is `20/20K`; on
-       the host image VM (16 MB) it is `.../16384K`, which overflows the 12-col grid and
-       is skipped by row:s: — the row is witnessed on device, not on host. *)
-    heapField = ( ^ (self kRound: heap liveBytes) , '/' , (heap heapSize // 1024) printString , 'K' )
+    heapField = ( ^ (self kRound: heap liveBytes) , '/' , (heap heapSize // 1024) printString , 'K' )   (* Ref 58 *)
 
-    (* The `ntp` row: never attempted -> `--`; this wake FAILED -> FAIL; synced and
-       measured drift (hold branch) -> `+N.Ns`; synced but advanced (missed wakes, no
-       drift measured) -> `sync`. *)
-    ntpField = (
+    ntpField = (   (* Ref 59 *)
       clock syncOk == nil ifTrue: [ ^ '--' ].
       clock syncOk ifFalse: [ ^ 'FAIL' ].
       clock lastDrift == nil ifTrue: [ ^ 'sync' ].
       ^ (clock signed: clock lastDrift) , '.0s' )
 
-    (* Uptime from bootTicks (one slot per tick), wrap-safe. *)
-    upField = (
+    upField = (   (* Ref 60 *)
       | mins d r h m |
       mins:: record bootTicks * (clock slotSec // 60).
       d:: mins // 1440.
@@ -1260,10 +1372,7 @@ class Bells = () (
       m:: r - (h * 60).
       ^ d printString , 'd' , (self pad: h) , ':' , (self pad: m) )
 
-    (* Age since last good sync, `Nd/NNh` — IDENTICAL spelling to 09_bell_math.nsl. The
-       cold-init sentinel ("never synced") renders as `--`, not as a meaningless 11-day
-       age. *)
-    staleField: sec = (
+    staleField: sec = (   (* Ref 61 *)
       | mins d r h |
       sec >= clock neverSyncedSec ifTrue: [ ^ '--' ].
       mins:: sec // 60.
@@ -1272,9 +1381,7 @@ class Bells = () (
       h:: r // 60.
       ^ d printString , 'd/' , (self pad: h) , 'h' )
 
-    (* Right-justify `v` against `label` in exactly 12 columns; overshoot (pad < 0) is
-       left un-truncated so the too-wide row raises #displayBounds and row:s: skips it. *)
-    line: label val: v = (
+    line: label val: v = (   (* Ref 62 *)
       | pad |
       pad:: 12 - label size - v size.
       pad < 0 ifTrue: [ pad:: 0 ].
@@ -1289,13 +1396,941 @@ class Bells = () (
     public on: display record: record clock: clock heap: heapStats = (
       ^ self new setDisp: display record: record clock: clock heap: heapStats )
   )
+
+  class RtcClock = ( | plat dial | ) (   (* Ref 63 *) (* Ref 64 *)
+
+    public secondsOfDay = ( ^ plat wallClock )   (* Ref 65 *)
+
+    public sync = (   (* Ref 66 *)
+      | secs date rc |
+      secs:: plat ntpSyncTz: dial tzOffset.
+      secs == nil ifTrue: [ 'ntp miss — keeping the RTC' out. ^ false ].
+      date:: plat ntpDate.
+      date == nil ifTrue: [ 'ntp date miss — keeping the RTC' out. ^ false ].
+      rc:: plat wallClockSetDate: date time: secs.
+      rc == nil ifTrue: [ 'rtc write REFUSED — keeping the RTC' out. ^ false ].
+      ('ntp ok ' , date printString , ' ' , (dial hms: secs)) out.
+      ^ true )
+
+    public show = (   (* Ref 67 *)
+      | secs |
+      secs:: self secondsOfDay.
+      secs == nil
+        ifTrue:  [ 'rtc nil (no DS3231, or never set)' out ]
+        ifFalse: [ ('rtc ' , (dial hms: secs) , '  slot ' , (dial slotOf: secs) printString) out ].
+      ^ self )
+
+    setPlat: p dial: d = ( plat:: p. dial:: d. ^ self )
+  ) : (
+    public on: platform dial: dial = ( ^ self new setPlat: platform dial: dial )
+  )
+
+  class Trigger = ( | alarm timers tick dial armedFor. alarmOk ::= false. | ) (   (* Ref 68 *) (* Ref 69 *)
+    public alarmOk  = ( ^ alarmOk )
+    public armedFor = ( ^ armedFor )
+
+    public armAfter: secs = (   (* Ref 70 *)
+      | toBoundary |
+      armedFor:: nil.
+      toBoundary:: dial secondsToBoundaryAfter: (dial slotOf: secs) from: secs.
+      alarmOk:: alarm at: (dial wrapDay: secs + toBoundary - self leadSeconds)
+                      post: #alarm on: tick.
+      alarmOk ifFalse: [
+        'trigger=WATCHDOG ONLY — rtcAlarm refused (image built without prj_esp32c6_rtcalarm.conf?)' out ].
+      timers after: (toBoundary * 1000) + self graceMillis post: #watchdog on: tick.
+      ^ self )
+
+    public nearBoundary: secs = (   (* Ref 71 *)
+      ^ (dial secondsToBoundaryAfter: (dial slotOf: secs) from: secs) <= self leadSeconds )
+
+    public countdownAt: secs = (   (* Ref 72 *)
+      (armedFor == nil) ifFalse: [ ^ self ].
+      armedFor:: dial nextAfter: (dial slotOf: secs).
+      timers after: ((dial secondsToBoundaryAfter: (dial slotOf: secs) from: secs) * 1000)
+                    + self strikeMarginMillis
+             post: #countdown on: tick.
+      ^ self )
+
+    public retry = ( timers after: self retryMillis post: #retry on: tick. ^ self )   (* Ref 73 *)
+
+    public leadSeconds = ( ^ 5 )       (* Ref 74 *)
+    public graceMillis = ( ^ 2000 )    (* Ref 75 *)
+    strikeMarginMillis = ( ^ 200 )     (* Ref 76 *)
+    retryMillis        = ( ^ 60000 )
+
+    setAlarm: a timers: t tick: c dial: d = ( alarm:: a. timers:: t. tick:: c. dial:: d. ^ self )
+  ) : (
+    public on: alarm timers: timers tick: tick dial: dial = (
+      ^ self new setAlarm: alarm timers: timers tick: tick dial: dial )
+  )
+
+  class Striker = ( | gpio timers chan pin   (* Ref 77 *) (* Ref 78 *)
+                     striking ::= false. strokeCount ::= 0. strokeIndex ::= 0. pinOn ::= false.
+                     gpioMissing ::= false. | ) (
+    public striking = ( ^ striking )
+
+    public ring: n = (   (* Ref 79 *)
+      striking ifTrue: [
+        ('bells ' , n printString , ' REFUSED — a pattern is already in flight') out.
+        ^ false ].
+      ((n < 1) or: [ n > 8 ]) ifTrue: [
+        ('bells ' , n printString , ' REFUSED (allowed 1..8)') out.
+        ^ false ].
+      strokeCount:: n.
+      strokeIndex:: 0.
+      striking:: true.
+      self strikeOn.
+      ^ true )
+
+    public step = (   (* Ref 80 *)
+      pinOn ifTrue: [ self strikeOff ] ifFalse: [ self strikeOn ].
+      ^ striking )
+
+    strikeOn = (
+      strokeIndex:: strokeIndex + 1.
+      pinOn:: true.
+      self pin: true.
+      timers after: self widthMillis post: #stroke on: chan.
+      ^ self )
+
+    strikeOff = (
+      pinOn:: false.
+      self pin: false.
+      strokeIndex = strokeCount ifTrue: [
+        striking:: false.
+        'bells done' out.
+        ^ self ].
+      timers after: (self gapAfter: strokeIndex) post: #stroke on: chan.
+      ^ self )
+
+    public gapAfter: i = (   (* Ref 81 *)
+      (i \\ 2) = 1 ifTrue: [ ^ self pairGapMillis ].
+      ^ self setGapMillis )
+
+    pin: aBool = (   (* Ref 82 *)
+      [ gpio set: pin to: aBool ]
+        on: [ :e | e tag = #gpioUndeclared ]
+        do: [ :e |
+          gpioMissing ifFalse: [
+            gpioMissing:: true.
+            ('bell: GPIO' , pin printString ,
+              ' not declared on this board — keeping time, ringing nothing') out ] ].
+      ^ self )
+
+    public widthMillis   = ( ^ 10 )
+    public pairGapMillis = ( ^ 500 )
+    public setGapMillis  = ( ^ 1600 )
+
+    setGpio: g pin: p timers: t channel: c = ( gpio:: g. pin:: p. timers:: t. chan:: c. ^ self )
+  ) : (
+    public on: gpio pin: pin timers: timers channel: channel = (
+      ^ self new setGpio: gpio pin: pin timers: timers channel: channel )
+  )
 ) : (
 )
 ```
 
-<div style="page-break-before: always"></div>
+**References for `nodus/oevm/zephyr/lib/Bells.nsl`**
 
-## Appendix B. The agent's HTTP surface
+**Ref 1** · `class Bells = () (`
+
+Bells — the ship's-bell clock as classes, one responsibility each (rete#380, David 2026-10-09: "the demo bell is written factored, by CRC, not linear — otherwise we are just substituting nsl for C"). An application library, NOT the kernel: a node names it with a `uses: lib/Bells.nsl` line in its header comment and the compiler splices these classes into the node as nested classes, so `RtcRecord on: platform` resolves exactly as a class written in the node's own file would. The kernel keeps only `Bell`, which owns the COUNT convention (which half-hour calls for how many); everything here is the SCHEDULE and the CLOCK, which are the product's.
+
+Class–Responsibility–Collaboration. Each header names what the class is given, and that is the whole of what it can reach. ONE PROGRAM, TWO POWER MODES: the deep-sleep clock (MagTagDeepSleepNode, the MagTag on the fridge) and the always-on bell (ShipsBellNodeC6, the wall C6 with a DS3231 and a piezo) are built from this one library, and the first row is the same object in both:
+
+```
+  Dial        the 48 slots of the day: which slot a second is in, which comes next,
+              whether a count fell behind, how far to a boundary   <- nothing
+  --- the deep-sleep clock ---
+  RtcRecord   the ten slots that survive a deep sleep        <- platform (rtcGet:/rtcPut:/rtcValid)
+  Drift       ppm calibration: discipline a sleep, record a residual   <- record
+  BellClock   the predicted clock, the sync onto the record, the sleep schedule
+                                                              <- record, drift, ntp (ntpSyncTz:), dial
+  StatsPage   the e-paper readout                            <- display, record, clock, heap stats
+  --- the always-on bell ---
+  RtcClock    the clock that is a part: read the DS3231, correct it from the network
+                                                              <- platform (wallClock, ntpSyncTz:, ntpDate,
+                                                                 wallClockSetDate:time:), dial
+  Trigger     what wakes the node at a boundary: the RTC alarm, its countdown, the
+              watchdog that says the alarm did not come       <- rtcAlarm, timers, the tick channel, dial
+  Striker     the piezo pattern as a state machine            <- gpio, timers, the stroke channel, a pin
+```
+
+StatsPage holds the display and cannot reach the radio or the clock's sync; Drift cannot strike; the record knows nothing about time; the Striker cannot read the clock and the Trigger cannot ring. A backtrace or a profile row now reads `Drift>>record:` rather than `Node>>recordDrift:plat:` — the observe row of the lifecycle table describes itself. The always-on node has no record, no drift and no page, because a part that keeps the time needs no predicted clock and no calibration; the deep-sleep node has no trigger and no striker, because its wake is a timer in C and its strike is the kernel's blocking `Bell>>strike:`.
+
+The invariant comments travel with the class that owns them. They were paid for by the 2026-07-24/25 overnight run (tuvm#94 design §11) and a rewrite may not delete them.
+
+Modulo is `\\` (rete#246), floored like `//`. Everything stays inside a 31-bit SMI on device (|v| < 2^30).
+
+**Ref 2** · `class Dial = () (`
+
+--- Dial -----------------------------------------------------------------------
+
+**Ref 3** · `class Dial = () (`
+
+THE 48-SLOT DIAL OF THE DAY, given nothing. Which slot a second of the day falls
+
+```
+    in, which slot follows a count, whether a count has fallen behind true time, and
+    how far it is to a boundary: pure arithmetic both power modes share. The deep-sleep
+    clock COUNTS its slots and asks the dial whether a sync left the count behind; the
+    always-on bell DERIVES its slot from the DS3231 on every tick (2026-08-03 design
+    D2: a missed tick, a late tick, a GC pause and a reboot all answer the same,
+    because the answer is a property of the time and not of the node's history) and
+    asks the dial the same question. One ratchet, one midnight, for both. 
+```
+
+**Ref 4** · `public slotSec     = ( ^ 1800 )`
+
+THE CADENCE. One slot = one bell tick; a "watch" is 8 slots; the day is
+
+```
+      86400//slotSec slots. SHIPPING is 1800 (the real ship's-bell half-hour). A demo
+      build may flip this to 60 (bells on real minute marks, sync+paint every 8 min —
+      still beyond the 180 s e-paper guidance) and everything scales: boundary math,
+      trueHalf, the stale accrual, the up row, the midnight wrap. The math is honest at
+      any slot ONLY because the deep-sleep clock accrues awake time too — without that
+      term a small slot runs visibly slow (25-30% at 60 s). 
+```
+
+**Ref 5** · `public slotOf: secs = ( ^ secs // self slotSec )`
+
+The slot a second of the day falls in. 79200 (22:00:00) is 44; 79199 is 43.
+
+**Ref 6** · `public nextAfter: half = (`
+
+The slot after a count: a pure increment of the ratchet (design §2), wrapping the
+
+```
+      last slot to 0. 
+```
+
+**Ref 7** · `public isBehind: trueHalf of: lastHalf = (`
+
+THE RATCHET INVARIANT IS MODULAR, NOT AN ORDERING. What is well defined is the
+
+```
+      FORWARD distance from the count to true time, `(trueHalf - lastHalf) mod
+      slotsPerDay`. Small forward distance = we genuinely fell behind (missed wakes) ->
+      advance. Distance 0 = on the count -> hold. Distance close to a full day = true
+      time has not yet REACHED the count, i.e. we are running ahead of the world -> hold.
+```
+
+```
+      "Close to a full day" is deliberately narrow (holdAheadSlots). Modular arithmetic
+      cannot distinguish "3 slots ahead" from "45 slots behind", so the split is chosen
+      by which mistake is survivable: advancing wrongly rings one wrong count and
+      self-corrects next wake, while holding wrongly goes SILENT for the length of the
+      hold. A lead can only be accumulated drift since the last sync — the worst ever
+      measured is 155 s over a watch, well under one slot — so 3 slots is a 30x margin
+      and still bounds a wrong hold to 2 hours.
+```
+
+```
+      Stated as an ordering it fails at midnight, where 47 and 0 change places: the
+      2026-07-24 run read a 66 s lead as a 23.5 h lag and rang eight bells twice. The
+      always-on node's own spelling carried midnight as a special case (`slot = 0`,
+      "midnight however it was reached"), which rang eight bells on a clock corrected
+      BACK across midnight; here a step back is a hold, whichever slot it lands on. 
+```
+
+**Ref 8** · `fwd < 0 ifTrue: [ fwd:: fwd + n ].`
+
+both are in [0, n), so one add suffices
+
+**Ref 9** · `fwd = 0 ifTrue: [ ^ false ].`
+
+exactly on the count: hold and measure
+
+**Ref 10** · `public secondsToBoundaryAfter: lastHalf from: predicted = (`
+
+Seconds from `predicted` to the boundary of the count AFTER `lastHalf`, modular
+
+```
+      over the day. The single `+ 86400` is enough because predicted is already reduced
+      to [0, 86400) and the target is at most 86400, so the difference cannot be more
+      than one day negative — and doing it this way means no division of a negative
+      number, whose rounding direction nsl does not pin down. At a boundary exactly this
+      is a FULL slot, never 0 — the edge 05_ntp_catchup.nsl pins: 0 would arm a one-shot
+      that fires at once and strikes the slot twice. 
+```
+
+**Ref 11** · `d < 1 ifTrue: [ d:: 1 ].`
+
+boundary already reached: wake at once
+
+**Ref 12** · `public wrapDrift: d = (`
+
+Drift wrapped across midnight: a true 0 against a predicted 86399 is +1 s, not
+
+```
+      -86399. 
+```
+
+**Ref 13** · `public wrapDay: secs = (`
+
+A time of day less a lead can be yesterday: 00:00 minus 5 s is 23:59:55, and the
+
+```
+      RTC alarm matches a time of day, not an offset. 
+```
+
+**Ref 14** · `holdAheadSlots = ( ^ 3 )`
+
+How far the count may legitimately lead true time before a sync reads it as a lag
+
+```
+      instead (see isBehind:of:). Three slots; the worst lead ever measured is 155 s. 
+```
+
+**Ref 15** · `public tzOffset = ( ^ -25200 )`
+
+The day this dial counts is Phoenix's: UTC-7 and no DST, so a constant is honest
+
+```
+      here in a way it would not be anywhere that observes summer time. A product fact,
+      passed to the NTP prim by whichever clock syncs. 
+```
+
+**Ref 16** · `public hms: secs = (`
+
+seconds-since-midnight -> 'HH:MM:SS', zero-padded so a log lines up.
+
+**Ref 17** · `class RtcRecord = ( | plat | ) (`
+
+--- RtcRecord ------------------------------------------------------------------
+
+**Ref 18** · `class RtcRecord = ( | plat | ) (`
+
+STATE LIVES IN .rtc.data (design §3), reached through rtcGet:/rtcPut:value:, because
+
+```
+    RAM does not survive the sleep. Field indices are the constants below and are
+    identical to the C struct order in zephyr/src/main.c (OEVM_RTC_FIELDS = 10). Cold
+    power-on leaves the struct UNDEFINED (not zeroed), so a magic mismatch means "no valid
+    state". 
+```
+
+**Ref 19** · `public coldInitCal: seedPpm stale: neverSyncedSec = (`
+
+Free-run from 00:00: ratchet 0 (so the first strike is half 1), anchor 0, stale
+
+```
+      large so the panel shows "never synced". Magic set LAST so a crash between writes
+      cannot leave a half-initialised struct reading valid. The calibration seed and the
+      never-synced sentinel are their owners' numbers, handed in. 
+```
+
+**Ref 20** · `iMagic      = ( ^ 0 )`
+
+design §3 table; identical order to the C struct
+
+**Ref 21** · `magicWord   = ( ^ 348000704 )`
+
+0x14BE11C0 — MUST fit a 32-bit SMI (31-bit tag, so |value| < 2^30). The original
+
+```
+      0x94BE11C0 overflowed: it round-tripped on the 64-bit host but stored garbage
+      through rtcPut: on the device, so rtcValid was false on every wake and the clock
+      cold-booted forever. 
+```
+
+**Ref 22** · `class Drift = ( | record | ) (`
+
+--- Drift ----------------------------------------------------------------------
+
+**Ref 23** · `class Drift = ( | record | ) (`
+
+DISCIPLINE THE OSCILLATOR (design §11). Asleep, the sleep is counted by an internal
+
+```
+    ~90 kHz RC oscillator — this module has no 32.768 kHz crystal — and the 2026-07-24 run
+    measured it at ~10,700 ppm FAST, 227x the navigator's 4 s/day, so bells landed up to
+    155 s early between the 4 h syncs. The error is STABLE (10,500 / 10,768 / 10,271 across
+    nine hours, +/-3%), and a stable rate error is correctable: command
+    `target / (1 + cal/1e6)` so that `target` REAL seconds elapse. Only the ~3% variation
+    survives, an estimated ~300 ppm — a watch going from 155 s of error to about 4 s, with
+    no new parts. The re-anchor at each sync fixes the PHASE; this class fixes the RATE.
+```
+
+```
+    Two different numbers, easily confused, so name them apart: a `residual` is the ppm
+    measured THIS watch — how far the disciplined clock still missed by; it feeds the
+    rolling 6-sync (24 h) extremes, the honest "how good is this board now" readout.
+    `record calPpm` is the CUMULATIVE calibration actually applied when arming a sleep,
+    so it ACCUMULATES the residual rather than being overwritten by it. Overwriting would
+    undo the correction the moment it started working: a well-disciplined watch measures
+    ~0, which as a replacement would set the calibration to zero and put the 1% error
+    straight back. Composing two rates is a multiply, but at these magnitudes adding the
+    ppm is accurate to ~3 ppm — far inside the residual — and the loop self-corrects. 
+```
+
+**Ref 24** · `public disciplined: target = (`
+
+ROUNDED, not truncated, and that is not a nicety. The correction is whole seconds,
+
+```
+      so throwing the fraction away is itself a rate error: at the shipping slot a
+      truncating spelling lost up to 0.9 s per 1800 s = 500 ppm, the same order as the
+      residual this whole mechanism exists to remove, and it walked the bells ~30 s off
+      across a watch. Rounding leaves +/-0.5 s per slot, so +/-4 s across a watch before
+      the next sync re-anchors — which is the accuracy target. Sub-second correction
+      would need fractional state across a deep sleep, and is what tuvm#100's hardware
+      timebase buys instead.
+```
+
+```
+      The direct product is used wherever it cannot overflow (target under 20000 caps it
+      at 1e9); the rare long target — only a hold that waits out a multi-slot lead —
+      takes an eighth-scaled form that caps at 5.4e8. The magnitude is divided rather
+      than the signed value, so nothing depends on which way nsl rounds a negative
+      quotient. 
+```
+
+**Ref 25** · `p >  50000 ifTrue: [ p::  50000 ].`
+
+a rate beyond 5% is a broken measurement,
+
+**Ref 26** · `p < -50000 ifTrue: [ p:: -50000 ].`
+
+not an oscillator; refuse to act on it
+
+**Ref 27** · `p < 0 ifTrue: [ ^ target + corr ].`
+
+running fast -> command LONGER
+
+**Ref 28** · `public ppmFor: driftSec over: elapsedSec = (`
+
+IDENTICAL spelling to 09_bell_math.nsl.
+
+**Ref 29** · `public record: ppm = (`
+
+Compose the residual onto the calibration and keep the rolling 24 h extremes
+
+```
+      (6 syncs, reset at 6 — design §3). 
+```
+
+**Ref 30** · `public seedPpm = ( ^ -10513 )`
+
+FACTORY CALIBRATION — the calibration a never-synced board starts from, so the very
+
+```
+      first sleep after a reflash is already disciplined instead of running a whole 4 h
+      watch at 155 s of error before the first sync has a number to work with. This is the
+      mean of the three measurements from the 2026-07-24/25 overnight run on THIS board
+      (10,500 / 10,768 / 10,271 ppm fast; negative here because a fast oscillator makes
+      predicted time outrun true time). It is a starting guess, not a constant: the first
+      watch-end sync composes the measured residual onto it, so a wrong seed self-heals
+      within one watch, and a board with a different RC part converges just as fast.
+      Retires when the DS3231M (tuvm#100, +/-5 ppm) takes over the timebase. 
+```
+
+**Ref 31** · `class BellClock = ( | record drift ntp dial basisMillis lastDrift syn...`
+
+--- BellClock ------------------------------------------------------------------
+
+**Ref 32** · `class BellClock = ( | record drift ntp dial basisMillis lastDrift syn...`
+
+THE HALF-HOUR INDEX IS A MONOTONIC RATCHET, AND MONOTONIC MEANS MODULAR (design §2 as
+
+```
+    restated by §11). A strike is a pure increment, so a strike wake CANNOT double-bell. A
+    sync may push the count FORWARD (skip missed strikes, silently) but NEVER backward —
+    and "forward" is the FORWARD DISTANCE round the 48-slot dial, never `>`: the dial
+    owns that rule (Dial>>isBehind:of:). When NTP says we are behind where we already
+    struck, we hold the count and lengthen the next sleep — really lengthen it, out to
+    the held count's OWN boundary. Drift never touches the count, only the sleep
+    duration (phase).
+```
+
+```
+    THE COUNT OWNS THE SCHEDULE. Every sleep runs to the boundary of the next count, less
+    the awake window, corrected by the persisted calibration. Those three terms fix three
+    different errors — which boundary (§11 defect 5), the strike-to-sleep gap (§11 defect
+    6) and the RC oscillator's 1% rate (§11) — and the clock needs all three to ring on
+    time.
+```
+
+```
+    Wake-local state: `basisMillis` is the instant within this wake at which the predicted
+    clock was last trued (nil = never this wake, the basis is boot); `lastDrift` and
+    `syncOk` are this wake's sync outcome, read by StatsPage. 
+```
+
+**Ref 33** · `public nextHalf = ( ^ dial nextAfter: record lastHalf )`
+
+--- the dial ---
+
+**Ref 34** · `public nextHalf = ( ^ dial nextAfter: record lastHalf )`
+
+The strike about to happen: the dial's next after the count.
+
+**Ref 35** · `public slotSec = ( ^ dial slotSec )`
+
+The clock's own cadence is the dial's; the page and the node read it here.
+
+**Ref 36** · `public predictedNow = ( ^ (record anchorSec + record elapsedSec) \\ 8...`
+
+--- the predicted clock ---
+
+**Ref 37** · `public predictedNow = ( ^ (record anchorSec + record elapsedSec) \\ 8...`
+
+predictedNow = (anchor + elapsed) mod 86400 (design §3); cold/never-synced =>
+
+```
+      anchor 0, elapsed accumulates. 
+```
+
+**Ref 38** · `predictedAtSync = (`
+
+WHERE THE NODE'S CLOCK SAID IT WAS AT THE INSTANT NTP ANSWERED — the only thing
+
+```
+      trueSec may be compared against. predictedNow is the clock at the STRIKE; the sync
+      happens an awake window later, so differencing the two scores boot and WiFi
+      association as oscillator drift. At a 15 s window that is a phantom +1041 ppm per
+      sync, which does not merely misreport: it feeds the calibration, so a PERFECT clock
+      gets "corrected" every watch end and the loop walks away from the truth instead of
+      converging on it. 
+```
+
+**Ref 39** · `public awakeSinceBasis = (`
+
+Seconds of awake work since the moment predictedNow's basis was established — NOT
+
+```
+      simply since boot. On a free-running wake those are the same thing: the clock comes
+      from RTC state that was already current when the VM booted, so the basis is boot
+      and `0 millis` is the answer.
+```
+
+```
+      A SYNCED wake is different, and getting it wrong just moves the error. There,
+      predictedNow is trueSec, which was true at the instant NTP answered — partway
+      through the awake window, not at boot. Subtracting the whole window would
+      over-correct by everything that happened before the NTP read (WiFi association is
+      most of it), turning a 15 s late bell into a 15 s early one. trySync stamps the
+      basis at that instant, so only the work AFTER the read is subtracted. 
+```
+
+**Ref 40** · `b == nil ifTrue: [ b:: 0 ].`
+
+never synced this wake: the basis is boot
+
+**Ref 41** · `public lastDrift = ( ^ lastDrift )`
+
+--- the sync ---
+
+**Ref 42** · `public trySync = (`
+
+3 attempts fit one ~15 s awake window (design §4); "quit until next watch-end" is
+
+```
+      just: return false, schedule nothing — the next attempt is 4 h on. sntp_simple's
+      own 4 s timeout spaces the retries. Answers whether the sync landed; the outcome is
+      also kept in `syncOk` for the page. 
+```
+
+**Ref 43** · `secs == nil ifFalse: [`
+
+Stamp the clock basis at the INSTANT true time was read — see awakeSinceBasis.
+
+**Ref 44** · `apply: trueSec = (`
+
+The §2 ratchet, both directions. NEVER moves the count backward; drift only ever
+
+```
+      adjusts the sleep (phase) via the re-anchored predictedNow next wake. 
+```
+
+**Ref 45** · `ifTrue:  [`
+
+Fell behind (missed wakes / dead battery, or the clock ran slow):
+
+```
+                      advance SILENTLY — do NOT ring the skipped bells. `trueSec -
+                      predicted` here is a CATCH-UP GAP, not oscillator drift (the board
+                      was off, so elapsedSec never accrued those sleeps), so it is
+                      deliberately NOT recorded — recording it would spike the 24 h drift
+                      window with a value that is hours, not the seconds real drift
+                      produces. This also skips the first-sync-after-cold-boot reset,
+                      which is almost always an advance. 
+```
+
+**Ref 46** · `ifFalse: [`
+
+On time / slightly ahead: HOLD the count and record the REAL drift —
+
+```
+                      the small signed gap between where the crystal put us and true
+                      time, over the interval elapsedSec. This is the number the panel
+                      reports. 
+```
+
+**Ref 47** · `record anchorSec: trueSec.`
+
+Re-anchor the wall clock to true time; zero the accumulated sleep + stale.
+
+**Ref 48** · `neverSynced = ( ^ record staleSec >= self neverSyncedSec )`
+
+A NEVER-SYNCED BOARD HAS NO RATCHET TO PROTECT, so its first good sync ADOPTS true
+
+```
+      time whatever the modular distance says. This is the one case where a large
+      forward distance really is a lag: the free-run starts at 00:00, so a cold boot at
+      23:30 is a genuine 47 slots behind, which isBehind:of: would read as 1 slot ahead
+      and hold — going silent until tomorrow. Every other way of falling hours behind is
+      impossible, because a board that is merely failing NTP keeps ratcheting on its own
+      timebase.
+```
+
+```
+      `>=`, not `=`: markSyncFailed keeps ADDING to the sentinel, so a cold boot whose
+      NTP also failed reads 999999 + 14400 and must still count as never synced. 
+```
+
+**Ref 49** · `public sleepTarget = (`
+
+--- the schedule ---
+
+**Ref 50** · `public sleepTarget = (`
+
+THE NEXT WAKE BELONGS TO THE COUNT, NOT TO THE CLOCK (design §11, defect 5). Having
+
+```
+      just struck `lastHalf`, the next strike is `lastHalf + 1`, and it is due at THAT
+      half's boundary — so the sleep runs to ((lastHalf + 1) * slotSec) - predictedNow,
+      mod 86400, less this wake's awake window.
+```
+
+```
+      This is the same number as "seconds to the next boundary" on the free-running path
+      (count and clock are in step there), but it is DIFFERENT, and correct, after a sync
+      that held the count: the sleep is LENGTHENED until the world reaches the count. The
+      previous spelling re-anchored to true time and ran to the next TRUE boundary, so a
+      held count never re-converged and the gap grew one slot per watch end — the clock
+      rang the wrong number of bells from 04:00 onward on the 2026-07-24 run.
+```
+
+```
+      Accrue the INTENDED REAL interval to the next wake: the target sleep PLUS this
+      wake's awake window (boot + WiFi + strike, ~15-20 s on device). Without the awake
+      term the predicted clock runs slow by that much per wake — ~1% at the 1800 s slot,
+      which would swamp the RC-oscillator drift the panel exists to measure, and 25-30%
+      at a demo 60 s slot. The awake window is BOTH added here and subtracted from the
+      sleep, and it has to be both. Accruing it alone keeps the RATE honest but puts
+      every strike one awake window past its boundary, because the seconds fall between
+      this strike and the next; subtracting it alone would make the clock run fast.
+      Together they hold the invariant that makes the bell land on the minute:
+      predictedNow after this method is EXACTLY the boundary of the count about to be
+      struck.
+```
+
+```
+      This accrues `sleepSec`, NOT the disciplined value the caller arms. That is what
+      keeps the correction from double-counting: the predicted clock advances by the
+      real seconds we intend to pass, so the next sync measures only what the correction
+      FAILED to remove, and calibration composes instead of oscillating.
+```
+
+```
+      Answers the TARGET seconds; the caller disciplines and arms. 
+```
+
+**Ref 51** · `sleepSec < 1 ifTrue: [ sleepSec:: 1 ].`
+
+awake window longer than the slot
+
+**Ref 52** · `driftFloorSec = ( ^ dial slotSec * 2 )`
+
+--- constants ---
+
+**Ref 53** · `driftFloorSec = ( ^ dial slotSec * 2 )`
+
+A RATE NEEDS A LONG ENOUGH BASELINE (design §11, defect 3). drift is measured in
+
+```
+      whole seconds, so ppm carries +/-1e6/elapsed of pure quantisation: 278 ppm over an
+      hour, 14,700 ppm over a minute. The 2026-07-24 run resynced 68 s after the previous
+      sync and turned a 4 s error into `ppm +58823`. Below the floor `apply:` reports
+      the sync (the ntp row still shows the seconds) and skips the rate — a number that
+      bad is not a measurement, and since disciplining applies it to the SLEEP it would be
+      a 5.9% correction rather than a bad pixel.
+```
+
+```
+      Two slots = an hour at the shipping cadence, which is David's "an hour is
+      defensible" and bounds the whole-second quantisation to +/-278 ppm. Derived from
+      slotSec so a 60 s demo build can still measure and discipline itself (floor 120 s)
+      instead of never recording a rate at all. 
+```
+
+**Ref 54** · `public signed: n = (`
+
+Signed integer, `+N` / `-N`. nsl has no unary minus display, so build it.
+
+**Ref 55** · `class StatsPage = ( | disp record clock heap | ) (`
+
+--- StatsPage ------------------------------------------------------------------
+
+**Ref 56** · `class StatsPage = ( | disp record clock heap | ) (`
+
+Painted ONLY at watch-ends and after a cold boot (design §5), AFTER the sync, so a
+
+```
+    FAIL shows. Given the display, the record, the clock and a heap-stats value — and
+    nothing else: this class cannot reach the radio, the bell or the sleep. Per-row
+    best-effort: each row draws inside its own catch, so an over-wide value (e.g. the
+    16 MB host arena's heap row) skips just that row instead of blanking the panel. 
+```
+
+**Ref 57** · `row: r s: s = (`
+
+Draw one row and echo it, catching a too-wide/faulted row so the rest still paint.
+
+```
+      The echo is INSIDE the try and AFTER the draw, so a skipped row emits no `| ` line
+      — which is exactly what the host test keys on for the (skipped) heap row. 
+```
+
+**Ref 58** · `heapField = ( ^ (self kRound: heap liveBytes) , '/' , (heap heapSize ...`
+
+live rounded to whole KiB / arena in KiB. On device (20 KB) this is `20/20K`; on
+
+```
+      the host image VM (16 MB) it is `.../16384K`, which overflows the 12-col grid and
+      is skipped by row:s: — the row is witnessed on device, not on host. 
+```
+
+**Ref 59** · `ntpField = (`
+
+The `ntp` row: never attempted -> `--`; this wake FAILED -> FAIL; synced and
+
+```
+      measured drift (hold branch) -> `+N.Ns`; synced but advanced (missed wakes, no
+      drift measured) -> `sync`. 
+```
+
+**Ref 60** · `upField = (`
+
+Uptime from bootTicks (one slot per tick), wrap-safe.
+
+**Ref 61** · `staleField: sec = (`
+
+Age since last good sync, `Nd/NNh` — IDENTICAL spelling to 09_bell_math.nsl. The
+
+```
+      cold-init sentinel ("never synced") renders as `--`, not as a meaningless 11-day
+      age. 
+```
+
+**Ref 62** · `line: label val: v = (`
+
+Right-justify `v` against `label` in exactly 12 columns; overshoot (pad < 0) is
+
+```
+      left un-truncated so the too-wide row raises #displayBounds and row:s: skips it. 
+```
+
+**Ref 63** · `class RtcClock = ( | plat dial | ) (`
+
+--- RtcClock -------------------------------------------------------------------
+
+**Ref 64** · `class RtcClock = ( | plat dial | ) (`
+
+THE CLOCK THAT IS A PART. The always-on node keeps time on a DS3231 (shipsBellsV3
+
+```
+    §16): this class reads its second of the day and corrects it from the network, and
+    that is all it can reach — wallClock, ntpSyncTz:, ntpDate and wallClockSetDate:time:
+    on the platform it is given, and the dial for the offset and the printing. The
+    deep-sleep node has no such part: its clock is a prediction over RtcRecord, which is
+    BellClock's, and the two never meet.
+```
+
+```
+    THE NETWORK MAY IMPROVE THIS CLOCK AND MAY NEVER STOP IT (2026-08-03 design D6): a
+    nil at any step leaves the part alone and the bell ringing off it. The date comes
+    from the same response as the time: the part will not accept a time without one,
+    and the bell itself never reads the date. 
+```
+
+**Ref 65** · `public secondsOfDay = ( ^ plat wallClock )`
+
+Seconds since local midnight, or nil: no part, a bus fault, or never set.
+
+**Ref 66** · `public sync = (`
+
+One sync. Answers whether the part was corrected. Blocks up to the SNTP timeout,
+
+```
+      so the caller chooses a moment when no bell can be late: boot, and after the
+      midnight pattern. 
+```
+
+**Ref 67** · `public show = (`
+
+A write that answered 0 is not evidence the part holds the time: read it back.
+
+**Ref 68** · `class Trigger = ( | alarm timers tick dial armedFor. alarmOk ::= fals...`
+
+--- Trigger --------------------------------------------------------------------
+
+**Ref 69** · `class Trigger = ( | alarm timers tick dial armedFor. alarmOk ::= fals...`
+
+WHAT WAKES THE ALWAYS-ON NODE AT A BOUNDARY: the RTC says when; the MCU's own
+
+```
+    timer only ever says "the RTC didn't" (shipsBellsV3 §16.4). The MCU timebase never
+    competes as a trigger, which is the entire reason for fitting a DS3231. A poll
+    measured the cost of the other arrangement: across one day its strikes walked from
+    174 ms to 465 ms after the boundary — about 15 ppm of MCU crystal against the RTC,
+    visible as a drift and not as jitter (2026-08-04).
+```
+
+```
+    THREE SOURCES, ONE CHANNEL. `clock/tick` is fed by:
+      1. THE ALARM, at boundary - lead. DS3231 Alarm1 (Alarm2 has no seconds register),
+         re-armed after every strike, delivered through the driver's own ISW workqueue.
+      2. THE COUNTDOWN, a one-shot armed by (1) for the boundary itself. This is what
+         actually strikes, so the strike instant is a local timer over 5 s rather than
+         an I2C read in the interrupt path.
+      3. THE WATCHDOG, a one-shot armed at each strike for the NEXT boundary + grace.
+    Nothing above `clock/tick` knows which one arrived: every tick re-derives the slot
+    from the part and lets the dial decide. Given the rtcAlarm, the timers, the channel
+    they all post on, and the dial; it never reads the clock itself — the node hands it
+    the second it just read.
+```
+
+```
+    WHY A WATCHDOG AND NOT A BACKSTOP POLL. The modes that can eat an alarm edge are
+    specific — a failed re-arm, or a failed flag clear (INT/SQW is a LEVEL, so an
+    uncleared flag means no new edge) — and both have one signature: an alarm we armed
+    did not fire when it was due. That is a DEADLINE, and a deadline wants a one-shot.
+    A 60 s poll would ring up to 60 s late; this rings 2 s late, and between boundaries
+    the MCU holds exactly one armed timer and is otherwise idle. In the healthy case
+    the watchdog fires 2 s INTO the pattern (eight bells run 6.88 s) and finds the slot
+    already rung, because the node moves its marker when the ring STARTS; it is also
+    the only diagnostic — when it finds the boundary unrung, that is positive evidence
+    the alarm failed, and the node says so. 
+```
+
+**Ref 70** · `public armAfter: secs = (`
+
+Arm both deadlines for the boundary after `secs`. The alarm time is wrapped into
+
+```
+      the day, because 00:00 minus a lead is 23:59:55 and the part matches a time of
+      day. `at:post:on:` answers false rather than raising when it cannot arm — no RTC,
+      or an image built without CONFIG_RTC_ALARM — and the node runs on its watchdog
+      alone: correct behaviour, wrong image, so it is printed. The watchdog is never
+      cancelled: cheaper to let it fire into a dial that has nothing to do than to
+      carry cancel state. 
+```
+
+**Ref 71** · `public nearBoundary: secs = (`
+
+Is `secs` inside the alarm's lead of a boundary? Then a tick now is the alarm's
+
+```
+      early wake. 
+```
+
+**Ref 72** · `public countdownAt: secs = (`
+
+The alarm's early wake: one local one-shot for the remaining milliseconds, plus a
+
+```
+      small margin so the RTC's second has certainly rolled over when the countdown
+      re-reads it — wallClock has 1 s resolution, and firing 1 ms early would read the
+      OLD slot and ring nothing until the watchdog. Guarded on `armedFor`, so a second
+      early tick does not arm a second countdown for the same boundary. The slot it is
+      armed for is the dial's next: the node's own `slot + 1` read 48 at 23:59:55, so
+      the midnight countdown was logged as a watchdog's late ring. 
+```
+
+**Ref 73** · `public retry = ( timers after: self retryMillis post: #retry on: tick...`
+
+The part gave no reading: look again in a minute. The one place the MCU's timer
+
+```
+      asks the question on its own, and it asks, it does not strike. 
+```
+
+**Ref 74** · `public leadSeconds = ( ^ 5 )`
+
+the alarm fires this early
+
+**Ref 75** · `public graceMillis = ( ^ 2000 )`
+
+the watchdog fires this late
+
+**Ref 76** · `strikeMarginMillis = ( ^ 200 )`
+
+countdown overshoot; see countdownAt:
+
+**Ref 77** · `class Striker = ( | gpio timers chan pin`
+
+--- Striker --------------------------------------------------------------------
+
+**Ref 78** · `class Striker = ( | gpio timers chan pin`
+
+THE RINGER AS A STATE MACHINE, so the node keeps reacting while a pattern plays.
+
+```
+    Given a gpio, the timers, the channel its strokes come back on and the pin to
+    drive, and nothing else: it cannot read the clock and does not know what count a
+    half-hour calls for. `ring:` starts a pattern; each `step` is one stroke edge:
+    `set: true` -> one-shot at WIDTH -> `set: false` -> one-shot at the pair or set
+    gap -> next stroke. Odd stroke (1-based) = first of a pair, so the SHORT gap follows
+    it and holds the pair together; even = the long gap separates the pairs; the last
+    stroke gets no trailing gap, which is what produces the lone final stroke of an odd
+    count. Three bells is the pattern that proves both branches.
+```
+
+```
+    The deep-sleep node strikes through the kernel's `Bell>>strike:`, a blocking C leaf
+    on the MagTag's speaker; this is the wall's piezo on a GPIO, and the pattern is
+    nsl's — C keeps only gpioSet (2026-08-03 design D3). WIDTH IS 10 ms, NOT 50: 50 is
+    BELL_MAX_WIDTH_MS, the pattern-path duty cap in src/main.c. What rang on 2026-08-03
+    and was approved by ear was `width 10 ms, pair gap 500 ms, set gap 1600 ms`
+    (collector log 21:19:01 through 21:21:12, b4/b8/b3), a piezo result: §19 took the
+    solenoid off this device for good, so here the piezo is the ringer and not a
+    stand-in. 
+```
+
+**Ref 79** · `public ring: n = (`
+
+Two refusals, and an answer of whether the pattern started. In flight is
+
+```
+      unreachable at 1800 s and reachable at a 60 s bench slot: two rings interleaved
+      on one pin is neither ring. 
+```
+
+**Ref 80** · `public step = (`
+
+One stroke edge, from the channel. Answers whether the pattern is still playing,
+
+```
+      so the node sees the last edge without the striker knowing what follows it. 
+```
+
+**Ref 81** · `public gapAfter: i = (`
+
+Odd index -> within a pair; even -> between pairs.
+
+**Ref 82** · `pin: aBool = (`
+
+A pin the board never declared RAISES rather than answering a plausible false
+
+```
+      (tuvm#82). Caught here and said ONCE: a bell with no ringer should still keep
+      time and still say why it is silent. 
+```
+
+## Appendix D. The agent's HTTP surface
 
 custos serves these routes today. Every board's verbs are also served under `/board/<name>/`, and with one board
 configured the board-less paths are its shorthand (peer design D15). `GET /boards` lists the boards and the verbs
@@ -1378,10 +2413,10 @@ did on its own, and uses `lend` only when a tool outside custos must hold the ca
 - **[Profile]** [Profiling over USB](../../../docs/design/2026-10-05-custos-profile-over-usb.md).
 - **[Spike]** [Debugging and profiling a sleepy node through porta, host spike for rete#342](../../../docs/results/2026-10-07-342-sleepy-node-debug-spike.md).
 - **[Example]** [`MagTagDeepSleepNode.nsl`](../../oevm/zephyr/MagTagDeepSleepNode.nsl) and
-  [`lib/Bells.nsl`](../../oevm/zephyr/lib/Bells.nsl), the program in Appendix A; its measurements are on
+  [`lib/Bells.nsl`](../../oevm/zephyr/lib/Bells.nsl), the program in Appendices A and C; its measurements are on
   [rete#380](https://github.com/davidg238/rete/issues/380).
-- **[Wall]** [`ShipsBellNodeC6.nsl`](../../oevm/zephyr/ShipsBellNodeC6.nsl), the always-on bell as it stands before
-  the same classes reach it (rete#380).
+- **[Wall]** [`ShipsBellNodeC6.nsl`](../../oevm/zephyr/ShipsBellNodeC6.nsl), the always-on bell of Appendix B, over
+  the same library (rete#380).
 - **[Display]** [The MagTag e-paper display design](../../../docs/design/2026-07-23-magtag-epaper-display-seam-design.md)
   and [`MagTagDisplayNode.nsl`](../../oevm/zephyr/MagTagDisplayNode.nsl), the program Figure 3 quotes.
 - **[Clock]** [`MagTagClockNode.nsl`](../../oevm/zephyr/MagTagClockNode.nsl), the program in Figure 4.

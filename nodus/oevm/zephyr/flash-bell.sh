@@ -20,8 +20,11 @@
 #
 # WHAT IS DELIBERATE HERE, and must not be "cleaned up":
 #
-#   * BOTH conf fragments. With only one, the app's own header says it is "the
-#     polling node wearing this name" — it builds and runs and is the wrong node.
+#   * BOTH conf fragments. With only one, `rtcAlarm at:` answers false and the
+#     node runs on its watchdog alone — it builds and runs and is the wrong bell,
+#     and says so at boot (`trigger=WATCHDOG ONLY`).
+#   * OEVM_DEBUG_HOOKS=1: the bell is the 0.1 demo's always-on node, reached by
+#     the debugger through porta (rete#380); the profiler is the C6 default.
 #   * The CP2102N, not the USB-JTAG. The JTAG path is the one that failed and
 #     parked the bell in 2026-08-11; c6spare flashed fine over JTAG minutes
 #     earlier, so this is per-board rather than a general rule.
@@ -59,8 +62,9 @@ echo "  bell CP2102N -> $(readlink -f "$BELL_BYID")"
          ZEPHYR_TOOLCHAIN_VARIANT=zephyr \
          ESPTOOL_PORT="$BELL_BYID" CONSOLE_PORT="$BELL_BYID" \
          OEVM_NTP_SERVER6=fdc5:9109:9afe:97ea:9541:d963:f8d9:8567 \
+         OEVM_DEBUG_HOOKS=1 \
          I_REALLY_MEAN_THE_BELL=1
-  bash zephyr/run.sh --board esp32c6 --node ShipsBellAlarmNodeC6.nsl \
+  bash zephyr/run.sh --board esp32c6 --node ShipsBellNodeC6.nsl \
        --conf-extra "prj_esp32c6_thread.conf;prj_esp32c6_rtcalarm.conf" \
        --pristine --flash ) && rc=0 || rc=$?
 

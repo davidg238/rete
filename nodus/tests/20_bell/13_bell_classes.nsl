@@ -45,7 +45,7 @@ library ok
 
    Two things under test. (1) THE SEAM: the `uses:` line makes the library's classes
    nested classes of this module, so `RtcRecord on: platform` resolves without the
-   kernel knowing the library exists. (2) THE CLASSES: the ratchet's modular rules, the
+   kernel knowing the library exists. (2) THE CLASSES: the dial's modular rules (shared with the always-on bell, 12_shipsbell_schedule.nsl), the
    disciplining arithmetic, the drift window, a held sync and the page — each the exact
    number MagTagDeepSleepNode's host gate (tools/test_deepsleep_node.py) asserts
    end-to-end, pinned here per decision.
@@ -71,10 +71,11 @@ class BellClasses packageUsing: manifest = () (
   )
 
   public main: platform args: args = (
-    | record drift clock page disp |
+    | dial record drift clock page disp |
+    dial::   Dial new.
     record:: RtcRecord on: platform.
     drift::  Drift on: record.
-    clock::  BellClock on: record drift: drift ntp: (FixedNtp at: 86334).
+    clock::  BellClock on: record drift: drift ntp: (FixedNtp at: 86334) dial: dial.
 
     record coldInitCal: 0 stale: clock neverSyncedSec.
     ('record valid ' , record valid printString) out.
@@ -85,14 +86,14 @@ class BellClasses packageUsing: manifest = () (
     record lastHalf: 44.
     ('next after 44 ' , clock nextHalf printString) out.
 
-    ('behind 12 of 8 ' , (clock isBehind: 12 of: 8) printString) out.   (* missed wakes: advance *)
-    ('behind 8 of 8 '  , (clock isBehind: 8 of: 8) printString) out.    (* on the count: hold *)
-    ('behind 47 of 0 ' , (clock isBehind: 47 of: 0) printString) out.   (* THE WRAP: 1 ahead, hold *)
-    ('behind 3 of 0 '  , (clock isBehind: 3 of: 0) printString) out.    (* 3 behind: advance *)
+    ('behind 12 of 8 ' , (dial isBehind: 12 of: 8) printString) out.   (* missed wakes: advance *)
+    ('behind 8 of 8 '  , (dial isBehind: 8 of: 8) printString) out.    (* on the count: hold *)
+    ('behind 47 of 0 ' , (dial isBehind: 47 of: 0) printString) out.   (* THE WRAP: 1 ahead, hold *)
+    ('behind 3 of 0 '  , (dial isBehind: 3 of: 0) printString) out.    (* 3 behind: advance *)
 
-    ('boundary after 44 from 80108 ' , (clock secondsToBoundaryAfter: 44 from: 80108) printString) out.
-    ('boundary after 47 from 86334 ' , (clock secondsToBoundaryAfter: 47 from: 86334) printString) out.
-    ('wrap -86334 ' , (clock wrapDrift: 0 - 86334) printString) out.
+    ('boundary after 44 from 80108 ' , (dial secondsToBoundaryAfter: 44 from: 80108) printString) out.
+    ('boundary after 47 from 86334 ' , (dial secondsToBoundaryAfter: 47 from: 86334) printString) out.
+    ('wrap -86334 ' , (dial wrapDrift: 0 - 86334) printString) out.
 
     record calPpm: -10000.
     ('disciplined 1800 at -10000 ' , (drift disciplined: 1800) printString) out.

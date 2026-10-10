@@ -283,3 +283,37 @@ mains-powered bell should eventually be, and `prj_esp32c6_thread_ftd.conf` is on
   flashes today. It is the first sound of every boot and no node can prevent it.
 - The 47→0 wrap on target (above).
 - The daily sync has not yet run — the first one is due after the midnight bells.
+
+## Addendum 2026-10-09 — one wall node, over the classes the deep-sleep clock runs (rete#380)
+
+**Decided (David, 2026-10-09, #380): the wall bell is written factored, over `lib/Bells.nsl`, the library
+`MagTagDeepSleepNode` runs.** `ShipsBellNodeC6.nsl` is now a `main:` that reads as the order of one boot over
+`Dial` (the 48 slots, the modular ratchet, the boundary arithmetic — the same object in both power modes),
+`RtcClock` (the DS3231: read it, correct it from the network), `Trigger` (the RTC alarm, its countdown, the
+watchdog; §16.4 as the alarm node spelled it) and `Striker` (the piezo pattern as a state machine). It is bridged
+to porta on the alarm node's cadence and ports, and reports each strike on `tel/log`. Paper E Appendix B.
+
+**D10 amended: the two nodes became one.** `ShipsBellAlarmNodeC6.nsl` is deleted; the wall ran it since
+2026-08-04 (`flash-bell.sh` named it), and the poll node this document specified was never reflashed after. The
+fate table for the surface the two files held:
+
+| Old surface | Fate |
+|---|---|
+| the poll trigger (D1) | gone as a node; the "look again" aspect survives as `Trigger>>retry` (a nil clock re-polls in a minute), and the host test pins the schedule on a frozen clock |
+| the alarm + countdown + watchdog | `Trigger`, verbatim in behaviour, with one correction below |
+| the ratchet `advancedTo:from:` (D4, D5) | `Dial>>isBehind:of:`, the deep-sleep node's modular rule; **D5 is withdrawn** — midnight is a forward step of one on the dial, not a case, and the `slot = 0` case rang eight bells on a clock corrected BACK across midnight |
+| the striker state machine (D3) | `Striker`, given the gpio, the timers, the stroke channel and the pin |
+| `syncClock` / `showClock` (D6) | `RtcClock>>sync` / `show`; **a sync now re-seeds the marker silently** (`resync`), so a correction of hours never rings at a second that is not a half hour (D4, strengthened); readings returning after a nil re-seed the same way |
+| the porta bridge, the 30 s check-in guarded on `striking` | kept in the node, as on the MagTag |
+| `12_shipsbell_schedule.nsl` | rewritten over the library; the striker's three-bell pattern now plays on the host timers |
+| — | new: `tools/test_shipsbell_node.py`, the whole node on the host (frozen clock, refusing alarm seam, `socket: nil`), in the suite's aux line as `shipsbell` |
+
+**One defect the unification found:** the alarm node's countdown recorded `slot + 1`, which is 48 at 23:59:55, so
+every midnight countdown was logged as `watchdog: no alarm for slot 0 — ringing late` (the bell rang on time; the
+line lied). `Trigger>>countdownAt:` records `dial nextAfter:`.
+
+**Measured (esp32c6 layout, 2026-10-09):** 199,304 B of image against the alarm node's 178,784 (+20,520 B,
++11.5 %); 972 methods against 861. The `uses:` splice carries the four deep-sleep classes (73 methods) into the
+wall image unused — rete#394. Full image with debug hooks and the profiler: 487,768 B flash, 73 % SRAM. Host gates
+green (`12_shipsbell_schedule`, `13_bell_classes`, `test_shipsbell_node`, `test_deepsleep_node`). The flash to
+the wall is a daylight act (`flash-bell.sh`, now naming this node and `OEVM_DEBUG_HOOKS=1`) and is recorded on #380.

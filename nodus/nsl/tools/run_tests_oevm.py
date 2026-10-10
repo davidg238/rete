@@ -1303,6 +1303,9 @@ def main():
     # _build_pathb_once(), so it does NOT clobber ../oevm/src/solidified_image.c the way
     # the grant/debugger gates do — safe here, after the checkout restore.
     deepsleep_ok = run_integration_gate("test_deepsleep_node", "test_deepsleep_node.py")
+    # rete#380: the other power mode — the always-on bell (ShipsBellNodeC6) on the host,
+    # over the same library; a frozen clock, a refusing alarm seam, `socket: nil`.
+    shipsbell_ok = run_integration_gate("test_shipsbell_node", "test_shipsbell_node.py")
     footprint = run_footprint_gate()   # "PASS" | "SKIP" | "FAIL"
     # #165: the host-tool Python suites. They build nothing and touch no shared
     # /tmp path, so they are safe here; they were run by NOTHING until now.
@@ -1334,7 +1337,8 @@ def main():
                                            "test_custos_load.py",
                                            "test_custos_patch.py",
                                            "test_custos_build.py",
-                                           "test_deepsleep_node.py"))
+                                           "test_deepsleep_node.py",
+                                           "test_shipsbell_node.py"))
     # rete#228: the protocol's own tool tests (manifestlib, the linter, the pin
     # tool) were wired to nothing — the contract's parsers gated only by hand.
     protocol_py = run_pytest_gate("protocol-py", "protocol/tools")
@@ -1370,7 +1374,7 @@ def main():
            observe_py, cmake_parse, nsl_tools_py, protocol_py, gwprof_py, tutorial,
            tutorial_porta, tutorial_board, tutorial_dbg, porta_cli)
     suite_ok = (failed == 0 and c_units_ok and grant_ok and dbg_int_ok and patch_ok
-                and boot_gc_ok and deepsleep_ok
+                and boot_gc_ok and deepsleep_ok and shipsbell_ok
                 and all(g == "PASS" for g in aux))
     print(f"\n{COLOR_GREEN if suite_ok else COLOR_RED}Test Execution Summary:{COLOR_RESET}")
     print(f"  Passed:  {passed}")
@@ -1400,6 +1404,7 @@ def main():
           f"portability-32: {_mark(portability)}  "
           f"boot-gc-asan: {_mark('PASS' if boot_gc_ok else 'FAIL')}  "
           f"deepsleep: {_mark('PASS' if deepsleep_ok else 'FAIL')}  "
+          f"shipsbell: {_mark('PASS' if shipsbell_ok else 'FAIL')}  "
           f"footprint(T0.3): {_mark(footprint)}\n"
           f"  mprof-tools-py: {_mark(mprof_py)}  "
           f"target-observe-py: {_mark(observe_py)}  "
