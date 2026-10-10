@@ -367,6 +367,15 @@ radio, no Thread layer. Result record: [`docs/results/2026-10-01-rp2350-first-nu
     **no NVS, no bootId (= 0)**; no entropy driver (`CONFIG_TEST_RANDOM_GENERATOR`,
     non-cryptographic); second core unconfigured.
   - **Watchdog:** the C6's 11 s window fits the RP2350 (16.78 s ceiling).
+  - **Hot path in SRAM (rete#403, 2026-10-10):** `OEVM_HOT` places `run_interpreter`, `send_resolve`,
+    `push_frame`, `is_truthy` (8.4 KB) in `.ramfunc`; from flash through the 16 KB XIP cache the same
+    workload ran 2.1–2.7× slower once the image grew (6106 → 3111 ms per Hanoi-18 run, 11.87 µs/activation).
+    `OEVM_RAM_HOT=0` opts out. The 11.13 above was measured from flash on a layout that happened to fit.
+  - **A second board:** WeAct Studio RP2350B Core Board (bare RP2350B, primary QSPI flash only, no PSRAM),
+    built as `rpi_pico2/rp2350a/m33` unchanged — boots and runs; its GPIO map differs (found-during, #403).
+    Result record: [`docs/results/2026-10-10-rp2350-weact-first-boot.md`](../../../../docs/results/2026-10-10-rp2350-weact-first-boot.md).
+  - **Polled-console hang (rete#402):** every USB-CDC console board spun before `main:` from 2026-10-05
+    until the consoleLine prim answered nil instead of the VM's `false` singleton. Fixed in `platform.c`.
 - **Adafruit Feather RP2040 (Cortex-M0+)** — **built (`c4714a3`), never run on the bench.** An
   out-of-tree board port (`boards/adafruit/feather_rp2040/`) kept as the rehearsal board: the
   RP2040 has a Zephyr flash driver, so NVS/bootId is provable there. Watchdog window 7 + 1 s
