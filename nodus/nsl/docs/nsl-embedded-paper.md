@@ -1,6 +1,6 @@
 # rete: a lifecycle for small radio nodes on Zephyr — what is built, what it costs, and what is not
 
-_DRAFT 3, 2026-10-09 (Appendices A–C in the lifted-references form, decided 2026-10-09), for iteration with David. The companion paper, on the language, is [nsl-design-paper.md]; each topic has one owner and the other paper cites it._
+_DRAFT 4, 2026-10-10 (§9 built on both bells; §3 the AOT encoder; Appendices A–C in the lifted-references form, decided 2026-10-09; a bare-listings copy and a paginated PDF beside it), for iteration with David. The companion paper, on the language, is [nsl-design-paper.md]; each topic has one owner and the other paper cites it._
 
 Sources are bracketed keys, e.g. [VM], resolved in the References; in this Markdown they are links, and only there.
 Anything that is designed but not built says so in the sentence that describes it.
