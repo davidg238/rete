@@ -8,6 +8,7 @@
 #include <fcntl.h>
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>   /* getenv */
 /* POSIX (x86-linux / macOS desktop) UDP backend: real dual-stack sockets. Each
    bound socket is AF_INET6 with IPV6_V6ONLY=0, so one socket receives both IPv6
    and IPv4 (v4-mapped) datagrams. Non-blocking (O_NONBLOCK): udp_receive returns
@@ -16,6 +17,12 @@
 void udp_open(void) { /* nothing global to init */ }
 
 int udp_socket_bind(int port) {
+    /* rete#380: OEVM_NO_NET makes every bind fail, the way OEVM_NO_BELL / OEVM_NO_NTP /
+       OEVM_NO_DISPLAY (platform.c) take a leaf away. A bridged node then runs with
+       `PortaBridge socket: nil` (the #274 construction) and checks in nowhere, which is
+       what lets the deep-sleep host gate drive a porta node across 40 wakes without a
+       porta and without burning two reply budgets per wake. */
+    if (getenv("OEVM_NO_NET") != NULL) return -1;
     int fd = socket(AF_INET6, SOCK_DGRAM, 0);
     if (fd < 0) return -1;
     int off = 0;
