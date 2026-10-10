@@ -565,3 +565,28 @@ found either of these. **Neither is visible to a per-decision test** — the loo
 answer at every individual sync and is wrong only as a statistical property across many windows.
 The capstone should drive a *wandering* rate rather than a constant one and assert on RMS across
 the run, not per-wake correctness.
+
+## Addendum 2026-10-09 — the node as classes, bridged to porta, on the debug+profile image (rete#380, #379)
+
+**Decided (David, 2026-10-09, #380):** the bell is written factored, by Class–Responsibility–Collaboration, not
+linear. `nodus/oevm/zephyr/lib/Bells.nsl` holds `RtcRecord` (the ten retained slots), `Drift` (ppm calibration),
+`BellClock` (the modular ratchet, the predicted clock, the sync, the schedule) and `StatsPage` (the e-paper, given
+the display and nothing else); `MagTagDeepSleepNode.nsl` is a 14-line `main:` that reads as the order of one wake,
+plus the #379 porta bridge (strike first, then the exchange). §2, §3, §5, §8 and §11 of this document are now
+implemented by those classes, and their invariant comments moved with them.
+
+**Application classes are not kernel classes (David).** The compiler gained a `uses:` header pragma
+(`nodus/nsl/docs/compiler.md`): a library module's classes are spliced into the app as nested classes; nothing joins
+`kernel.nsl` and nothing is routed through `platform`. `nodus/tests/20_bell/13_bell_classes.nsl` is the seam's test
+and pins the arithmetic; `tools/test_deepsleep_node.py` drives the bridged node unchanged in its assertions
+(`OEVM_NO_NET`, new in the posix udp leaf, makes the bridge `socket: nil`).
+
+**The S2 budget, measured** (numbers on #380): 32 KB arena + panel + DAC + SNTP + WiFi + bridge + debug hooks + profiler
+overflowed dram0 by 5,168 B; the k_malloc pool is pinned at 44 KB by the WiFi adapter's Kconfig floor until
+`HEAP_MEM_POOL_IGNORE_MIN`; at 24 KB WiFi lived and the framebuffer's 4.7 KB did not; `prj_esp32s2_bell.conf` ships a
+32 KB pool, a 36 KB arena, `SERIAL_FIFO_CAP=256` (new knob, a loopback fifo) and a 128-entry method cache, 432 B of
+dram0 spare. Image +6,776 B over the linear node. On the fridge: six bells at 19:00, seven at 19:30, the panel painted
+at 19:21, `sys/metrics` live 32,068 after a cold boot and 27,876 after a strike wake, of 36,864.
+
+**Found, not fixed:** porta reads the cold-boot kind as `#stalled` after every wake (the rate rule sees `wak` restart) — #393.
+The gain-1 integrator (§2 above, tuvm#101) is unchanged by the refactor: `Drift>>record:` is the same line, now named.

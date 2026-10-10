@@ -34,7 +34,13 @@ def _compile_once():
 
 def run_wake(rtc_file, ntp=None, no_ntp=False, awake_ms=None):
     oimg = _compile_once()
-    env = dict(os.environ, OEVM_RTC_FILE=str(rtc_file))   # NOTE: no OEVM_NO_BELL (would raise)
+    # NOTE: no OEVM_NO_BELL (would raise). OEVM_NO_NET (rete#380): the node is a porta
+    # node now; with no socket its bridge is `socket: nil` and checks in nowhere, so a wake
+    # costs no reply budgets and needs no porta.
+    # OEVM_NODE_ID: the host has no factory address and the prim FAILS without one
+    # (platform.c PRIM_pf_nodeId, rete#118); the bridge is constructed with an id either
+    # way. The MagTag's own, so a row that ever escapes names the right board.
+    env = dict(os.environ, OEVM_RTC_FILE=str(rtc_file), OEVM_NO_NET="1", OEVM_NODE_ID="7cdfa11aaaaa")
     # `0 millis` is the node's awake window. On host it is ms since process start, which
     # for a wake that does no WiFi is ~0 — so a test that needs a DEVICE-sized awake
     # window (boot + WiFi + strike, 15-20 s) pins it.

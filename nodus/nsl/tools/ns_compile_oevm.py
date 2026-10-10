@@ -2241,6 +2241,84 @@ def serialize_oimg(compiler, layout):
     return _ser, _Graph, blob, entry_class
 
 
+def library_paths(src_ns):
+    """rete#380: the `uses:` pragma. An app names application libraries in its
+    leading header comment, one per line, relative to its own file:
+
+        (* ...
+        uses: lib/Bells.nsl
+        *)
+
+    The suite's `expect:` block is read the same way, so this is the convention the
+    tests already have, not a new one. Only the leading comment blocks are scanned — a
+    `uses:` below the class is prose — and only a value ending in `.nsl` is a library,
+    so an expect line that happens to start with the word is a sentence."""
+    with open(src_ns, "r", encoding="utf-8") as f:
+        text = f.read()
+    # Every leading comment block, in order, up to the first token that is not a
+    # comment: a suite test keeps its `expect:` block first and its prose second, and
+    # the pragma may sit in either.
+    header = []
+    pos = 0
+    while True:
+        while pos < len(text) and text[pos].isspace():
+            pos += 1
+        if not text.startswith("(*", pos):
+            break
+        end = text.find("*)", pos + 2)
+        if end < 0:
+            break
+        header.append(text[pos + 2:end])
+        pos = end + 2
+    base = os.path.dirname(os.path.abspath(src_ns))
+    paths = []
+    for line in "\n".join(header).splitlines():
+        line = line.strip()
+        if line.startswith("uses:"):
+            rel = line[len("uses:"):].strip()
+            # A library is a .nsl file; `uses: ok` in an expect block is a sentence.
+            if rel.endswith(".nsl"):
+                paths.append(os.path.normpath(os.path.join(base, rel)))
+    return paths
+
+
+def splice_libraries(ast, src_ns, parse_script):
+    """rete#380: splice each `uses:` library's classes into the app module as
+    NESTED classes, so the app reaches them by bare name and instantiates them as
+    it would a class written in its own file (`RtcRecord on: platform`). Nothing is
+    added to the kernel and nothing is routed through `platform`: the library is an
+    application library. Only the library module's `classes` are taken — its own
+    slots and methods are not spliced — and each class is tagged with the library's
+    file so a CompileError, a backtrace line and the image map point into the library,
+    not the app."""
+    libs = library_paths(src_ns)
+    if not libs:
+        return
+    app = None
+    for child in ast.get("body", []):
+        if child["type"] == "module":
+            app = child
+            break
+    if app is None:
+        return
+    for lib in libs:
+        if not os.path.exists(lib):
+            print(f"uses: library not found: {lib} (named by {src_ns})")
+            sys.exit(1)
+        proc = subprocess.run(["node", parse_script, lib], capture_output=True, text=True)
+        if proc.returncode != 0:
+            print(f"uses: parse of {lib} failed:")
+            print(proc.stderr or proc.stdout)
+            sys.exit(1)
+        lib_ast = json.loads(proc.stdout)
+        for mod in lib_ast.get("body", []):
+            if mod["type"] != "module":
+                continue
+            for cls in mod.get("classes", []):
+                cls["file"] = os.path.normpath(lib)
+                app.setdefault("classes", []).append(cls)
+
+
 def parse_program(src_ns):
     """The AST main compiles: the app (a script wrapped as ScriptApp), then the
     kernel library, then the Supervisor. Exits on a parse failure."""
@@ -2301,6 +2379,8 @@ def parse_program(src_ns):
                 }
             ]
         }
+
+    splice_libraries(ast, src_ns, parse_script)
 
     # std-lib step 3a: concatenate the kernel library AFTER the app so the app's
     # first class stays the entry (entry = next(iter(all_classes))). Kernel classes
@@ -2429,7 +2509,8 @@ def main():
         with open(_map, "w", encoding="utf-8") as f:
             f.write(build_image_map(
                 blob, layout, entry_class,
-                [src_ns, kernel_path, supervisor_path], _ser.method_quals(_Graph),
+                [src_ns, kernel_path, supervisor_path] + library_paths(src_ns),
+                _ser.method_quals(_Graph),
                 compiler.source_maps, compiler.vtable_files,
                 {k: c.debug_vars() for k, c in compiler.method_compilers.items()},
                 {f"Block_{b.name}": b.name for b in compiler.block_methods}))

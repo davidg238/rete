@@ -1,0 +1,132 @@
+(*
+expect:
+record valid true
+record lastHalf 0
+next after 47 0
+next after 44 45
+behind 12 of 8 true
+behind 8 of 8 false
+behind 47 of 0 false
+behind 3 of 0 true
+boundary after 44 from 80108 892
+boundary after 47 from 86334 66
+wrap -86334 66
+disciplined 1800 at -10000 1818
+disciplined 1800 at 10000 1782
+disciplined 1785 at -10513 1804
+disciplined 1800 at 0 1800
+recorded cal -9000 max 1000 min -9500 win 3
+sync true 86334 predicted 0 -> hold half 0
+synced lastDrift -66 lastHalf 0 anchor 86334 elapsed 0
+| oevm
+| ----------
+row 2 skipped: #displayBounds
+| ppm    -9764
+| up   0d00:00
+| ----------
+| ntp   -66.0s
+| 24h    +1000
+|        -9500
+| sync  0d/00h
+display:
+0: oevm
+1: ----------
+3: ppm    -9764
+4: up   0d00:00
+5: ----------
+6: ntp   -66.0s
+7: 24h    +1000
+8:        -9500
+9: sync  0d/00h
+sleep: target 1866 s cal -9764 awake 0 s
+library ok
+*)
+(* rete#380 — the ship's-bell clock as classes, reached through the pragma below.
+
+   Two things under test. (1) THE SEAM: the `uses:` line makes the library's classes
+   nested classes of this module, so `RtcRecord on: platform` resolves without the
+   kernel knowing the library exists. (2) THE CLASSES: the ratchet's modular rules, the
+   disciplining arithmetic, the drift window, a held sync and the page — each the exact
+   number MagTagDeepSleepNode's host gate (tools/test_deepsleep_node.py) asserts
+   end-to-end, pinned here per decision.
+
+   The sync case is the 2026-07-24 midnight defect: the count had struck half 0 (8 bells)
+   66 s early, NTP said 23:58:54 (trueHalf 47). An ordered compare read the lead as a
+   23.5 h lag and rang eight bells twice; modular distance reads it as 1 slot ahead ->
+   HOLD, and the real -66 s is measured. The window is 86400 s, above the floor, so the
+   residual (-66e6 // 86400 = -764 ppm, floored) composes onto the test's cal of -9000,
+   and the ppm row and the sleep line print the composed -9764: a sync that measures also
+   disciplines. The heap row is skipped on the host (16 MB overflows 12 columns), which is
+   the per-row catch doing its job; the `display:` dump is the host display leaf's.
+
+uses: ../../oevm/zephyr/lib/Bells.nsl *)
+class BellClasses packageUsing: manifest = () (
+
+  (* A sync source that answers one fixed second, in place of the platform's NTP. *)
+  class FixedNtp = ( | secs | ) (
+    public ntpSyncTz: tz = ( ^ secs )
+    setSecs: s = ( secs:: s. ^ self )
+  ) : (
+    public at: s = ( ^ self new setSecs: s )
+  )
+
+  public main: platform args: args = (
+    | record drift clock page disp |
+    record:: RtcRecord on: platform.
+    drift::  Drift on: record.
+    clock::  BellClock on: record drift: drift ntp: (FixedNtp at: 86334).
+
+    record coldInitCal: 0 stale: clock neverSyncedSec.
+    ('record valid ' , record valid printString) out.
+    ('record lastHalf ' , record lastHalf printString) out.
+
+    record lastHalf: 47.
+    ('next after 47 ' , clock nextHalf printString) out.
+    record lastHalf: 44.
+    ('next after 44 ' , clock nextHalf printString) out.
+
+    ('behind 12 of 8 ' , (clock isBehind: 12 of: 8) printString) out.   (* missed wakes: advance *)
+    ('behind 8 of 8 '  , (clock isBehind: 8 of: 8) printString) out.    (* on the count: hold *)
+    ('behind 47 of 0 ' , (clock isBehind: 47 of: 0) printString) out.   (* THE WRAP: 1 ahead, hold *)
+    ('behind 3 of 0 '  , (clock isBehind: 3 of: 0) printString) out.    (* 3 behind: advance *)
+
+    ('boundary after 44 from 80108 ' , (clock secondsToBoundaryAfter: 44 from: 80108) printString) out.
+    ('boundary after 47 from 86334 ' , (clock secondsToBoundaryAfter: 47 from: 86334) printString) out.
+    ('wrap -86334 ' , (clock wrapDrift: 0 - 86334) printString) out.
+
+    record calPpm: -10000.
+    ('disciplined 1800 at -10000 ' , (drift disciplined: 1800) printString) out.
+    record calPpm: 10000.
+    ('disciplined 1800 at 10000 ' , (drift disciplined: 1800) printString) out.
+    record calPpm: -10513.
+    ('disciplined 1785 at -10513 ' , (drift disciplined: 1785) printString) out.
+    record calPpm: 0.
+    ('disciplined 1800 at 0 ' , (drift disciplined: 1800) printString) out.
+
+    (* Three residuals compose onto the calibration and widen the 24 h window. *)
+    drift record: -9500. drift record: 1000. drift record: -500.
+    ('recorded cal ' , record calPpm printString , ' max ' , record drift24Max printString
+       , ' min ' , record drift24Min printString , ' win ' , record syncsWin printString) out.
+
+    (* The midnight hold: struck half 0 at predicted 0, true 86334. *)
+    record calPpm: -9000.
+    record lastHalf: 0. record anchorSec: 0. record elapsedSec: 86400. record staleSec: 0.
+    clock trySync.
+    ('synced lastDrift ' , clock lastDrift printString , ' lastHalf ' , record lastHalf printString
+       , ' anchor ' , record anchorSec printString , ' elapsed ' , record elapsedSec printString) out.
+
+    (* The page: given the display and nothing else. Only the two rows the sync decides
+       are pinned; the heap row is skipped on the host (16 MB overflows 12 columns). *)
+    disp:: [ | d | d:: platform display. d clear. d ]
+      on: [ :e | e tag = #displayUnavailable ]
+      do: [ :e | nil ].
+    disp == nil ifFalse: [
+      page:: StatsPage on: disp record: record clock: clock heap: platform heapStats.
+      page paint ].
+
+    (* The schedule after the hold: half 1's boundary is 1800, predicted is 86334 -> 1866. *)
+    clock sleepTarget.
+    'library ok' out.
+  )
+) : (
+)
