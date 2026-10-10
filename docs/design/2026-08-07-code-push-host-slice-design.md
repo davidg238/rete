@@ -256,3 +256,65 @@ from worked examples).
   port + 1) recorded as the day-one bulk transport; TFTP → CoAP direction unchanged.
 - `porta/docs/ARCHITECTURE.md` — blob store + block server.
 - Close-out must name which mainline doc absorbed each durable finding.
+
+## 10. The target half — proposed 2026-10-10 (rete#233, for David)
+
+*Status: PROPOSED, not decided. Program OTA only (peer design D4; firmware OTA stays
+deferred), for the two 0.1 demo boards: the wall C6 on Thread (#380) and the MagTag on
+WiFi (#379). The host gate (`nodus/oevm/tests/host_ota/run.sh`) was re-run today: `plan 4`,
+four `ok`, `HOST OTA OK`. Everything above this section is unchanged by it: the kernel's
+`otaCheck`, `ota.c`, porta's blob store and block plane all run on target as they are;
+only `backend/zephyr/ota_zephyr.c` stops being inert, and `main.c` gains the runner.*
+
+- **T1 — The firmware is the runner.** `main.c` transcribes §5 step for step: manifest,
+  verify, run, trial, revert. D4 holds on target — the seat that judges a program is the
+  firmware, outside the program it judges — which is #310 Q2's "receiver in the firmware".
+- **T2 — Two equal program slots, run in place.** `program_partition` (512K at `0x320000`)
+  becomes `program_a` and `program_b`, 768K each at `0x220000` and `0x2E0000`; `image-0`
+  and `image-1` shrink 1536K → 1024K (firmware 587 KB, 488 KB under MCUboot). Nothing
+  after `0x3A0000` moves, so the Thread dataset survives again. Same carve on the S2.
+  `program_map` takes the slot's offset, so the VM runs from either without a copy.
+  Edits: both overlays, `protocol/IMAGE-ARTIFACTS.md` §2a, `custos/internal/load`'s copy,
+  `run.sh`'s offset read. A firmware over 1024K or a program over 768K earns a resize.
+- **T3 — The manifest lives in `settings` (NVS, already mounted).** `ota/active`,
+  `ota/prev`, `ota/trial`, `ota/ready` (the staged slot's hash and sig), and each slot's
+  hash and sig. `ota_touch_confirm` = `ota/trial := 0`, at most one write per boot (D2).
+- **T4 — ed25519 verify is MCUboot's own.** `ED25519_verify` from
+  `bootloader/mcuboot/ext/fiat/curve25519.c` plus `tinycrypt-sha512`, compiled into the
+  firmware: the transcription D2 promised, no new dependency. The public key is compiled
+  in from porta's pub file (`OEVM_OTA_PUBKEY=<hex>` to `run.sh`); a build without one has
+  no OTA and the seam stays inert, which is today. Verified at ready-time for the staged
+  slot and at every boot for the active one (§5 step 1). The cost is printed beside the
+  existing `program sha256 … (N ms)` line, not guessed.
+- **T5 — Cable and air share the slots by one rule: a slot the manifest does not
+  describe was written by the cable, and is trusted as the cable is.** `custos load`
+  writes the active slot (the boot banner names it; an erased manifest means `a`). At boot
+  the firmware already hashes the active slot; a hash that differs from the manifest's
+  entry means the cable rewrote it, and the firmware adopts it (hash recorded, no sig,
+  trial off). This is safe because a stage only ever targets the inactive slot, so a torn
+  stage can never sit in the active one; the inactive slot boots only through `ota/ready`
+  after a verified signature.
+- **T6 — A trial image gets one boot.** Any reset before confirm reverts (MCUboot's
+  swap-test semantics, and what makes the rule hold through the MagTag's deep sleep, which
+  is a reset); a trial that has not confirmed within a fixed 150 s is reset by a k_timer,
+  five of the bell's 30 s cadences, the ratio the host gate uses (10 s against 2 s). The
+  existing task watchdog already resets a wedged node, which then reverts.
+- **T7 — Degenerate cases shipped, each with what earns its knob.**
+  - The staged length is in RAM: a reboot mid-fetch refetches from block 0, because a
+    flash slot has no length of its own. A stored cursor is earned by a measured mid-fetch
+    reboot rate on the bell. §4's resume arithmetic stays proven on the host.
+  - The fetch stays blocking, 256 B stop-and-wait (three 6LoWPAN fragments a block). The
+    first number this rung produces is the bell image's fetch time over Thread (199,304 B
+    today) and the check-in stall it costs; that number decides async and block size (D7).
+  - #175's refetch-forever is unchanged until it is measured on the mesh; `otaCheck`'s
+    trial-unconfirmed guard bounds the worst case to one fetch per cadence.
+- **T8 — The push front for 0.1 is porta's CLI on the gateway**, `porta blob put` then
+  `porta put --raw <node> goal/apps/main`, exactly as the debug line was driven on
+  2026-10-10. `custos load` with a porta target waits on porta's HTTP interface (peer design
+  F1, still `/health` and `/manifest` only) and is filed, not built here.
+
+**Order, on `c6spare` and never the bell until proven:** (S1) `ota_zephyr.c` real against
+slot `b`, staged over Thread from the gateway's porta — the fetch time; (S2) the runner in
+`main.c` with T3–T6 and the verify cost; (S3) the host gate's four scenarios by hand on the
+board: clean, reset mid-fetch, flipped sig byte, an image that never checks in; then the
+MagTag, the bell, and paper E §9's OTA line.
