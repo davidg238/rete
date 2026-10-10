@@ -5,3 +5,6 @@ export ZEPHYR_BASE="$HOME/zephyr-esp32/zephyr" ZEPHYR_SDK_INSTALL_DIR="$HOME/zep
 S="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"   # the spike dir; apply hooks.patch and copy cbor_native.c into src/ first
 cd "$HOME/workspace/rete/nodus/oevm/zephyr"
 ./run.sh --board esp32c6 --node "$(realpath --relative-to=. $S/CborAB.nsl)" --flash --build-dir build-esp32c6-cborab
+# 2026-10-10, the rooting arm: CborRoot.nsl (arms B/C/D timed, F/E the guard and hazard);
+# CborRootStress.nsl is the same with 3 samples, built with OEVM_GC_STRESS=1 in the env
+# (hooks.patch adds the compile-time force to gc.c and the CMake knob), --build-dir of its own.

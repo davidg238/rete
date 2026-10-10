@@ -1,0 +1,35 @@
+oevm: build-id host
+oevm: program sha256 89c809111fdf1075c2881629668f0720cc5025f4b04f5eee92e68edd01163e7c
+build host
+=== byte identity against the nsl encoder ===
+cbor_native: mode=1 sends=66 root lost 0
+cbor_native: mode=0 sends=0 root lost 0
+cbor_native: mode=2 sends=66 root lost 0
+check ints64 bytes=66 armB=true armC=true armD=true
+check mapNest4 bytes=279 armB=true armC=true armD=true
+check batch bytes=425 armB=true armC=true armD=true
+=== timing: min of samples, one binary ===
+ints64   nsl  bytes=66 ns/encode=1197750
+ints64   armB bytes=66 ns/encode=46910
+ints64   armD bytes=66 ns/encode=512225
+ints64   armC bytes=66 ns/encode=14665
+mapNest4 nsl  bytes=279 ns/encode=865150
+mapNest4 armB bytes=279 ns/encode=18380
+mapNest4 armD bytes=279 ns/encode=134970
+mapNest4 armC bytes=279 ns/encode=15270
+batch    nsl  bytes=425 ns/encode=5495350
+batch    armB bytes=425 ns/encode=38140
+batch    armD bytes=425 ns/encode=647005
+batch    armC bytes=425 ns/encode=16740
+=== guard F (rooted, send allocates) then hazard E (same, unrooted; last: it may not survive) ===
+cbor_native: mode=4 sends=66 root lost 0
+guard  ints64 armF=true
+cbor_native: mode=3 sends=66 root lost 66
+hazard ints64 armE=true
+guard  mapNest4 armF=true
+cbor_native: mode=3 sends=16 root lost 16
+hazard mapNest4 armE=true
+guard  batch armF=true
+cbor_native: mode=3 sends=85 root lost 85
+hazard batch armE=true
+done

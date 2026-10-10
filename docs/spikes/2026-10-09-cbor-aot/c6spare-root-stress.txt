@@ -1,0 +1,37 @@
+08:59:18.855 oevm: build-id porta-v1-final-1525-g6bc935d-dirty-20261010T085910
+08:59:18.86- logudp: not built in (no OEVM_LOG_UDP6) — console is UART only
+08:59:18.868 oevm: observer armed (slack=8 tick=1000ms backstop=30000ms hw=yes)
+08:59:18.971 oevm: program sha256 d53de24f5a8a82fcc5fa46afcde9cd68ca2fad8f2fb356461658be2bc325bc25 (105 ms)
+08:59:19.082 build porta-v1-final-1525-g6bc935d-dirty-20261010T085910
+08:59:19.088 === byte identity against the nsl encoder ===
+08:59:19.134 cbor_native: mode=1 sends=66 root lost 0
+08:59:19.137 cbor_native: mode=0 sends=0 root lost 0
+08:59:19.16- cbor_native: mode=2 sends=66 root lost 0
+08:59:19.164 check ints64 bytes=66 armB=true armC=true armD=true
+08:59:19.234 check mapNest4 bytes=279 armB=true armC=true armD=true
+08:59:19.528 check batch bytes=425 armB=true armC=true armD=true
+08:59:19.533 === timing: min of samples, one binary ===
+08:59:19.728 ints64   nsl  bytes=66 ns/encode=49109000
+08:59:19.752 ints64   armB bytes=66 ns/encode=2105666
+08:59:19.957 ints64   armD bytes=66 ns/encode=20256000
+08:59:19.965 ints64   armC bytes=66 ns/encode=601666
+08:59:20.128 mapNest4 nsl  bytes=279 ns/encode=39901000
+08:59:20.138 mapNest4 armB bytes=279 ns/encode=765666
+08:59:20.194 mapNest4 armD bytes=279 ns/encode=5227000
+08:59:20.202 mapNest4 armC bytes=279 ns/encode=607666
+08:59:21.161 batch    nsl  bytes=425 ns/encode=239393000
+08:59:21.182 batch    armB bytes=425 ns/encode=1764000
+08:59:21.441 batch    armD bytes=425 ns/encode=25592000
+08:59:21.451 batch    armC bytes=425 ns/encode=716333
+08:59:21.459 === guard F (rooted, send allocates) then hazard E (same, unrooted; last: it may not survive) ===
+08:59:21.541 cbor_native: mode=4 sends=66 root lost 0
+08:59:21.543 guard  ints64 armF=true
+08:59:21.584 cbor_native: mode=3 sends=66 root lost 66
+08:59:21.586 hazard ints64 armE=true
+08:59:21.644 guard  mapNest4 armF=true
+08:59:21.656 cbor_native: mode=3 sends=16 root lost 16
+08:59:21.662 hazard mapNest4 armE=true
+08:59:21.962 guard  batch armF=true
+08:59:22.015 cbor_native: mode=3 sends=85 root lost 85
+08:59:22.026 hazard batch armE=true
+08:59:22.026 done

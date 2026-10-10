@@ -19,9 +19,9 @@ bench; a gateway holds what a sleeping node is to be told until it next wakes; a
 running it, the code an agent wrote.
 
 *Status: a lifecycle system whose desk half (host VM, USB load, debug, patch, profile) is built and measured, and whose
-field half (debug and profile through the gateway, program over the air) is designed; version 0.1 ships when the field
-half is built (decided 2026-10-09), so nothing in the release is labelled "designed".* Remote debug through a gateway is
-today a host spike that passes its gate (`SLEEPY DEBUG OK`), not a board result.
+field half is built for debug and designed for program over the air; version 0.1 ships when the field
+half is built (decided 2026-10-09), so nothing in the release is labelled "designed".* Remote debug through a gateway
+was run on two boards on 2026-10-09 and 2026-10-10, a deep-sleep node over WiFi and an always-on node over Thread (§9).
 
 ## 1. The problem
 
@@ -130,9 +130,25 @@ A spike tried four ways of encoding the same frame, all producing identical byte
 
 More leaves in C buys only 3×; the walk has to move. The chosen design is the last row: each container class declares
 in one line of nsl that its encoding is native, and the C walk asks each class's method table for that binding, so C
-does not name the class hierarchy, and the nsl encoder stays as the authority for anything C refuses [CborNative]. The
-price on the device has not been measured, and host ratios are not device numbers. **This is designed and planned
-(rete #297), not built.**
+does not name the class hierarchy, and the nsl encoder stays as the authority for anything C refuses [CborNative].
+**This is designed and planned (rete #297), not built.**
+
+A second spike (2026-10-09/10) asked whether the walk has to be written in C at all, or whether the nsl encoder could
+be compiled ahead of time, with the sends it makes to nsl-defined objects kept as calls back into the VM. Three
+encoders of the same 425-byte frame, byte-identical, in one binary on an ESP32-C6 [CborAot]:
+
+| Encoder | per encode, ESP32-C6 | Against today |
+|---|---:|---:|
+| Today: the walk in nsl, C leaves | 43.6 ms | 1× |
+| The nsl encoder compiled, every send to an nsl object kept, each held object rooted | 1.45 ms | 30× |
+| The whole walk in C, which knows the container classes | 0.15 ms | 280× |
+
+A kept send costs what an interpreted activation costs, about 23 µs on this part, and that is the whole 9.5×
+between the second row and the third; rooting a fresh object across a send, which a C local does not do here, costs
+about 3 µs more. The second row is enough: it takes the encoder from a quarter of a check-in to noise, from one
+source of truth, and the price of that path is a compiler that knows each send site's receiver class, which no
+instrument collects today. Both compiled arms were hand-written C standing in for a compiler's output; the ratios are
+the device's, the compiler is not built.
 
 Decisions are cheap, per-byte walks are not, and the fix for a walk is native substitution [Lang].
 
@@ -145,7 +161,8 @@ each node's state and keeps the images it commissioned. Each developer works on 
 USB cable, and on test nodes on the desktop's VM, through custos, with the same HTTP calls whether a person or an
 agent makes them. A and A′ drift apart while a bug is chased on both, which is why porta, not the developer's
 machine, is to be the custodian of what runs in the field (decided; the commissioning step is not yet built).
-Reaching a field node's debugger through porta is designed, not built [Porta], [Peer]._
+Reaching a field node's debugger through porta is built and was run on both bells, 2026-10-09 and 2026-10-10, with
+no cable on the board (§9) [Field]._
 
 porta (Go, always on), custos (Go, on the desk) and the node meet only in the wire format `protocol/` [Porta], [Peer].
 
@@ -404,23 +421,24 @@ The patch row is one board, one method and one session: a demonstration, not a s
 
 ## 9. Remote: through the gateway, to a node that is asleep
 
-**Everything in this section is designed, not built, except one host spike** that runs a real porta and a host VM on
-the desktop and prints `SLEEPY DEBUG OK`; and, by the rollout decision of 2026-10-09, it is built before version 0.1
-ships (#375–#377, #380, #379, #233). No board has been debugged through porta yet. Issues #375, #376, #377 and #380
-are the work that changes that; program over-the-air load (#233) is also unbuilt on boards.
+**The debugger through the gateway is built and has been run on two boards** with no cable on either: the MagTag,
+which deep-sleeps, on 2026-10-09, and the wall-powered ShipsBell C6, which runs continuously, on 2026-10-10
+(#375–#377, #379, #380) [Field]. It was designed on a host spike that runs a real porta and a host VM on the desktop
+and prints `SLEEPY DEBUG OK` [Spike]. Program over-the-air load (#233) is still unbuilt on boards, and is the last
+item before version 0.1 ships (decided 2026-10-09).
 
 ![Remote debug sequence](img/e-remote-debug-seq.svg)
 
-_Figure 6. Designed, not built on a board. A breakpoint set through custos is held by porta as intent and delivered
-when the sleeping node next asks; the node reports the stop and stays awake while the developer steps._
+_Figure 6. A breakpoint set at the gateway is held by porta as intent and delivered when the sleeping node next
+asks; the node reports the stop and stays awake while the developer steps._
 
-**The design (peer design D9, D19).** A breakpoint is intent, so it is written under the node's `goal/` paths, and
+**The mechanism (peer design D9, D19).** A breakpoint is intent, so it is written under the node's `goal/` paths, and
 porta holds it until the node next wakes and asks. On a hit, the node reports the stop and stays awake, one exchange per command. The
-liveness observer already knows not to reset a node held at a breakpoint over USB [Debugger], and the VM would hold
-the same state whichever link serves the command loop (#377). Two demos are planned, both also loading a program
-through porta: a MagTag, which deep-sleeps, and the wall-powered ShipsBell C6, which runs continuously [Peer]. The
-`Debug` record in the manifest would carry the breakpoints and the program's hash, because a breakpoint is an offset
-in one image, and an `obs/debug` cell would report a held node (#375).
+liveness observer already knows not to reset a node held at a breakpoint over USB [Debugger], and the VM holds
+the same state whichever link serves the command loop (#377). The
+`Debug` record in the manifest carries the breakpoints and the program's hash, because a breakpoint is an offset
+in one image, and an `obs/debug` cell reports a held node (#375). The whole set is one cell: the empty set is
+the detach.
 
 **Two kinds of sleep** need different machinery; the spike exercised both on the host.
 
@@ -441,17 +459,31 @@ in one image, and an `obs/debug` cell would report a held node (#375).
 | porta's store during a 39 s hold | its write-ahead log grew about 4 MB, since each pull is a write |
 | After `dbg:continue` from that hold | three ticks fired back to back, the cadence timer catching up |
 
-These are loopback numbers; a Thread round trip costs a radio exchange, so the rate on a board will be far lower, by
-an unmeasured amount. The spike also falsifies its own gate: breaking the `dbg/req` intercept turns leg A red, breaking the
+The spike also falsifies its own gate: breaking the `dbg/req` intercept turns leg A red, breaking the
 `goal/debug/main` intercept turns leg B red, and a control leg sending the same rows to a standard image gets no
 answer.
 
-**The costs.** Holding a node costs a busy CPU, which a battery node cannot afford. The
+**On the boards** (the two bells of Appendices A and B, each on its shipped debug image, the breakpoint written at
+the gateway as the `goal/debug/main` cell) [Field]:
+
+| Measure | MagTag, WiFi, deep sleep (2026-10-09) | wall C6, Thread, always on (2026-10-10) |
+|---|---|---|
+| Cell written to stop reported | the first check-in of the next wake: `work:` stopped 1 s after boot | 56 s: the cell rode one 30 s check-in, the break hit at the next |
+| `backtrace` / `inspect` / `step`, gateway to node and back | 755 / 636 / 754 ms | 239 / 233 / 230 ms |
+| Held | 26 s; 186 collections, live 23 KB of 28 | 1.2 s |
+| Release | `continue`; the next boot pulled the empty set and ran free | the empty set: cleared in 479 ms, the next check-in missed nothing |
+
+A command's round trip is the node's held-exchange cadence, not the radio: about a quarter of a second on the C6
+and three quarters on the MagTag, against 3–4 ms on the loopback. A breakpoint is placed by what runs: the wall
+bell's `onTick` runs only at the alarm, so a break there would have held the bell at the alarm and delayed the
+ring, and the break went on `checkIn`, which runs every 30 s.
+
+**The costs.** Holding a node costs a busy CPU, which a battery node cannot afford; the MagTag's arena ran 186
+collections in its 26 s hold. The
 spike's own proposal, a long-poll at porta, was not accepted, and what an abandoned session should do is open (#378).
-The store growth of about 4 MB in 39 s is a cost on the gateway. A held node also reads as `#neverSeen` to porta, which has no held verdict; the `obs/debug` cell is meant to fix
-that. A debug image waits at boot for
-a cable that a field node does not have, so that wait must go (#376). And no sleepy node that talks to porta exists today: the MagTag deep-sleeps without a porta bridge, and every
-bridged node is always on [Spike].
+The store growth of about 4 MB in 39 s on the host is a cost on the gateway, at a rate the boards' held cadence
+divides by several hundred. The `obs/debug` cell reports the hold, so a monitor with no debugger attached sees it,
+and the debug image no longer waits at boot for a cable (#376).
 
 **Program over the air (#233).** A program push into the flash region the USB loader writes is proven on the desktop in a fleet-simulation gate and
 is inert on boards [Peer]. Until then, a sleepy node can be debugged only if its program is already the one the breakpoints were built against.
@@ -502,7 +534,7 @@ blind to the interrupt seam, and nothing in this loop closes that gap.
 
 | Cost | Compared with Zephyr C | Would lift it |
 |---|---|---|
-| Speed per byte | about 12 µs per method activation: 11.83 µs on the ESP32-C6 and 11.13 µs on the RP2350 [RP2350]; about a hundred times slower than C on the one method measured both ways, and 116–119× on the Towers of Hanoi spike, a best case with all the work in one method [Hanoi]; no JIT, because a 256 KB part has no room for a code cache | native substitution of a hot method (§2, §3); or leave it in C |
+| Speed per byte | about 12 µs per method activation: 11.83 µs on the ESP32-C6 and 11.13 µs on the RP2350 [RP2350]; about a hundred times slower than C on the one method measured both ways, and 116–119× on the Towers of Hanoi spike, a best case with all the work in one method [Hanoi]; no JIT, because a 256 KB part has no room for a code cache | native substitution of a hot method (§2, §3); or leave it in C; or compile the nsl method ahead of time with its sends kept, which on the encoder returned 30× of the C encoder's 280×, each kept send costing an activation and each rooted object 3 µs (§3) [CborAot] |
 | RAM given to the arena | 112 KB of 256 KB on the nRF52840, with 4 KB spare at link [Boards] | a larger part; the C6 has 128 KB of arena by choice, and WiFi sets the classic ESP32 to 48 KB |
 | No compile-time types | a misspelt selector is found when it runs, not compiled | the error line names the nearest selector, which softens the cost [Lang] |
 | A language in no model's training data | an agent writes nsl from context, not habit | the test in §10 (#373); not yet run |
@@ -510,7 +542,7 @@ blind to the interrupt seam, and nothing in this loop closes that gap.
 | One kernel | no virtual classes, no per-target library, `platform` hands out everything [Ledger] | narrowed platforms (row 32) |
 | Tooling at version 0.1 | the compiler is a Python tool, and the loader exists for one board, the ESP32-C6 | more loaders; each board needs its own region and flasher |
 | Debug images are separate | 11.6 % per bytecode and about 500 B of flash [Debugger] | not planned; the standard image stays lean |
-| Remote debug is unbuilt | no board has been debugged through porta; the spike is host only [Spike] | #375–#377 and the C6 demo #380, then the MagTag demo #379 |
+| Remote debug is slow per command | 230–750 ms per command through the gateway, the node's held cadence, against 3–4 ms on the host [Field] | a shorter held cadence, paid in the held node's radio and CPU |
 | A single maintainer | one maintainer for the VM, kernel and tools | not planned |
 
 ### Against MicroPython
@@ -531,9 +563,10 @@ MicroPython, scored on measured rows; several rows MicroPython wins, which is th
 ### Where this stands
 
 Today rete is a lifecycle system whose desk half (host VM, USB load, debug, patch, profile) is built and measured, and
-whose field half (debug and profile through the gateway, program over the air) is designed. Version 0.1 ships when the
-field half is built (decided 2026-10-09), so nothing in the release is labelled "designed". What is shown today is the
-desktop and USB half on one board. Not yet shown: a field node, a debugger over a radio, or an agent writing C against
+whose field half is built for debug (the two bells, through the gateway, over WiFi and over Thread, §9) and designed
+for program over the air. Version 0.1 ships when the
+field half is built (decided 2026-10-09), so nothing in the release is labelled "designed". Not yet shown: a program
+loaded over a radio, or an agent writing C against
 an agent writing nsl.
 
 Version 0.1 is defined as one node, every verb, through the gateway, over the radio, while the node sleeps. By
@@ -543,7 +576,7 @@ lifecycle stage, against the C toolchain the reader already has:
 |---|---|---|---|
 | write | edit, compile, link | the same program runs first on the host VM; authority in the header; 160 closed primitives | the same |
 | deploy | flash the firmware | load an image beside the firmware over the cable (ESP32-C6 only); a manifest-checked wire | over the cable or through the gateway (#233) |
-| debug | `printf`; a probe and gdb | source-line breakpoints, the stack and named locals, patch and restart, over one USB cable | over the cable or through the gateway, on a node that sleeps (#375–#377, #380, #379) |
+| debug | `printf`; a probe and gdb | source-line breakpoints, the stack and named locals, patch and restart, over one USB cable; and through the gateway, on a node that sleeps (§9) | the same |
 | observe | nothing | a per-method profile on the shipped image (1.3 %); heap statistics every check-in; a liveness observer that dumps and leaves a note | the profile through the gateway as well |
 | manage | a site visit | the gateway holds intent for a node that is asleep and judges its liveness from outside | and keeps each commissioned image with its symbol map |
 
@@ -805,9 +838,11 @@ Measured against the linear node it replaces, compiled for the same board: 199,3
 splices the whole library, so the four deep-sleep classes (`RtcRecord`, `Drift`, `BellClock`, `StatsPage`, 73
 methods) ride in the wall image unused. The program partition is 512 KB, so the cost is paid in flash the board
 has; a per-file split of the library is the remedy when the number matters, and is filed (rete#394). The full
-image, with the debugger's hooks and the profiler, links at 487,768 bytes of flash and 73 % of SRAM. As of this
-draft the image is built and its host gate is green; the flash to the wall is a daylight act and is recorded on
-[rete#380](https://github.com/davidg238/rete/issues/380).
+image, with the debugger's hooks and the profiler, links at 487,768 bytes of flash and 73 % of SRAM. It was
+flashed to the bell on 2026-10-10 at 07:56 (a daylight act: the piezo sounds for the whole flash), booted with
+Thread, NTP, the RTC and the alarm armed within a second, struck eight bells at 08:00:00 and reported the strike
+to the gateway on its next check-in; at 08:04 it was stopped in `checkIn` from the gateway, stepped, and released
+(§9) [Field].
 
 **`nodus/oevm/zephyr/ShipsBellNodeC6.nsl`**
 
@@ -2412,6 +2447,10 @@ did on its own, and uses `lend` only when a tool outside custos must hold the ca
 - **[Patch]** [Stop, patch, restart, resume](../../../docs/results/2026-10-06-313-patch-restart-spike.md).
 - **[Profile]** [Profiling over USB](../../../docs/design/2026-10-05-custos-profile-over-usb.md).
 - **[Spike]** [Debugging and profiling a sleepy node through porta, host spike for rete#342](../../../docs/results/2026-10-07-342-sleepy-node-debug-spike.md).
+- **[CborAot]** [What would AOT-ing `Cbor>>encode:` return?](../../../docs/results/2026-10-09-cbor-aot-spike.md),
+  the spike of 2026-10-09/10 on c6spare (rete#395).
+- **[Field]** [A debugger through porta, on two boards](../../../docs/results/2026-10-10-380-debug-through-porta-on-boards.md):
+  the MagTag and the wall C6, 2026-10-09 and 2026-10-10 (rete#379, rete#380).
 - **[Example]** [`MagTagDeepSleepNode.nsl`](../../oevm/zephyr/MagTagDeepSleepNode.nsl) and
   [`lib/Bells.nsl`](../../oevm/zephyr/lib/Bells.nsl), the program in Appendices A and C; its measurements are on
   [rete#380](https://github.com/davidg238/rete/issues/380).

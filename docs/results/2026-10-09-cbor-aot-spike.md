@@ -62,12 +62,39 @@ Byte identity: `armB=true armC=true` on all four, both machines.
   guard on. The per-method call counter collects counts, not classes; that is the
   instrument to build first.
 
+## The rooting price (2026-10-10, c6spare)
+
+Arm B holds no fresh object across its sends, so its number was a ceiling: an AOT'd
+`encodeMap:` holds a `ByteBuilder` per key across every recursive send, and a C local is
+not a GC root here (no conservative stack scan). Arm D is arm B allocating a fresh 16-byte
+object before every kept send, holding it on `gc_temp_root_push` across the send and
+popping it after. Same binary, min of 20 samples, bytes identical (`CborRoot.nsl`,
+`c6spare-root-normal.txt`):
+
+| payload | nsl | arm B | **arm D, rooted** | arm C | D vs nsl | D − B per send |
+|---|---:|---:|---:|---:|---:|---:|
+| ints64, 66 sends | 7.50 ms | 1.55 ms | **1.78 ms** | 49.5 µs | 4.2× | 3.4 µs |
+| mapNest4, 16 sends | 15.27 ms | 207 µs | **247 µs** | 48.2 µs | 62× | 2.5 µs |
+| **batch, 85 sends** | **43.59 ms** | **1.17 ms** | **1.45 ms** | **153 µs** | **30×** | **3.3 µs** |
+
+**Rooting costs ~3 µs per held object on the C6** (an allocation, a push and a pop), a
+seventh of the ~23 µs the send itself costs. The rooted figure is the one to claim: the
+encoder at 1.45 ms, 30× over nsl, 9.5× short of the C encoder.
+
+The guard was broken first. Arm E allocates after each send (as a send that allocates
+would) with the fresh object **not** rooted; arm F is arm E with the root. Under
+`OEVM_GC_STRESS` (a collection before every allocation; a compile-time force on the
+target, `hooks.patch`), in one binary on c6spare (`c6spare-root-stress.txt`) and on the
+host: arm E loses every fresh object — `root lost 66 of 66`, `16 of 16`, `85 of 85` —
+arms D and F lose none, and all arms still answer identical bytes. The sweep does not
+scribble, so the loss is read from the block's mark bit after a collection, not from its
+body; a body check alone read green (the `gc-stress-blind-to-use-after-sweep` lesson).
+
 ## Costs and limits of the spike
 
 - Static 2 KB output buffer, 32 keys per map, no Float leaf (the bench carries none).
-- Arm B allocates nothing until the final `Bytes`, so the **rooting cost of a native
-  method that allocates across a send is not measured here**. The one oop held across
-  an allocation uses `gc_temp_root_push`, the boot driver's 16-slot precise set.
+- The rooted arm uses `gc_temp_root_push`, the boot driver's 16-slot precise set, as a
+  stack (push, send, pop): a compiler would want a per-frame root set, not this one.
 - A nested-class instance (List, Map, Record, Bytes live inside `Kernel`) keeps its
   `outer` in slot 0; the declared slots follow (`dispatch.c` `run_method_on`). The
   first build read `items` from slot 0 and DNU'd on `isValueObject:`; any future native
@@ -80,6 +107,7 @@ Byte identity: `armB=true armC=true` on all four, both machines.
 
 ## Record
 
-- Issue: rete#395 (results comment), rete#45 (the AOT phase this informs).
+- Issue: rete#395 (results comments, 2026-10-09 and 2026-10-10), rete#45 (the AOT phase this informs).
+- Paper E §3 (b) and §11 carry the device triple and the per-send and rooting costs.
 - Lineage: `docs/design/2026-07-17-oeom-native-substitution-hanoi-spike-design.md`,
   `docs/results/2026-08-09-cbor-encode-shape.md`.

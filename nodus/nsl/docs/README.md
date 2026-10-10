@@ -11,6 +11,10 @@ compiler links into every image. The VM that runs the result is `../../oevm/` �
 - [`nsl-design-paper.md`](nsl-design-paper.md) — **why the dialect is shaped this way** (DRAFT 2026-10-06): the
   measured constraints, the dialect against Newspeak and Smalltalk, what drives each divergence, and the case for an
   object language written by agents.
+- [`nsl-embedded-paper.md`](nsl-embedded-paper.md) — **the lifecycle on a Zephyr node, what it costs and what is
+  not built** (draft 3, 2026-10-10): the two bells as Appendices A–C with their comments lifted into references;
+  [`nsl-embedded-paper-nocomments.md`](nsl-embedded-paper-nocomments.md) is the same paper with bare listings,
+  generated from it.
 - `programming_with_nsl.md` — the task-oriented guide: how to write a program here.
 - `compiler.md` — **the map to the compiler code**: the pipeline, the two backends
   (solidified C and `.oimg`), the bytecode encoding, the calling-convention invariants,

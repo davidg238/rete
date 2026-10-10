@@ -77,7 +77,7 @@ and `~/workspaceToit/nodus/docs/`:
 
 <!-- BEGIN GENERATED INVENTORY — do not edit below; rerun tools/docmap.sh -->
 
-_Regenerated 2026-10-09 by `tools/docmap.sh`. Legend: **record** = mainline doc of record · **design** = dated decision record (`docs/design/`) · **plan** = execution scaffolding (`docs/superpowers/plans/`) · **note** = superpowers notes/findings._
+_Regenerated 2026-10-10 by `tools/docmap.sh`. Legend: **record** = mainline doc of record · **design** = dated decision record (`docs/design/`) · **plan** = execution scaffolding (`docs/superpowers/plans/`) · **note** = superpowers notes/findings._
 
 ### review
 
@@ -85,7 +85,7 @@ _Regenerated 2026-10-09 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 - `review/2026-07-04-context-decision.md` — Task 8 design question: keep the deferred-lift heap Context? _(record, 2026-07-04)_
 - `review/2026-07-04-pre-fiber-baseline.md` — Pre-fiber baseline commits in oevm / ns-oevm _(record, 2026-08-02)_
 - `review/2026-07-21-issue-65-http-load-wedge/README.md` — tuvm#65 — evidence folder (2026-07-21) _(record, 2026-08-02)_
-- `review/DOCMAP.md` — DOCMAP — where every document of the program lives _(record, 2026-10-06)_
+- `review/DOCMAP.md` — DOCMAP — where every document of the program lives _(record, 2026-10-10)_
 - `review/ISSUE-dongle-usb-openthread.md` — DRAFT ISSUE (post to davidg238/tuvm — created from a session without gh permission) _(record, 2026-07-12)_
 - `review/WHY-AGENTS.md` — Why agents — nodus + porta as an agent-first platform _(record, 2026-08-29)_
 - `review/WHY-OEOM.md` — Why OEOM — the kernel that survived the graveyard _(record, 2026-07-12)_
@@ -209,7 +209,8 @@ _Regenerated 2026-10-09 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 - `docs/results/2026-10-02-311-line-in-spike.md` — Line-in over the console cable — spike for rete#311 _(record, 2026-10-02)_
 - `docs/results/2026-10-06-313-patch-restart-spike.md` — Stop, patch, restart, resume — desktop spike for rete#313 _(record, 2026-10-07)_
 - `docs/results/2026-10-07-342-sleepy-node-debug-spike.md` — Debugging and profiling a sleepy node through porta — host spike for rete#342 _(record, 2026-10-08)_
-- `docs/results/2026-10-09-cbor-aot-spike.md` — What would AOT-ing `Cbor>>encode:` return? — spike, 2026-10-09 _(record)_
+- `docs/results/2026-10-09-cbor-aot-spike.md` — What would AOT-ing `Cbor>>encode:` return? — spike, 2026-10-09 _(record, 2026-10-10)_
+- `docs/results/2026-10-10-380-debug-through-porta-on-boards.md` — A debugger through porta, on two boards — rete#379 and rete#380, 2026-10-09/10 _(record)_
 - `docs/spikes/2026-07-17-oeom-native-hanoi/README.md` — Spike archive: OEOM native-substitution (Hanoi AOT ceiling) — 2026-07-17 _(record, 2026-07-17)_
 - `docs/spikes/2026-08-11-rete199-refused-node/README.md` — rete#199 — a node whose frames the gateway refuses, reproduced off hardware _(record, 2026-08-11)_
 - `docs/spikes/2026-08-27-liveness-model/README.md` — The liveness contract, model-checked (2026-08-27) _(record, 2026-10-03)_
@@ -356,6 +357,7 @@ _Regenerated 2026-10-09 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 - `nodus/nsl/docs/design/2026-07-15-tuvm21-take-nil-vs-empty-design.md` — tuvm#21 — a posted `nil` must be distinguishable from an empty stream at `take:` _(design, 2026-08-02)_
 - `nodus/nsl/docs/design/2026-10-08-paper-split-outlines.md` — Splitting the nsl paper in two: outlines _(design, 2026-10-09)_
 - `nodus/nsl/docs/nsl-design-paper.md` — nsl: a Newspeak dialect in 112 KB — what it keeps, what it drops, and why _(record, 2026-10-09)_
+- `nodus/nsl/docs/nsl-embedded-paper-nocomments.md` — rete: a lifecycle for small radio nodes on Zephyr — what is built, what it costs, and what is not _(record)_
 - `nodus/nsl/docs/nsl-embedded-paper.md` — rete: a lifecycle for small radio nodes on Zephyr — what is built, what it costs, and what is not _(record, 2026-10-09)_
 - `nodus/nsl/docs/programming_with_nsl.md` — Programming with nsl _(record, 2026-08-24)_
 - `nodus/nsl/docs/superpowers/findings/2026-07-04-oimg-large-smi-constant-corruption.md` — FINDING (2026-07-04): oimg backend corrupts large SMI integer constants _(note, 2026-08-02)_

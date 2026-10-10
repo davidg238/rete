@@ -19,11 +19,27 @@ index 791d370..7d831bb 100644
  #endif
      // Intercept reflection & Array primitives
      if (selector != NULL && !IS_SMI(selector)) {
+diff --git a/nodus/oevm/src/gc.c b/nodus/oevm/src/gc.c
+index e16d108..ad723bb 100644
+--- a/nodus/oevm/src/gc.c
++++ b/nodus/oevm/src/gc.c
+@@ -304,7 +304,11 @@ oop gc_allocate(oop vtable, size_t size) {
+        creation. */
+     static int gc_stress_cached = -1;
+     if (gc_stress_cached < 0)
++#ifdef OEVM_GC_STRESS_FORCE   /* THROWAWAY spike hook (rete#395): a target has no env */
++        gc_stress_cached = 1;
++#else
+         gc_stress_cached = (getenv("OEVM_GC_STRESS") != NULL) ? 1 : 0;
++#endif
+     if (!gc_in_progress && gc_stress_cached) gc_collect();
+ 
+     size_t rounded = (size + (OEVM_GRANULE - 1)) & ~(size_t)(OEVM_GRANULE - 1);
 diff --git a/nodus/oevm/zephyr/CMakeLists.txt b/nodus/oevm/zephyr/CMakeLists.txt
-index 0f88160..e94e55a 100644
+index 0f88160..a266e3b 100644
 --- a/nodus/oevm/zephyr/CMakeLists.txt
 +++ b/nodus/oevm/zephyr/CMakeLists.txt
-@@ -189,7 +189,12 @@ elseif(OEVM_MODEL STREQUAL "B")
+@@ -189,7 +189,15 @@ elseif(OEVM_MODEL STREQUAL "B")
    target_sources(app PRIVATE
      ${OEVM_SRC}/src/oimg_loader.c
      ${OEVM_SRC}/src/kernel_boot.c
@@ -33,6 +49,9 @@ index 0f88160..e94e55a 100644
 +  # THROWAWAY spike (rete#395): export OEVM_CBOR_NATIVE=1 for the native Cbor arms.
 +  if("$ENV{OEVM_CBOR_NATIVE}" STREQUAL "1")
 +    target_compile_definitions(app PRIVATE OEVM_CBOR_NATIVE=1)
++  endif()
++  if("$ENV{OEVM_GC_STRESS}" STREQUAL "1")
++    target_compile_definitions(app PRIVATE OEVM_GC_STRESS_FORCE=1)
 +  endif()
    # OEVM_NO_FILE_IO compiles out oimg_loader.c's oimg_load() mmap/open path,
    # which has no meaning on this target.

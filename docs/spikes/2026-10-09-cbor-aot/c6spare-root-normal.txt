@@ -1,0 +1,35 @@
+08:57:50.585 oevm: build-id porta-v1-final-1525-g6bc935d-dirty-20261010T085736
+08:57:50.591 logudp: not built in (no OEVM_LOG_UDP6) — console is UART only
+08:57:50.598 oevm: observer armed (slack=8 tick=1000ms backstop=30000ms hw=yes)
+08:57:50.701 oevm: program sha256 8575ebb320579d5a54e4b4e1bd55723f99bd22f29a893c9cf6b1c7a992276f10 (105 ms)
+08:57:50.734 build porta-v1-final-1525-g6bc935d-dirty-20261010T085736
+08:57:50.74- === byte identity against the nsl encoder ===
+08:57:50.746 cbor_native: mode=1 sends=66 root lost 0
+08:57:50.746 cbor_native: mode=0 sends=0 root lost 0
+08:57:50.751 cbor_native: mode=2 sends=66 root lost 0
+08:57:50.756 check ints64 bytes=66 armB=true armC=true armD=true
+08:57:50.79- check mapNest4 bytes=279 armB=true armC=true armD=true
+08:57:50.867 check batch bytes=425 armB=true armC=true armD=true
+08:57:50.872 === timing: min of samples, one binary ===
+08:57:53.935 ints64   nsl  bytes=66 ns/encode=7495000
+08:58:00.15- ints64   armB bytes=66 ns/encode=1550580
+08:58:07.297 ints64   armD bytes=66 ns/encode=1776405
+08:58:07.505 ints64   armC bytes=66 ns/encode=49520
+08:58:13.674 mapNest4 nsl  bytes=279 ns/encode=15267550
+08:58:14.509 mapNest4 armB bytes=279 ns/encode=207075
+08:58:15.516 mapNest4 armD bytes=279 ns/encode=247490
+08:58:15.715 mapNest4 armC bytes=279 ns/encode=48175
+08:58:33.253 batch    nsl  bytes=425 ns/encode=43594250
+08:58:37.924 batch    armB bytes=425 ns/encode=1165395
+08:58:43.749 batch    armD bytes=425 ns/encode=1449515
+08:58:44.371 batch    armC bytes=425 ns/encode=153465
+08:58:44.382 === guard F (rooted, send allocates) then hazard E (same, unrooted; last: it may not survive) ===
+08:58:44.382 cbor_native: mode=4 sends=66 root lost 0
+08:58:44.388 guard  ints64 armF=true
+08:58:44.388 cbor_native: mode=3 sends=66 root lost 0
+08:58:44.391 hazard ints64 armE=true
+08:58:44.411 guard  mapNest4 armF=true
+08:58:44.418 hazard mapNest4 armE=true
+08:58:44.474 guard  batch armF=true
+08:58:44.487 hazard batch armE=true
+08:58:44.487 done
