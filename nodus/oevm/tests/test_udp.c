@@ -10,8 +10,11 @@
 static void roundtrip(const char *loop) {
     int rx = udp_socket_bind(0);          /* ephemeral receiver */
     assert(rx >= 0);
-    /* discover the bound port via a self-send loop is overkill; bind a known port */
-    int rxp = udp_socket_bind(54330);
+    /* discover the bound port via a self-send loop is overkill; bind a known port.
+       NOT 54330: that is log_udp.c's UDP-console port, and a bench listener holding it
+       (board-console-over-udp) turned this gate red for a reason that was not udp's
+       (rete#380, 2026-10-09). */
+    int rxp = udp_socket_bind(54337);
     assert(rxp >= 0);
     int tx = udp_socket_bind(0);
     assert(tx >= 0);
@@ -22,7 +25,7 @@ static void roundtrip(const char *loop) {
 
     /* send 'hi' to rxp over the given loopback literal, read it back */
     const uint8_t msg[2] = { 'h', 'i' };
-    assert(udp_send(tx, loop, 54330, msg, 2) == 2);
+    assert(udp_send(tx, loop, 54337, msg, 2) == 2);
     int n = -1;
     for (int i = 0; i < 100 && n < 0; i++)   /* loopback is ~instant; poll a few times */
         n = udp_receive(rxp, buf, sizeof buf, host, sizeof host, &port);
