@@ -259,7 +259,7 @@ from worked examples).
 
 ## 10. The target half — proposed 2026-10-10 (rete#233, for David)
 
-*Status: DECIDED (David, 2026-10-10: yes to T1–T8, with T8 amended below). Program OTA only (peer design D4; firmware OTA stays
+*Status: DECIDED (David, 2026-10-10: yes to T1–T8, with T8 amended below; T9 added after S1). S1, T9 and S2 are built on `233-ota`; S3's scenarios 1 and 3 are proven on c6spare, 4 and 2 are next (rete#233, 2026-10-10). Program OTA only (peer design D4; firmware OTA stays
 deferred), for the two 0.1 demo boards: the wall C6 on Thread (#380) and the MagTag on
 WiFi (#379). The host gate (`nodus/oevm/tests/host_ota/run.sh`) was re-run today: `plan 4`,
 four `ok`, `HOST OTA OK`. Everything above this section is unchanged by it: the kernel's
