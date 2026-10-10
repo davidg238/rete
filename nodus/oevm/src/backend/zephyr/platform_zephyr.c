@@ -332,12 +332,37 @@ long platform_backend_boot_id(void) {
     return latched;
 }
 
+#elif defined(CONFIG_SOC_FAMILY_ESPRESSIF_ESP32)
+
+/* No settings backend, but RTC memory (rete#379). A deep-sleeping WiFi node (the
+   MagTag) talks to porta without NVS, and every wake is a boot: with bootId 0 porta
+   skipped each wake's rows as already-applied replays of the last one ("push from
+   7cdfa11aaaaa skipped 3 already-applied row(s)", 2026-10-09), so the node reported
+   and nobody saw it. RTC_NOINIT survives deep sleep and a software reset, which are
+   the boots that matter here; an EN-pin or power-on reset clears it and the count
+   restarts at 1 — porta reads any CHANGE of bootId as a restart (store.go
+   NoteCheckIn), so that too is a visible new boot, not a replay. The guard word keeps
+   an undefined power-on value from reading as a count. */
+#include <esp_attr.h>
+static RTC_NOINIT_ATTR uint32_t rtc_boot_guard;
+static RTC_NOINIT_ATTR uint32_t rtc_boot_count;
+long platform_backend_boot_id(void) {
+    static long latched = -1;
+    if (latched >= 0) return latched;
+    if (rtc_boot_guard != 0x600D1D00u || rtc_boot_count >= (1u << 30)) {
+        rtc_boot_count = 0;
+        rtc_boot_guard = 0x600D1D00u;
+    }
+    rtc_boot_count += 1u;
+    latched = (long)rtc_boot_count;
+    return latched;
+}
+
 #else
 
-/* No settings backend on this board. Reachable only for images that cannot talk
-   to porta at all (the non-Thread confs: prj_esp32c6.conf, prj_esp32s2.conf,
-   prj_esp32.conf, prj_dk.conf), since space-sync rides the mesh. Answers the
-   same 0 sentinel rather than pretending to an identity it has no storage for. */
+/* No settings backend and no retained RAM on this board. Reachable only for images
+   that cannot talk to porta at all (prj_dk.conf), since space-sync rides the mesh.
+   Answers the 0 sentinel rather than pretending to an identity it has no storage for. */
 long platform_backend_boot_id(void) { return 0; }
 
 #endif /* CONFIG_SETTINGS */
