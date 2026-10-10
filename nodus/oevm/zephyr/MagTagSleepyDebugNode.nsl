@@ -1,0 +1,112 @@
+(*
+MagTagSleepyDebugNode — rete#379: the deep-sleeping node that talks to porta, on the
+board. The MagTag (ESP32-S2, WiFi) twin of SleepyDebugNode (the host, whose VM stays
+alive between check-ins) and of DebugHoldProbeC6 (the C6, over Thread). Here the VM
+DIES between wakes: every wake is a cold boot that associates, checks in once, works,
+reports and deep-sleeps. There is no reactor, no timer and no drain loop — sleeping
+IS the idle point, as MagTagDeepSleepNode established.
+
+The breakpoint cannot live in the VM, which is gone by the next wake. It lives in the
+`goal/debug/main` CELL — `Debug{sha, breaks: [[blob off]…]}` (rete#375) — which porta
+replays to every fresh boot's cursor 0. The first check-in applies it before `work:`
+runs (PortaBridge>>applyEntry:, not a reaction), the debugger is woken at the end of
+that exchange, arms the set, continues, and `work:` stops. Held, the node runs held
+exchanges through the same link (rete#377), so a stop on a node that was asleep a
+minute ago is stepped and inspected from porta with no cable on the board. The
+continue lets `work:` finish; the second check-in pushes the wake's row; then sleep.
+
+The cadence is demo-scale: `sleepSec` asleep plus an awake window of a few seconds
+(boot, WiFi association, DHCP). The declared liveness is one such period, so porta
+reads a node that is asleep as live until it misses four of them.
+
+State that survives the sleep lives in .rtc.data through rtcGet:/rtcPut:value:
+(design tuvm#94 §3); the field indices below are this node's, and field 0 is the
+magic the C side checks (OEVM_RTC_MAGIC in zephyr/src/main.c).
+
+Build (debug image, from nodus/oevm/zephyr; the env is prj_esp32s2_porta.conf's):
+  OEVM_IRAM_HOT=0 VM_STACK_INIT_WORDS=2048 OEVM_HEAP_SIZE=32768 OEVM_DEBUG_HOOKS=1 \
+  ./run.sh --board esp32s2 --model B --node MagTagSleepyDebugNode.nsl \
+    --conf-extra "prj_esp32s2_wifi.conf;prj_esp32s2_porta.conf" --flash
+expect (console):
+SLEEPY NODE READY
+*)
+class MagTagSleepyDebugNode usingPlatform: platform net: net = (
+  | space bridge wakes ::= 0. total ::= 0. |
+) (
+  nodeId    = ( ^ platform nodeId )
+  (* gw85224-01 on the LAN the MagTag's WiFi joins: the real gateway, not an injector —
+     by its stable (EUI-64) ULA, not 192.168.0.176. The bridge awaits porta's reply on
+     the socket it bound (udpBindPort:, AF_INET6), but udp_zephyr.c sends to an IPv4
+     literal from a second, unbound AF_INET socket, so porta's reply lands on an
+     ephemeral port nobody reads and no exchange can complete (rete#390). Over IPv6 the
+     send and the reply share the one socket, as on Thread. The LAN advertises the
+     fd3f:2e87:5f7:5554::/64 prefix, so the S2 configures itself by SLAAC: no DHCP. *)
+  gwAddr    = ( ^ 'fd3f:2e87:5f7:5554:6662:66ff:fe2f:710' )
+  gwPort    = ( ^ 6969 )
+  localPort = ( ^ 16976 )
+  sleepSec  = ( ^ 30 )
+  (* ms: one sleep plus the awake window, the period porta should expect. *)
+  cadence   = ( ^ 40000 )
+  chip      = ( ^ #esp32s2 )
+
+  rtcMagic  = ( ^ 0 )
+  rtcWakes  = ( ^ 1 )
+  rtcTotal  = ( ^ 2 )
+  magicWord = ( ^ 348000704 )   (* 0x14BE11C0, OEVM_RTC_MAGIC; fits a 31-bit SMI *)
+
+  public main: platform2 args: args = (
+    | sock |
+    space:: platform space.
+    (platform rtcValid) ifFalse: [ self initColdState ].
+    wakes:: (platform rtcGet: self rtcWakes) + 1.
+    total:: platform rtcGet: self rtcTotal.
+    platform rtcPut: self rtcWakes value: wakes.
+
+    sock:: net udpBindPort: self localPort.
+    sock == nil ifTrue: [ 'bind' println. ^ 1 ].
+    bridge:: platform PortaBridge
+      socket: sock space: space id: self nodeId peer: self gwAddr port: self gwPort
+      spans: platform Spans new.
+    bridge subscribeStream: 'tel/log'.
+    bridge liveness: self cadence misses: 4.
+    bridge publishBuild: self chip.
+    ('SLEEPY NODE READY wake ' , wakes printString) println.
+
+    (* The first exchange of the wake: the goal cell is replayed here, so the
+       breakpoint set is armed before work: runs. *)
+    bridge checkIn.
+    total:: self work: wakes.
+    platform rtcPut: self rtcTotal value: total.
+    space out: 'tel/log' value:
+      (platform Record tag: #Log with: #lvl -> #info
+         with: #txt -> ('wake ' , wakes printString , ' total ' , total printString
+                        , ' held ' , bridge heldExchanges printString)).
+    (* The row above is captured by the subscription's reaction, which only a drain
+       runs. No pumpEvents: on a board it blocks until an event, and this node
+       declares none. *)
+    space drain.
+    bridge checkIn.
+    ('deep sleep ' , self sleepSec printString , ' s') println.
+    platform deepSleep: self sleepSec.   (* NEVER RETURNS *)
+    ^ 0
+  )
+
+  (* The breakpoint's home. A local and an argument, so a stop has names to show. *)
+  work: n = (
+    | sum |
+    sum:: total + n.
+    ^ sum
+  )
+
+  (* Cold power-on leaves .rtc.data undefined: zero the counters, magic LAST so a
+     crash between writes cannot leave a half-initialised struct reading valid. *)
+  initColdState = (
+    'cold boot' println.
+    platform rtcPut: self rtcWakes value: 0.
+    platform rtcPut: self rtcTotal value: 0.
+    platform rtcPut: self rtcMagic value: self magicWord.
+    ^ self
+  )
+) : (
+  public packageUsing: manifest = ( ^ self new )
+)

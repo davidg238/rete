@@ -53,6 +53,7 @@ none, so writing a new program never touches the firmware's build-id.
 | Board | Partition label | Offset | Size | Writer | Readers |
 |---|---|---|---|---|---|
 | ESP32-C6 devkit | `program_partition` | `0x320000` | 512K | `nodus/oevm/zephyr/boards/esp32c6_devkitc_esp32c6_hpcore.overlay` | `zephyr/run.sh` (from the build's `zephyr.dts`); `custos/internal/load` (a copy that cites this row) |
+| ESP32-S2 (MagTag) | `program_partition` | `0x320000` | 512K | `nodus/oevm/zephyr/boards/esp32s2_saola_esp32s2.overlay` (rete#379; the same carve — the S2's default 4 MB table is the C6's) | the same readers |
 
 `blob_size` (§2) is the number of bytes the region holds. An erased region reads
 `0xFFFFFFFF` there, and the firmware's loader refuses it by name. After a load, the

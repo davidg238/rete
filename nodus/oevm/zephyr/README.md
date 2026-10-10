@@ -479,6 +479,10 @@ captured layouts are byte-identical (verified independently of the capture itsel
 the ladder's C6 entry), Cortex-M4F included — a coincidence of this particular struct set
 having no field type whose natural alignment diverges between these 32-bit ABIs, not a
 reason to assume a future target's layout will match without generating it.
+**`layout-esp32s2.json` is the one exception, and it is labelled (rete#388):** the S2's
+own capture predated rete#226 and differed from the C6's only in `Symbol`, the struct #226
+changed, so since 2026-10-09 it is a copy of the C6 capture — derived, not captured — until
+the MagTag is recaptured over its UART header (`layoutdump/prj_esp32s2.conf`).
 
 **Capturing on a board whose console is its own USB (the dongle) takes three things that
 a UART target does not need**, all of them in `layoutdump/prj_dongle.conf` and
