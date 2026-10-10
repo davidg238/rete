@@ -144,7 +144,6 @@ static void say_n(const char *msg, long n) {
 /* ------------------------------------------------------------------ */
 /* hex                                                                 */
 /* ------------------------------------------------------------------ */
-static const char hexdig[] = "0123456789abcdef";
 
 static int unhex_nib(int ch) {
     if (ch >= '0' && ch <= '9') return ch - '0';
@@ -153,13 +152,6 @@ static int unhex_nib(int ch) {
     return -1;
 }
 
-static void tohex(const uint8_t *in, int n, char *out) {
-    for (int i = 0; i < n; i++) {
-        out[2*i]     = hexdig[in[i] >> 4];
-        out[2*i + 1] = hexdig[in[i] & 0x0f];
-    }
-    out[2*n] = '\0';
-}
 
 /* ------------------------------------------------------------------ */
 /* the block-fetch client — porta/internal/blockserv is the counterparty */
@@ -436,26 +428,7 @@ void ota_activate(const uint8_t hash[32], const uint8_t *sig, int sig_len) {
     if (!hash) return;
     if (!sig || sig_len < 0) sig_len = 0;
     if (sig_len > 128) sig_len = 128;    /* ed25519 is 64; the cap is a guard */
-
-    char hash_hex[65];
-    char sig_hex[257];
-    tohex(hash, 32, hash_hex);
-    if (sig_len) tohex(sig, sig_len, sig_hex); else sig_hex[0] = '\0';
-
-    /* Exactly {"hash":"<hex>","sig":"<hex>"} — the runner's ready.json (§5). */
-    char json[400];
-    size_t i = 0;
-    const char *p1 = "{\"hash\":\"";
-    const char *p2 = "\",\"sig\":\"";
-    const char *p3 = "\"}";
-    memcpy(json + i, p1, strlen(p1)); i += strlen(p1);
-    memcpy(json + i, hash_hex, strlen(hash_hex)); i += strlen(hash_hex);
-    memcpy(json + i, p2, strlen(p2)); i += strlen(p2);
-    memcpy(json + i, sig_hex, strlen(sig_hex)); i += strlen(sig_hex);
-    memcpy(json + i, p3, strlen(p3)); i += strlen(p3);
-    json[i] = '\0';
-
-    if (!ota_write_ready(json)) say("cannot write ready.json (OEVM_OTA_READY unset?)");
-    else say("activate: ready.json written, exiting STAGE_READY(42)");
+    if (!ota_write_ready(hash, sig, sig_len)) say("cannot record ready (no runner, or no key)");
+    else say("activate: ready recorded, leaving for the runner");
     ota_exit_stage_ready();
 }

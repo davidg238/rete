@@ -294,6 +294,14 @@ only `backend/zephyr/ota_zephyr.c` stops being inert, and `main.c` gains the run
   trial off). This is safe because a stage only ever targets the inactive slot, so a torn
   stage can never sit in the active one; the inactive slot boots only through `ota/ready`
   after a verified signature.
+  *As built (S2, 2026-10-10):* the cable always writes `program_a` (`custos load`, `run.sh`
+  unchanged), and the runner hashes slot a at every boot: a hash the manifest has not seen
+  makes a active, unsigned, no trial. **Blind spot, measured the same day:** an IDENTICAL
+  cable write is invisible — loading the very image the manifest already records for a
+  while b is active changes nothing, and the node keeps running b. The cable's answer is
+  to load something else, or the push path's. Recorded rather than fixed: the only fix is
+  a stamp the cable would have to write beside the image, a second mechanism for a case
+  the person can see on the console (`runner: exec b …`).
 - **T6 — A trial image gets one boot.** Any reset before confirm reverts (MCUboot's
   swap-test semantics, and what makes the rule hold through the MagTag's deep sleep, which
   is a reset); a trial that has not confirmed within a fixed 150 s is reset by a k_timer,

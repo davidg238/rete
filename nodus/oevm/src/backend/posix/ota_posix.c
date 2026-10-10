@@ -67,19 +67,27 @@ void ota_stage_truncate(void) {
     if (f) fclose(f);
 }
 
-int ota_write_ready(const char *json) {
+static void tohex(const uint8_t *p, int n, char *out) {
+    static const char d[] = "0123456789abcdef";
+    for (int i = 0; i < n; i++) { out[2*i] = d[p[i] >> 4]; out[2*i+1] = d[p[i] & 15]; }
+    out[2*n] = 0;
+}
+int ota_write_ready(const uint8_t hash[32], const uint8_t *sig, int sig_len) {
     const char *path = ota_env("OEVM_OTA_READY");
-    if (!path || !*path || !json) return 0;
+    if (!path || !*path || !hash) return 0;
+    if (sig_len < 0) sig_len = 0;
+    if (sig_len > 128) sig_len = 128;
+    /* Exactly {"hash":"<hex>","sig":"<hex>"} — the runner's ready.json (design §5). */
+    char hash_hex[65], sig_hex[257];
+    tohex(hash, 32, hash_hex);
+    tohex(sig, sig_len, sig_hex);
     FILE *f = fopen(path, "wb");
     if (!f) return 0;
-    size_t n = 0;
-    while (json[n]) n++;
-    int ok = (fwrite(json, 1, n, f) == n);
+    int ok = fprintf(f, "{\"hash\":\"%s\",\"sig\":\"%s\"}", hash_hex, sig_hex) > 0;
     if (fflush(f) != 0) ok = 0;
     if (fclose(f) != 0) ok = 0;
     return ok;
 }
-
 void ota_touch_confirm(void) {
     const char *path = ota_env("OEVM_OTA_CONFIRM");
     if (!path || !*path) return;

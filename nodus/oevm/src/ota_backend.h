@@ -56,8 +56,10 @@ int  ota_stage_append(const uint8_t *data, int len);
  * reset to, so the next tick refetches from block 0. */
 void ota_stage_truncate(void);
 
-/* Write `json` to the OEVM_OTA_READY path. 1 = ok, 0 = unset/failed. */
-int  ota_write_ready(const char *json);
+/* Record "boot this staged image next": the hash and the signature it came with.
+ * posix writes them as the runner's ready.json; the board writes the manifest's
+ * ready record (rete#233 S2). 1 = ok, 0 = unset/failed. */
+int  ota_write_ready(const uint8_t hash[32], const uint8_t *sig, int sig_len);
 
 /* Create/refresh the OEVM_OTA_CONFIRM marker. Silent no-op when unset. */
 void ota_touch_confirm(void);

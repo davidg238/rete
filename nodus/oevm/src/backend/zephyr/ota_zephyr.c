@@ -5,6 +5,7 @@
 #ifdef __ZEPHYR__
 #include <zephyr/kernel.h>
 #include <zephyr/sys/printk.h>
+#include <zephyr/sys/reboot.h>
 #include <zephyr/storage/flash_map.h>
 #endif
 
@@ -21,11 +22,9 @@
  *                        so a reboot mid-fetch refetches from block 0 (§10 T7: the
  *                        degenerate case; a stored cursor is earned by a measured
  *                        mid-fetch reboot rate). Block 0 erases the whole slot first.
- *   OEVM_OTA_READY    -> the runner's `ota/ready` record in settings (S2, rete#233;
- *                        answers 0 until then, so a staged image is logged and NOT
- *                        booted — ota.c's "cannot write ready" line, every tick)
- *   OEVM_OTA_CONFIRM  -> `ota/trial := 0` in settings (S2)
- *   exit(42)          -> sys_reboot (S2); until then it returns, which ota.h allows
+ *   OEVM_OTA_READY    -> the runner's ready record in the settings manifest
+ *   OEVM_OTA_CONFIRM  -> the manifest's trial flag cleared, the trial timer cancelled
+ *   exit(42)          -> sys_reboot: the runner is the next boot (zephyr/src/runner.c)
  *
  * A board without program slots (every non-ESP target today) keeps the inert
  * answers: no getenv, ota_env NULL by construction, ota_stage_size -1. One seam, one
@@ -39,10 +38,10 @@
 /* tests/ota_zephyr_test.c compiles this file with a plain host compiler to prove the
    inert half; __ZEPHYR__ keeps the slot half, and its headers, on the board. */
 #ifdef __ZEPHYR__
+#include "runner.h"   /* rete#233 S2: the manifest, the slots, the trial — zephyr/src/runner.c */
 #if defined(CONFIG_FLASH_MAP) && FIXED_PARTITION_EXISTS(program_b)
 #define OTA_HAVE_SLOT 1
-static uint8_t stage_id = FIXED_PARTITION_ID(program_b);   /* the inactive slot */
-static long    staged_len;                                  /* 0 at every boot */
+static long staged_len;                                     /* 0 at every boot */
 #endif
 #endif
 
@@ -58,9 +57,13 @@ void ota_note_running_hash(const uint8_t h[32]) {
 }
 
 const char *ota_env(const char *name) {
-    /* No runner environment on target. The one name that answers is the hash of
-       the program main.c loaded from program_a (rete#310). */
+    /* No runner environment on target. Two names answer: the hash of the program
+       main.c loaded (rete#310), and whether this boot is a trial (rete#233 S2, from
+       the runner's manifest). */
     if (running_hex[0] != '\0' && strcmp(name, "OEVM_IMAGE_HASH") == 0) return running_hex;
+#ifdef __ZEPHYR__
+    if (strcmp(name, "OEVM_OTA_TRIAL") == 0 && runner_trial()) return "1";
+#endif
     return NULL;
 }
 
@@ -68,11 +71,12 @@ const char *ota_env(const char *name) {
 
 static const struct flash_area *slot(void) {
     const struct flash_area *fa = NULL;
-    if (flash_area_open(stage_id, &fa) != 0) return NULL;
+    if (flash_area_open(runner_inactive_slot_id(), &fa) != 0) return NULL;
     return fa;
 }
 
-long ota_stage_size(void) { return staged_len; }
+/* -1 without a key: a build that cannot verify a program must not fetch one (T4). */
+long ota_stage_size(void) { return runner_has_key() ? staged_len : -1; }
 
 int ota_stage_read(uint8_t *buf, long off, long len) {
     if (!buf || off < 0 || len < 0 || off + len > staged_len) return 0;
@@ -135,19 +139,29 @@ void ota_stage_truncate(void) {}
 
 #endif
 
-int ota_write_ready(const char *json) {
-    (void)json;
-    return 0;        /* S2 (rete#233): the runner's ota/ready record in settings */
+int ota_write_ready(const uint8_t hash[32], const uint8_t *sig, int sig_len) {
+#ifdef __ZEPHYR__
+    return runner_ready(hash, sig, sig_len);      /* the manifest's ready record (S2) */
+#else
+    (void)hash; (void)sig; (void)sig_len;
+    return 0;
+#endif
 }
 
 void ota_touch_confirm(void) {
-    /* S2 (rete#233): ota/trial := 0 in settings */
+#ifdef __ZEPHYR__
+    runner_confirm();                             /* trial := 0, the timer cancelled */
+#endif
 }
 
 void ota_exit_stage_ready(void) {
-    /* S2 (rete#233): sys_reboot(SYS_REBOOT_WARM). Returning is what ota.h documents
-       for a target that cannot exit, and strictly better than a hang: the node keeps
-       serving its space. */
+#ifdef __ZEPHYR__
+    /* The host analog is exit(42) into the runner; here the runner is the next boot.
+       The console line that announced this must get out first. */
+    printk("ota: rebooting into the runner\n");
+    k_msleep(100);
+    sys_reboot(SYS_REBOOT_COLD);
+#endif
 }
 
 #ifdef __ZEPHYR__

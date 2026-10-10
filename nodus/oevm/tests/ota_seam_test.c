@@ -89,8 +89,16 @@ int ota_stage_append(const uint8_t *data, int len) {
     return 1;
 }
 void ota_stage_truncate(void) { stage_len = 0; }
-int ota_write_ready(const char *json) {
-    snprintf(ready_json, sizeof ready_json, "%s", json);
+/* rete#233 S2: the seam carries the raw hash and signature; the JSON is the posix
+   backend's format, reproduced here so the trial/activate assertion keeps its text. */
+int ota_write_ready(const uint8_t hash[32], const uint8_t *sig, int sig_len) {
+    static const char d[] = "0123456789abcdef";
+    char hh[65], sh[257];
+    for (int i = 0; i < 32; i++) { hh[2*i] = d[hash[i] >> 4]; hh[2*i+1] = d[hash[i] & 15]; }
+    hh[64] = 0;
+    for (int i = 0; i < sig_len; i++) { sh[2*i] = d[sig[i] >> 4]; sh[2*i+1] = d[sig[i] & 15]; }
+    sh[2*sig_len] = 0;
+    snprintf(ready_json, sizeof ready_json, "{\"hash\":\"%s\",\"sig\":\"%s\"}", hh, sh);
     ready_writes++;
     return 1;
 }

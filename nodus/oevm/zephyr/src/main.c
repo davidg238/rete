@@ -1534,32 +1534,12 @@ extern oop  oimg_root(void);
 extern oop  oimg_bootstrap(oop entry_vtable);
 #include <zephyr/storage/flash_map.h>
 #if FIXED_PARTITION_EXISTS(program_a)
-/* rete#310: the program has its own flash partition, written on its own over the
-   cable (`custos load`) and later over the air (#233). The firmware links none.
-   spi_flash_mmap is ESP-only: a board that adds program_a without ESP
-   flash fails to compile HERE, which is the right place to learn it maps its
-   flash some other way. */
-#include <spi_flash_mmap.h>
+/* rete#310 / rete#233: the program lives in one of two flash slots, chosen and mapped by
+   the runner (src/runner.c: the manifest, the signature seat, the trial). The firmware
+   links no program. */
 #include "ota.h"
 #include "ota_backend.h"
-static int program_map(const uint8_t **base, size_t *size) {
-    const void *p;
-    spi_flash_mmap_handle_t h;
-    if (spi_flash_mmap(FIXED_PARTITION_OFFSET(program_a),
-                       FIXED_PARTITION_SIZE(program_a),
-                       SPI_FLASH_MMAP_DATA, &p, &h) != 0) {
-        printk("oevm: program partition 0x%x would not map\n",
-               (unsigned)FIXED_PARTITION_OFFSET(program_a));
-        return 1;
-    }
-    uint32_t n;
-    memcpy(&n, (const uint8_t *)p + 12, 4);   /* blob_size, IMAGE-ARTIFACTS.md §2 */
-    /* An erased partition reads 0xFFFFFFFF here. Answer 0 so the loader refuses
-       it by name ("image too small") instead of reading past the partition. */
-    *base = p;
-    *size = n <= FIXED_PARTITION_SIZE(program_a) ? n : 0;
-    return 0;
-}
+#include "runner.h"
 #else
 extern const uint8_t oevm_blob_start[], oevm_blob_end[];   /* zephyr/blob.S */
 #endif
@@ -1898,7 +1878,11 @@ int main(void) {
 #if FIXED_PARTITION_EXISTS(program_a)
     const uint8_t *prog = NULL;
     size_t prog_size = 0;
-    if (program_map(&prog, &prog_size) != 0 || oimg_load_blob(prog, prog_size) != 0) {
+    if (!runner_select(&prog, &prog_size)) {
+        printk("oevm: no program to run (runner); the console stays up\n");
+        return 0;
+    }
+    if (oimg_load_blob(prog, prog_size) != 0) {
 #else
     if (oimg_load_blob(oevm_blob_start,
                        (size_t)(oevm_blob_end - oevm_blob_start)) != 0) {
