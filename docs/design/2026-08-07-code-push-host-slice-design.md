@@ -346,6 +346,19 @@ only `backend/zephyr/ota_zephyr.c` stops being inert, and `main.c` gains the run
   fallback, and the WROOM decides that the day it gets a slot. The stack is sized by
   the high-water line the thread prints (`CONFIG_INIT_STACKS`), not by the 3 KB guess.
 
+- **T10 — The S2 (decided by David, 2026-10-10, after the first S2 link).** The MagTag build
+  with the OTA half overflows dram0 by 10,992 B (registry 32→64 +4,864; the fetch-thread stack
+  +2,560; flash driver + settings in IRAM +2,665; statics ~860; headroom 2,300). So: (a) **the S2
+  stages in-channel** — T9's named fallback, earned: a deep-sleep node has nothing else to do while
+  awake and its app-stale deadline is 8 × 1860 s, so a blocking stage cannot trip the observer there;
+  (b) **the registry is a per-build knob** (`OEVM_SPACE_MAX_CHANNELS`), the S2 recipe setting it from
+  the MagTag's counted paths; (c) two node rules — a stage must finish inside the awake window (the
+  node checks in until `otaStage:` stops answering an Integer; the next check-in activates and
+  reboots), and a boot that is not a timer wake never strikes (`hwinfo`: `RESET_LOW_POWER_WAKE` is a
+  timer wake, `RESET_SOFTWARE` is the runner's reboot; the record stays valid, the clock loses one
+  awake window until the next watch-end sync). The structural fix, the arena in PSRAM (~38 KB), is
+  rete#400, earned by a measured slowdown. `prj_esp32s2_ota.conf` carries the five settings lines.
+
 **Order, on `c6spare` and never the bell until proven:** (S1) `ota_zephyr.c` real against
 slot `b`, staged over Thread from the gateway's porta — the fetch time; (S2) the runner in
 `main.c` with T3–T6 and the verify cost; (S3) the host gate's four scenarios by hand on the
