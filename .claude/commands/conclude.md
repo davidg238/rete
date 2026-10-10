@@ -21,6 +21,10 @@ This extends the global base at `~/.claude/commands/conclude.md`. Same order: **
      output when Tailscale SSH wants its periodic browser check (2026-10-01: 120 s, nothing printed) — the probe prints
      the login URL, which only David can visit.
    If the page cannot be published, say so in the handoff — do not skip silently.
+   - **The papers** (`nodus/nsl/docs/nsl-*-paper.md`) have reading copies at `gw85224-01:porta-v2/docs/papers/` (served at
+     `http://gw85224-01:6971/dev/papers/`). No pandoc here: render with `markdown_it` (`MarkdownIt("commonmark").enable("table")`),
+     wrap in the `<head>` of the copy already on the gateway (fetch it; bump the `<title>` draft number), keep `index.html` current,
+     scp, md5 both ends (2026-10-09).
    - **Parallel sessions share this page and `FOCUS.md`** (2026-10-04: #198 and #297 ran side by side). Publish from
      the LIVE copy — `scp gw85224-01:porta-v2/docs/status/dev-status.html` first, add this thread's lines, check the
      gateway md5 is unchanged since the fetch, then scp back. **Every** publish, not just the first: if the fetched

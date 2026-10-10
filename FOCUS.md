@@ -5,21 +5,21 @@ blocks are in `docs/status/focus-history.md`; live state is in the issues and `d
 
 - **0.1 (David, 2026-10-09): one node, every verb — load, debug, patch, profile — through porta, over the radio, while it sleeps.**
   Demos: the ship's bell twice, wall C6 always-on (#380) and MagTag deep-sleep (#379), CRC-factored and measured. Lifecycle table: #26.
-- **FOCUS: #380 — the wall C6 over the same classes.** Branch `master` (379 and 380 merged 2026-10-09 19:5x; a new branch for the C6):
-  `lib/Bells.nsl` + the `uses:` pragma + `MagTagDeepSleepNode` as a 14-line `main:`, bridged, on the fridge on the debug+profile
-  image (measurements in #380; design addendum in `docs/design/2026-07-24-magtag-deep-sleep-clock-design.md`). **Next session starts
-  with:** read `sys/metrics` for the 20:00 watch end (36 KB arena under sync+paint), then `ShipsBellNodeC6.nsl` → the same classes
-  minus `StatsPage` plus the striker as its own class, flash `c6spare` first (never `c6` without `flash-bell.sh`, daylight), debug+profile
-  image through porta; its `main:` goes beside the 14-line one in paper E Appendix A. Then #233.
-- **Awaiting David:** read E and L; LICENSE and history rewrite (#368); close #314. Gateway runs `porta-379` + `MANIFEST-377.cddl` since
-  2026-10-09 19:55. Appendix A form decided: lifted references — apply next session.
-- **Bench:** MagTag `7cdfa11aaaaa` is the fridge clock again — `MagTagDeepSleepNode`, bridged, debug+profile, 30-min sleeps, panel live,
-  UDP console to the desktop's stable ULA:54330 (a listener may still be running from 2026-10-09). `c6bench` in the soak — never flash.
-  `rete-custos` (desktop, :6971) serves `c6` and `c6spare`. `opti7040` has an RP2350.
+- **FOCUS: #380 — flash the wall C6, then the verbs at it.** Branch `380-wall-c6` (a92bef6, pushed, not merged). `ShipsBellNodeC6` over
+  `lib/Bells.nsl` (Dial shared; RtcClock, Trigger, Striker) is built in `nodus/oevm/zephyr/build-esp32c6-bell`, host gates green, not
+  flashed. **Next session starts with:** daylight, bell on the powered hub, `nodus/oevm/zephyr/flash-bell.sh` (open the
+  flashing-an-actuator-node memory first); watch boot + first strike on porta (`tel/log` row, `obs/build`); then the debugger at it
+  through porta; measurements to #380. Then #233.
+- **Awaiting David:** read E (draft 3, Appendices A–D lifted) and L; LICENSE and history rewrite (#368); close #314. Gateway runs
+  `porta-379` + `MANIFEST-377.cddl` since 2026-10-09 19:55.
+- **Bench:** the bell `c6` is on USB (CP2102N `4e5729ee`, `/dev/ttyUSB0`) still running the old alarm image; `c6spare` NOT attached.
+  MagTag `7cdfa11aaaaa` is the fridge clock (bridged, debug+profile, 30-min sleeps, UDP console :54330). `c6bench` in the soak — never
+  flash. `rete-custos` (desktop, :6971) serves `c6` and `c6spare`. `opti7040` has an RP2350.
 - **Decided — do not re-litigate:** custos = nsl peer, porta language-neutral (D1–D2); share only `protocol/` (#338); agent first, HTTP
   the only agent surface (D11–D12); D13–D19; hot patch debug-build only (#313); one suite lock (#314); no third node for 0.1 (#384);
   the debug goal is the whole set, empty = detach, sha-gated (#375); boot stop holds only for a transport someone is on (#376); the
   debugger owns the held flag (#377); a WiFi node addresses porta by IPv6, VM below the radio driver (#379); the bell is classes by CRC,
-  application classes never in the kernel, `uses:` is the seam (#380, 2026-10-09).
+  application classes never in the kernel, `uses:` is the seam, one wall node over the same library, a sync re-seeds silently
+  (#380, 2026-08-03 design addendum 2026-10-09); paper E appendices in the lifted-references form (#380).
 - **Weekly review, not scheduled:** #280, #282–#287, #290, #291, #298, #299, #303, #304, #306–#309, #315–#322, #324–#328,
-  #331–#335, #345–#357, #359–#361, #363, #366, #369–#374, #378, #382–#393; #233.
+  #331–#335, #345–#357, #359–#361, #363, #366, #369–#374, #378, #382–#394; #233.
