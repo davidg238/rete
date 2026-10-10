@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <pthread.h>
 /* POSIX (x86-linux / macOS desktop) ota backend: the staging slot and the two
  * markers are plain files under the runner's per-node directory, named by
  * environment variables the runner sets (design §5):
@@ -89,6 +90,25 @@ void ota_touch_confirm(void) {
 void ota_exit_stage_ready(void) {
     fflush(NULL);                        /* the console line must outlive us */
     exit(42);                            /* STAGE_READY — the runner's contract */
+}
+
+/* rete#233 T9: one detached pthread per fetch; ota.c runs one fetch at a time, so a
+   single static start record is enough and nothing is malloc'd. */
+static struct { void (*fn)(void *); void *arg; } start_rec;
+static void *trampoline(void *p) {
+    (void)p;
+    start_rec.fn(start_rec.arg);
+    return NULL;
+}
+int ota_thread_start(void (*fn)(void *), void *arg) {
+    pthread_t t;
+    pthread_attr_t a;
+    start_rec.fn = fn; start_rec.arg = arg;
+    if (pthread_attr_init(&a) != 0) return 0;
+    pthread_attr_setdetachstate(&a, PTHREAD_CREATE_DETACHED);
+    int ok = pthread_create(&t, &a, trampoline, NULL) == 0;
+    pthread_attr_destroy(&a);
+    return ok;
 }
 
 void ota_sleep_ms(int ms) {

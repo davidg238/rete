@@ -35,21 +35,31 @@ int  ota_is_running(const uint8_t hash[32]);
  * telling the VM that an unconfirmed image is under test. */
 int  ota_trial(void);
 
-/* BLOCKING stop-and-wait fetch of the image with digest `hash` from the block
- * server at host:port, appended into the staging slot (design D7 — the exchange
- * cadence is seconds and a stage is bounded, so a synchronous fetch costs one
- * late tick and buys no scheduler).
+/* The fetch of the image with digest `hash` from the block server at host:port,
+ * into the staging slot — OFF THIS THREAD (rete#233 T9, 2026-10-10). The bulk plane
+ * is off the message plane on the wire (D1, G3) and, since the first target run,
+ * off the VM thread too: on a board the fetch takes ~55 s over Thread, and a prim
+ * that blocks that long is exactly what the observer's app-stale rule reboots.
  *
- *   - a staged slot that already hashes to `hash` answers 1 immediately, so a
- *     crash after staging costs one re-hash and no traffic;
- *   - otherwise the fetch RESUMES at block staged_len/256 — the slot's own
- *     length is the cursor, and no cursor state is invented;
- *   - a whole-file digest mismatch at the end truncates the slot and answers 0.
+ * So this call never blocks for long. It answers:
+ *    1  staged: the slot holds `hash`, digest verified (`*staged` = its length);
+ *    0  in progress: a fetch is running, `*staged` = bytes on flash so far;
+ *   -1  failed this round: no slot, no thread, a peer error, a timeout, or a
+ *       digest mismatch (the slot is then truncated).
+ * The caller is the check-in tail, so it is called again at the node's own
+ * cadence until it answers 1; nothing else polls. Between calls the thread:
+ *   - resumes at block staged_len/256 — the slot's own length is the cursor;
+ *   - a staged slot that already hashes to `hash` is answered 1 at once, with
+ *     no thread, so a crash after staging costs one re-hash and no traffic;
+ *   - a whole-file digest mismatch at the end truncates the slot.
+ * A fetch that finished for ANOTHER hash (a retarget) is dropped on the next call,
+ * and the new image is fetched into whatever the slot holds — the failure table's
+ * self-healing case, at the price of one transfer.
  *
  * `sig`/`sig_len` are carried, not checked: verification has exactly one seat
  * and it is the runner (design D4). Pass NULL/0 when there is none. */
 int  ota_stage(const uint8_t hash[32], const uint8_t *sig, int sig_len,
-               const char *host, int port);
+               const char *host, int port, long *staged);
 
 /* Touch the confirm marker — "this trial image works". Becomes
  * boot_write_img_confirmed() on target. Idempotent; never fails loudly. */

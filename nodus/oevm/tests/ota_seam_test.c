@@ -96,7 +96,18 @@ int ota_write_ready(const char *json) {
 }
 void ota_touch_confirm(void) { confirm_touches++; }
 void ota_exit_stage_ready(void) { exits++; }   /* recorded, not taken */
-void ota_sleep_ms(int ms) { (void)ms; }        /* the poll loop runs at full speed */
+void ota_sleep_ms(int ms) { (void)ms; }
+/* rete#233 T9: the fetch asks for a thread; here it runs inline, so the FIRST
+   ota_stage answers 0 (started) with the fetch already complete and the second
+   answers its verdict. stage() below is that pair. */
+int ota_thread_start(void (*fn)(void *), void *arg) { fn(arg); return 1; }
+static int stage(const uint8_t *h) {
+    long n = 0;
+    int r;
+    int guard = 0;
+    while ((r = ota_stage(h, NULL, 0, "::1", 5684, &n)) == 0) assert(++guard < 4);
+    return r;
+}        /* the poll loop runs at full speed */
 
 /* ------------------------------------------------------------------ */
 /* stub udp_backend: the blockserv counterparty, in memory              */
@@ -187,7 +198,7 @@ static void test_resume(void) {
     memcpy(stage_buf, blob_a, BLOCK);
     stage_len = BLOCK;
 
-    assert(ota_stage(hash_a, NULL, 0, "::1", 5684) == 1);
+    assert(stage(hash_a) == 1);
     assert(stage_len == BLOB_LEN);
     assert(memcmp(stage_buf, blob_a, BLOB_LEN) == 0);
     assert(requested_count(0) == 0);        /* block 0 already staged */
@@ -203,7 +214,7 @@ static void test_idempotent(void) {
     memcpy(stage_buf, blob_a, BLOB_LEN);
     stage_len = BLOB_LEN;
 
-    assert(ota_stage(hash_a, NULL, 0, "::1", 5684) == 1);
+    assert(stage(hash_a) == 1);
     assert(n_requested == 0);
     assert(stage_len == BLOB_LEN);
     printf("  idempotent        OK\n");
@@ -215,7 +226,7 @@ static void test_corrupt(void) {
     reset(blob_b, hash_a);       /* peer answers to hash A but serves blob B */
     memcpy(serve_hash, hash_a, 32);
 
-    assert(ota_stage(hash_a, NULL, 0, "::1", 5684) == 0);
+    assert(stage(hash_a) == -1);
     assert(stage_len == 0);
     printf("  corrupt           OK\n");
 }
@@ -223,7 +234,7 @@ static void test_corrupt(void) {
 /* 4. a full cold fetch from an empty slot. */
 static void test_cold_fetch(void) {
     reset(blob_a, hash_a);
-    assert(ota_stage(hash_a, NULL, 0, "::1", 5684) == 1);
+    assert(stage(hash_a) == 1);
     assert(stage_len == BLOB_LEN);
     assert(memcmp(stage_buf, blob_a, BLOB_LEN) == 0);
     assert(requested_count(0) == 1);
@@ -237,7 +248,7 @@ static void test_unknown_hash(void) {
     reset(blob_a, hash_a);
     memcpy(serve_hash, hash_b, 32);         /* peer knows B, we ask for A */
     drop_block1_once = 0;
-    assert(ota_stage(hash_a, NULL, 0, "::1", 5684) == 0);
+    assert(stage(hash_a) == -1);
     assert(n_requested == 1);               /* an error frame is not retried */
     printf("  unknown hash      OK\n");
 }
@@ -265,14 +276,14 @@ static void test_retarget_wedge(void) {
     stage_len = 11 * BLOCK;
 
     /* tick 1: resume asks for block 11, the peer says "block past end". */
-    assert(ota_stage(hash_a, NULL, 0, "::1", 5684) == 0);
+    assert(stage(hash_a) == -1);
     assert(n_requested == 1);
     assert(requested[0] == 11);
     assert(stage_len == 0);          /* the wedge: this was 2816 before the fix */
 
     /* tick 2: the same call, unchanged, now completes from block 0. */
     n_requested = 0;
-    assert(ota_stage(hash_a, NULL, 0, "::1", 5684) == 1);
+    assert(stage(hash_a) == 1);
     assert(stage_len == BLOB_LEN);
     assert(memcmp(stage_buf, blob_a, BLOB_LEN) == 0);
     assert(n_requested == 3);
@@ -285,7 +296,7 @@ static void test_retarget_wedge(void) {
 static void test_unconfigured(void) {
     reset(blob_a, hash_a);
     stage_configured = 0;
-    assert(ota_stage(hash_a, NULL, 0, "::1", 5684) == 0);
+    assert(stage(hash_a) == -1);
     assert(n_requested == 0);
     uint8_t got[32];
     assert(ota_running_hash(got) == 0);

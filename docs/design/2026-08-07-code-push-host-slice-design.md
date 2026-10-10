@@ -316,6 +316,28 @@ only `backend/zephyr/ota_zephyr.c` stops being inert, and `main.c` gains the run
   (porta HTTP gains a blob upload and a goal write; `custos load` gains a porta target), built
   after S1–S3 prove the board. Paper E Appendix D, the agent HTTP surface, is finalized against it.
 
+- **T9 (David, 2026-10-10, after S1) — the bulk plane is off the message THREAD as well
+  as off the wire.** S1 measured the first target fetch at ~3.3 KB/s over Thread (174 KB
+  in ~55 s) and the observer's app-stale rule (8 × cadence = 16 s) rebooted the node
+  mid-fetch, three times, then halted it: D7's blocking fetch cannot finish on a board,
+  and the knob D7 said a measurement would earn is earned. Two fixes were weighed: a
+  time-sliced stage inside the check-in (bounded stall, no thread) and a fetch thread.
+  The thread was chosen because the side channel was meant to keep bulk off the message
+  plane, and a slice still stalls that plane for its length (two check-ins on the bell,
+  every tick late on a 2 s node) exactly while a push is being watched. As built:
+  `ota_stage` starts the fetch on a thread the backend gives it (`ota_thread_start`: a
+  `k_thread` with a 3 KB static stack on zephyr, a detached pthread on posix) and answers
+  1 staged / 0 in progress with the bytes so far / −1 failed; `otaStage:` answers true,
+  the Integer, or false; the kernel asks again at each check-in and logs `ota staging N`.
+  No mailbox: the check-in cadence is the poll. The slot's length stays the cursor, so
+  the host gate's kill-mid-transfer scenario is unchanged. RAM: the thread exists only
+  where a program slot exists; the C6 has 172 KB free after its 128 KB arena, the S2's
+  DRAM is 222 KB total (a 28 KB arena node today), and the WROOM — which has overflowed
+  DRAM by 4.7 KB once, with WiFi — has no slot and gains nothing. One mechanism; a
+  slot board whose build cannot fit the stack is what would earn a sliced, on-thread
+  fallback, and the WROOM decides that the day it gets a slot. The stack is sized by
+  the high-water line the thread prints (`CONFIG_INIT_STACKS`), not by the 3 KB guess.
+
 **Order, on `c6spare` and never the bell until proven:** (S1) `ota_zephyr.c` real against
 slot `b`, staged over Thread from the gateway's porta — the fetch time; (S2) the runner in
 `main.c` with T3–T6 and the verify cost; (S3) the host gate's four scenarios by hand on the

@@ -66,6 +66,13 @@ void ota_touch_confirm(void);
  * on posix, sys_reboot() on target. Returns only if the target cannot. */
 void ota_exit_stage_ready(void);
 
+/* Run fn(arg) on a thread of its own and return 1, or 0 when the backend has no
+ * thread to give (the inert boards; ota.c then fails the stage). One fetch at a
+ * time, so the backend keeps ONE thread object and its stack (rete#233 T9: 3 KB
+ * on zephyr until the high-water print says otherwise; a pthread on posix). The
+ * function returns when the fetch ends, and the next start may reuse the slot. */
+int  ota_thread_start(void (*fn)(void *), void *arg);
+
 /* Sleep roughly `ms` milliseconds. The block wait is a deadline poll loop
  * because udp_receive is non-blocking on every backend, and a poll loop needs
  * exactly one portable primitive; adding it here keeps ota.c free of both

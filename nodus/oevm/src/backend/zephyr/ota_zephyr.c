@@ -150,6 +150,49 @@ void ota_exit_stage_ready(void) {
        serving its space. */
 }
 
+#ifdef __ZEPHYR__
+/* rete#233 T9: the fetch thread. One object and one 2.5 KB stack, reused fetch after
+   fetch; it exists only where this file is compiled for a board (every board, since
+   platform.c calls ota_stage unconditionally — a board without a slot never starts
+   it). Preemptible and below main (the VM, prio 0), so it runs when the VM waits on
+   its pulse mailbox and never delays a tick. The high-water line is the measurement
+   that sizes the stack (needs CONFIG_INIT_STACKS): 1856 B on c6spare for a 174 KB
+   image over Thread, 2026-10-10, so 2560 is that plus a third. */
+K_THREAD_STACK_DEFINE(ota_stack, 2560);
+static struct k_thread ota_thread;
+static int ota_thread_used;
+static void (*ota_fn)(void *);
+
+static void ota_entry(void *a, void *b, void *c) {
+    (void)b; (void)c;
+    ota_fn(a);
+#ifdef CONFIG_THREAD_STACK_INFO
+    size_t unused = 0;
+    if (k_thread_stack_space_get(k_current_get(), &unused) == 0)
+        printk("ota: fetch thread stack high-water %u of %u B\n",
+               (unsigned)(K_THREAD_STACK_SIZEOF(ota_stack) - unused),
+               (unsigned)K_THREAD_STACK_SIZEOF(ota_stack));
+#endif
+}
+
+int ota_thread_start(void (*fn)(void *), void *arg) {
+    /* ota.c starts a fetch only when the previous one has ended (state != RUNNING),
+       so the join below returns at once; it exists to let the object be reused. */
+    if (ota_thread_used) (void)k_thread_join(&ota_thread, K_FOREVER);
+    ota_fn = fn;
+    k_thread_create(&ota_thread, ota_stack, K_THREAD_STACK_SIZEOF(ota_stack),
+                    ota_entry, arg, NULL, NULL, K_PRIO_PREEMPT(10), 0, K_NO_WAIT);
+    k_thread_name_set(&ota_thread, "oevm_ota");
+    ota_thread_used = 1;
+    return 1;
+}
+#else
+int ota_thread_start(void (*fn)(void *), void *arg) {
+    (void)fn; (void)arg;
+    return 0;        /* no board, no thread: ota_stage answers -1, as the contract says */
+}
+#endif
+
 void ota_sleep_ms(int ms) {
 #ifdef __ZEPHYR__
     if (ms > 0) k_msleep(ms);
