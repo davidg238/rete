@@ -259,7 +259,7 @@ from worked examples).
 
 ## 10. The target half — proposed 2026-10-10 (rete#233, for David)
 
-*Status: PROPOSED, not decided. Program OTA only (peer design D4; firmware OTA stays
+*Status: DECIDED (David, 2026-10-10: yes to T1–T8, with T8 amended below). Program OTA only (peer design D4; firmware OTA stays
 deferred), for the two 0.1 demo boards: the wall C6 on Thread (#380) and the MagTag on
 WiFi (#379). The host gate (`nodus/oevm/tests/host_ota/run.sh`) was re-run today: `plan 4`,
 four `ok`, `HOST OTA OK`. Everything above this section is unchanged by it: the kernel's
@@ -312,6 +312,9 @@ only `backend/zephyr/ota_zephyr.c` stops being inert, and `main.c` gains the run
   `porta put --raw <node> goal/apps/main`, exactly as the debug line was driven on
   2026-10-10. `custos load` with a porta target waits on porta's HTTP interface (peer design
   F1, still `/health` and `/manifest` only) and is filed, not built here.
+  *Amendment 2026-10-10 (David):* the HTTP front IS in 0.1, for consistency with debug: rete#398
+  (porta HTTP gains a blob upload and a goal write; `custos load` gains a porta target), built
+  after S1–S3 prove the board. Paper E Appendix D, the agent HTTP surface, is finalized against it.
 
 **Order, on `c6spare` and never the bell until proven:** (S1) `ota_zephyr.c` real against
 slot `b`, staged over Thread from the gateway's porta — the fetch time; (S2) the runner in
