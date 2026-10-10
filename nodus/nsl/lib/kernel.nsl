@@ -4182,6 +4182,12 @@ class Kernel usingPlatform: platform = (
      rtcPut:value: are indexed SMI accessors; the field indices (design §3) are node
      constants, not baked here, so the seam stays a dumb array. *)
   public rtcValid = ( ^ (platform rtcValid) = 1 )
+  (* rete#233 T10: did this boot come out of deep sleep on the timer? False only for a
+     KNOWN other cause — the runner's trial/revert reboot, the observer's watchdog, a
+     power-on — on which the RTC record is still valid but the bell must not strike. A
+     host, or a board whose hwinfo cannot say, answers true: the clock keeps striking
+     exactly as it did before this rule existed. *)
+  public timerWake = ( ^ (platform timerWake) = 1 )
   public rtcGet: i = ( ^ platform rtcGet: i )
   public rtcPut: i value: v = ( platform rtcPut: i value: v. ^ self )
   (* tuvm#94 stage 5: deepSleep: seconds. NEVER RETURNS — the VM ceases to exist

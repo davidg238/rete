@@ -359,6 +359,35 @@ only `backend/zephyr/ota_zephyr.c` stops being inert, and `main.c` gains the run
   awake window until the next watch-end sync). The structural fix, the arena in PSRAM (~38 KB), is
   rete#400, earned by a measured slowdown. `prj_esp32s2_ota.conf` carries the five settings lines.
 
+  *T10 as built (2026-10-10, branch `233-magtag`):* `CONFIG_OEVM_OTA_INCHANNEL` (Kconfig, set only by
+  `prj_esp32s2_ota.conf`) makes `ota_stage` run the fetch on the caller's thread and answer 1 or −1,
+  never 0; the fetch thread and its stack are not linked. So rule (c)'s first half needs no loop: the
+  check-in that reads the goal stages, the MagTag's second check-in activates — the two it already
+  makes — and `ota_inchannel_test` (the seam test compiled with the define) asserts the never-0
+  contract on the host. The second half is `platform timerWake` (prim 162, hwinfo's
+  `RESET_LOW_POWER_WAKE`; a host or a board that cannot say answers true), and the node's
+  `rebootWake` — a valid record on a non-timer boot joins porta and sleeps without striking.
+  `OEVM_SPACE_MAX_CHANNELS` is a CMake env knob; the node prints `space: N of M channels` at every
+  deep sleep, which is the count the recipe is set from (32 for the first flash, the C6 bridge's
+  fill). **Measured:** the first T10 link was 3,344 B over (10,992 − 4,864 registry − 2,560 stack
+  − the thread's statics); the rest was found in run.sh, which force-exported
+  `METHOD_CACHE_SIZE=256 VM_STACK_INIT_WORDS=4096 OEVM_MARK_STACK_SIZE=512` over every recipe since
+  2026-07-16 — the S2's "128-entry cache, 8 KB VM stack" had never reached the compiler. With the
+  caller's values honoured, the mark stack at 256 words (−1,024; an overflow is a rescan) and the
+  profiler's table at 128 slots (−3,072; the dump prints its overflow count), the image links with
+  **2,800 B of dram0 to spare** (219,408 of 222,208; flash 662,908 B), and the arena now carries an
+  8 KB VM stack instead of 16 — every earlier S2 arena number was taken with the larger one.
+  What would earn the profiler's 256 slots back: a 272 B cut elsewhere, or rete#400.
+  **Proven on the MagTag, 2026-10-10 14:03–14:04 MST (one boot, cable-flashed image, goal written by
+  David 30 s earlier):** check-in 1 read the goal and staged in-channel — slot erase 3,357 ms, 197,168 B in
+  11,242 ms over WiFi (~17.5 KB/s, 16 KB a second) — check-in 2 activated; `runner: staged-ok -> trial b`;
+  the new program's boot printed `boot: reset cause 0x2 timer wake 0` → `reboot wake: not a timer wake, no
+  strike`, its first check-in confirmed (`runner: confirmed b`, `tel/log "ota confirmed"`, then
+  `"v2 reboot wake up 1 held 0"`), and it slept 1,581 s to the next boundary. porta: `obs/apps/main` =
+  goal (`c879e813…`). The sleep line printed **`space: 11 of 32 channels`** — the registry knob's first
+  count (a strike wake's count is the one to size from; 16 would return 2,432 B, enough for the
+  profiler's 256 slots).
+
 **Order, on `c6spare` and never the bell until proven:** (S1) `ota_zephyr.c` real against
 slot `b`, staged over Thread from the gateway's porta — the fetch time; (S2) the runner in
 `main.c` with T3–T6 and the verify cost; (S3) the host gate's four scenarios by hand on the

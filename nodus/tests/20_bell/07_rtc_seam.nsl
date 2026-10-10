@@ -5,6 +5,7 @@ put magic then valid true
 half 5
 bootticks 9
 anchor 66600
+timer wake true
 finished
 *)
 (* tuvm#94 stage 5 — the RTC retention seam, host, in one process (no OEVM_RTC_FILE,
@@ -24,6 +25,11 @@ class RtcSeam packageUsing: manifest = () (
     ('half '      , (platform rtcGet: 1) printString) out.
     ('bootticks ' , (platform rtcGet: 2) printString) out.
     ('anchor '    , (platform rtcGet: 3) printString) out.
+    (* rete#233 T10: a host boot has no reset cause, so it is a timer wake by
+       contract — the re-exec harness's simulated sleep depends on it. The target
+       half (a software reboot answers false) is the MagTag's console line
+       `boot: reset cause … timer wake 0`, not this test. *)
+    ('timer wake ' , (platform timerWake ifTrue: [ 'true' ] ifFalse: [ 'false' ])) out.
     'finished' out.
   )
   (* Must equal RTC_MAGIC 0x14BE11C0 = 348000704; the seam compares the low 32 bits

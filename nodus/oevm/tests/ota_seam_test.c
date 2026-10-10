@@ -114,6 +114,9 @@ static int stage(const uint8_t *h) {
     int r;
     int guard = 0;
     while ((r = ota_stage(h, NULL, 0, "::1", 5684, &n)) == 0) assert(++guard < 4);
+#ifdef CONFIG_OEVM_OTA_INCHANNEL
+    assert(guard == 0);   /* rete#233 T10: in-channel, the first answer is the final one */
+#endif
     return r;
 }        /* the poll loop runs at full speed */
 

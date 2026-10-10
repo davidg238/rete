@@ -254,6 +254,10 @@ C_UNIT_TESTS = [
     # stubbed in-file, so the block-fetch loop, the resume arithmetic and the
     # file-local SHA-256 are proven without a socket, a filesystem or a porta.
     ("ota_seam_test",         ["src/ota.c", f"{_BE}/platform_{OEVM_TARGET}.c"], [], None),
+    # rete#233 T10: the same seam test with the fetch on the caller's thread — the S2's
+    # build — asserting ota_stage never answers "in progress".
+    ("ota_inchannel_test",    ["src/ota.c", f"{_BE}/platform_{OEVM_TARGET}.c"],
+                              ["-DCONFIG_OEVM_OTA_INCHANNEL=1"], None),
     ("ota_zephyr_test",       ["src/backend/zephyr/ota_zephyr.c"], [], None),
 
     # --- Header-only: no link set at all (offsetof / pure-decision asserts) ---

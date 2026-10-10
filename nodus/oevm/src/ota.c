@@ -410,6 +410,19 @@ int ota_stage(const uint8_t hash[32], const uint8_t *sig, int sig_len,
     fetch.port = port;
     fetch.total = 0;
     fetch.state = F_RUNNING;
+#ifdef CONFIG_OEVM_OTA_INCHANNEL
+    /* rete#233 T10: T9's named fallback, earned by the S2. The whole fetch runs HERE,
+       on the VM thread, and the answer is final: 1 or -1, never 0. The board that
+       sets this has an app-stale deadline longer than any transfer (Kconfig). */
+    fetch_thread(NULL);
+    if (fetch.state == F_DONE) {
+        fetch.state = F_IDLE;
+        if (staged_out) *staged_out = fetch.total;
+        return 1;
+    }
+    fetch.state = F_IDLE;
+    return -1;
+#else
     if (!ota_thread_start(fetch_thread, NULL)) {
         fetch.state = F_IDLE;
         say("no thread for the fetch");
@@ -417,6 +430,7 @@ int ota_stage(const uint8_t hash[32], const uint8_t *sig, int sig_len,
     }
     if (staged_out) *staged_out = staged;
     return 0;
+#endif
 }
 
 void ota_confirm(void) {

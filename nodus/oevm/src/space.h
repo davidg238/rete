@@ -55,6 +55,11 @@
    (OEVM_SPACE_MAX_CHANNELS+1)th distinct path. */
 int space_intern(const char *path, size_t len);
 
+/* How many distinct paths the registry holds right now. rete#233 T10: the MagTag build
+   sets OEVM_SPACE_MAX_CHANNELS from this number, printed at every deep sleep — the
+   knob is sized by a count, never by a guess. */
+int space_channel_count(void);
+
 /* The ISR-pulse seam (design doc section 6 point 1): enqueue (channel, value)
    at the FIFO tail, callable from C without entering nsl. Interns the path if
    it is new (a post to a channel with no reactions yet is a legal transient

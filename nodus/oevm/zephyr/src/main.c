@@ -27,6 +27,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include "oevm.h"
+#include "space.h"        /* rete#233 T10: space_channel_count at the deep-sleep line */
 #include "reboot_note.h"  /* rete#215: the retained panic note (this file owns the storage) */
 void observer_start(void);   /* zephyr/src/observer.c (rete#215) */
 #include "oimg.h"
@@ -291,6 +292,30 @@ static int32_t g_rtc[OEVM_RTC_FIELDS];
 int rtc_target_valid(void) { return ((uint32_t)g_rtc[0] == OEVM_RTC_MAGIC) ? 1 : 0; }
 int rtc_target_get(int i) { if (i < 0 || i >= OEVM_RTC_FIELDS) return 0; return g_rtc[i]; }
 void rtc_target_put(int i, int v) { if (i < 0 || i >= OEVM_RTC_FIELDS) return; g_rtc[i] = v; }
+
+/* rete#233 T10: was this boot the deep-sleep timer? The runner's trial/revert reboot
+   (sys_reboot -> RESET_SOFTWARE) and the observer's watchdog leave g_rtc valid, and the
+   bell must not strike on them — a bell then is a bell at a meaningless time. hwinfo's
+   RESET_LOW_POWER_WAKE is ESP_RST_DEEPSLEEP on this family (hwinfo_esp32.c). Answers 1
+   when the cause cannot be read (no hwinfo reset cause, -ENOSYS): the rule bites only
+   where the fact is known, and a board that cannot say keeps striking as before. Read
+   once — the cause is this boot's and does not change. */
+#ifdef CONFIG_HWINFO
+#include <zephyr/drivers/hwinfo.h>
+int reset_cause_timer_wake(void) {
+    static int known = 0, answer = 1;
+    if (!known) {
+        uint32_t cause = 0;
+        if (hwinfo_get_reset_cause(&cause) == 0 && cause != 0)
+            answer = (cause & RESET_LOW_POWER_WAKE) ? 1 : 0;
+        printk("boot: reset cause 0x%x timer wake %d\n", (unsigned)cause, answer);
+        known = 1;
+    }
+    return answer;
+}
+#else
+int reset_cause_timer_wake(void) { return 1; }
+#endif
 
 /* tuvm#100: the WALL-CLOCK seam, device side — an external RTC (DS3231 over I2C)
    read through Zephyr's uniform `rtc` API, so the seam is the API and not the
@@ -568,9 +593,19 @@ void deep_sleep_target(int seconds) {
        links as a bogus nonzero value) — pin the domain ON explicitly. */
     esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_SLOW_MEM, ESP_PD_OPTION_ON);
     esp_sleep_enable_timer_wakeup((uint64_t)seconds * 1000000ULL);
+    /* rete#233 T10: the registry high-water for THIS wake, so OEVM_SPACE_MAX_CHANNELS is
+       set from a count. Every path this boot ever interned is still in the table. */
+    printk("space: %d of %d channels\n", space_channel_count(), OEVM_SPACE_MAX_CHANNELS);
     /* Last console line of this wake, so a silent board distinguishes "never armed"
        from "armed and never woke". */
     printk("deep sleep %d s\n", seconds);
+#ifdef OEVM_LOG_UDP6
+    /* The UDP console's sender polls its ring every 50 ms (log_udp.c); the sleep below
+       kills it in under that, so without this wait the last three lines of every wake —
+       `sleep: target`, `space:`, `deep sleep` — never left the board (rete#379 bench note,
+       rete#233 T10: the channel count is one of them). 150 ms of a 15 s wake. */
+    k_msleep(150);
+#endif
     esp_deep_sleep_start();   /* does not return */
 #else
     (void)seconds;

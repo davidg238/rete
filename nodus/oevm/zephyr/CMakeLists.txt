@@ -255,6 +255,13 @@ endif()
 if(DEFINED ENV{METHOD_CACHE_SIZE})
   target_compile_definitions(app PRIVATE METHOD_CACHE_SIZE=$ENV{METHOD_CACHE_SIZE})
 endif()
+# rete#233 T10: the channel registry (space.h, 64 by default since the C6 bridge filled
+# 32). Static, so its cost is dram0 at link time — 76 B a channel on the S2. The MagTag
+# recipe sets it from the count the node prints at every deep sleep (`space: N of M
+# channels`), never from a guess; the (M+1)th distinct path is an abort on the board.
+if(DEFINED ENV{OEVM_SPACE_MAX_CHANNELS})
+  target_compile_definitions(app PRIVATE OEVM_SPACE_MAX_CHANNELS=$ENV{OEVM_SPACE_MAX_CHANNELS})
+endif()
 # rete#380: the Zephyr serial backend's loopback fifo (serial_zephyr.c), 4 KB by default
 # and unused by a radio node; the MagTag bell recipe sets 256 to buy its panel's framebuffer.
 if(DEFINED ENV{SERIAL_FIFO_CAP})
