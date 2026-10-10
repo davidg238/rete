@@ -44,6 +44,12 @@ target_sources(app PRIVATE
   # is reached only from main.c, and placing it in src/backend/zephyr/ would cost a posix
   # stub in nine source lists (#63) that nothing on the host would call.
   src/observer.c
+  # rete#233: the program-slot runner (the host runner's loop, in the firmware) and the
+  # ed25519 it verifies with — MCUboot's own, vendored (src/ed25519/README.md).
+  src/runner.c
+  src/ed25519/curve25519.c
+  src/ed25519/sha512.c
+  src/ed25519/utils.c
   ${OEVM_SRC}/src/vm.c ${OEVM_SRC}/src/gc.c ${OEVM_SRC}/src/dispatch.c
   ${OEVM_SRC}/src/platform.c ${OEVM_SRC}/src/space.c ${OEVM_SRC}/src/handles.c
   ${OEVM_SRC}/src/span.c
@@ -66,7 +72,15 @@ target_sources(app PRIVATE
   ${OEVM_SRC}/src/ota.c
   ${OEVM_SRC}/src/backend/zephyr/ota_zephyr.c
 )
-target_include_directories(app PRIVATE ${OEVM_SRC}/src)
+target_include_directories(app PRIVATE ${OEVM_SRC}/src src src/ed25519)
+# rete#233 T4: the public key that signed a pushed program, porta's `porta.pub`, as 64
+# hex digits. Without it the build has no OTA: the seam stays inert and nothing stages.
+if(DEFINED ENV{OEVM_OTA_PUBKEY})
+  target_compile_definitions(app PRIVATE OEVM_OTA_PUBKEY="$ENV{OEVM_OTA_PUBKEY}")
+  message(STATUS "oevm: OTA public key compiled in (rete#233)")
+else()
+  message(STATUS "oevm: no OEVM_OTA_PUBKEY — this build cannot receive a program over the air")
+endif()
 
 # ---- Build id (#56 §5.4, part of #74) --------------------------------------
 # The firmware prints this before the VM starts, and run.sh files the flashed
@@ -193,13 +207,13 @@ elseif(OEVM_MODEL STREQUAL "B")
   # OEVM_NO_FILE_IO compiles out oimg_loader.c's oimg_load() mmap/open path,
   # which has no meaning on this target.
   target_compile_definitions(app PRIVATE OEVM_MODEL_B OEVM_NO_FILE_IO)
-  # rete#310: a board whose devicetree has program_partition links NO program.
+  # rete#310: a board whose devicetree has program_a (the active program slot) links NO program.
   # run.sh writes the .oimg into that partition and `custos load` replaces it
   # alone; main.c maps it. The devicetree is the one source of that fact, so C
   # (FIXED_PARTITION_EXISTS) and this file cannot disagree.
-  dt_nodelabel(OEVM_PROGRAM_PARTITION NODELABEL program_partition)
+  dt_nodelabel(OEVM_PROGRAM_PARTITION NODELABEL program_a)
   if(OEVM_PROGRAM_PARTITION)
-    message(STATUS "oevm: program_partition present — no program linked (rete#310)")
+    message(STATUS "oevm: program_a present — no program linked (rete#310)")
   else()
     if(NOT DEFINED OEVM_BLOB)
       # Model B is the device default; a bare `west build` (no run.sh, no

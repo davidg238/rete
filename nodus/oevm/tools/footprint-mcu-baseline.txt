@@ -1,5 +1,17 @@
 # T0.3 footprint baseline — MCU config (arm-zephyr-eabi, cortex-m4).
-# Re-banked 2026-10-07 for rete#358 (David: yes).
+# Re-banked 2026-10-10 for rete#233 (program OTA on the board).
+#
+#  +5036 B  data+bss, 68548 -> 73584. Two things, both measured on c6spare:
+#           the space channel registry is 64 entries (was 32: the C6 bridge held 32
+#           distinct paths and the 33rd, `goal/apps/main` arriving for the first
+#           time, was an abort() on the board) — 32 x ~144 B; and the ota fetch
+#           record (hash, host, port, state) that lets the fetch run on its own
+#           thread (design §10 T9). The thread's stack is zephyr-only and is not in
+#           this build.
+#    +77 B  text, 43244 -> 43321: the fetch state machine in ota.c.
+#
+# Superseded header (2026-10-07, rete#358):
+#  Re-banked 2026-10-07 for rete#358 (David: yes).
 #
 #   +642 B  2026-08-26 .. #367: the #310 program region and the #311/#312 debug and
 #           profile work, not attributed per change (the gate was red; #358).
@@ -42,5 +54,5 @@
 #  what was broken was footprint.sh's un-SKIP instruction, which named a deleted
 #  path. That bank split 34488 -> 38872 into +3108 B of enrolment (ota.c + span.c)
 #  and +1276 B of real drift.
-text 43244
-data_bss 68548
+text 43321
+data_bss 73584

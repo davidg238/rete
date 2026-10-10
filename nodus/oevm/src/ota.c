@@ -144,7 +144,6 @@ static void say_n(const char *msg, long n) {
 /* ------------------------------------------------------------------ */
 /* hex                                                                 */
 /* ------------------------------------------------------------------ */
-static const char hexdig[] = "0123456789abcdef";
 
 static int unhex_nib(int ch) {
     if (ch >= '0' && ch <= '9') return ch - '0';
@@ -153,13 +152,6 @@ static int unhex_nib(int ch) {
     return -1;
 }
 
-static void tohex(const uint8_t *in, int n, char *out) {
-    for (int i = 0; i < n; i++) {
-        out[2*i]     = hexdig[in[i] >> 4];
-        out[2*i + 1] = hexdig[in[i] & 0x0f];
-    }
-    out[2*n] = '\0';
-}
 
 /* ------------------------------------------------------------------ */
 /* the block-fetch client — porta/internal/blockserv is the counterparty */
@@ -272,31 +264,27 @@ int ota_trial(void) {
     return (v && v[0] == '1' && v[1] == '\0') ? 1 : 0;
 }
 
-int ota_stage(const uint8_t hash[32], const uint8_t *sig, int sig_len,
-              const char *host, int port) {
-    (void)sig; (void)sig_len;   /* carried by the record; verified by the runner (D4) */
-    if (!hash || !host) return 0;
+/* ------------------------------------------------------------------ */
+/* the fetch, off the VM thread (rete#233 T9)                           */
+/* ------------------------------------------------------------------ */
+enum { F_IDLE = 0, F_RUNNING, F_DONE, F_FAILED };
+static struct {
+    volatile int state;   /* written by the fetch thread at its end, read by the VM */
+    uint8_t hash[32];
+    char    host[128];
+    int     port;
+    long    total;        /* the verified length, when state == F_DONE */
+} fetch;
 
+/* The fetch proper: runs on the thread ota_thread_start gives it. 1 = the slot
+ * holds the image and the digest matched; 0 = it failed (the slot is a good
+ * prefix after a timeout, zero after a mismatch or a rejected resume). */
+static int fetch_run(void) {
     long staged = ota_stage_size();
-    if (staged < 0) { say("no staging slot (OEVM_OTA_STAGE unset)"); return 0; }
-
-    /* 1. Idempotent re-entry: a slot that already holds the wanted image costs
-     *    one re-hash and no traffic. This is the crash-after-staging path. */
-    if (staged > 0 && staged_hash_is(hash, staged)) {
-        say_n("already staged, bytes=", staged);
-        return 1;
-    }
-
-    /* 2. Resume at the slot's own length. A partial trailing block cannot be
-     *    resumed from (the seam truncates to zero only — a length-preserving
-     *    truncate would be a second mechanism for a case that only arises from
-     *    a torn write), so an off-boundary slot restarts from block 0. */
-    if (staged % OTA_BLOCK != 0) {
-        say_n("slot not on a block boundary, restarting; bytes=", staged);
-        ota_stage_truncate();
-        staged = 0;
-    }
-
+    if (staged < 0) return 0;
+    const uint8_t *hash = fetch.hash;
+    const char *host = fetch.host;
+    int port = fetch.port;
     int sock = udp_socket_bind(0);
     if (sock < 0) { say("cannot bind a socket"); return 0; }
 
@@ -360,7 +348,75 @@ int ota_stage(const uint8_t hash[32], const uint8_t *sig, int sig_len,
         return 0;
     }
     say_n("staged ok, bytes=", total);
+    fetch.total = total;
     return 1;
+}
+
+
+static void fetch_thread(void *arg) {
+    (void)arg;
+    fetch.state = fetch_run() ? F_DONE : F_FAILED;
+}
+
+int ota_stage(const uint8_t hash[32], const uint8_t *sig, int sig_len,
+              const char *host, int port, long *staged_out) {
+    (void)sig; (void)sig_len;   /* carried by the record; verified by the runner (D4) */
+    if (staged_out) *staged_out = 0;
+    if (!hash || !host) return -1;
+
+    switch (fetch.state) {
+    case F_RUNNING:
+        if (staged_out) *staged_out = ota_stage_size();
+        return 0;
+    case F_DONE:
+        fetch.state = F_IDLE;
+        if (memcmp(fetch.hash, hash, 32) == 0) {
+            if (staged_out) *staged_out = fetch.total;
+            return 1;
+        }
+        break;              /* finished another image: start over below */
+    case F_FAILED:
+        fetch.state = F_IDLE;
+        return -1;
+    default:
+        break;
+    }
+
+    long staged = ota_stage_size();
+    if (staged < 0) { say("no staging slot (OEVM_OTA_STAGE unset)"); return -1; }
+
+    /* 1. Idempotent re-entry: a slot that already holds the wanted image costs
+     *    one re-hash and no traffic. This is the crash-after-staging path. */
+    if (staged > 0 && staged_hash_is(hash, staged)) {
+        say_n("already staged, bytes=", staged);
+        if (staged_out) *staged_out = staged;
+        return 1;
+    }
+
+    /* 2. Resume at the slot's own length. A partial trailing block cannot be
+     *    resumed from (the seam truncates to zero only — a length-preserving
+     *    truncate would be a second mechanism for a case that only arises from
+     *    a torn write), so an off-boundary slot restarts from block 0. */
+    if (staged % OTA_BLOCK != 0) {
+        say_n("slot not on a block boundary, restarting; bytes=", staged);
+        ota_stage_truncate();
+        staged = 0;
+    }
+
+    memcpy(fetch.hash, hash, 32);
+    size_t hn = strlen(host);
+    if (hn >= sizeof fetch.host) return -1;
+    memcpy(fetch.host, host, hn + 1);
+    fetch.port = port;
+    fetch.total = 0;
+    fetch.state = F_RUNNING;
+    if (!ota_thread_start(fetch_thread, NULL)) {
+        fetch.state = F_IDLE;
+        say("no thread for the fetch");
+        return -1;
+    }
+    if (staged_out) *staged_out = staged;
+    return 0;
 }
 
 void ota_confirm(void) {
@@ -372,26 +428,7 @@ void ota_activate(const uint8_t hash[32], const uint8_t *sig, int sig_len) {
     if (!hash) return;
     if (!sig || sig_len < 0) sig_len = 0;
     if (sig_len > 128) sig_len = 128;    /* ed25519 is 64; the cap is a guard */
-
-    char hash_hex[65];
-    char sig_hex[257];
-    tohex(hash, 32, hash_hex);
-    if (sig_len) tohex(sig, sig_len, sig_hex); else sig_hex[0] = '\0';
-
-    /* Exactly {"hash":"<hex>","sig":"<hex>"} — the runner's ready.json (§5). */
-    char json[400];
-    size_t i = 0;
-    const char *p1 = "{\"hash\":\"";
-    const char *p2 = "\",\"sig\":\"";
-    const char *p3 = "\"}";
-    memcpy(json + i, p1, strlen(p1)); i += strlen(p1);
-    memcpy(json + i, hash_hex, strlen(hash_hex)); i += strlen(hash_hex);
-    memcpy(json + i, p2, strlen(p2)); i += strlen(p2);
-    memcpy(json + i, sig_hex, strlen(sig_hex)); i += strlen(sig_hex);
-    memcpy(json + i, p3, strlen(p3)); i += strlen(p3);
-    json[i] = '\0';
-
-    if (!ota_write_ready(json)) say("cannot write ready.json (OEVM_OTA_READY unset?)");
-    else say("activate: ready.json written, exiting STAGE_READY(42)");
+    if (!ota_write_ready(hash, sig, sig_len)) say("cannot record ready (no runner, or no key)");
+    else say("activate: ready recorded, leaving for the runner");
     ota_exit_stage_ready();
 }

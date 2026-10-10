@@ -37,7 +37,7 @@ func (f *fakeTarget) Load(path string) (load.Result, error) {
 	if err != nil {
 		return load.Result{}, err
 	}
-	return load.Result{Image: path, Size: img.Size, SHA256: img.SHA256, BuildID: "B1", Offset: 0x320000}, nil
+	return load.Result{Image: path, Size: img.Size, SHA256: img.SHA256, BuildID: "B1", Offset: 0x220000}, nil
 }
 
 func fixtureImage(t *testing.T) []byte {

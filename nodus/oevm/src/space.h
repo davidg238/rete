@@ -29,8 +29,12 @@
 #include "oevm.h"
 #include <stddef.h>
 
+/* 64 since rete#233 (2026-10-10): the C6 bridge, with its debug and ota paths, held 32
+   distinct paths, and the 33rd — `goal/apps/main` arriving for the first time — was an
+   `abort()` on the board (c6spare, boot 40). The registry is static, so the cost is RAM
+   at link time, printed by the footprint gate, not guessed here. */
 #ifndef OEVM_SPACE_MAX_CHANNELS
-#define OEVM_SPACE_MAX_CHANNELS 32
+#define OEVM_SPACE_MAX_CHANNELS 64
 #endif
 #ifndef OEVM_SPACE_MAX_PATH
 #define OEVM_SPACE_MAX_PATH 64

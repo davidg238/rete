@@ -34,7 +34,7 @@
 const char *ota_env(const char *name);
 
 /* rete#310, zephyr backend only: main.c notes the SHA-256 of the program it
-   loaded from program_partition; ota_env("OEVM_IMAGE_HASH") then answers it as
+   loaded from program_a; ota_env("OEVM_IMAGE_HASH") then answers it as
    64 lowercase hex chars, so ota_running_hash() and the kernel's publishApps
    report it with no change above this seam. */
 void ota_note_running_hash(const uint8_t h[32]);
@@ -56,8 +56,10 @@ int  ota_stage_append(const uint8_t *data, int len);
  * reset to, so the next tick refetches from block 0. */
 void ota_stage_truncate(void);
 
-/* Write `json` to the OEVM_OTA_READY path. 1 = ok, 0 = unset/failed. */
-int  ota_write_ready(const char *json);
+/* Record "boot this staged image next": the hash and the signature it came with.
+ * posix writes them as the runner's ready.json; the board writes the manifest's
+ * ready record (rete#233 S2). 1 = ok, 0 = unset/failed. */
+int  ota_write_ready(const uint8_t hash[32], const uint8_t *sig, int sig_len);
 
 /* Create/refresh the OEVM_OTA_CONFIRM marker. Silent no-op when unset. */
 void ota_touch_confirm(void);
@@ -65,6 +67,13 @@ void ota_touch_confirm(void);
 /* Leave the process in the STAGE_READY state the runner watches for: exit(42)
  * on posix, sys_reboot() on target. Returns only if the target cannot. */
 void ota_exit_stage_ready(void);
+
+/* Run fn(arg) on a thread of its own and return 1, or 0 when the backend has no
+ * thread to give (the inert boards; ota.c then fails the stage). One fetch at a
+ * time, so the backend keeps ONE thread object and its stack (rete#233 T9: 3 KB
+ * on zephyr until the high-water print says otherwise; a pthread on posix). The
+ * function returns when the fetch ends, and the next start may reuse the slot. */
+int  ota_thread_start(void (*fn)(void *), void *arg);
 
 /* Sleep roughly `ms` milliseconds. The block wait is a deadline poll loop
  * because udp_receive is non-blocking on every backend, and a poll loop needs

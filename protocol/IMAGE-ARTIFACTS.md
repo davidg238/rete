@@ -45,17 +45,22 @@ is how a map is tied to its image (§3). It is also how custos checks which prog
 board is running: the node prints and reports the hash of its program region (§2a,
 decision 2).
 
-## 2a. The program region (rete#310)
+## 2a. The program region (rete#310, two slots since rete#233)
 
-A board that has a program region runs its program from there. The firmware links
-none, so writing a new program never touches the firmware's build-id.
+A board that has program slots runs its program from one of them, in place. The firmware
+links none, so writing a new program never touches the firmware's build-id. There are two
+equal slots: the cable writes `program_a`; a program pushed over the air is staged into the
+inactive slot and booted on trial by the firmware, which keeps the active/previous/trial
+record in `settings` (code-push design §10). `image-0` and `image-1` are 1024K each, from
+`0x20000`.
 
-| Board | Partition label | Offset | Size | Writer | Readers |
+| Board | Slot | Offset | Size | Writer | Readers |
 |---|---|---|---|---|---|
-| ESP32-C6 devkit | `program_partition` | `0x320000` | 512K | `nodus/oevm/zephyr/boards/esp32c6_devkitc_esp32c6_hpcore.overlay` | `zephyr/run.sh` (from the build's `zephyr.dts`); `custos/internal/load` (a copy that cites this row) |
-| ESP32-S2 (MagTag) | `program_partition` | `0x320000` | 512K | `nodus/oevm/zephyr/boards/esp32s2_saola_esp32s2.overlay` (rete#379; the same carve — the S2's default 4 MB table is the C6's) | the same readers |
+| ESP32-C6 devkit | `program_a` | `0x220000` | 768K | `nodus/oevm/zephyr/boards/esp32c6_devkitc_esp32c6_hpcore.overlay` | `zephyr/run.sh` (from the build's `zephyr.dts`); `custos/internal/load` (a copy that cites this row) |
+| ESP32-C6 devkit | `program_b` | `0x2E0000` | 768K | the same overlay | `ota_zephyr.c` (`FIXED_PARTITION_ID`, no copy) |
+| ESP32-S2 (MagTag) | `program_a` / `program_b` | the same | the same | `nodus/oevm/zephyr/boards/esp32s2_saola_esp32s2.overlay` (rete#379; the same carve — the S2's default 4 MB table is the C6's) | the same readers |
 
-`blob_size` (§2) is the number of bytes the region holds. An erased region reads
+`blob_size` (§2) is the number of bytes the slot holds. An erased slot reads
 `0xFFFFFFFF` there, and the firmware's loader refuses it by name. After a load, the
 firmware prints `oevm: program sha256 <hex> (<N> ms)` and reports the same hash as
 `obs/apps/main`'s `#image`.

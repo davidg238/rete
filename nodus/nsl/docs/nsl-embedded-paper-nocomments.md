@@ -22,8 +22,8 @@ bench; a gateway holds what a sleeping node is to be told until it next wakes; a
 running it, the code an agent wrote.
 
 *Status: a lifecycle system whose desk half (host VM, USB load, debug, patch, profile) is built and measured, and whose
-field half is built for debug and designed for program over the air; version 0.1 ships when the field
-half is built (decided 2026-10-09), so nothing in the release is labelled "designed".* Remote debug through a gateway
+field half is built for debug and, on a bench node, for program over the air; version 0.1 ships when the field
+half is shown on the two demo nodes (decided 2026-10-09), so nothing in the release is labelled "designed".* Remote debug through a gateway
 was run on two boards on 2026-10-09 and 2026-10-10, a deep-sleep node over WiFi and an always-on node over Thread (§9).
 
 ## 1. The problem
@@ -427,8 +427,8 @@ The patch row is one board, one method and one session: a demonstration, not a s
 **The debugger through the gateway is built and has been run on two boards** with no cable on either: the MagTag,
 which deep-sleeps, on 2026-10-09, and the wall-powered ShipsBell C6, which runs continuously, on 2026-10-10
 (#375–#377, #379, #380) [Field]. It was designed on a host spike that runs a real porta and a host VM on the desktop
-and prints `SLEEPY DEBUG OK` [Spike]. Program over-the-air load (#233) is still unbuilt on boards, and is the last
-item before version 0.1 ships (decided 2026-10-09).
+and prints `SLEEPY DEBUG OK` [Spike]. Program over-the-air load (#233) runs on a bench C6 over Thread as of 2026-10-10
+(below) and is not yet on either demo node, the last item before version 0.1 ships (decided 2026-10-09).
 
 ![Remote debug sequence](img/e-remote-debug-seq.svg)
 
@@ -488,8 +488,15 @@ The store growth of about 4 MB in 39 s on the host is a cost on the gateway, at 
 divides by several hundred. The `obs/debug` cell reports the hold, so a monitor with no debugger attached sees it,
 and the debug image no longer waits at boot for a cable (#376).
 
-**Program over the air (#233).** A program push into the flash region the USB loader writes is proven on the desktop in a fleet-simulation gate and
-is inert on boards [Peer]. Until then, a sleepy node can be debugged only if its program is already the one the breakpoints were built against.
+**Program over the air (#233).** The firmware holds two program slots and runs one in place; a push is a signed
+record in the goal tree naming an image porta serves in 256-byte blocks; the node fetches it into the other slot on
+its own thread while it keeps checking in, reboots once into it, and the firmware confirms the new image at its first
+exchange or resets after 150 s and reverts to the previous slot. On a bench C6 over Thread on 2026-10-10 [Field]: a 167 KB
+image fetched at 3.3 KB/s, 64 s from push to confirmed; an image that never checked in was reverted after exactly 150 s;
+a flipped signature byte was refused before the image ran; a reset half-way through the fetch cost one full refetch
+(the fetch cursor is not yet kept across a reboot) and still converged. A rejected or reverted image is refetched at the
+next check-in, about a minute of radio per retry, until the goal changes (#175). The same push has not yet been run on
+either demo node. Until it has, a sleepy node can be debugged only if its program is already the one the breakpoints were built against.
 
 ## 10. Trusting code an agent wrote
 
@@ -566,10 +573,10 @@ MicroPython, scored on measured rows; several rows MicroPython wins, which is th
 ### Where this stands
 
 Today rete is a lifecycle system whose desk half (host VM, USB load, debug, patch, profile) is built and measured, and
-whose field half is built for debug (the two bells, through the gateway, over WiFi and over Thread, §9) and designed
-for program over the air. Version 0.1 ships when the
+whose field half is built for debug (the two bells, through the gateway, over WiFi and over Thread, §9) and, on a
+bench C6, for program over the air. Version 0.1 ships when the
 field half is built (decided 2026-10-09), so nothing in the release is labelled "designed". Not yet shown: a program
-loaded over a radio, or an agent writing C against
+loaded over a radio on either demo node, or an agent writing C against
 an agent writing nsl.
 
 Version 0.1 is defined as one node, every verb, through the gateway, over the radio, while the node sleeps. By
@@ -578,7 +585,7 @@ lifecycle stage, against the C toolchain the reader already has:
 | Stage | The C toolchain | rete today | Version 0.1 |
 |---|---|---|---|
 | write | edit, compile, link | the same program runs first on the host VM; authority in the header; 160 closed primitives | the same |
-| deploy | flash the firmware | load an image beside the firmware over the cable (ESP32-C6 only); a manifest-checked wire | over the cable or through the gateway (#233) |
+| deploy | flash the firmware | load an image beside the firmware over the cable (ESP32-C6 only); a manifest-checked wire | over the cable, or through the gateway on the bench C6 (#233) |
 | debug | `printf`; a probe and gdb | source-line breakpoints, the stack and named locals, patch and restart, over one USB cable; and through the gateway, on a node that sleeps (§9) | the same |
 | observe | nothing | a per-method profile on the shipped image (1.3 %); heap statistics every check-in; a liveness observer that dumps and leaves a note | the profile through the gateway as well |
 | manage | a site visit | the gateway holds intent for a node that is asleep and judges its liveness from outside | and keeps each commissioned image with its symbol map |

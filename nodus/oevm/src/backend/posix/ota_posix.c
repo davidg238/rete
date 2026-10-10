@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <pthread.h>
 /* POSIX (x86-linux / macOS desktop) ota backend: the staging slot and the two
  * markers are plain files under the runner's per-node directory, named by
  * environment variables the runner sets (design §5):
@@ -66,19 +67,27 @@ void ota_stage_truncate(void) {
     if (f) fclose(f);
 }
 
-int ota_write_ready(const char *json) {
+static void tohex(const uint8_t *p, int n, char *out) {
+    static const char d[] = "0123456789abcdef";
+    for (int i = 0; i < n; i++) { out[2*i] = d[p[i] >> 4]; out[2*i+1] = d[p[i] & 15]; }
+    out[2*n] = 0;
+}
+int ota_write_ready(const uint8_t hash[32], const uint8_t *sig, int sig_len) {
     const char *path = ota_env("OEVM_OTA_READY");
-    if (!path || !*path || !json) return 0;
+    if (!path || !*path || !hash) return 0;
+    if (sig_len < 0) sig_len = 0;
+    if (sig_len > 128) sig_len = 128;
+    /* Exactly {"hash":"<hex>","sig":"<hex>"} — the runner's ready.json (design §5). */
+    char hash_hex[65], sig_hex[257];
+    tohex(hash, 32, hash_hex);
+    tohex(sig, sig_len, sig_hex);
     FILE *f = fopen(path, "wb");
     if (!f) return 0;
-    size_t n = 0;
-    while (json[n]) n++;
-    int ok = (fwrite(json, 1, n, f) == n);
+    int ok = fprintf(f, "{\"hash\":\"%s\",\"sig\":\"%s\"}", hash_hex, sig_hex) > 0;
     if (fflush(f) != 0) ok = 0;
     if (fclose(f) != 0) ok = 0;
     return ok;
 }
-
 void ota_touch_confirm(void) {
     const char *path = ota_env("OEVM_OTA_CONFIRM");
     if (!path || !*path) return;
@@ -89,6 +98,25 @@ void ota_touch_confirm(void) {
 void ota_exit_stage_ready(void) {
     fflush(NULL);                        /* the console line must outlive us */
     exit(42);                            /* STAGE_READY — the runner's contract */
+}
+
+/* rete#233 T9: one detached pthread per fetch; ota.c runs one fetch at a time, so a
+   single static start record is enough and nothing is malloc'd. */
+static struct { void (*fn)(void *); void *arg; } start_rec;
+static void *trampoline(void *p) {
+    (void)p;
+    start_rec.fn(start_rec.arg);
+    return NULL;
+}
+int ota_thread_start(void (*fn)(void *), void *arg) {
+    pthread_t t;
+    pthread_attr_t a;
+    start_rec.fn = fn; start_rec.arg = arg;
+    if (pthread_attr_init(&a) != 0) return 0;
+    pthread_attr_setdetachstate(&a, PTHREAD_CREATE_DETACHED);
+    int ok = pthread_create(&t, &a, trampoline, NULL) == 0;
+    pthread_attr_destroy(&a);
+    return ok;
 }
 
 void ota_sleep_ms(int ms) {

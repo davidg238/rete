@@ -2830,13 +2830,16 @@ class Kernel usingPlatform: platform = (
           this path is not a transient, and one line at boot would scroll away
           long before anyone looked.
 
-       5. A FAILED STAGE IS NOT REMEMBERED. `otaStage:` is blocking and answers
-          false for an unreachable block server, a digest mismatch or no slot at
-          all; the next check-in simply tries again, which is a retry loop with no
+       5. THE STAGE RUNS OFF THIS THREAD, AND IS POLLED HERE (rete#233 T9). The
+          first target run measured ~55 s for an image over Thread, and a prim that
+          blocks that long is what the observer's app-stale rule reboots — so
+          `otaStage:` starts the fetch and answers the bytes staged so far (logged
+          as `ota staging N`), true once the slot holds the verified image, false
+          when this round failed. Each check-in asks again; the slot's length is
+          the cursor, so nothing is lost between asks. A FAILED STAGE IS NOT
+          REMEMBERED: the next check-in simply tries again, a retry loop with no
           backoff state, no attempt counter and no give-up threshold — none of
-          which there is data to choose yet (design D6). The cost of the degenerate
-          case is one blocked check-in per tick against an unreachable server,
-          which is measurable; invent the knobs when it has been measured.
+          which there is data to choose yet (design D6, rete#175).
 
        The block plane is `peerPort + 1` by construction, not by configuration —
        one address, one port pair, nothing new to provision. *)
@@ -2845,7 +2848,7 @@ class Kernel usingPlatform: platform = (
        and the trial-unconfirmed guard below is a claim worth a test rather than a
        gate. No app calls this — the cadence is `checkIn`'s and must stay so. *)
     public otaCheck = (
-      | rec want hash sig |
+      | rec want hash sig r |
       (otaConfirmed not and: [ acked > 0 and: [ outer otaTrial ] ]) ifTrue: [
         outer otaConfirm.
         otaConfirmed:: true.
@@ -2897,8 +2900,16 @@ class Kernel usingPlatform: platform = (
       hash:: want at: 1.
       sig::  want at: 2.
       (outer otaIsRunning: hash) ifTrue: [ ^ self ].
-      (outer otaStage: hash sig: sig host: peerHost port: peerPort + 1)
-        ifTrue: [
+      (* `rankOf:` and then DISPATCH, never `== true`: the Boolean a C prim answers
+         is not the identical object to this image's literal (measured 2026-10-10:
+         `r == true` was false on c6spare and in the host gate alike, and the node
+         logged `ota staging true` forever). An Integer is rank 2, as the encoder
+         above reads it; anything else here is the prim's Boolean. *)
+      r:: outer otaStage: hash sig: sig host: peerHost port: peerPort + 1.
+      (outer rankOf: r) = 2 ifTrue: [
+        self telLog: #info text: 'ota staging ' , r printString.
+        ^ self ].
+      r ifTrue: [
           stagedHash:: hash.
           stagedSig::  sig.
           otaStaged::  true.

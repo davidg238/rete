@@ -1,43 +1,49 @@
 /* Copyright (c) 2026 Ekorau LLC */
 #include "ota_backend.h"
-#include <stddef.h>   /* NULL — this file includes no zephyr header (see below) */
+#include <stddef.h>
 #include <string.h>
+#ifdef __ZEPHYR__
+#include <zephyr/kernel.h>
+#include <zephyr/sys/printk.h>
+#include <zephyr/sys/reboot.h>
+#include <zephyr/storage/flash_map.h>
+#endif
 
-/* rete#25 — the zephyr half of the ota seam: PRESENT AND DELIBERATELY INERT.
+/* rete#25 / rete#233 — the zephyr half of the ota seam.
  *
- * Why it exists at all. platform.c now calls ota_running_hash() and its five
- * siblings unconditionally (prims 145-150), and zephyr/CMakeLists.txt compiles
- * platform.c. Without this file the zephyr link fails on nine undefined
- * symbols — so the choice was never "posix-first or not", it was between a
- * no-op backend and a #ifdef fence through six prim cases. The fence loses:
- * it would make `platform otaTrial` a doesNotUnderstand on target and an answer
- * on host, i.e. the same app would be a different app depending on where it
- * ran. An inert backend keeps ONE seam with one shape everywhere, and every
- * answer it produces is one the contract already defines.
+ * The staging slot is the inactive PROGRAM slot (code-push design §10 T2): two equal
+ * partitions, `program_a` and `program_b`, and the firmware runs the active one in
+ * place. The seam below writes the inactive one through flash_map, append-only, which
+ * is the contract ota.c's resume arithmetic was written against. Where the posix
+ * backend has files and an environment, this one has:
  *
- * Why inertness is CORRECT here rather than a stub-shaped lie. ota_backend.h's
- * standing contract is that every function no-ops or fails gracefully when its
- * environment variable is unset, and on target NOTHING is set: there is no
- * getenv, so ota_env answers NULL by construction and not by omission. Follow
- * that through ota.c and every VM-facing answer is already the honest one —
- * ota_running_hash nil until main.c notes the program it loaded (rete#310),
- * ota_trial 0, ota_stage 0 after "no staging slot".
- * A target node therefore reports "I do not know what I am running", which is
- * true, instead of claiming a hash it cannot verify.
+ *   OEVM_OTA_STAGE    -> the inactive slot, by FIXED_PARTITION_ID (no copy of an offset)
+ *   the slot length   -> `staged_len`, in RAM. A flash slot has no length of its own,
+ *                        so a reboot mid-fetch refetches from block 0 (§10 T7: the
+ *                        degenerate case; a stored cursor is earned by a measured
+ *                        mid-fetch reboot rate). Block 0 erases the whole slot first.
+ *   OEVM_OTA_READY    -> the runner's ready record in the settings manifest
+ *   OEVM_OTA_CONFIRM  -> the manifest's trial flag cleared, the trial timer cancelled
+ *   exit(42)          -> sys_reboot: the runner is the next boot (zephyr/src/runner.c)
  *
- * What the real one becomes, when the target rung comes: the program is NOT
- * staged in slot1_partition: that is the firmware's MCUboot slot, and the
- * program has its own `program_partition` (rete#310,
- * `docs/design/2026-10-04-custos-peer-design.md` §6a step 5; where a staged
- * program goes is #233's Q2). ota_touch_confirm becomes
- * boot_write_img_confirmed(), ota_write_ready becomes boot_request_upgrade(),
- * ota_exit_stage_ready becomes sys_reboot(SYS_REBOOT_WARM), and ota_sleep_ms
- * becomes k_msleep(). None of that is guessed at here — an invented flash
- * layout would be a tunable chosen before there is a board to measure it on.
+ * A board without program slots (every non-ESP target today) keeps the inert
+ * answers: no getenv, ota_env NULL by construction, ota_stage_size -1. One seam, one
+ * shape, everywhere — the reason this file exists at all (rete#25 task 6).
  *
- * Pure C99 on purpose: no zephyr header is included, so this file compiles and
- * links with a plain host compiler, which is how it was proved (task-6 report).
- */
+ * Write alignment: both ESP flashes declare write-block-size 4; a block is 256 B and
+ * only the image's last block can be shorter, so the only padding ever written is at
+ * the very end, with 0xFF (the erased value), and `staged_len` counts real bytes so
+ * the padding is never hashed. */
+
+/* tests/ota_zephyr_test.c compiles this file with a plain host compiler to prove the
+   inert half; __ZEPHYR__ keeps the slot half, and its headers, on the board. */
+#ifdef __ZEPHYR__
+#include "runner.h"   /* rete#233 S2: the manifest, the slots, the trial — zephyr/src/runner.c */
+#if defined(CONFIG_FLASH_MAP) && FIXED_PARTITION_EXISTS(program_b)
+#define OTA_HAVE_SLOT 1
+static long staged_len;                                     /* 0 at every boot */
+#endif
+#endif
 
 static char running_hex[65];   /* "" until main.c notes the loaded program (rete#310) */
 
@@ -51,48 +57,160 @@ void ota_note_running_hash(const uint8_t h[32]) {
 }
 
 const char *ota_env(const char *name) {
-    /* No runner environment on target. The one name that answers is the hash of
-       the program main.c loaded from program_partition (rete#310). */
+    /* No runner environment on target. Two names answer: the hash of the program
+       main.c loaded (rete#310), and whether this boot is a trial (rete#233 S2, from
+       the runner's manifest). */
     if (running_hex[0] != '\0' && strcmp(name, "OEVM_IMAGE_HASH") == 0) return running_hex;
+#ifdef __ZEPHYR__
+    if (strcmp(name, "OEVM_OTA_TRIAL") == 0 && runner_trial()) return "1";
+#endif
     return NULL;
 }
 
-long ota_stage_size(void) {
-    return -1;                   /* "unset or unusable" — no slot is configured */
+#ifdef OTA_HAVE_SLOT
+
+static const struct flash_area *slot(void) {
+    const struct flash_area *fa = NULL;
+    if (flash_area_open(runner_inactive_slot_id(), &fa) != 0) return NULL;
+    return fa;
 }
 
+/* -1 without a key: a build that cannot verify a program must not fetch one (T4). */
+long ota_stage_size(void) { return runner_has_key() ? staged_len : -1; }
+
 int ota_stage_read(uint8_t *buf, long off, long len) {
-    (void)buf; (void)off; (void)len;
-    return 0;
+    if (!buf || off < 0 || len < 0 || off + len > staged_len) return 0;
+    if (len == 0) return 1;
+    const struct flash_area *fa = slot();
+    if (!fa) return 0;
+    int ok = flash_area_read(fa, (off_t)off, buf, (size_t)len) == 0;
+    flash_area_close(fa);
+    return ok;
 }
 
 int ota_stage_append(const uint8_t *data, int len) {
-    (void)data; (void)len;
-    return 0;
+    if (!data || len < 0) return 0;
+    if (len == 0) return 1;
+    const struct flash_area *fa = slot();
+    if (!fa) return 0;
+    if ((long)fa->fa_size < staged_len + len) { flash_area_close(fa); return 0; }
+    if (staged_len == 0) {
+        /* Block 0 erases the slot: the flash analog of fopen("wb"). Whole-slot,
+           because a partial erase would be a cursor of its own. Timed, not guessed. */
+        int64_t t0 = k_uptime_get();
+        if (flash_area_erase(fa, 0, fa->fa_size) != 0) { flash_area_close(fa); return 0; }
+        printk("ota: slot erased, %u B in %u ms\n", (unsigned)fa->fa_size,
+               (unsigned)(k_uptime_get() - t0));
+    }
+    /* Pad the last short block to the 4-byte write unit with the erased value. */
+    uint8_t padded[260];
+    const uint8_t *p = data;
+    int n = len;
+    if (len % 4 != 0) {
+        if (len > (int)sizeof padded) { flash_area_close(fa); return 0; }
+        memset(padded, 0xFF, sizeof padded);
+        memcpy(padded, data, (size_t)len);
+        p = padded;
+        n = (len + 3) & ~3;
+    }
+    int ok = flash_area_write(fa, (off_t)staged_len, p, (size_t)n) == 0;
+    flash_area_close(fa);
+    if (ok) {
+        staged_len += len;
+        /* rete#233 S1: the fetch rate over the radio is the number this rung is for,
+           and the fetch is blocking (D7), so the progress is printed from here, every
+           64 blocks (16 KB), against the slot erase as t0. */
+        static int64_t t0;
+        if (staged_len == len) t0 = k_uptime_get();
+        else if ((staged_len / 256) % 64 == 0)
+            printk("ota: staged %ld B at +%u ms\n", staged_len, (unsigned)(k_uptime_get() - t0));
+    }
+    return ok;
 }
 
-void ota_stage_truncate(void) {
-}
+void ota_stage_truncate(void) { staged_len = 0; }   /* the next block 0 erases */
 
-int ota_write_ready(const char *json) {
-    (void)json;
+#else  /* no program slots: the inert answers of rete#25 task 6 */
+
+long ota_stage_size(void) { return -1; }
+int  ota_stage_read(uint8_t *buf, long off, long len) { (void)buf; (void)off; (void)len; return 0; }
+int  ota_stage_append(const uint8_t *data, int len) { (void)data; (void)len; return 0; }
+void ota_stage_truncate(void) {}
+
+#endif
+
+int ota_write_ready(const uint8_t hash[32], const uint8_t *sig, int sig_len) {
+#ifdef __ZEPHYR__
+    return runner_ready(hash, sig, sig_len);      /* the manifest's ready record (S2) */
+#else
+    (void)hash; (void)sig; (void)sig_len;
     return 0;
+#endif
 }
 
 void ota_touch_confirm(void) {
+#ifdef __ZEPHYR__
+    runner_confirm();                             /* trial := 0, the timer cancelled */
+#endif
 }
 
 void ota_exit_stage_ready(void) {
-    /* Returns, which ota.h documents as what happens when the target cannot
-       exit. On a real target this becomes sys_reboot(); returning is strictly
-       better than a silent hang, because the caller's next line runs and the
-       node keeps serving its space. */
+#ifdef __ZEPHYR__
+    /* The host analog is exit(42) into the runner; here the runner is the next boot.
+       The console line that announced this must get out first. */
+    printk("ota: rebooting into the runner\n");
+    k_msleep(100);
+    sys_reboot(SYS_REBOOT_COLD);
+#endif
 }
 
+#ifdef __ZEPHYR__
+/* rete#233 T9: the fetch thread. One object and one 2.5 KB stack, reused fetch after
+   fetch; it exists only where this file is compiled for a board (every board, since
+   platform.c calls ota_stage unconditionally — a board without a slot never starts
+   it). Preemptible and below main (the VM, prio 0), so it runs when the VM waits on
+   its pulse mailbox and never delays a tick. The high-water line is the measurement
+   that sizes the stack (needs CONFIG_INIT_STACKS): 1856 B on c6spare for a 174 KB
+   image over Thread, 2026-10-10, so 2560 is that plus a third. */
+K_THREAD_STACK_DEFINE(ota_stack, 2560);
+static struct k_thread ota_thread;
+static int ota_thread_used;
+static void (*ota_fn)(void *);
+
+static void ota_entry(void *a, void *b, void *c) {
+    (void)b; (void)c;
+    ota_fn(a);
+#ifdef CONFIG_THREAD_STACK_INFO
+    size_t unused = 0;
+    if (k_thread_stack_space_get(k_current_get(), &unused) == 0)
+        printk("ota: fetch thread stack high-water %u of %u B\n",
+               (unsigned)(K_THREAD_STACK_SIZEOF(ota_stack) - unused),
+               (unsigned)K_THREAD_STACK_SIZEOF(ota_stack));
+#endif
+}
+
+int ota_thread_start(void (*fn)(void *), void *arg) {
+    /* ota.c starts a fetch only when the previous one has ended (state != RUNNING),
+       so the join below returns at once; it exists to let the object be reused. */
+    if (ota_thread_used) (void)k_thread_join(&ota_thread, K_FOREVER);
+    ota_fn = fn;
+    k_thread_create(&ota_thread, ota_stack, K_THREAD_STACK_SIZEOF(ota_stack),
+                    ota_entry, arg, NULL, NULL, K_PRIO_PREEMPT(10), 0, K_NO_WAIT);
+    k_thread_name_set(&ota_thread, "oevm_ota");
+    ota_thread_used = 1;
+    return 1;
+}
+#else
+int ota_thread_start(void (*fn)(void *), void *arg) {
+    (void)fn; (void)arg;
+    return 0;        /* no board, no thread: ota_stage answers -1, as the contract says */
+}
+#endif
+
 void ota_sleep_ms(int ms) {
-    (void)ms;
-    /* Never reached: the only caller is ota.c's block-fetch poll loop, which
-       ota_stage cannot get to while ota_stage_size answers -1. Left as a no-op
-       rather than a busy-wait so that if it ever IS reached, it burns no time
-       pretending to. */
+#ifdef __ZEPHYR__
+    if (ms > 0) k_msleep(ms);
+#else
+    (void)ms;   /* never reached off the board: ota_stage_size answers -1 there */
+#endif
 }

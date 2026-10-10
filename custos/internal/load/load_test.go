@@ -77,7 +77,7 @@ func run(t *testing.T, board *fakeBoard, region Region) (argv []string, out stri
 	return argv, buf.String(), err
 }
 
-var big = Region{Chip: "esp32c6", Offset: 0x320000, Size: 1 << 20}
+var big = Region{Chip: "esp32c6", Offset: 0x220000, Size: 1 << 20}
 
 func TestLoadWritesAtTheRegionAndProvesTheFirmwareUnchanged(t *testing.T) {
 	sha := fixtureSHA(t)
@@ -86,7 +86,7 @@ func TestLoadWritesAtTheRegionAndProvesTheFirmwareUnchanged(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := "esptool.py --chip esp32c6 --port /dev/ttyX --baud 921600 write_flash 0x320000 " + fixture
+	want := "esptool.py --chip esp32c6 --port /dev/ttyX --baud 921600 write_flash 0x220000 " + fixture
 	if strings.Join(argv, " ") != want {
 		t.Fatalf("argv %q\nwant %q", strings.Join(argv, " "), want)
 	}
@@ -128,7 +128,7 @@ func TestLoadFailsWhenTheBoardRunsAnotherProgram(t *testing.T) {
 
 func TestLoadRefusesAnImageLargerThanTheRegion(t *testing.T) {
 	b := &fakeBoard{boots: []Report{{BuildID: "B1"}}, errs: []error{nil}}
-	argv, _, err := run(t, b, Region{Chip: "esp32c6", Offset: 0x320000, Size: 16})
+	argv, _, err := run(t, b, Region{Chip: "esp32c6", Offset: 0x220000, Size: 16})
 	if err == nil || argv != nil || b.n != 0 {
 		t.Fatalf("err %v argv %v boots %d: must refuse before touching the board", err, argv, b.n)
 	}

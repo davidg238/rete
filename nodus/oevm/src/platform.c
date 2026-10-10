@@ -1571,9 +1571,9 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
     case PRIM_pf_otaStage: {
         /* otaStage: hash sig: sig host: host port: port — args mirror the
            keyword selector left-to-right (the spaceRegister:block:owner:
-           convention). BLOCKING (design D7): the exchange cadence is seconds
-           and a stage is bounded, so a synchronous fetch costs one late tick
-           and buys no scheduler. `sig` may be nil (carried, never checked —
+           convention). Since rete#233 T9 the fetch is OFF this thread (D7's
+           knob, earned on the first target run: ~55 s over Thread, which the
+           observer rightly reboots) — see ota.h. `sig` may be nil (carried, never checked —
            verification has exactly one seat and it is the runner, design D4).
 
            A malformed call answers FALSE rather than aborting, unlike
@@ -1582,8 +1582,8 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
            one is a peer's mistake to report, not this node's to die of.
 
            No allocation happens between reading the leaves and the call, and
-           ota_stage never re-enters the VM, so the raw pointers stay valid for
-           the whole (possibly seconds-long) fetch. */
+           ota_stage copies what it keeps (the hash and the host) before it
+           returns, so the raw pointers are never held across a GC. */
         size_t hn = 0, sn = 0, hostn = 0;
         const uint8_t *hp   = ota_leaf_bytes(args[0], &hn);
         const uint8_t *sp   = ota_leaf_bytes(args[1], &sn);
@@ -1596,8 +1596,13 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
         }
         memcpy(host, hostp, hostn);
         host[hostn] = '\0';
-        *out = ota_stage(hp, sp, (int)sn, host, (int)UNTAG_SMI(args[3]))
-                 ? true_symbol : false_symbol;
+        /* rete#233 T9: the fetch runs on its own thread, so this answers one of
+           THREE things — true (staged, digest verified), false (failed this
+           round), or the bytes staged so far as an Integer (in progress) — and
+           the kernel asks again at its next check-in. */
+        long staged = 0;
+        int r = ota_stage(hp, sp, (int)sn, host, (int)UNTAG_SMI(args[3]), &staged);
+        *out = r > 0 ? true_symbol : r < 0 ? false_symbol : TAG_SMI(staged);
         return 1;
     }
     case PRIM_pf_otaConfirm:
