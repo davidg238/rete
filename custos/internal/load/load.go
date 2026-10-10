@@ -20,9 +20,10 @@ type Region struct {
 	Size   int64
 }
 
-// ESP32C6 copies IMAGE-ARTIFACTS.md §2a's row; the writer is
-// nodus/oevm/zephyr/boards/esp32c6_devkitc_esp32c6_hpcore.overlay.
-var ESP32C6 = Region{Chip: "esp32c6", Offset: 0x320000, Size: 512 * 1024}
+// ESP32C6 copies IMAGE-ARTIFACTS.md §2a's row for program_a, the slot the cable
+// writes; the writer is nodus/oevm/zephyr/boards/esp32c6_devkitc_esp32c6_hpcore.overlay.
+// program_b (0x2E0000) is the over-the-air staging slot and is never written here (#233).
+var ESP32C6 = Region{Chip: "esp32c6", Offset: 0x220000, Size: 768 * 1024}
 
 // Report is what one boot said about itself.
 type Report struct {

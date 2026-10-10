@@ -34,7 +34,7 @@
 const char *ota_env(const char *name);
 
 /* rete#310, zephyr backend only: main.c notes the SHA-256 of the program it
-   loaded from program_partition; ota_env("OEVM_IMAGE_HASH") then answers it as
+   loaded from program_a; ota_env("OEVM_IMAGE_HASH") then answers it as
    64 lowercase hex chars, so ota_running_hash() and the kernel's publishApps
    report it with no change above this seam. */
 void ota_note_running_hash(const uint8_t h[32]);

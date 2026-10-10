@@ -495,7 +495,7 @@ trap restore_image EXIT
 
 echo "[bake]  $NODE  (model $MODEL)"
 BLOB_ARG=()
-PROG_OFF=""   # rete#310: set from the build's devicetree when it has program_partition
+PROG_OFF=""   # rete#310: set from the build's devicetree when it has program_a
 if [ "$MODEL" = A ]; then
   # Bakes the program into src/solidified_image.c. Beware: cc1 on the result
   # needs ~4.9 GB RSS and ~50 min, and HAS OOM-killed the desktop (2026-07-16).
@@ -690,20 +690,20 @@ if [ "$BUILD_RC" = 0 ]; then
   fi
 
   if [ "$MODEL" = B ]; then
-    # rete#310: a board whose devicetree has program_partition links no program,
+    # rete#310: a board whose devicetree has program_a links no program,
     # so there is no OEVM_BLOB_FILE to check. Instead, the flash below writes $OIMG
     # at the partition's offset, read from the build's own devicetree (the overlay
     # is the writer; this is a reader, not a copy).
-    PROG_REG=$(awk '/program_partition: partition@/{f=1} f && /reg = </{gsub(/[<>;]/,""); print $3, $4; exit}' \
+    PROG_REG=$(awk '/program_a: partition@/{f=1} f && /reg = </{gsub(/[<>;]/,""); print $3, $4; exit}' \
                  "$ZDIR/$BUILD_DIR/zephyr/zephyr.dts" 2>/dev/null || true)
     if [ -n "$PROG_REG" ]; then
       read -r PROG_OFF PROG_SIZE <<< "$PROG_REG"
       OIMG_SIZE=$(stat -c %s "$OIMG")
       if [ "$OIMG_SIZE" -gt $((PROG_SIZE)) ]; then
-        echo "[build] FATAL: $(basename "$OIMG") is $OIMG_SIZE B; program_partition is $((PROG_SIZE)) B." >&2
+        echo "[build] FATAL: $(basename "$OIMG") is $OIMG_SIZE B; program_a is $((PROG_SIZE)) B." >&2
         exit 3
       fi
-      echo "[build] model B, program_partition $PROG_OFF ($((PROG_SIZE)) B): $(basename "$OIMG") is written there, not linked"
+      echo "[build] model B, program_a $PROG_OFF ($((PROG_SIZE)) B): $(basename "$OIMG") is written there, not linked"
     else
       # The .incbin'd path, straight out of the generated ninja file — the blob this
       # image carries, not the blob this script baked.

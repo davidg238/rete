@@ -193,13 +193,13 @@ elseif(OEVM_MODEL STREQUAL "B")
   # OEVM_NO_FILE_IO compiles out oimg_loader.c's oimg_load() mmap/open path,
   # which has no meaning on this target.
   target_compile_definitions(app PRIVATE OEVM_MODEL_B OEVM_NO_FILE_IO)
-  # rete#310: a board whose devicetree has program_partition links NO program.
+  # rete#310: a board whose devicetree has program_a (the active program slot) links NO program.
   # run.sh writes the .oimg into that partition and `custos load` replaces it
   # alone; main.c maps it. The devicetree is the one source of that fact, so C
   # (FIXED_PARTITION_EXISTS) and this file cannot disagree.
-  dt_nodelabel(OEVM_PROGRAM_PARTITION NODELABEL program_partition)
+  dt_nodelabel(OEVM_PROGRAM_PARTITION NODELABEL program_a)
   if(OEVM_PROGRAM_PARTITION)
-    message(STATUS "oevm: program_partition present — no program linked (rete#310)")
+    message(STATUS "oevm: program_a present — no program linked (rete#310)")
   else()
     if(NOT DEFINED OEVM_BLOB)
       # Model B is the device default; a bare `west build` (no run.sh, no

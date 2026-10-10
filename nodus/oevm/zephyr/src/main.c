@@ -1533,10 +1533,10 @@ extern oop  run_solidified_entry_point(void);
 extern oop  oimg_root(void);
 extern oop  oimg_bootstrap(oop entry_vtable);
 #include <zephyr/storage/flash_map.h>
-#if FIXED_PARTITION_EXISTS(program_partition)
+#if FIXED_PARTITION_EXISTS(program_a)
 /* rete#310: the program has its own flash partition, written on its own over the
    cable (`custos load`) and later over the air (#233). The firmware links none.
-   spi_flash_mmap is ESP-only: a board that adds program_partition without ESP
+   spi_flash_mmap is ESP-only: a board that adds program_a without ESP
    flash fails to compile HERE, which is the right place to learn it maps its
    flash some other way. */
 #include <spi_flash_mmap.h>
@@ -1545,11 +1545,11 @@ extern oop  oimg_bootstrap(oop entry_vtable);
 static int program_map(const uint8_t **base, size_t *size) {
     const void *p;
     spi_flash_mmap_handle_t h;
-    if (spi_flash_mmap(FIXED_PARTITION_OFFSET(program_partition),
-                       FIXED_PARTITION_SIZE(program_partition),
+    if (spi_flash_mmap(FIXED_PARTITION_OFFSET(program_a),
+                       FIXED_PARTITION_SIZE(program_a),
                        SPI_FLASH_MMAP_DATA, &p, &h) != 0) {
         printk("oevm: program partition 0x%x would not map\n",
-               (unsigned)FIXED_PARTITION_OFFSET(program_partition));
+               (unsigned)FIXED_PARTITION_OFFSET(program_a));
         return 1;
     }
     uint32_t n;
@@ -1557,7 +1557,7 @@ static int program_map(const uint8_t **base, size_t *size) {
     /* An erased partition reads 0xFFFFFFFF here. Answer 0 so the loader refuses
        it by name ("image too small") instead of reading past the partition. */
     *base = p;
-    *size = n <= FIXED_PARTITION_SIZE(program_partition) ? n : 0;
+    *size = n <= FIXED_PARTITION_SIZE(program_a) ? n : 0;
     return 0;
 }
 #else
@@ -1895,7 +1895,7 @@ int main(void) {
 
 #ifdef OEVM_MODEL_B
     kernel_boot();   /* ONCE, before load/bootstrap — the order src/oevm_image_main.c uses */
-#if FIXED_PARTITION_EXISTS(program_partition)
+#if FIXED_PARTITION_EXISTS(program_a)
     const uint8_t *prog = NULL;
     size_t prog_size = 0;
     if (program_map(&prog, &prog_size) != 0 || oimg_load_blob(prog, prog_size) != 0) {
@@ -1908,7 +1908,7 @@ int main(void) {
         printk("oevm: oimg_load_blob failed\n");
         return 0;
     }
-#if FIXED_PARTITION_EXISTS(program_partition)
+#if FIXED_PARTITION_EXISTS(program_a)
     {
         /* rete#310 / IMAGE-ARTIFACTS.md decision 2: the node names the program it
            runs. Printed for `custos load` on the cable; noted for the ota seam, so
