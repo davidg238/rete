@@ -3,7 +3,8 @@
  * noted the hash of the program it loaded, and nothing before that.
  *
  * Link set (run_tests_oevm.py C_UNIT_TESTS): src/backend/zephyr/ota_zephyr.c
- * ONLY. That file includes no zephyr header on purpose, so it builds here. */
+ * ONLY. Its zephyr headers and its flash slot are behind __ZEPHYR__ (rete#233), so
+ * the inert half — every board without program slots — builds and is proved here. */
 #include "../src/ota_backend.h"
 
 #include <assert.h>

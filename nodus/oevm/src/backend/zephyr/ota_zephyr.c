@@ -2,9 +2,11 @@
 #include "ota_backend.h"
 #include <stddef.h>
 #include <string.h>
+#ifdef __ZEPHYR__
 #include <zephyr/kernel.h>
 #include <zephyr/sys/printk.h>
 #include <zephyr/storage/flash_map.h>
+#endif
 
 /* rete#25 / rete#233 — the zephyr half of the ota seam.
  *
@@ -34,10 +36,14 @@
  * the very end, with 0xFF (the erased value), and `staged_len` counts real bytes so
  * the padding is never hashed. */
 
+/* tests/ota_zephyr_test.c compiles this file with a plain host compiler to prove the
+   inert half; __ZEPHYR__ keeps the slot half, and its headers, on the board. */
+#ifdef __ZEPHYR__
 #if defined(CONFIG_FLASH_MAP) && FIXED_PARTITION_EXISTS(program_b)
 #define OTA_HAVE_SLOT 1
 static uint8_t stage_id = FIXED_PARTITION_ID(program_b);   /* the inactive slot */
 static long    staged_len;                                  /* 0 at every boot */
+#endif
 #endif
 
 static char running_hex[65];   /* "" until main.c notes the loaded program (rete#310) */
@@ -105,7 +111,16 @@ int ota_stage_append(const uint8_t *data, int len) {
     }
     int ok = flash_area_write(fa, (off_t)staged_len, p, (size_t)n) == 0;
     flash_area_close(fa);
-    if (ok) staged_len += len;
+    if (ok) {
+        staged_len += len;
+        /* rete#233 S1: the fetch rate over the radio is the number this rung is for,
+           and the fetch is blocking (D7), so the progress is printed from here, every
+           64 blocks (16 KB), against the slot erase as t0. */
+        static int64_t t0;
+        if (staged_len == len) t0 = k_uptime_get();
+        else if ((staged_len / 256) % 64 == 0)
+            printk("ota: staged %ld B at +%u ms\n", staged_len, (unsigned)(k_uptime_get() - t0));
+    }
     return ok;
 }
 
@@ -136,5 +151,9 @@ void ota_exit_stage_ready(void) {
 }
 
 void ota_sleep_ms(int ms) {
+#ifdef __ZEPHYR__
     if (ms > 0) k_msleep(ms);
+#else
+    (void)ms;   /* never reached off the board: ota_stage_size answers -1 there */
+#endif
 }
