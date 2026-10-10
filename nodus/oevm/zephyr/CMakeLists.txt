@@ -241,6 +241,11 @@ endif()
 if(DEFINED ENV{METHOD_CACHE_SIZE})
   target_compile_definitions(app PRIVATE METHOD_CACHE_SIZE=$ENV{METHOD_CACHE_SIZE})
 endif()
+# rete#380: the Zephyr serial backend's loopback fifo (serial_zephyr.c), 4 KB by default
+# and unused by a radio node; the MagTag bell recipe sets 256 to buy its panel's framebuffer.
+if(DEFINED ENV{SERIAL_FIFO_CAP})
+  target_compile_definitions(app PRIVATE SERIAL_FIFO_CAP=$ENV{SERIAL_FIFO_CAP})
+endif()
 
 # The boxed-Float arena (gc.c) mallocs slabs of OEVM_FLOAT_ARENA_SLAB_CELLS floats
 # (default 4096 ≈ 64 KB/slab — sized for a host's big libc heap). On the DK the

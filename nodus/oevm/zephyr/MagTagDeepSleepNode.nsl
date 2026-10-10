@@ -36,11 +36,14 @@ asleep as live until it misses four of them.
 
 Build (debug + profile image, from nodus/oevm/zephyr; the env is prj_esp32s2_porta.conf's,
 the bell fragment brings the panel, the speaker and SNTP back after it):
-  OEVM_IRAM_HOT=0 VM_STACK_INIT_WORDS=2048 OEVM_HEAP_SIZE=32768 \
-  OEVM_DEBUG_HOOKS=1 OEVM_METHOD_PROFILE=1 \
+  OEVM_IRAM_HOT=0 VM_STACK_INIT_WORDS=2048 OEVM_HEAP_SIZE=36864 \
+  METHOD_CACHE_SIZE=128 SERIAL_FIFO_CAP=256 OEVM_DEBUG_HOOKS=1 OEVM_METHOD_PROFILE=1 \
   OEVM_NTP_SERVER6=<the LAN's NTP by IPv6 literal> \
   ./run.sh --board esp32s2 --model B --node MagTagDeepSleepNode.nsl \
     --conf-extra "prj_esp32s2_wifi.conf;prj_esp32s2_porta.conf;prj_esp32s2_bell.conf" --flash
+  Bench: add OEVM_LOG_UDP6=<this desktop's STABLE ULA> and listen on UDP 54330 — the
+  console with no cable on the board (zephyr/src/log_udp.c; the last line before the sleep
+  never arrives, which is not a hang).
 
 expect (console, a strike wake):
 wake half 45 bells 5

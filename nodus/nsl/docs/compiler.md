@@ -24,6 +24,19 @@ or `<name>.oimg` (loaded by the resident VM), with its image map `<name>.oimg.ma
    `file:line:col` and print the offending line (#247). A top-level script (no `module`)
    is wrapped in a synthetic `ScriptApp` module whose `main:args:` holds the statements —
    so a `^` in a script is handled exactly as in any other method.
+   **Application libraries (`uses:`, #380).** A header comment may name libraries, one per
+   line, relative to the app's own file — `uses: lib/Bells.nsl` — and the compiler splices
+   each library module's classes into the app module as **nested classes** before anything
+   else happens (`library_paths`/`splice_libraries`). The app then reaches them by bare
+   name and instantiates them as it would a class in its own file (`RtcRecord on:
+   platform`); nothing joins the kernel and nothing is routed through `platform`. Only the
+   library's classes are taken (its own slots and methods are not), each tagged with the
+   library's file so a `CompileError`, a backtrace line and the image map point into the
+   library. Every leading comment block is scanned, so a suite test keeps its `expect:`
+   block first and the pragma in its prose; only a value ending in `.nsl` is a library. The
+   first one is `nodus/oevm/zephyr/lib/Bells.nsl`, the ship's-bell clock's classes, shared
+   by the MagTag deep-sleep node and (to come) the wall C6; `tests/20_bell/13_bell_classes.nsl`
+   is the seam's test.
 2. **Concatenate the library** — `lib/kernel.nsl` and then `lib/supervisor.nsl` are parsed
    and appended **after** the app, as top-level siblings rather than nested classes. Order
    matters: the entry class is the first declared class, so the app must come first. Being

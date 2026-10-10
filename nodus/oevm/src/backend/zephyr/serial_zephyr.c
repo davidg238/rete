@@ -5,7 +5,12 @@
    replace this in a later rung when a serial capability is demoed on device. */
 #include "serial_backend.h"
 #include <stddef.h>
+/* rete#380: a LOOPBACK fifo nothing on a radio node writes to, and 4 KB of dram0 on the
+   ESP32-S2, where the whole bell-clock image closed at 560 B to spare. Overridable from
+   the build (SERIAL_FIFO_CAP=256 in the MagTag recipe) the way METHOD_CACHE_SIZE is. */
+#ifndef SERIAL_FIFO_CAP
 #define SERIAL_FIFO_CAP 4096
+#endif
 static unsigned char fifo[SERIAL_FIFO_CAP];
 static size_t head = 0, tail = 0, count = 0;
 void serial_open(void) { head = tail = count = 0; }
