@@ -9,7 +9,8 @@ blocks are in `docs/status/focus-history.md`; live state is in the issues and `d
   `lib/Bells.nsl` (Dial shared; RtcClock, Trigger, Striker) is built in `nodus/oevm/zephyr/build-esp32c6-bell`, host gates green, not
   flashed. **Next session starts with:** daylight, bell on the powered hub, `nodus/oevm/zephyr/flash-bell.sh` (open the
   flashing-an-actuator-node memory first); watch boot + first strike on porta (`tel/log` row, `obs/build`); then the debugger at it
-  through porta; measurements to #380. Then #233.
+  through porta; measurements to #380. **Then, same session (David 2026-10-10):** #395 rooting arm — arm B of the CBOR AOT spike
+  holding a fresh object across every recursive send, rooted, under `OEVM_GC_STRESS`, measured on c6spare (recipe in the #395 comment); with the number in, the AOT-vs-pure-C note in paper E §11 (#395). Then #233.
 - **Awaiting David:** read E (draft 3, Appendices A–D lifted) and L; LICENSE and history rewrite (#368); close #314. Gateway runs
   `porta-379` + `MANIFEST-377.cddl` since 2026-10-09 19:55.
 - **Bench:** the bell `c6` is on USB (CP2102N `4e5729ee`, `/dev/ttyUSB0`) still running the old alarm image; `c6spare` NOT attached.

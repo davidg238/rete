@@ -1,0 +1,20 @@
+build porta-v1-final-1524-g08d2fce-dirty-20261009T232255
+=== byte identity against the nsl encoder ===
+check str256 bytes=259 armB=true armC=true
+check ints64 bytes=66 armB=true armC=true
+check mapNest4 bytes=279 armB=true armC=true
+check batch bytes=425 armB=true armC=true
+=== timing: min of 20 samples, one binary; nsl x20 encodes, native x200 ===
+str256   nsl  bytes=259 ns/encode=11974750
+str256   armB bytes=259 ns/encode=32815
+str256   armC bytes=259 ns/encode=32825
+ints64   nsl  bytes=66 ns/encode=6931800
+ints64   armB bytes=66 ns/encode=1535545
+ints64   armC bytes=66 ns/encode=48560
+mapNest4 nsl  bytes=279 ns/encode=15326100
+mapNest4 armB bytes=279 ns/encode=203705
+mapNest4 armC bytes=279 ns/encode=48210
+batch    nsl  bytes=425 ns/encode=44647900
+batch    armB bytes=425 ns/encode=1213205
+batch    armC bytes=425 ns/encode=159525
+done

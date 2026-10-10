@@ -1,0 +1,18 @@
+check str256 bytes=259 armB=true armC=true
+check ints64 bytes=66 armB=true armC=true
+check mapNest4 bytes=279 armB=true armC=true
+check batch bytes=425 armB=true armC=true
+=== timing: min of 20 samples, one binary; nsl x20 encodes, native x200 ===
+str256   nsl  bytes=259 ns/encode=84250
+str256   armB bytes=259 ns/encode=260
+str256   armC bytes=259 ns/encode=260
+ints64   nsl  bytes=66 ns/encode=51750
+ints64   armB bytes=66 ns/encode=9895
+ints64   armC bytes=66 ns/encode=270
+mapNest4 nsl  bytes=279 ns/encode=105850
+mapNest4 armB bytes=279 ns/encode=1390
+mapNest4 armC bytes=279 ns/encode=355
+batch    nsl  bytes=425 ns/encode=322350
+batch    armB bytes=425 ns/encode=8970
+batch    armC bytes=425 ns/encode=1550
+done

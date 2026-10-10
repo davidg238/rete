@@ -77,7 +77,7 @@ and `~/workspaceToit/nodus/docs/`:
 
 <!-- BEGIN GENERATED INVENTORY — do not edit below; rerun tools/docmap.sh -->
 
-_Regenerated 2026-10-06 by `tools/docmap.sh`. Legend: **record** = mainline doc of record · **design** = dated decision record (`docs/design/`) · **plan** = execution scaffolding (`docs/superpowers/plans/`) · **note** = superpowers notes/findings._
+_Regenerated 2026-10-09 by `tools/docmap.sh`. Legend: **record** = mainline doc of record · **design** = dated decision record (`docs/design/`) · **plan** = execution scaffolding (`docs/superpowers/plans/`) · **note** = superpowers notes/findings._
 
 ### review
 
@@ -85,7 +85,7 @@ _Regenerated 2026-10-06 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 - `review/2026-07-04-context-decision.md` — Task 8 design question: keep the deferred-lift heap Context? _(record, 2026-07-04)_
 - `review/2026-07-04-pre-fiber-baseline.md` — Pre-fiber baseline commits in oevm / ns-oevm _(record, 2026-08-02)_
 - `review/2026-07-21-issue-65-http-load-wedge/README.md` — tuvm#65 — evidence folder (2026-07-21) _(record, 2026-08-02)_
-- `review/DOCMAP.md` — DOCMAP — where every document of the program lives _(record, 2026-10-05)_
+- `review/DOCMAP.md` — DOCMAP — where every document of the program lives _(record, 2026-10-06)_
 - `review/ISSUE-dongle-usb-openthread.md` — DRAFT ISSUE (post to davidg238/tuvm — created from a session without gh permission) _(record, 2026-07-12)_
 - `review/WHY-AGENTS.md` — Why agents — nodus + porta as an agent-first platform _(record, 2026-08-29)_
 - `review/WHY-OEOM.md` — Why OEOM — the kernel that survived the graveyard _(record, 2026-07-12)_
@@ -154,11 +154,11 @@ _Regenerated 2026-10-06 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 - `docs/design/2026-07-23-magtag-buttons-leds-design.md` — MagTag buttons + LEDs, and the sleep-wake seam behind them _(design, 2026-07-23)_
 - `docs/design/2026-07-23-magtag-dac-bell-design.md` — MagTag DAC bell — design _(design, 2026-07-23)_
 - `docs/design/2026-07-23-magtag-epaper-display-seam-design.md` — The e-paper display seam — nsl paints the MagTag _(design, 2026-07-23)_
-- `docs/design/2026-07-24-magtag-deep-sleep-clock-design.md` — MagTag deep-sleep ship's-bell clock — design (tuvm#94 stage 5) _(design, 2026-07-26)_
+- `docs/design/2026-07-24-magtag-deep-sleep-clock-design.md` — MagTag deep-sleep ship's-bell clock — design (tuvm#94 stage 5) _(design, 2026-10-09)_
 - `docs/design/2026-07-24-magtag-ntp-catchup-design.md` — MagTag bell clock — stage 4: WiFi + NTP catchup _(design, 2026-07-23)_
 - `docs/design/2026-08-01-porta-space-sync-c6-gate-design.md` — porta space-sync — the C6 hardware gate (plan 3 of 3) — Design _(design, 2026-08-02)_
 - `docs/design/2026-08-02-rete-repo-consolidation-design.md` — rete — collapsing five repos into one system _(design, 2026-10-02)_
-- `docs/design/2026-08-03-c6-shipsbell-always-on-node-design.md` — The C6 ship's bell as an always-on node — design _(design, 2026-08-04)_
+- `docs/design/2026-08-03-c6-shipsbell-always-on-node-design.md` — The C6 ship's bell as an always-on node — design _(design, 2026-10-09)_
 - `docs/design/2026-08-03-device-console-collector-design.md` — Device console collector and offline symbolizer — design _(design, 2026-08-05)_
 - `docs/design/2026-08-03-t0.3-gate-ownership-decision.md` — T0.3 gate ownership: one script measures, one script decides _(design, 2026-08-03)_
 - `docs/design/2026-08-04-metrics-over-porta-design.md` — Node metrics over porta — the run-up, not the dying breath _(design, 2026-08-09)_
@@ -170,7 +170,7 @@ _Regenerated 2026-10-06 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 - `docs/design/2026-08-07-inclusive-attribution-design.md` — Attributing profile cost to code, not to callees _(design, 2026-08-07)_
 - `docs/design/2026-08-10-node-memory-and-liveness-design.md` — Node memory accounting and fleet liveness — design _(design, 2026-08-22)_
 - `docs/design/2026-08-12-allocation-attribution-design.md` — Allocation attribution — the profiler's question, asked about bytes _(design, 2026-08-12)_
-- `docs/design/2026-08-16-vm-liveness-observer-design.md` — A wedged node never faults — detecting the silence that raises no error _(design, 2026-10-02)_
+- `docs/design/2026-08-16-vm-liveness-observer-design.md` — A wedged node never faults — detecting the silence that raises no error _(design, 2026-10-09)_
 - `docs/design/2026-08-20-prim-id-on-symbol-design.md` — Primitive classification belongs to the Symbol, not to a cache _(design, 2026-08-21)_
 - `docs/design/2026-08-21-liveness-contract-design.md` — The liveness contract — a node declares how long its silence may last _(design, 2026-09-17)_
 - `docs/design/2026-08-24-kind-schema-manifest-design.md` — The kind+schema manifest — design (#243, 2026-08-24) _(design, 2026-08-25)_
@@ -180,14 +180,16 @@ _Regenerated 2026-10-06 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 - `docs/design/2026-09-14-porta-federation-and-transports-design.md` — porta beyond the LAN: federation, and the transports a public deployment would use _(design, 2026-09-16)_
 - `docs/design/2026-10-02-frozen-1.0-surface.md` — The frozen surface 1.0 — what is promised, what is missing, what comes after _(design, 2026-10-03)_
 - `docs/design/2026-10-02-security-levels-design.md` — Security levels: who may talk to whom, per node _(design, 2026-10-02)_
-- `docs/design/2026-10-04-custos-peer-design.md` — custos as the third peer: the nsl developer's tool _(design, 2026-10-06)_
+- `docs/design/2026-10-04-custos-peer-design.md` — custos as the third peer: the nsl developer's tool _(design, 2026-10-09)_
 - `docs/design/2026-10-05-custos-profile-over-usb.md` — `custos profile` over USB — what #312 needs decided first _(design, 2026-10-05)_
 - `docs/design/2026-10-05-debugger-stack-and-names-design.md` — The debugger's stack and names — one method identity (rete#323) _(design, 2026-10-05)_
-- `docs/design/2026-10-06-custos-debug-page-design.md` — The custos debug page (rete#340) _(design, 2026-10-06)_
+- `docs/design/2026-10-06-custos-debug-page-design.md` — The custos debug page (rete#340) _(design, 2026-10-09)_
 - `docs/design/2026-10-06-custos-tui-design.md` — The custos TUI (rete#341) _(design, 2026-10-06)_
-- `docs/development.md` — Development: the loop for a human and for an agent _(record, 2026-10-06)_
+- `docs/development.md` — Development: the loop for a human and for an agent _(record, 2026-10-09)_
+- `docs/limits.md` — What 0.1 is not _(record, 2026-10-06)_
 - `docs/next-steps-overview.md` — Next steps — overview _(record, 2026-10-05)_
 - `docs/overview.md` — rete — the whole on one page _(record, 2026-10-06)_
+- `docs/quickstart.md` — Quickstart: the first hour _(record, 2026-10-06)_
 - `docs/results/2026-07-20-c6-heap-ceiling.md` — ESP32-C6 heap-ceiling bisect — Task 3 _(record, 2026-07-20)_
 - `docs/results/2026-08-05-c6-checkin-decomposition.md` — Where the 300 ms goes — c6-bench, 2026-08-05 _(record, 2026-08-05)_
 - `docs/results/2026-08-05-c6-span-capture-first.md` — First span capture off a real node — c6-bench, 2026-08-05 _(record, 2026-08-05)_
@@ -205,12 +207,15 @@ _Regenerated 2026-10-06 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 - `docs/results/2026-10-01-rp2350-first-numbers.md` — RP2350 first numbers — #302 Task 5 _(record, 2026-10-01)_
 - `docs/results/2026-10-02-118-node-id-board-proof.md` — Node id board proof — #118 / #242, plan Task 10 _(record, 2026-10-02)_
 - `docs/results/2026-10-02-311-line-in-spike.md` — Line-in over the console cable — spike for rete#311 _(record, 2026-10-02)_
+- `docs/results/2026-10-06-313-patch-restart-spike.md` — Stop, patch, restart, resume — desktop spike for rete#313 _(record, 2026-10-07)_
+- `docs/results/2026-10-07-342-sleepy-node-debug-spike.md` — Debugging and profiling a sleepy node through porta — host spike for rete#342 _(record, 2026-10-08)_
+- `docs/results/2026-10-09-cbor-aot-spike.md` — What would AOT-ing `Cbor>>encode:` return? — spike, 2026-10-09 _(record)_
 - `docs/spikes/2026-07-17-oeom-native-hanoi/README.md` — Spike archive: OEOM native-substitution (Hanoi AOT ceiling) — 2026-07-17 _(record, 2026-07-17)_
 - `docs/spikes/2026-08-11-rete199-refused-node/README.md` — rete#199 — a node whose frames the gateway refuses, reproduced off hardware _(record, 2026-08-11)_
 - `docs/spikes/2026-08-27-liveness-model/README.md` — The liveness contract, model-checked (2026-08-27) _(record, 2026-10-03)_
 - `docs/status/2026-08-12-where-we-are.html` — rete &mdash; where we are _(record, 2026-08-12)_
 - `docs/status/README.md` — docs/status — the orientation deck _(record, 2026-08-13)_
-- `docs/status/dev-status.html` — rete dev status _(record, 2026-10-06)_
+- `docs/status/dev-status.html` — rete dev status _(record, 2026-10-09)_
 - `docs/status/focus-history.md` — `## Current focus` — history _(record, 2026-09-30)_
 - `docs/superpowers/notes/2026-06-18-w1-rooting-audit.md` — W1 Rooting Audit — Runtime `gc_allocate` / `float_alloc` Sites _(note, 2026-07-03)_
 - `docs/superpowers/plans/2026-06-17-decoupled-xip-image.md` — Decoupled Image + Execute-In-Place Format — Implementation Plan _(plan, 2026-08-29)_
@@ -263,9 +268,9 @@ _Regenerated 2026-10-06 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 - `docs/superpowers/plans/2026-10-06-362-debug-agent-path.md` — The agent path over /debug (rete#362) Implementation Plan _(plan, 2026-10-06)_
 - `docs/superpowers/plans/2026-10-06-d16-custos-collector.md` — D16: custos is the console collector — the fate table (rete#314) _(plan, 2026-10-06)_
 - `docs/tutorials/01-host.md` — Tutorial 1 — the VM on your host: build it, run the suite, write ten lines of nsl _(record, 2026-10-04)_
-- `docs/tutorials/02-board.md` — Tutorial 2 — a board: flash a node, watch it join a mesh, run the gates _(record, 2026-10-02)_
+- `docs/tutorials/02-board.md` — Tutorial 2 — a board: flash a node, watch it join a mesh, run the gates _(record, 2026-10-06)_
 - `docs/tutorials/03-porta.md` — Tutorial 3 — porta on your host: a gateway, a node, and the diff between them _(record, 2026-10-03)_
-- `docs/tutorials/04-debugger.md` — Tutorial 4 — the debugger: stop a program at a line, step it, look inside _(record, 2026-10-06)_
+- `docs/tutorials/04-debugger.md` — Tutorial 4 — the debugger: stop a program at a line, step it, look inside _(record, 2026-10-09)_
 
 ### nodus/oevm/docs
 
@@ -276,7 +281,7 @@ _Regenerated 2026-10-06 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 - `nodus/oevm/docs/archive/ECOSYSTEM.md` — Ecosystem map — the language/VM/fleet constellation _(record, 2026-08-29)_
 - `nodus/oevm/docs/archive/ROADMAP.md` — OEVM Roadmap _(record, 2026-08-29)_
 - `nodus/oevm/docs/archive/concept.md` — OEVM Concept & Genesis: From LLM-Driven Titelang to Custom Micro-Kernel VM _(record, 2026-08-29)_
-- `nodus/oevm/docs/archive/console-tools-README.md` — Console collector and offline reader (#56) _(record)_
+- `nodus/oevm/docs/archive/console-tools-README.md` — Console collector and offline reader (#56) _(record, 2026-10-06)_
 - `nodus/oevm/docs/archive/dev_process/phase1_walkthrough.md` — Walkthrough - Core C Structures for OEVM _(record, 2026-08-29)_
 - `nodus/oevm/docs/archive/dev_process/phase2_walkthrough.md` — Walkthrough - Phase 2: Instruction Set Expansion & XIP Solidification _(record, 2026-08-29)_
 - `nodus/oevm/docs/archive/dev_process/phase3_walkthrough.md` — Walkthrough - Phase 3: Introspection & Newspeak Mirrors _(record, 2026-08-29)_
@@ -298,18 +303,18 @@ _Regenerated 2026-10-06 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 
 ### protocol
 
-- `protocol/IMAGE-ARTIFACTS.md` — Image artifacts — what the compiler writes and custos reads _(record, 2026-10-05)_
-- `protocol/PROTOCOL-NSL-RECORDS.md` — Porta ↔ nsl — the record schemas _(record, 2026-10-05)_
-- `protocol/PROTOCOL-NSL.md` — Porta ↔ nsl node protocol — the space-sync model _(record, 2026-10-03)_
+- `protocol/IMAGE-ARTIFACTS.md` — Image artifacts — what the compiler writes and custos reads _(record, 2026-10-09)_
+- `protocol/PROTOCOL-NSL-RECORDS.md` — Porta ↔ nsl — the record schemas _(record, 2026-10-09)_
+- `protocol/PROTOCOL-NSL.md` — Porta ↔ nsl node protocol — the space-sync model _(record, 2026-10-09)_
 - `protocol/archive/PROTOCOL-NSL-draft-2026-07-11.md` — Porta ↔ nsl node protocol — the space-sync model (genesis draft) _(record, 2026-10-02)_
 - `protocol/archive/PROTOCOL.md` — Porta wire protocol _(record, 2026-10-02)_
 - `protocol/tools/.pytest_cache/README.md` — pytest cache directory # _(record)_
 
 ### nodus/nsl/docs
 
-- `nodus/nsl/docs/NEWSPEAK_DIALECT.md` — ns-oevm — a Newspeak dialect (intentional differences from full Newspeak) _(record, 2026-10-05)_
-- `nodus/nsl/docs/README.md` — nodus/nsl/docs — the dialect's documents _(record, 2026-10-04)_
-- `nodus/nsl/docs/compiler.md` — The nsl compiler _(record, 2026-10-05)_
+- `nodus/nsl/docs/NEWSPEAK_DIALECT.md` — nsl — a Newspeak dialect (intentional differences from full Newspeak) _(record, 2026-10-09)_
+- `nodus/nsl/docs/README.md` — nodus/nsl/docs — the dialect's documents _(record, 2026-10-06)_
+- `nodus/nsl/docs/compiler.md` — The nsl compiler _(record, 2026-10-09)_
 - `nodus/nsl/docs/design/2026-06-16-block-inlining-design.md` — Block inlining via a scope/frame model _(design, 2026-08-02)_
 - `nodus/nsl/docs/design/2026-06-19-next-phase-stdlib-and-debug.md` — ns-oevm — next phase: standard library + debug story _(design, 2026-08-29)_
 - `nodus/nsl/docs/design/2026-06-20-ns-oevm-stdlib-design.md` — ns-oevm — standard library: the capability-pure primitive/library line _(design, 2026-08-02)_
@@ -319,7 +324,7 @@ _Regenerated 2026-10-06 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 - `nodus/nsl/docs/design/2026-06-21-ns-oevm-stdlib-step3c2-dictionary-set.md` — ns-oevm std-lib step 3c-2 — Dictionary + Set (HashedCollection) _(design, 2026-08-02)_
 - `nodus/nsl/docs/design/2026-06-22-ns-oevm-stdlib-step3c3-streams-design.md` — ns-oevm std-lib step 3c-3a — Streams (ReadStream + WriteStream) _(design, 2026-08-02)_
 - `nodus/nsl/docs/design/2026-06-22-ns-oevm-stdlib-step3c3b-serial-design.md` — ns-oevm std-lib step 3c-3b — Serial (the first native capability tier) _(design, 2026-08-02)_
-- `nodus/nsl/docs/design/2026-06-23-ns-oevm-in-image-debugger-design.md` — In-image debugger + mirror grant (POSIX, agent-drivable) — design _(design, 2026-10-05)_
+- `nodus/nsl/docs/design/2026-06-23-ns-oevm-in-image-debugger-design.md` — In-image debugger + mirror grant (POSIX, agent-drivable) — design _(design, 2026-10-09)_
 - `nodus/nsl/docs/design/2026-06-23-ns-oevm-mirror-confinement-design.md` — ns-oevm Mirror tier — confining ambient reflection (the privileged-reflection capability) _(design, 2026-08-02)_
 - `nodus/nsl/docs/design/2026-06-23-ns-oevm-stratify-execution-off-reflection-design.md` — ns-oevm — Stratify base-level execution off reflection _(design, 2026-08-02)_
 - `nodus/nsl/docs/design/2026-06-25-ns-posix-keeper-r1-design.md` — Design: R1 — `ns-posix` node skeleton (nodus-style keeper on the resident oevm VM) _(design, 2026-08-02)_
@@ -349,6 +354,9 @@ _Regenerated 2026-10-06 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 - `nodus/nsl/docs/design/2026-07-14-tuvm23-crash-timer-sweep-design.md` — tuvm#23 — the crash sweep must cancel timers, not just reactions (design) _(design, 2026-08-02)_
 - `nodus/nsl/docs/design/2026-07-14-tuvm24-sys-metrics-design.md` — tuvm#24 — the sys/metrics story: heap + handles + queue telemetry as a cell _(design, 2026-08-02)_
 - `nodus/nsl/docs/design/2026-07-15-tuvm21-take-nil-vs-empty-design.md` — tuvm#21 — a posted `nil` must be distinguishable from an empty stream at `take:` _(design, 2026-08-02)_
+- `nodus/nsl/docs/design/2026-10-08-paper-split-outlines.md` — Splitting the nsl paper in two: outlines _(design, 2026-10-09)_
+- `nodus/nsl/docs/nsl-design-paper.md` — nsl: a Newspeak dialect in 112 KB — what it keeps, what it drops, and why _(record, 2026-10-09)_
+- `nodus/nsl/docs/nsl-embedded-paper.md` — rete: a lifecycle for small radio nodes on Zephyr — what is built, what it costs, and what is not _(record, 2026-10-09)_
 - `nodus/nsl/docs/programming_with_nsl.md` — Programming with nsl _(record, 2026-08-24)_
 - `nodus/nsl/docs/superpowers/findings/2026-07-04-oimg-large-smi-constant-corruption.md` — FINDING (2026-07-04): oimg backend corrupts large SMI integer constants _(note, 2026-08-02)_
 - `nodus/nsl/docs/superpowers/plans/2026-06-16-block-inlining-phase-a.md` — Block Inlining — Phase A (Foundation) Implementation Plan _(plan, 2026-08-29)_

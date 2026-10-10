@@ -1,0 +1,39 @@
+diff --git a/nodus/oevm/src/dispatch.c b/nodus/oevm/src/dispatch.c
+index 791d370..7d831bb 100644
+--- a/nodus/oevm/src/dispatch.c
++++ b/nodus/oevm/src/dispatch.c
+@@ -1355,6 +1355,16 @@ OEVM_HOT oop send_resolve(oop receiver, oop selector, int argc, oop *args,
+         extern oop hanoi_native_acquire(oop);
+         return hanoi_native_acquire(receiver);
+     }
++#endif
++#ifdef OEVM_CBOR_NATIVE
++    /* THROWAWAY spike gate (rete#395), the hanoi gate's sibling. */
++    if (selector != NULL && !IS_SMI(selector) && SymbolVtable != NULL &&
++        obj_vtable(selector) == SymbolVtable &&
++        strcmp(symbol_name((struct Symbol *)selector),
++               "installNativeCbor:map:record:bytes:true:false:cbor:arm:") == 0) {
++        extern oop cbor_native_acquire(int, oop *);
++        return cbor_native_acquire(argc, args);
++    }
+ #endif
+     // Intercept reflection & Array primitives
+     if (selector != NULL && !IS_SMI(selector)) {
+diff --git a/nodus/oevm/zephyr/CMakeLists.txt b/nodus/oevm/zephyr/CMakeLists.txt
+index 0f88160..e94e55a 100644
+--- a/nodus/oevm/zephyr/CMakeLists.txt
++++ b/nodus/oevm/zephyr/CMakeLists.txt
+@@ -189,7 +189,12 @@ elseif(OEVM_MODEL STREQUAL "B")
+   target_sources(app PRIVATE
+     ${OEVM_SRC}/src/oimg_loader.c
+     ${OEVM_SRC}/src/kernel_boot.c
+-    ${OEVM_SRC}/src/hanoi_native.c)
++    ${OEVM_SRC}/src/hanoi_native.c
++    ${OEVM_SRC}/src/cbor_native.c)
++  # THROWAWAY spike (rete#395): export OEVM_CBOR_NATIVE=1 for the native Cbor arms.
++  if("$ENV{OEVM_CBOR_NATIVE}" STREQUAL "1")
++    target_compile_definitions(app PRIVATE OEVM_CBOR_NATIVE=1)
++  endif()
+   # OEVM_NO_FILE_IO compiles out oimg_loader.c's oimg_load() mmap/open path,
+   # which has no meaning on this target.
+   target_compile_definitions(app PRIVATE OEVM_MODEL_B OEVM_NO_FILE_IO)
