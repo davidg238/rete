@@ -121,6 +121,16 @@ custos's query engine.
   with no verdict, `obs/debug` held true throughout, `dbg:ok clear` and ticks on the detach, 1488 held exchanges run.
   The first build compared the argument `== true_symbol` and rebooted exactly as before: a literal `true` is the image's
   own Symbol, not the VM's singleton — `is_truthy`, and `tests/22_spacesync/29_debug_held.nsl` sends the literal.
+  *Addendum 2026-10-09 (#379, the deep-sleep leg on a board):* `MagTagSleepyDebugNode` (ESP32-S2, WiFi, a debug
+  image, 28 KB arena, 30 s sleeps) against the production porta: the `goal/debug/main` cell re-armed on every cold
+  boot and stopped `work:` one second after boot; held through porta with no cable, `backtrace` / `inspect` / `step`
+  answered in 636–755 ms, the continue published `obs/debug` false and the wake's own row, and the empty set detached
+  the next wake. Three things a WiFi board needed that Thread never asked for: porta by its IPv6 ULA (a v4 send leaves
+  an unbound socket, #390); the VM's main thread BELOW the WiFi driver's preemptive threads
+  (`CONFIG_MAIN_THREAD_PRIORITY=12` — at 0 a spinning `awaitReply:` starved the radio and the UDP console); and a boot
+  id without NVS (an RTC-retained counter — with bootId 0 porta skipped every wake's rows as replays). The S2's RAM is
+  the limit: its IRAM and DRAM are one pool, the bridge+debugger floor is 24 KB (32-bit host), and the arena ran at
+  its ceiling — the bell demo's display and DAC do not fit beside it on this part (issue #379).
 
 ## 2. The picture
 
