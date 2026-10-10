@@ -5,12 +5,12 @@ blocks are in `docs/status/focus-history.md`; live state is in the issues and `d
 
 - **0.1 (David, 2026-10-09): one node, every verb — load, debug, patch, profile — through porta, over the radio, while it sleeps.**
   Demos: the ship's bell twice, wall C6 always-on (#380) and MagTag deep-sleep (#379). Lifecycle table: #26.
-- **FOCUS: #233 — program OTA through porta.** Branch `233-ota` (pushed, not merged; master has #380). S1, T9, S2, S3 done:
+- **FOCUS: #233 — program OTA through porta.** Merged to master 2026-10-10 (`ed41787`). S1, T9, S2, S3 done:
   all four scenarios proven on c6spare (#233 comments, 2026-10-10); E §9 carries the bench numbers. **Next session starts
-  with:** David merges `233-ota` (the desktop custos is already rebuilt, #399 (2)); then the MagTag on USB (reflash with the
+  with:** branch from master; the MagTag on USB (reflash with the
   two-slot layout, `OEVM_OTA_PUBKEY=$(cat ~/porta-v2/porta.pub on gw)` exported before `run.sh`), one push over WiFi; then
   the bell (`flash-bell.sh`, daylight), one push over Thread; then #398 (porta HTTP push front, Appendix D).
-- **Awaiting David:** merge `233-ota`; bring the MagTag to the bench; read E draft 4 (§9 OTA line changed today) and L;
+- **Awaiting David:** bring the MagTag to the bench; read E draft 4 (§9 OTA line changed today) and L;
   LICENSE and history rewrite (#368); close #314; #396; #175's memo (the runner already holds the rejected hash).
 - **Bench:** the bell `c6` is on the WALL (never flash). `c6spare` on USB runs the S2 firmware (build `…T111913`), slot a =
   v2' (`a9af3a…`, cable), slot b = v3 (`726e8b…`, signed, active), goal = v3 (`~/porta-v2/goal-v3.hex` on gw). Reset it with
