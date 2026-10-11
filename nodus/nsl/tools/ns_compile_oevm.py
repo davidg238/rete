@@ -57,6 +57,7 @@ OP_GT     = 0x1B
 OP_GE     = 0x1C
 OP_AT     = 0x1D       # basicAt:
 OP_AT_PUT = 0x1E       # basicAt:put:
+OP_ITER_AT = 0x1F      # rete#37 spike: declared, never emitted (vm.c; images are hand-patched)
 FASTPATH_SEND_OPS = {"<": OP_LT, "<=": OP_LE, ">": OP_GT, ">=": OP_GE,
                      "basicAt:": OP_AT, "basicAt:put:": OP_AT_PUT}
 def send_op_for(selector):

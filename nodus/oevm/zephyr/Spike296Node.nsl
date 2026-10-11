@@ -513,10 +513,17 @@ public class BlockCost usingPlatform: platform = () (
 		t1:: 0 millis.
 		^ t1 - t0
 	)
-	(* rete#37 spike: the bytecode below is replaced in the image by patch_ocdo.py with `oc do:`
+	(* rete#37 spike: the bytecode of the next two methods is replaced in the image by patch_ocdo.py with `oc do:`
 	   lowered at the call site (the block inlined into the kernel's loop). The six sends are only
 	   room for the longer loop; this source never runs as written. *)
 	public ocDoLowered: oc = (
+		| t0 t1 |
+		t0:: 0 millis.
+		1 to: 100000 do: [ :i | oc do: [ :e | e ]. oc do: [ :e | e ]. oc do: [ :e | e ]. oc do: [ :e | e ]. oc do: [ :e | e ]. oc do: [ :e | e ] ].
+		t1:: 0 millis.
+		^ t1 - t0
+	)
+	public ocDoFused: oc = (
 		| t0 t1 |
 		t0:: 0 millis.
 		1 to: 100000 do: [ :i | oc do: [ :e | e ]. oc do: [ :e | e ]. oc do: [ :e | e ]. oc do: [ :e | e ]. oc do: [ :e | e ]. oc do: [ :e | e ] ].
@@ -554,6 +561,7 @@ public main: platform args: args = (
 	('closureMake: '  , p closureMake printString) out.
 	('ocDo: '         , (p ocDo: oc) printString) out.
 	('ocDoLowered: '  , (p ocDoLowered: oc) printString) out.
+	('ocDoFused: '    , (p ocDoFused: oc) printString) out.
 	('ocAt: '         , (p ocAt: oc) printString) out.
 	r:: Richards usingPlatform: platform.
 	richards:: r newInstance.

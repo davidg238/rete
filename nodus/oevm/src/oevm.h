@@ -354,6 +354,11 @@ enum Opcode {
     OP_GE     = 0x1C,
     OP_AT     = 0x1D,       /* basicAt:      — 1-based indexable read  */
     OP_AT_PUT = 0x1E,       /* basicAt:put:  — 1-based indexable write */
+    /* rete#37 spike (branch 37-ocdo-spike): one step of a lowered `do:` over an indexable, in one dispatch.
+       a = base register b, bx (bits 16..31) = signed exit offset, as OP_JMP_IF_FALSE. R(b) = next index,
+       R(b+1) = limit, R(b+2) = the indexable, R(b+3) <- the element. Index past limit: branch; else load
+       the element and R(b) = index + 1. Not emitted by the compiler; images are hand-patched. */
+    OP_ITER_AT = 0x1F,
 };
 
 enum AccessModifier {
