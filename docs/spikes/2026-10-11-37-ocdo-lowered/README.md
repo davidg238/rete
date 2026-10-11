@@ -32,9 +32,9 @@ when `OEVM_OIMG_PATCH` names it (spike only). `ocDo:` stays in the same image as
   cycles each, 100,000 times. That leaves ~2.3 µs, ~350 cycles, for each element's 10 bytecodes: the cycle model
   holds (~35–41 per bytecode), and the record's ~300 assumed fewer bytecodes than this ISA allows.
 - **What would close the last 1.9× (not measured):** four of the ten per-element bytecodes are window copies.
-  A separate destination on `LE`/`AT` (as `ADD` already has) would make it ~6 bytecodes, ~250 cycles,
-  ~1.7 s (~1.1×). A fused iterate opcode (`k <= count`, `e := contents[k]`, `k++`, branch, in one dispatch,
-  Python's `FOR_ITER`) would make it ~3, ~1.0 s, below MicroPython. Both are ISA changes; the second is one
+  A separate destination on `LE`/`AT` (as `ADD` already has) would make it ~6 bytecodes, ~210 cycles, and
+  the row ~1.9 s with the 0.5 s per-call share (~1.3×). A fused iterate opcode (`k <= count`, `e := contents[k]`,
+  `k++`, branch, in one dispatch, Python's `FOR_ITER`) would make it ~3, the row ~1.2 s (~0.8×). Both are ISA changes; the second is one
   more mechanism.
 - **Placement moved again.** Adding the method shifted the flash layout: richards 8588 → 8138, blockValue 6301 →
   6355 against #412's table, with neither row touching the new code. The comparison above is within one image,
