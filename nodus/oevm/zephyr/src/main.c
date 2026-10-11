@@ -1815,7 +1815,7 @@ K_THREAD_DEFINE(strike_console_tid, 1024, strike_console, NULL, NULL, NULL, 10, 
 #define OEVM_BLOB_SRAM_DEFAULT 0
 #endif
 #ifndef OEVM_SPIKE_296_WINDOW_MS
-#define OEVM_SPIKE_296_WINDOW_MS 8000
+#define OEVM_SPIKE_296_WINDOW_MS 6000
 #endif
 static uint8_t spike296_blob_sram[OEVM_BLOB_SRAM_CAP] __aligned(16);
 static int spike296_arm_sram = OEVM_BLOB_SRAM_DEFAULT;
@@ -1943,7 +1943,10 @@ int main(void) {
         else
             printk("spike296: no retained death note\n");
     }
-    spike296_window();   /* rete#296: choose the blob's home, or leave for BOOTSEL */
+    /* The window itself runs AFTER observer_start(): wdt_rpi_pico starts the hardware
+       watchdog at driver init (CONFIG_WDT_DISABLE_AT_BOOT unset, INITIAL_TIMEOUT 8.39 s)
+       and the observer is what takes it over — an 8 s window in front of it was a boot
+       loop (2026-10-10, boards 86 → 87 USB device numbers deep). */
 #endif
 
     /* rete#215: validate the retained note before anything can read it, and before the
@@ -1991,6 +1994,9 @@ int main(void) {
        detector answers OBS_COND_NONE and cannot trip on it. Arming earlier would buy nothing
        and would put the first reboot inside a path that has no note to write about it. */
     observer_start();
+#ifdef OEVM_SPIKE_296
+    spike296_window();   /* rete#296: choose the blob's home, or leave for BOOTSEL */
+#endif
 
 #ifdef OEVM_MODEL_B
     kernel_boot();   /* ONCE, before load/bootstrap — the order src/oevm_image_main.c uses */
