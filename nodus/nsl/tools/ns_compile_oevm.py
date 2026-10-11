@@ -57,8 +57,12 @@ OP_GT     = 0x1B
 OP_GE     = 0x1C
 OP_AT     = 0x1D       # basicAt:
 OP_AT_PUT = 0x1E       # basicAt:put:
+OP_ITER_AT = 0x1F      # one step of a kernel do: (rete#37); emitted by compile_iter_at only
 FASTPATH_SEND_OPS = {"<": OP_LT, "<=": OP_LE, ">": OP_GT, ">=": OP_GE,
                      "basicAt:": OP_AT, "basicAt:put:": OP_AT_PUT}
+# rete#37: OP_ITER_AT is emitted only for kernel source (design 2026-10-11-37-iter-at-design.md D3).
+KERNEL_PATH = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "lib", "kernel.nsl"))
+
 def send_op_for(selector):
     return FASTPATH_SEND_OPS.get(selector, OP_SEND)
 
@@ -177,6 +181,9 @@ class MethodCompiler:
         # OP_LD_CTX/OP_ST_CTX once slots are assigned (see finalize_contexts()).
         # Each entry: (instr_index, is_write, defining_frame, name, depth, val_reg).
         self._ctx_patch = []
+        # rete#37: id() of each `X basicAt: i` send an enclosing compile_iter_at has
+        # replaced with its element register -> that register.
+        self._iter_elem = {}
         # Internal: name -> original register, recorded at the point of capture
         # (see resolve_name). NOT every captured name lives in local_vars — an
         # inlined literal-block's params/temps (to:do:/ifTrue:/... induction
@@ -324,6 +331,7 @@ class MethodCompiler:
         if op == OP_SEND_SUPER:    return (set(range(s2, s2 + d + 2)), {s2})
         if op == OP_JMP:           return (set(), set())
         if op == OP_JMP_IF_FALSE:  return ({d}, set())
+        if op == OP_ITER_AT:       return ({d, d + 1, d + 2}, {d, d + 3})
         if op == OP_RET:           return ({d}, set())
         if op == OP_LD_SLOT:       return ({s2}, {d})
         if op == OP_ST_SLOT:       return ({d, s2}, set())
@@ -344,7 +352,7 @@ class MethodCompiler:
         op = inst & 0xFF
         if op == OP_JMP:
             off = (inst >> 8) & 0xFFFF
-        elif op == OP_JMP_IF_FALSE:
+        elif op in (OP_JMP_IF_FALSE, OP_ITER_AT):
             off = (inst >> 16) & 0xFFFF
         else:
             return None
@@ -424,7 +432,7 @@ class MethodCompiler:
                     if tgt is not None:
                         if op == OP_JMP:
                             m = tgt; continue
-                        work.append(tgt)            # JMP_IF_FALSE: both successors
+                        work.append(tgt)            # JMP_IF_FALSE / ITER_AT: both successors
                     m += 1
             return True
 
@@ -509,7 +517,7 @@ class MethodCompiler:
             offset = target - (idx + 1)
             if op == OP_JMP:
                 inst = ((offset & 0xFFFF) << 8) | (op & 0xFF)
-            elif op == OP_JMP_IF_FALSE:
+            elif op in (OP_JMP_IF_FALSE, OP_ITER_AT):
                 inst = ((offset & 0xFFFF) << 16) | ((cond_reg & 0xFF) << 8) | (op & 0xFF)
             else:
                 raise ValueError(f"finalize_jumps: unexpected op {op}")
@@ -801,6 +809,89 @@ class MethodCompiler:
         self.free_reg()  # end_reg
         self.free_reg()  # i_reg
         # target_reg already holds the start value (the receiver) = result
+
+    def iter_at_shape(self, block):
+        """rete#37 (design 2026-10-11-37-iter-at-design.md D1): `a to: b do: [:i | ...]` in kernel
+        source whose body uses `i` only as `X basicAt: i`, one X, X being `self` or an own slot
+        the body never assigns, and no such read inside a nested block. -> (X, [the basicAt:
+        sends]) for compile_iter_at, or None for the ordinary loop."""
+        if (block["type"] != "block" or len(block.get("params", [])) != 1
+                or self.parent.current_file != KERNEL_PATH):
+            return None
+        i = block["params"][0]
+        hits, names, assigned = [], set(), set()
+        ok = True
+
+        def walk(n, nested):
+            nonlocal ok
+            if isinstance(n, list):
+                for c in n:
+                    walk(c, nested)
+                return
+            if not isinstance(n, dict) or not ok:
+                return
+            t = n.get("type")
+            if (t == "send" and n["selector"] == "basicAt:"
+                    and n["args"][0].get("type") == "varRef" and n["args"][0].get("name") == i
+                    and n["receiver"] is not None and n["receiver"].get("type") == "varRef"):
+                if nested:
+                    ok = False
+                hits.append(n)
+                names.add(n["receiver"]["name"])
+                return
+            if t == "varRef" and n.get("name") == i:
+                ok = False                            # i used other than as basicAt:'s argument
+            elif t == "assign":
+                assigned.add(n["target"])
+            elif t == "send" and n["selector"].endswith(":") and ":" not in n["selector"][:-1]:
+                assigned.add(n["selector"][:-1])      # a setter send, `self x: v`
+            elif t == "block":
+                nested = True
+                if i in n.get("params", []) or i in n.get("temps", []):
+                    ok = False
+            for k, v in n.items():
+                if k != "span":
+                    walk(v, nested)
+
+        walk(block["body"], False)
+        if not ok or len(names) != 1:
+            return None
+        x = names.pop()
+        if x in assigned or x in block.get("temps", []):
+            return None
+        if x != "self":
+            res = self.resolve_name(x)
+            if res[0] != "slot" or res[2] != 0:
+                return None
+        return x, hits
+
+    def compile_iter_at(self, start_expr, end_expr, block, shape, target_reg):
+        """rete#37: `start to: end do: [:i | ... (X basicAt: i) ...]` as OP_ITER_AT, one dispatch
+        per element. end and X are evaluated once, at entry (X's hoist: dialect row 33). Result
+        = the receiver (start), as compile_to_do_inline. i is never bound: its only uses are
+        the basicAt: sends, which read the element register instead."""
+        x, hits = shape
+        self.compile_expr(start_expr, target_reg)
+        b = self.alloc_reg()                              # R(b) next index
+        self.alloc_reg(); self.alloc_reg(); self.alloc_reg()   # limit, X, element
+        self.emit_ABC(OP_LD_REG, b, target_reg, 0)
+        self.compile_expr(end_expr, b + 1)
+        self.compile_expr({"type": "varRef", "name": x}, b + 2)
+        l_start = self.new_label()
+        l_end = self.new_label()
+        self.bind_label(l_start)
+        self.emit_jump(OP_ITER_AT, b, l_end)
+        for h in hits:
+            self._iter_elem[id(h)] = b + 3
+        body_reg = self.alloc_reg()
+        self.compile_inlined_block(block, body_reg, param_regs=None, init_temps=True)
+        self.free_reg()  # body_reg
+        for h in hits:
+            del self._iter_elem[id(h)]
+        self.emit_jump(OP_JMP, 0, l_start)
+        self.bind_label(l_end)
+        for _ in range(4):
+            self.free_reg()
 
     def compile_to_by_do_runtime(self, start_expr, end_expr, step_expr, block, target_reg):
         # `start to: end by: step do: [:i | body]` when `step` is not a
@@ -1302,6 +1393,9 @@ class MethodCompiler:
             self.free_reg()  # arr_reg
 
         elif et == "send":
+            if id(expr) in self._iter_elem:          # rete#37: the element OP_ITER_AT loaded
+                self.emit_ABC(OP_LD_REG, target_reg, self._iter_elem[id(expr)], 0)
+                return
             receiver = expr["receiver"]
             selector = expr["selector"]
             args = expr["args"]
@@ -1431,7 +1525,11 @@ class MethodCompiler:
             # to:do: — always lowered. Literal one-param body inlines; any other
             # body is OP_BLOCK_INVOKE'd as `body value: i`.
             if selector == "to:do:" and len(args) == 2:
-                self.compile_to_do_inline(receiver, args[0], None, args[1], target_reg)
+                shape = self.iter_at_shape(args[1])
+                if shape is not None:
+                    self.compile_iter_at(receiver, args[0], args[1], shape, target_reg)
+                else:
+                    self.compile_to_do_inline(receiver, args[0], None, args[1], target_reg)
                 return
 
             # to:by:do: — literal nonzero-int step keeps the compile-time-direction
@@ -2610,7 +2708,7 @@ def parse_program(src_ns):
     # resolves them in app scope — app code still reaches them via `platform`
     # (step-2 routing). Reached only through platform → source-compatible with the
     # future "kernel as outer module" form.
-    kernel_path = os.path.join(os.path.dirname(__file__), "..", "lib", "kernel.nsl")
+    kernel_path = KERNEL_PATH
     kproc = subprocess.run(["node", parse_script, kernel_path],
                            capture_output=True, text=True)
     if kproc.returncode != 0:
@@ -2719,7 +2817,7 @@ def main():
         # layout already loaded above (before compiling) to size compile_expr's
         # SMI/LARGEINT split correctly.
         _ser, _Graph, blob, entry_class = serialize_oimg(compiler, layout)
-        kernel_path = os.path.join(os.path.dirname(__file__), "..", "lib", "kernel.nsl")
+        kernel_path = KERNEL_PATH
         supervisor_path = os.path.join(os.path.dirname(__file__), "..", "lib", "supervisor.nsl")
         with open(out_c, "wb") as f:
             f.write(blob)

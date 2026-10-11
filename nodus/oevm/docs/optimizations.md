@@ -546,6 +546,37 @@ before. ms per row.
   without the radio overlay: the OTA thread's stack call failed the link, and the runner compiled as its stub
   for want of `CONFIG_SETTINGS`, so the node booted and idled. Both are fixed under #412.
 
+## Opt #7 — the kernel's `do:` in one dispatch per element: `OP_ITER_AT` (rete#37, 2026-10-11)
+
+One opcode, `ITER_AT b, off` (0x1F): R(b) next index, R(b+1) limit, R(b+2) the indexable, R(b+3) ← the
+element; past the limit it branches, else it loads the element and increments the index. The compiler emits it
+for `a to: b do: [:i | ... (X basicAt: i) ...]` in **kernel source only**, when `i` is used only as
+`basicAt:`'s argument and X is `self` or a slot the body never assigns. `Array>>do:` and
+`OrderedCollection>>do:` take it, and so does everything the kernel builds on `do:` (`collect:`, `select:`,
+`reject:`, `inject:into:`, `detect:ifNone:`, `includes:`); an app reaches it through those, never through a
+hand-written index loop. `X` and the limit are read once at entry: legal because modifying a collection inside
+its own `do:` is undefined (dialect row 33), and memory-safe because the held array is only ever replaced, never
+shrunk. Pinned by `nodus/nsl/tools/test_iter_at.py` and `nodus/oevm/tests/test_op_fast.c`. Decision record:
+`docs/design/2026-10-11-37-iter-at-design.md`.
+
+WeAct RP2350B, the #296 node (`Spike296Node.nsl`), `-O2`, blob in flash, three boots identical to the ms
+(`docs/results/2026-10-11-37-iter-at/logs/`). The control is yesterday's spike image, the same node over the same
+master: every row the opcode does not touch reproduces it to the ms.
+
+| row (ms) | before (spike control) | `OP_ITER_AT` | ratio | vs MicroPython (1491) |
+|---|---:|---:|---:|---:|
+| **ocDo** | 7668 | **5594** | **0.73** | 3.75× (was 5.1×) |
+| hanoi, baseLoop, blockValue, methodSend, blockCapture, closureMake, ocAt | 1910, 2495, 6295, 7049, 6960, 3760, 11114 | the same ±1 | 1.00 | |
+| richards | 8361 | 8445 | 1.01 | |
+
+- **Per element: 7.67 → 5.59 µs.** The loop's own bytecodes (compare, branch, two loads, `AT`, add, jump) are now
+  one dispatch.
+- **What is left is the block call:** the spike's fused row, with the block body also inlined at the call site,
+  ran 1219 ms, so about 4.4 µs of the 5.6 µs per element is the `aBlock value: e` activation. That is the next
+  lever: call-site lowering of a literal `do:` block, which needs the receiver's class at the call site (#395).
+- richards' +1 % is not explained by the opcode (it is not a `do:`-heavy row); read it as placement until a
+  profile says otherwise.
+
 ## Known weaknesses / tracked gaps (snapshot 2026-06-18)
 
 Captured after the sober-reference benchmark exercise (see
