@@ -129,7 +129,7 @@ static oop sm_to_int(int sign, uint64_t mag) {
    immediate is narrower than the tagged range); loading it unboxed keeps the
    one-value-one-representation invariant that `=`/`hash` (Dictionary keys)
    rely on. */
-oop oevm_int_demote(oop v) {
+OEVM_HOT2 oop oevm_int_demote(oop v) {
     if (v == NULL || IS_SMI(v)) return v;
     if (obj_vtable(v) != LargeIntegerVtable) return v;
     struct LargeInteger *li = (struct LargeInteger *)v;
@@ -409,7 +409,7 @@ oop lookup_defining_vtable(oop receiver_vtable, oop selector, oop *out_method) {
 
 /* Cached front-end to lookup_defining_vtable. Caller guarantees
    receiver_vtable != NULL. Misses (does-not-understand) are never cached. */
-oop lookup_method_cached(oop receiver_vtable, oop selector,
+OEVM_HOT2 oop lookup_method_cached(oop receiver_vtable, oop selector,
                          oop *out_method, oop *out_defining_vt) {
 #ifdef OEVM_CACHE_STATS
     method_cache_register_report();

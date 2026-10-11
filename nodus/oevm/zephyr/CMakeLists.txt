@@ -368,6 +368,10 @@ if(CONFIG_SOC_FAMILY_RPI_PICO AND "$ENV{OEVM_SPIKE_296}" STREQUAL "1")
   endif()
   message(STATUS "oevm: rete#296 spike compiled in (blob -> SRAM, arm on the console)")
 endif()
+if(CONFIG_SOC_FAMILY_RPI_PICO AND "$ENV{OEVM_SPIKE_296_HOT2}" STREQUAL "1")
+  target_compile_definitions(app PRIVATE OEVM_SPIKE_296_HOT2=1)
+  message(STATUS "oevm: rete#296 spike arm 2 (the per-send callees in SRAM too)")
+endif()
 
 # Experiment (2026-07-17): OEOM native-substitution Hanoi spike. OFF by default.
 # export OEVM_HANOI_NATIVE=1 to build the native hanoiMove: PrimitiveClosure path

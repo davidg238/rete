@@ -36,6 +36,15 @@
 #else
 #define OEVM_HOT
 #endif
+/* rete#296 spike arm 2 (branch 296-image-in-sram): the OTHER functions the host profile
+   shows once per activation — lookup_method_cached, check_access_allowed, oevm_int_demote —
+   placed beside the OEVM_HOT set when the build exports OEVM_SPIKE_296_HOT2=1. Measures
+   what the remaining flash-resident per-send calls cost on an XIP part. */
+#ifdef OEVM_SPIKE_296_HOT2
+#define OEVM_HOT2 OEVM_HOT
+#else
+#define OEVM_HOT2
+#endif
 
 /*
  * On-target debugger hooks. The dispatch loop carries three per-bytecode

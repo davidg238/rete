@@ -1904,6 +1904,9 @@ int main(void) {
        into an unenumerated console and lost — the same "Issue A" reason that
        sleep exists. printk, not printf: the fault path gags newlib stdio. */
     printk("oevm: build-id %s\n", oevm_build_id);
+#ifdef OEVM_SPIKE_296
+    spike296_window();   /* rete#296: choose the blob's home, or leave for BOOTSEL */
+#endif
 
     /* rete#215: validate the retained note before anything can read it, and before the
        remote console starts — a note that was going to be reported must not be lost to a
