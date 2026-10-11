@@ -9,6 +9,7 @@
  *   - OP_AT on an indexable (slot0 = SMI length): 1-based element read
  *   - OP_AT_PUT: 1-based element write, returns the stored value
  *   - OP_ITER_AT (rete#37): a hand-assembled sum loop, including zero iterations
+ *   - OP_IS_VT (rete#37): the class guard of an inlined iterator, true only for an exact vtable
  *
  * Fallback tiers (Float/LargeInteger compares, non-indexable receivers) are the
  * send path itself and are covered by the nsl suite.
@@ -40,6 +41,7 @@ extern const struct Symbol false_sym_obj;
 #define TOP_AT     0x1D
 #define TOP_AT_PUT 0x1E
 #define TOP_ITER_AT 0x1F
+#define TOP_IS_VT   0x20
 
 static uint32_t enc(uint8_t op, uint8_t dest, uint8_t src1, uint8_t src2) {
     return (uint32_t)op | ((uint32_t)dest << 8) | ((uint32_t)src1 << 16) | ((uint32_t)src2 << 24);
@@ -109,6 +111,33 @@ static oop run_iter_sum(oop ix, intptr_t limit) {
     return result;
 }
 
+/* OP_IS_VT (rete#37): r1 = obj, r2 <- (r1's vtable == consts[1]). */
+static oop run_is_vt(oop obj, oop vt) {
+    struct CompiledMethod *method = calloc(1, sizeof(struct CompiledMethod));
+    method->num_arguments = 0;
+    method->num_registers = 3;
+    oop *consts = calloc(2, sizeof(oop));
+    consts[0] = obj; consts[1] = vt;
+    method->constants = consts;
+    method->constant_count = 2;
+    method->access_modifier = ACCESS_PUBLIC;
+    uint32_t insts[3];
+    insts[0] = enc(OP_LD_CONST, 1, 0, 0);
+    insts[1] = enc(TOP_IS_VT, 2, 1, 1);
+    insts[2] = enc(OP_RET, 2, 0, 0);
+    method->instructions = insts;
+    method->instruction_count = 3;
+
+    struct Closure *cl = (struct Closure *)gc_allocate(BytecodeClosureVtable, sizeof(struct Closure));
+    cl->home_ctx = NULL;
+    cl->home_generation = 0;
+    cl->entry_point = method;
+    cl->captured_env = NULL;
+    oop result = run_interpreter((oop)cl, NULL, 0, NULL);
+    free(consts); free(method);
+    return result;
+}
+
 int main(void) {
     init_solidified_vtables();
     assert(BytecodeClosureVtable != NULL);
@@ -140,6 +169,14 @@ int main(void) {
     assert(run_iter_sum(arr, 2) == TAG_SMI(30));
     assert(run_iter_sum(arr, 0) == TAG_SMI(0));
     printf("iter_at OK\n");
+
+    /* --- OP_IS_VT --- */
+    oop iv = indexable_new(2);
+    assert(run_is_vt(iv, obj_vtable(iv)) == (oop)&true_sym_obj);
+    assert(run_is_vt(iv, BytecodeClosureVtable) == (oop)&false_sym_obj);
+    assert(run_is_vt(TAG_SMI(3), obj_vtable(iv)) == (oop)&false_sym_obj);
+    assert(run_is_vt(NULL, obj_vtable(iv)) == (oop)&false_sym_obj);
+    printf("is_vt OK\n");
 
     printf("OP FAST OK\n");
     return 0;

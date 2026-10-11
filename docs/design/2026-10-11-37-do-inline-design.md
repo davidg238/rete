@@ -1,9 +1,10 @@
-# A literal `do:` block inlined at the call site, behind a class guard (rete#37)
+# Kernel iterators with a literal block, inlined at the call site behind a class guard (rete#37)
 
-> Status: **DRAFT, 2026-10-11, for David.** Follows `docs/design/2026-10-11-37-iter-at-design.md`
-> (`OP_ITER_AT`, kernel-only, merged) and the queued question on #37 (2026-10-11 comment): what does it
-> take to inline the `do:` block at the call site? The spike that prices it is §Spike below; its code is
-> on branch `37-do-inline-spike`.
+> Status: **approved by David, 2026-10-11** (Q1 both, Q2 by name, Q3 off in debug, Q4 do them, Q5 land
+> now). Built on branch `37-do-inline`. Follows `docs/design/2026-10-11-37-iter-at-design.md` (`OP_ITER_AT`,
+> kernel-only, merged) and the queued question on #37 (2026-10-11 comment): what does it take to inline the
+> `do:` block at the call site? The spike that priced it is §Spike below; its code stays on branch
+> `37-do-inline-spike`.
 
 ## Why
 
@@ -13,7 +14,7 @@ spike `docs/spikes/2026-10-11-37-ocdo-lowered/README.md` hand-patched the block 
 measured **1219 ms (0.82×)**, with a stand-in for a class guard that the ISA does not have. That stand-in is
 the gap: at `oc do: [:e | …]` the compiler does not know `oc` is an OrderedCollection.
 
-## Proposed decisions
+## Decisions
 
 - **P1 — A guard, not static knowledge.** The call site tests the receiver's class at run time and
   falls back to today's send:
@@ -43,17 +44,32 @@ the gap: at `oc do: [:e | …]` the compiler does not know `oc` is an OrderedCol
   and `self` to the receiver register. Then the kernel's source is the single description, and the
   `ITER_AT` recogniser applies to it unchanged. That means general method inlining with a
   guard. The spike does not need it.)
-- **P3 — Receivers: OrderedCollection and Array.** These are the two that `ITER_AT` already serves,
-  and they share a loop (limit and indexable from two slots, or slot 0 and the receiver itself for an
-  Array). Interval and Dictionary have their own `do:` shapes and stay sends until a profile names
-  them. A miss costs one `IS_VT` + `JMP_IF_FALSE` per guard before the send (§Spike, row `miss`).
-- **P4 — The body follows the rules already in force for inlined `to:do:`.** `^` in the block is
-  the enclosing method's return. Block temps get registers and are reset each iteration. A nested
+- **P3 — Selectors and receivers: wherever the kernel's method is an `ITER_AT` loop.** `do:` on
+  OrderedCollection and Array (Q1), the two that `ITER_AT` already serves. They share a loop: limit and
+  indexable come from two slots, or for an Array from slot 0 and the receiver itself. `collect:`,
+  `select:`, `reject:` and `inject:into:` (Q4) on OrderedCollection only: they are Collection's methods,
+  which OrderedCollection inherits, and Array is not a Collection. `collect:`/`select:`/`reject:` build
+  their result as the kernel does (`OrderedCollection new`, reached through the receiver's outer) and
+  still send `add:` per kept element. That removes both block activations per element but not the
+  `add:`. Interval, Dictionary and Set have their own shapes and stay sends until a profile names them.
+  A miss costs one `IS_VT` + `JMP_IF_FALSE` per guard before the send (§Spike, row `miss`).
+  `test_iter_inline.py` pins the six kernel methods the compiler reproduces, so a kernel edit cannot leave
+  inlined call sites that disagree with it.
+- **P4 — The body follows the rules already in force for inlined `to:do:`.** `^` in the block stays
+  a compile error (the no-NLR model): the fallback still compiles the block as a closure, so nothing a
+  program can say changes meaning. Block temps get registers and are reset each iteration. A nested
   closure that captures `e` would capture the element register, which the loop reuses (§Spike: the probe
   read garbage). So **a block whose nested closures name its params or temps keeps the send**. The arms
   of always-inlined selectors are not closures and do not count. The debugger
   sees `e` through `inlined_vars`. The `do:` frame and the block frame no longer exist, so a breakpoint
   in the kernel's `do:` no longer fires for an inlined site.
+- **P6 — Off in a debug build (Q3).** The compiler leaves every send as it is when `OEVM_DEBUG_HOOKS=1`,
+  the variable that chooses a board's debug build. `run.sh` compiles the image in the same invocation, so
+  the image and the firmware agree. Two places cannot see it, and both are recorded rather than mended:
+  the host, where debug is a runtime switch (`OEVM_DEBUG`) over the same image; and `custos load`, which
+  compiles without knowing what the board was built with. In both, a debug session meets inlined
+  iterators: `e` is still named for the debugger, and stepping skips the kernel frames. If that bites,
+  the fix is for the image to carry the build's flag, not a second mechanism.
 - **P5 — Code size is a gate.** Each literal `do:` body is emitted once per guarded receiver, plus the
   closure for the fallback: three copies for OC + Array. Measured (§Spike): the bell +0 B (it has no
   site), DeltaBlue +0.7 %.
@@ -104,19 +120,20 @@ that need 32-bit headers, pytest or cmake did not run there).
   it. This is no regression (the send captures it too), but the inlined path does not get registers.
   Only static knowledge would fix it.
 
-## Questions for David
+## Questions for David (answered 2026-10-11)
 
-1. **OC and Array both, or OC only?** Both, I lean. The Array arm adds ~95 B a site and costs an OC hit
+1. **OC and Array both, or OC only?** **Both (David).** Both, I lean. The Array arm adds ~95 B a site and costs an OC hit
    nothing (its guard is never reached). It costs a miss one more `IS_VT` (~0.3 µs). The Array row gains 5.5×.
-2. **Slot indices by name (P2) now, kernel-method inlining later?** By name now, I lean. The spike's
+2. **Slot indices by name (P2) now, kernel-method inlining later?** **By name for now (David).** By name now, I lean. The spike's
    lookup is four lines, and it already fails the compile if the kernel renames a slot. Inlining the kernel's
    method is the more general mechanism. It is worth building when a second kernel method wants the same
    treatment (`collect:` and friends, Q4), not before.
 3. **Off in debug builds?** The hot-patch precedent (#313) makes debug builds the faithful ones. An
    inlined `do:` cannot be stepped into, and a patched kernel `do:` would no longer affect inlined
    sites. My lean: on in both, because the debugger shows the inlined `e` and patching the kernel's
-   `do:` is not a thing anyone does. But it is your call.
-4. **`collect:` / `select:` / `inject:into:`.** They stay sends (Q3 of the iter-at design) unless
+   `do:` is not a thing anyone does. But it is your call. **Off in debug (David)**: P6.
+4. **`collect:` / `select:` / `inject:into:`.** **Do them if not too much work, so other iterators hold
+   no performance surprises (David)**: P3, with `reject:` as well. As drafted: they stay sends (Q3 of the iter-at design) unless
    profiles say otherwise. No board node has even a literal `do:` site today (P5), so the case for
    any of this on the nodes is the benchmarks' and the tutorials', not the bell's.
 5. **New: is this worth landing now, given that no node uses it?** It is ~70 lines of compiler and one
@@ -124,4 +141,13 @@ that need 32-bit headers, pytest or cmake did not run there).
    every literal `do:` in app code changes shape, and the fix for #417 (closures capturing an inlined
    local) belongs to the same machinery. Options: (a) land P1 as it stands, keeping the send for the
    capturing blocks; (b) fix #417 first, then land P1 without the capture exception; (c) park it on the
-   branch until an app has a hot `do:`.
+   branch until an app has a hot `do:`. **(a), land now (David):** "performance huge, makes benchmarks
+   respectable and gives us earlier runtime on new code".
+
+## Found while landing
+
+- **A peephole bug, latent since #412.** Copy-propagation skipped a deleted instruction before it checked
+  whether that instruction carried a jump label. When the instruction at a join point was itself
+  deleted, a copy was propagated across the join. The iterator's join (where the guarded paths and the
+  send meet) was the first shape to trigger it: `r:: oc do: [...]` answered the fallback's register,
+  not the receiver. Fixed in `peephole` (labels are checked first). Test `68_iter_inline` holds it.

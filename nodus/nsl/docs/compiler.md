@@ -200,6 +200,15 @@ registers, no closure, no `home`/`regAt:`). Non-inlined blocks become separate
 compiled methods (closures). See `topics.md#block-inlining` and
 `nodus/oevm/docs/optimizations.md` Phases A–E for the full account.
 
+**Kernel iterators (rete#37).** A literal block passed to `do:` (receiver OrderedCollection or Array)
+or to `collect:`/`select:`/`reject:`/`inject:into:` (OrderedCollection) in app code compiles into the
+caller behind a class guard: `IS_VT` against the kernel class's vtable, then that kernel method's loop
+on `ITER_AT` with the block's body inlined, and after the last guard the ordinary send with the block as
+a closure (`compile_iter_inline`). The compiler reproduces those six kernel methods by hand, by slot
+*name*; `tools/test_iter_inline.py` pins their source. Two exceptions keep the send: a block whose nested
+closure captures its own param or temp (an inlined local is not upward-safe, #417), and a debug build
+(`OEVM_DEBUG_HOOKS=1` at compile time). Decision record: `docs/design/2026-10-11-37-do-inline-design.md`.
+
 ## The image map (`.oimg.map.json`)
 
 Beside every `<name>.oimg` the compiler writes `<name>.oimg.map.json`: every method in
