@@ -56,6 +56,18 @@ static struct HeapHeader *free_bins[FREE_BIN_COUNT];
    allocation, measured as closureMake +22 % / ocDo +13 % on the RP2350 from a
    compiler change that merely altered which object survived. */
 static struct HeapHeader *big_free = NULL;
+/* One bit per non-empty bin, so the cross-bin first-fit is a count-trailing-zeros
+   instead of a walk over up to 63 empty lists (2026-10-10: 23–42 M such iterations
+   per Spike296Node run, the whole residual between two otherwise equal images). */
+static uint64_t bins_nonempty = 0;
+static inline void bin_push(struct HeapHeader *h, size_t bi) {
+    h->next = free_bins[bi];
+    free_bins[bi] = h;
+    bins_nonempty |= (uint64_t)1 << bi;
+}
+static inline void bin_note_pop(size_t bi) {
+    if (free_bins[bi] == NULL) bins_nonempty &= ~((uint64_t)1 << bi);
+}
 
 /* ---- Heap telemetry (G3/M2, https://github.com/davidg238/nsl-tuvm/issues/3) --------------------------------
    Fragmentation early-warning counters for the fixed embedded arena. Kept as
@@ -248,9 +260,7 @@ static OEVM_HOT2 oop finish_reuse(struct HeapHeader *h, oop vtable, size_t round
             (struct HeapHeader *)((uint8_t *)(h + 1) + rounded);
         rem->size = leftover - sizeof(struct HeapHeader);
         rem->marked = 0;
-        size_t rbi = bin_index(rem->size);
-        rem->next = free_bins[rbi];
-        free_bins[rbi] = rem;
+        bin_push(rem, bin_index(rem->size));
         h->size = rounded;
     }
     h->next = NULL;
@@ -271,6 +281,7 @@ static OEVM_HOT2 oop arena_try_alloc(oop vtable, size_t rounded, size_t need) {
         if ((*pp)->size >= rounded) {
             struct HeapHeader *h = *pp;
             *pp = h->next;
+            bin_note_pop(bi);
             return finish_reuse(h, vtable, rounded);
         }
         pp = &(*pp)->next;
@@ -312,16 +323,20 @@ static OEVM_HOT2 oop arena_try_alloc(oop vtable, size_t rounded, size_t need) {
     }
     /* 3. Cross-bin first-fit + split: only when the exact bin missed and bump is
           exhausted. Reuses a larger freed/coalesced block. */
-    for (size_t b = bi + 1; b < FREE_BIN_COUNT; b++) {
+    uint64_t m = (bi + 1 < FREE_BIN_COUNT) ? (bins_nonempty & ~(((uint64_t)2 << bi) - 1)) : 0;
+    while (m != 0) {
+        size_t b = (size_t)__builtin_ctzll(m);
         pp = &free_bins[b];
         while (*pp != NULL) {
             if ((*pp)->size >= rounded) {
                 struct HeapHeader *h = *pp;
                 *pp = h->next;
+                bin_note_pop(b);
                 return finish_reuse(h, vtable, rounded);
             }
             pp = &(*pp)->next;
         }
+        m &= ~((uint64_t)1 << b);   /* only the catch-all can hold a block too small; move on */
     }
     return NULL;
 }
@@ -957,6 +972,7 @@ OEVM_HOT2 void gc_collect(void) {
     // re-walked on every collection, so without this reset they would be pushed
     // onto a bin a second time, self-cycling the list and aliasing reused addresses.
     for (size_t i = 0; i < FREE_BIN_COUNT; i++) free_bins[i] = NULL;
+    bins_nonempty = 0;
     big_free = NULL;   /* rebuilt by this walk: the largest interior run */
     /* Telemetry: recompute live_bytes from this sweep's marked survivors
        rather than subtracting per freed object — least invasive against the
@@ -993,11 +1009,7 @@ OEVM_HOT2 void gc_collect(void) {
                 h->marked = 0;
                 struct HeapHeader *to_bin = h;
                 if (big_free == NULL || h->size > big_free->size) { to_bin = big_free; big_free = h; h->next = NULL; }
-                if (to_bin != NULL) {
-                    size_t bi = bin_index(to_bin->size);
-                    to_bin->next = free_bins[bi];
-                    free_bins[bi] = to_bin;
-                }
+                if (to_bin != NULL) bin_push(to_bin, bin_index(to_bin->size));
             }
             cur = run_end;
         }
