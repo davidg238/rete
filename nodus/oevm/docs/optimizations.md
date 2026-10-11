@@ -541,8 +541,10 @@ before. ms per row.
   and every row ends at or below master. The lesson for an XIP part: a change that only moves code can cost a fifth of
   a row, so the code a row touches per element belongs in RAM, not just the dispatch loop.
 - **Per method activation** (Hanoi): 8.46 → 7.27 µs. MicroPython on the same silicon is 12.9 µs.
-- **Gated by:** the nsl suite on msi-7d43 for each merge. The fourteen C6 scenarios were not run: c6spare was not on
-  msi's USB that night.
+- **Gated by:** the nsl suite on msi-7d43 for each merge (aux line green), and all fourteen board scenarios on
+  `c6spare` (2026-10-10/11). The sweep first found two #233 defects on master that failed every scenario built
+  without the radio overlay: the OTA thread's stack call failed the link, and the runner compiled as its stub
+  for want of `CONFIG_SETTINGS`, so the node booted and idled. Both are fixed under #412.
 
 ## Known weaknesses / tracked gaps (snapshot 2026-06-18)
 
