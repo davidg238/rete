@@ -284,8 +284,9 @@ class MethodCompiler:
 
     def finalize_contexts(self):
         self._finalize_contexts_inner()
-        if os.environ.get("NSL_PEEPHOLE", "1") != "0":
-            self.peephole()
+        mode = os.environ.get("NSL_PEEPHOLE", "1")   # 1 = both, A = copy-prop only, B = dead stores only, 0 = off
+        if mode != "0":
+            self.peephole(copy_prop=(mode in ("1", "A")), dead_store=(mode in ("1", "B")))
 
     # ---- Peephole (rete#296 follow-on, 2026-10-10) --------------------------------
     # Runs at the end of finalize_contexts, on the finished frame: jumps encoded,
@@ -379,7 +380,7 @@ class MethodCompiler:
         if op == OP_ST_LEXICAL and d == old:               return pack_abc(op, new, s1, s2)
         return None
 
-    def peephole(self):
+    def peephole(self, copy_prop=True, dead_store=True):
         ins = self.instructions
         n = len(ins)
         if n == 0:
@@ -441,11 +442,11 @@ class MethodCompiler:
                 if t in protected:
                     continue
                 # (B) dead store
-                if dead_after(i, t):
+                if dead_store and dead_after(i, t):
                     delete.add(i)
                     changed = True
                     continue
-                if op != OP_LD_REG:
+                if op != OP_LD_REG or not copy_prop:
                     continue
                 x = s1
                 # (A) copy-propagation to the one consumer j
