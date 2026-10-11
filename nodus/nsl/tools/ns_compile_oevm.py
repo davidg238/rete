@@ -2602,7 +2602,51 @@ def library_paths(src_ns):
     return paths
 
 
-def splice_libraries(ast, src_ns, parse_script):
+GRAMMAR_DIR = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "grammar"))
+PARSE_SCRIPT = os.path.join(GRAMMAR_DIR, "ns-parse.js")
+
+
+def parse_file(path):
+    """-> (True, ast) or (False, the parser's error text). The AST is a pure function of the source,
+    the grammar, the parser and ohm-js, so it is cached under a hash of all four (rete#416: every
+    compile re-parsed the unchanged 4,600-line kernel, ~3 s, ~16 of the suite's ~20 min). Only
+    successful parses are cached; a write is atomic, so concurrent compiles share the cache safely.
+    $NSL_PARSE_CACHE moves it; NSL_PARSE_CACHE=off disables it."""
+    import hashlib
+    with open(path, "rb") as f:
+        src = f.read()
+    cache = os.environ.get("NSL_PARSE_CACHE",
+                           os.path.join(os.path.expanduser("~"), ".cache", "nsl-parse"))
+    entry = None
+    if cache != "off":
+        h = hashlib.sha256()
+        for dep in (os.path.join(GRAMMAR_DIR, "ns.ohm"), PARSE_SCRIPT,
+                    os.path.join(GRAMMAR_DIR, "node_modules", "ohm-js", "package.json")):
+            with open(dep, "rb") as f:
+                h.update(f.read())
+        h.update(src)
+        entry = os.path.join(cache, h.hexdigest() + ".json")
+        try:
+            with open(entry) as f:
+                return True, json.load(f)
+        except (OSError, ValueError):
+            pass
+    proc = subprocess.run(["node", PARSE_SCRIPT, path], capture_output=True, text=True)
+    if proc.returncode != 0:
+        return False, proc.stderr or proc.stdout
+    if entry is not None:
+        try:
+            os.makedirs(cache, exist_ok=True)
+            tmp = f"{entry}.{os.getpid()}.tmp"
+            with open(tmp, "w") as f:
+                f.write(proc.stdout)
+            os.replace(tmp, entry)
+        except OSError:
+            pass                                    # a cache that cannot be written is only slower
+    return True, json.loads(proc.stdout)
+
+
+def splice_libraries(ast, src_ns):
     """rete#380: splice each `uses:` library's classes into the app module as
     NESTED classes, so the app reaches them by bare name and instantiates them as
     it would a class written in its own file (`RtcRecord on: platform`). Nothing is
@@ -2625,12 +2669,11 @@ def splice_libraries(ast, src_ns, parse_script):
         if not os.path.exists(lib):
             print(f"uses: library not found: {lib} (named by {src_ns})")
             sys.exit(1)
-        proc = subprocess.run(["node", parse_script, lib], capture_output=True, text=True)
-        if proc.returncode != 0:
+        ok, lib_ast = parse_file(lib)
+        if not ok:
             print(f"uses: parse of {lib} failed:")
-            print(proc.stderr or proc.stdout)
+            print(lib_ast)
             sys.exit(1)
-        lib_ast = json.loads(proc.stdout)
         for mod in lib_ast.get("body", []):
             if mod["type"] != "module":
                 continue
@@ -2643,17 +2686,12 @@ def parse_program(src_ns):
     """The AST main compiles: the app (a script wrapped as ScriptApp), then the
     kernel library, then the Supervisor. Exits on a parse failure."""
     # 1. Parse using Ohm parser
-    parse_script = os.path.join(os.path.dirname(__file__), "..", "grammar", "ns-parse.js")
-    proc = subprocess.run(
-        ["node", parse_script, src_ns],
-        capture_output=True, text=True
-    )
-    if proc.returncode != 0:
+    ok, ast = parse_file(src_ns)
+    if not ok:
         print("Parsing failed:")
-        print(proc.stderr or proc.stdout)
+        print(ast)
         sys.exit(1)
-        
-    ast = json.loads(proc.stdout)
+
     # rete#247: every top-level node remembers which file it came from, so a
     # CompileError can say file:line:col instead of the message alone. Spans in
     # the AST are per-file, so the file tag is what makes them resolvable.
@@ -2700,7 +2738,7 @@ def parse_program(src_ns):
             ]
         }
 
-    splice_libraries(ast, src_ns, parse_script)
+    splice_libraries(ast, src_ns)
 
     # std-lib step 3a: concatenate the kernel library AFTER the app so the app's
     # first class stays the entry (entry = next(iter(all_classes))). Kernel classes
@@ -2709,13 +2747,11 @@ def parse_program(src_ns):
     # (step-2 routing). Reached only through platform → source-compatible with the
     # future "kernel as outer module" form.
     kernel_path = KERNEL_PATH
-    kproc = subprocess.run(["node", parse_script, kernel_path],
-                           capture_output=True, text=True)
-    if kproc.returncode != 0:
+    ok, kernel_ast = parse_file(kernel_path)
+    if not ok:
         print("Kernel parse failed:")
-        print(kproc.stderr or kproc.stdout)
+        print(kernel_ast)
         sys.exit(1)
-    kernel_ast = json.loads(kproc.stdout)
     for _node in kernel_ast.get("body", []):
         _node["file"] = os.path.normpath(kernel_path)
     ast["body"].extend(kernel_ast["body"])
@@ -2723,13 +2759,11 @@ def parse_program(src_ns):
     # in-image debugger step 1: compile the Supervisor module in as a top-level
     # sibling of Kernel (same load-after-app rationale: never resolved in app scope).
     supervisor_path = os.path.join(os.path.dirname(__file__), "..", "lib", "supervisor.nsl")
-    sproc = subprocess.run(["node", parse_script, supervisor_path],
-                           capture_output=True, text=True)
-    if sproc.returncode != 0:
+    ok, supervisor_ast = parse_file(supervisor_path)
+    if not ok:
         print("Supervisor parse failed:")
-        print(sproc.stderr or sproc.stdout)
+        print(supervisor_ast)
         sys.exit(1)
-    supervisor_ast = json.loads(sproc.stdout)
     for _node in supervisor_ast.get("body", []):
         _node["file"] = os.path.normpath(supervisor_path)
     ast["body"].extend(supervisor_ast["body"])
