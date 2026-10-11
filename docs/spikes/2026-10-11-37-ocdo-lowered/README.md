@@ -40,5 +40,41 @@ when `OEVM_OIMG_PATCH` names it (spike only). `ocDo:` stays in the same image as
   6355 against #412's table, with neither row touching the new code. The comparison above is within one image,
   so it is not affected; a cross-image comparison would have been.
 
+## Second image: the fused iterate opcode, `OP_ITER_AT` (same day)
+
+`OP_ITER_AT b, off` (0x1F, `vm.c`/`oevm.h`, spike only, never emitted by the compiler) does one step of the
+lowered loop in one dispatch: R(b) next index, R(b+1) limit, R(b+2) the indexable, R(b+3) the element. Past the
+limit it branches out; otherwise it loads the element and increments the index. A third row, `ocDoFused:`, is
+patched to use it: per element `ITER_AT`, the body, `JMP` — 3 bytecodes. Host check 5,500,000 for both patched
+rows; host `-O2`: ocDo 93–96, ocDoLowered 41, **ocDoFused 16–18 ms** (MicroPython unix on the same host: 21).
+
+WeAct, one image with all three rows, three boots (`logs/weact-37-fused-*`, `logs-fused.driver.log`):
+
+| row (ms, WeAct) | boot 1 | boot 2 | boot 3 | vs MicroPython (1491) |
+|---|---:|---:|---:|---:|
+| ocDo (control) | 7668 | 7669 | 7668 | 5.1× |
+| ocDoLowered (today's ISA) | 2838 | 2838 | 2838 | 1.9× |
+| **ocDoFused (`OP_ITER_AT`)** | **1220** | **1219** | **1219** | **0.82×** |
+
+- **The fused lowering beats MicroPython by 18 %**, and lands on the model's estimate (~1.2 s, ~0.8×) made
+  before the run. 6.3× faster than the control.
+- Per element: ~0.7 µs, ~110 cycles for 3 bytecodes, once the ~0.5 s per-call share is taken out. The per-call
+  share is now ~40 % of the row: with 10-element collections the outer loop and the guard and setup matter as
+  much as the elements.
+- Adding a case to the dispatch switch moved placement again: richards 8138 → 8361, ocDoLowered 2808 → 2838,
+  ocDo 7650 → 7668, with none of their code changed. Within-image comparisons only.
+
+## What this says for #37
+
+1. A guarded lowering of a literal `do:` reaches MicroPython **only with a fused iterate step**; on today's
+   ISA it stops at 1.9×. The fused step is one new opcode, against re-encoding `LE` and `AT`.
+2. The pass needs three things the compiler does not have: the receiver-class guard (a class-test opcode or
+   equivalent, #395's gap), the slot indices of the kernel collection it lowers for, and the `contents`
+   re-read question (a body that grows the receiver; see `patch_ocdo.py`'s docstring). Each kernel collection
+   with its own `do:` (Array, OrderedCollection, Interval, Dictionary) is a separate lowering.
+3. Not measured, and cheap to measure the same way: the kernel's own `OrderedCollection>>do:` rewritten with
+   `OP_ITER_AT`. That is no compiler work at all and helps every `do:`, including non-literal blocks and
+   everything built on `do:` (`inject:into:`, `collect:`, `select:`); the block activation per element stays.
+
 Not measured: a body that does work (the body here is one register load, as `for e in oc: e` is one load and a
 pop); a non-literal block (unchanged by any lowering); the real guard.
