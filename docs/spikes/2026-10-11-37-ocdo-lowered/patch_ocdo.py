@@ -12,9 +12,9 @@ ceiling measurement for a guarded `do:` lowering (rete#37); see README.md beside
 Both, per `oc do:` call:
   - a class guard, priced by a stand-in of the same length (two loads and a never-taken branch): the ISA has
     no class-test opcode yet, and the guard runs once per call, not per element;
-  - `count` and `contents` read once from the receiver's slots. The kernel's do: reads `count` once too but
-    re-reads `contents` per element, so a body that grows the collection would see the new array there and
-    the old one here: a real lowering must keep the re-read or prove the body cannot grow the receiver.
+  - `count` and `contents` read once from the receiver's slots. The kernel's do: re-reads `contents` per
+    element; hoisting it is legal because modifying a collection inside its own do: is undefined
+    (nodus/nsl/docs/NEWSPEAK_DIALECT.md row 33, David 2026-10-11).
 
 --check makes the body sum the elements and the method answer the sum instead of the time, for the host:
 100000 iterations over 1..10 is 5,500,000 exactly when every element is visited once.
