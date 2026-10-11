@@ -358,6 +358,17 @@ elseif(NOT CONFIG_XTENSA AND "$ENV{OEVM_IRAM_HOT}" STREQUAL "1")
   message(FATAL_ERROR "OEVM_IRAM_HOT is an ESP32/Xtensa knob; unset it for this target")
 endif()
 
+# rete#296 spike (branch 296-image-in-sram, 2026-10-10): the blob copied to SRAM at boot,
+# arm chosen on the console (zephyr/src/main.c). Export OEVM_SPIKE_296=1 to compile it in
+# (RP2 only); OEVM_BLOB_SRAM_DEFAULT=1 makes "sram" the arm taken when nobody answers.
+if(CONFIG_SOC_FAMILY_RPI_PICO AND "$ENV{OEVM_SPIKE_296}" STREQUAL "1")
+  target_compile_definitions(app PRIVATE OEVM_SPIKE_296=1)
+  if(DEFINED ENV{OEVM_BLOB_SRAM_DEFAULT})
+    target_compile_definitions(app PRIVATE OEVM_BLOB_SRAM_DEFAULT=$ENV{OEVM_BLOB_SRAM_DEFAULT})
+  endif()
+  message(STATUS "oevm: rete#296 spike compiled in (blob -> SRAM, arm on the console)")
+endif()
+
 # Experiment (2026-07-17): OEOM native-substitution Hanoi spike. OFF by default.
 # export OEVM_HANOI_NATIVE=1 to build the native hanoiMove: PrimitiveClosure path
 # (src/hanoi_native.c + the strcmp gate in dispatch.c). See

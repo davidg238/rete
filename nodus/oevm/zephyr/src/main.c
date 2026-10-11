@@ -1795,6 +1795,84 @@ static void strike_console(void *a, void *b, void *c) {
 K_THREAD_DEFINE(strike_console_tid, 1024, strike_console, NULL, NULL, NULL, 10, 0, 0);
 #endif
 
+#ifdef OEVM_SPIKE_296
+/* rete#296 spike (2026-10-10, branch 296-image-in-sram; applied with David's approval):
+   is the per-activation floor on an XIP part the DATA side of the flash cache — the .oimg
+   blob executed in place? One binary, the arm chosen on the console at boot: "sram" copies
+   the blob into a static SRAM buffer and hands oimg_load_blob the copy; "flash" leaves it
+   where .incbin put it. The same window answers "bootsel" (bootrom reset into the UF2
+   loader) and "reboot", so a board on a remote USB port can be re-armed and reflashed with
+   no hand on BOOTSEL. After the node's main: returns, the console is parked on those two
+   words. Compiled only when the build exports OEVM_SPIKE_296=1 (zephyr/CMakeLists.txt);
+   nothing here is in a standard image. */
+#include <string.h>
+#include <pico/bootrom.h>
+#include <boot/picoboot_constants.h>
+#ifndef OEVM_BLOB_SRAM_CAP
+#define OEVM_BLOB_SRAM_CAP (184u * 1024u)   /* the Hanoi/richards images are ~168 KB */
+#endif
+#ifndef OEVM_BLOB_SRAM_DEFAULT
+#define OEVM_BLOB_SRAM_DEFAULT 0
+#endif
+#ifndef OEVM_SPIKE_296_WINDOW_MS
+#define OEVM_SPIKE_296_WINDOW_MS 8000
+#endif
+static uint8_t spike296_blob_sram[OEVM_BLOB_SRAM_CAP] __aligned(16);
+static int spike296_arm_sram = OEVM_BLOB_SRAM_DEFAULT;
+
+static int spike296_readline(const struct device *con, char *buf, int cap, int64_t deadline) {
+    int n = 0;
+    while (k_uptime_get() < deadline) {
+        unsigned char c;
+        if (uart_poll_in(con, &c) != 0) { k_msleep(5); continue; }
+        if (c == '\r' || c == '\n') { if (n == 0) continue; buf[n] = 0; return n; }
+        if (n < cap - 1) buf[n++] = (char)c;
+    }
+    buf[n] = 0;
+    return 0;
+}
+/* Answers 1 when the line chose an arm. The two reboots never return. */
+static int spike296_act(const char *line) {
+    if (!strcmp(line, "bootsel")) {
+        printk("spike296: BOOTSEL\n"); k_msleep(100);
+        rom_reset_usb_boot(0, 0);
+    }
+    if (!strcmp(line, "reboot")) {
+        printk("spike296: reboot\n"); k_msleep(100);
+        rom_reboot(REBOOT2_FLAG_REBOOT_TYPE_NORMAL, 10, 0, 0);
+        for (;;) { k_msleep(100); }
+    }
+    if (!strcmp(line, "sram"))  { spike296_arm_sram = 1; return 1; }
+    if (!strcmp(line, "flash")) { spike296_arm_sram = 0; return 1; }
+    return 0;
+}
+static void spike296_window(void) {
+    const struct device *con = DEVICE_DT_GET(DT_CHOSEN(zephyr_console));
+    char line[32];
+    int64_t deadline = k_uptime_get() + OEVM_SPIKE_296_WINDOW_MS;
+    printk("spike296: arm? sram|flash|bootsel|reboot (default %s, %d ms)\n",
+           spike296_arm_sram ? "sram" : "flash", OEVM_SPIKE_296_WINDOW_MS);
+    while (k_uptime_get() < deadline) {
+        if (spike296_readline(con, line, sizeof line, deadline) > 0 && spike296_act(line)) break;
+    }
+    /* Swallow a duplicate arm line the host may have sent before it saw the echo, so the
+       kernel's boot-time drainConsole (rete#312 Q1) never reads one as a request. */
+    deadline = k_uptime_get() + 700;
+    while (k_uptime_get() < deadline) {
+        if (spike296_readline(con, line, sizeof line, deadline) > 0) spike296_act(line);
+    }
+    printk("spike296: arm=%s\n", spike296_arm_sram ? "sram" : "flash");
+}
+static void spike296_park(void) {
+    const struct device *con = DEVICE_DT_GET(DT_CHOSEN(zephyr_console));
+    char line[32];
+    printk("spike296: parked; bootsel|reboot\n");
+    for (;;) {
+        if (spike296_readline(con, line, sizeof line, k_uptime_get() + 1000) > 0) spike296_act(line);
+    }
+}
+#endif /* OEVM_SPIKE_296 */
+
 int main(void) {
     /* Unbuffered stdout: native_sim's console is a thin wrapper over the
        host's own stdout. Without this, libc line-buffers and a crash
@@ -1883,6 +1961,31 @@ int main(void) {
         return 0;
     }
     if (oimg_load_blob(prog, prog_size) != 0) {
+#elif defined(OEVM_SPIKE_296)
+    const uint8_t *s296_base = oevm_blob_start;
+    size_t s296_size = (size_t)(oevm_blob_end - oevm_blob_start);
+    if (spike296_arm_sram) {
+        if (s296_size > OEVM_BLOB_SRAM_CAP) {
+            printk("spike296: blob %u B > cap %u B, staying in flash\n",
+                   (unsigned)s296_size, (unsigned)OEVM_BLOB_SRAM_CAP);
+            spike296_arm_sram = 0;
+        } else {
+            int64_t t0 = k_uptime_get();
+            memcpy(spike296_blob_sram, oevm_blob_start, s296_size);
+            s296_base = spike296_blob_sram;
+            printk("spike296: blob %u B copied to SRAM in %u ms\n",
+                   (unsigned)s296_size, (unsigned)(k_uptime_get() - t0));
+        }
+    }
+    printk("spike296: blob base %p (%s), hot path %s\n", (const void *)s296_base,
+           spike296_arm_sram ? "sram" : "flash",
+#ifdef OEVM_HOT_SECTION_RAMFUNC
+           "sram"
+#else
+           "flash"
+#endif
+           );
+    if (oimg_load_blob(s296_base, s296_size) != 0) {
 #else
     if (oimg_load_blob(oevm_blob_start,
                        (size_t)(oevm_blob_end - oevm_blob_start)) != 0) {
@@ -1950,6 +2053,9 @@ int main(void) {
         mailbox is drained (see pulse_zephyr.c's pulse_pump: K_FOREVER). */
 #endif
     (void)result;
+#ifdef OEVM_SPIKE_296
+    spike296_park();
+#endif
 
     /* Not normally reached (see above) — kept so a future node whose main:
        actually returns doesn't fall off main() into an undefined return. */
