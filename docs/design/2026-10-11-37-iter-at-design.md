@@ -46,7 +46,9 @@ from kernel source, when no source syntax names it?
   class may define its own `basicAt:`. `OP_ITER_AT` has no send fallback: it aborts by name
   on a shape it does not expect. The kernel's discipline (`basicAt:` only on kernel Arrays,
   the same discipline `OP_AT`'s gate cites in `vm.c`) is what makes the abort a lowering
-  bug, never a user error. Opening the rule to user code means giving the opcode a
+  bug, never a user error. App code reaches the opcode through the kernel's own `do:` and everything built on
+  it, never through a hand-written `1 to: n do: [:i | ... (x basicAt: i) ...]`, which keeps today's
+  loop (David, 2026-10-11: "that's ok"). Opening the rule to user code means giving the opcode a
   `basicAt:` send fallback. That belongs to the later call-site pass, with #395's receiver
   guard.
 
