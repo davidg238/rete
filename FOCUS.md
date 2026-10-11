@@ -14,14 +14,14 @@ blocks are in `docs/status/focus-history.md`; live state is in the issues and `d
 - **Second thread, opti7040: #37.** Opt #8 merged (literal iterator blocks inlined behind `OP_IS_VT`; STIC collection iterate
   100.8 → 15.9 s WeAct, 122.6 → 22.2 s ESP32). Send-lever spikes on `37-send-levers-spike` (pushed, not merged; record
   `docs/spikes/2026-10-11-37-send-levers/`). **Starts with Q1–4, all approved (David, 2026-10-11: "yes to 1-4"):** (1) land the levers (tests for prim
-  163 + stored hashes, msi gates, Opt #9); (2) STIC with them, all of it on c6spare (David: "do all on c6spare"; its wedge-quiet probe may be overwritten);
+  163 + stored hashes, msi gates, Opt #9); (2) STIC with them on c6spare only (David: "do all on c6spare", "esp32 too painful": no more WROOM-32 runs; c6spare's probe may be overwritten);
   (3) push the STIC README (`cc35e88`, local on msi `~/workspaceToit/stic`); (4) measure send cost on the board before any design.
 - **Awaiting David:** #368's last item, the history rewrite (private names, force-push); close #314; #396;
   read E draft 4 and L; #175's memo; the dongle reflash from master (#402); the RP2 remote-BOOTSEL design (#413).
 - **Bench:** the bell `c6` is on the WALL (never flash). `c6spare` now on opti7040 USB (`/dev/ttyUSB1`, CP2102N `…d2e21074…`; msi's `console-c6spare.env` still names it there). MagTag
   `7cdfa11aaaaa` on the extender, build `…T140328` + program v2 (slot b, confirmed); enumerates only in BOOT0+RESET.
   **opti7040: both RP2350s parked in BOOTSEL** (WeAct `1-7`: the levers STIC image; Zero `1-3`); a UF2 on the volume boots them; build on msi.
-  **opti7040 also has the plain ESP32** (WROOM-32 rev 1.0, CP2104 `/dev/ttyUSB0`, STIC image); flash it from a scratch esptool venv.
+  The plain ESP32 (WROOM-32, CP2104 `/dev/ttyUSB0`) is retired from #37 work (David: too painful).
 - **Decided — do not re-litigate:** custos = nsl peer, porta language-neutral (D1–D2); share only `protocol/` (#338); agent first,
   HTTP the only agent surface (D11–D12); D13–D19; hot patch debug-build only (#313); one suite lock (#314); no third node (#384);
   debug goal = whole set, sha-gated (#375–#377); WiFi node addresses porta by IPv6 (#379); bell = classes by CRC (#380);
