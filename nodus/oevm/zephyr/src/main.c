@@ -1809,7 +1809,7 @@ K_THREAD_DEFINE(strike_console_tid, 1024, strike_console, NULL, NULL, NULL, 10, 
 #include <pico/bootrom.h>
 #include <boot/picoboot_constants.h>
 #ifndef OEVM_BLOB_SRAM_CAP
-#define OEVM_BLOB_SRAM_CAP (184u * 1024u)   /* the Hanoi/richards images are ~168 KB */
+#define OEVM_BLOB_SRAM_CAP (192u * 1024u)   /* Spike296Node.oimg is 188,896 B; Hanoi alone ~168 KB */
 #endif
 #ifndef OEVM_BLOB_SRAM_DEFAULT
 #define OEVM_BLOB_SRAM_DEFAULT 0
