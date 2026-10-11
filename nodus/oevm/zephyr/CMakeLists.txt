@@ -361,6 +361,11 @@ elseif(CONFIG_SOC_FAMILY_RPI_PICO AND NOT "$ENV{OEVM_RAM_HOT}" STREQUAL "0")
   # Export OEVM_RAM_HOT=0 to keep the hot path in flash (the 2026-10-01 arrangement).
   target_compile_definitions(app PRIVATE OEVM_HOT_SECTION_RAMFUNC=1)
   message(STATUS "oevm: hot path in SRAM (.ramfunc, rete#403)")
+elseif(CONFIG_SOC_SERIES_ESP32C6 AND "$ENV{OEVM_IRAM_HOT}" STREQUAL "1")
+  # rete#37 send-cost spike: the C6's linker script collects .iram.text into IRAM; RISC-V
+  # needs no -mtext-section-literals (no L32R literal pools).
+  target_compile_definitions(app PRIVATE OEVM_HOT_SECTION_IRAM=1)
+  message(STATUS "oevm: hot path in IRAM (.iram.text, rete#37 spike)")
 elseif(NOT CONFIG_XTENSA AND "$ENV{OEVM_IRAM_HOT}" STREQUAL "1")
   message(FATAL_ERROR "OEVM_IRAM_HOT is an ESP32/Xtensa knob; unset it for this target")
 endif()

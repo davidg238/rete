@@ -513,7 +513,8 @@ export OEVM_FLOAT_ARENA_SLAB_CELLS="${OEVM_FLOAT_ARENA_SLAB_CELLS:-512}" \
 # the deny-list shape meant every new non-Xtensa board (esp32c6, now nrf52840dk)
 # had to remember to add itself, and the failure mode is a FATAL_ERROR at configure
 # time on a board nobody has built yet.
-case "$BOARD_ID" in esp32|esp32s2) ;; *) unset OEVM_IRAM_HOT ;; esac
+# rete#37 send-cost spike: the C6 (RISC-V) may ask for the IRAM hot path too.
+case "$BOARD_ID" in esp32|esp32s2|esp32c6) ;; *) unset OEVM_IRAM_HOT ;; esac
 
 # src/solidified_image.c is TRACKED (the MethodCallTest fixture). A Model A bake
 # dirties it; restore on exit so it is never committed by accident. (A Model A
