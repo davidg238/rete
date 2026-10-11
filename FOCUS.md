@@ -13,8 +13,8 @@ blocks are in `docs/status/focus-history.md`; live state is in the issues and `d
   (3) the bell over Thread (daylight, `flash-bell.sh`); then #398.
 - **Second thread, opti7040: #37.** Opt #8 merged (literal iterator blocks inlined behind `OP_IS_VT`; STIC collection iterate
   100.8 → 15.9 s WeAct, 122.6 → 22.2 s ESP32). Send-lever spikes on `37-send-levers-spike` (pushed, not merged; record
-  `docs/spikes/2026-10-11-37-send-levers/`). **Starts with David's Q1–4 (#37 2026-10-11 comment):** (1) land the levers (tests for prim
-  163 + stored hashes, msi gates, Opt #9); (2) the ESP32 rerun with them, and its float row (c6spare, or a VM-heap float slab);
+  `docs/spikes/2026-10-11-37-send-levers/`). **Starts with Q1–4, all approved (David, 2026-10-11: "yes to 1-4"):** (1) land the levers (tests for prim
+  163 + stored hashes, msi gates, Opt #9); (2) the ESP32 rerun with them, and its float row (ask first: c6spare, or a VM-heap float slab);
   (3) push the STIC README (`cc35e88`, local on msi `~/workspaceToit/stic`); (4) measure send cost on the board before any design.
 - **Awaiting David:** #368's last item, the history rewrite (private names, force-push); close #314; #396;
   read E draft 4 and L; #175's memo; the dongle reflash from master (#402); the RP2 remote-BOOTSEL design (#413).
