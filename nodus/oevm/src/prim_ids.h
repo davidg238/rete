@@ -581,4 +581,8 @@
    observer's watchdog keep the RTC record valid, and a bell struck on them is a bell
    at a meaningless time. Appended after debugHeld:; 162 by COUNTING PRIM_NAMES. */
 #define PRIM_pf_timerWake         162
+/* rete#37 send levers: `basicReplaceFrom:to:with:startingAt:` — copy src[s .. s+(stop-start)] into
+   receiver[start .. stop], one block move, both indexables (slot0 = SMI length), bounds-checked. Kernel-only, as
+   basicAt:put: is: OrderedCollection's grow, in place of a per-element loop. Appended after timerWake; 163. */
+#define PRIM_ix_basicReplace      163
 #endif /* OEVM_PRIM_IDS_H */
