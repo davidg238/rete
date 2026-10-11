@@ -7,12 +7,13 @@ blocks are in `docs/status/focus-history.md`; live state is in the issues and `d
   Demos: the ship's bell twice, wall C6 always-on (#380) and MagTag deep-sleep (#379). Lifecycle table: #26.
 - **FOCUS: #233 — program OTA through porta.** The MagTag took its first push over WiFi (2026-10-10 14:04, one boot: in-channel
   stage, activate, reboot wake with no strike, confirm; design §10 "T10 as built"). Branch `233-magtag` (master merged in 2026-10-11,
-  #412 included; not yet merged to master). **Next session starts with:** (1) merge `233-magtag`; (2) the S2 recipe at
+  `e006642`, #412 included; Go gates + PORTA SYNC OK; not yet merged to master). **Next session starts with:** (0) the nsl suite on
+  the merge (aux line green); (1) merge `233-magtag`; (2) the S2 recipe at
   `OEVM_SPACE_MAX_CHANNELS=16` (two wakes counted 11) and `OEVM_MPROF_SLOTS` at its default — one BOOT0+RESET flash, read `space:`
   and the link margin; (3) the bell: cable-flash the wall C6 with the OTA half (daylight, `flash-bell.sh`), one push over Thread;
   (4) E §9's MagTag line; then #398.
 - **Awaiting David:** merge `233-magtag`; the flash above; #400 (earned by a measured slowdown — not yet); read E draft 4 and L;
-  LICENSE and history rewrite (#368); close #314; #396; #175's memo; the dongle needs a reflash from master (#402); the RP2
+  LICENSE (#368: Apache-2.0 recommended, devsdk to match) and history rewrite; close #314; #396; #175's memo; the dongle needs a reflash from master (#402); the RP2
   remote-BOOTSEL design (#413).
 - **Bench:** the bell `c6` is on the WALL (never flash). MagTag `7cdfa11aaaaa` on the extender runs build `…T140328` + program v2
   (`c879e8…`, slot b, confirmed; goal = v2 on gw); it enumerates only in download mode (BOOT0+RESET). `c6spare` on USB at msi.
@@ -27,4 +28,4 @@ blocks are in `docs/status/focus-history.md`; live state is in the issues and `d
   and `-O2` is the RP2350 default (#403); a console that cannot arm answers nil (#402); the image in SRAM is not a speed lever on
   the RP2350 (#296, 2026-10-10).
 - **Weekly review, not scheduled:** #175, #280, #282–#287, #290, #291, #298, #299, #303, #304, #306–#309, #315–#322, #324–#328,
-  #331–#335, #345–#357, #359–#361, #363, #366, #369–#374, #378, #382–#397, #399–#401, #404–#411, #413.
+  #331–#335, #345–#357, #359–#361, #363, #366, #369–#374, #378, #382–#397, #399–#401, #404–#411, #413, #415.
