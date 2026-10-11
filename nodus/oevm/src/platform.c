@@ -447,6 +447,9 @@ static void rtc_store(void) {
     if (f) { (void)fwrite(g_rtc, sizeof(int32_t), OEVM_RTC_FIELDS, f); fclose(f); }
 }
 int rtc_target_valid(void) { rtc_load_once(); return ((uint32_t)g_rtc[0] == OEVM_RTC_MAGIC) ? 1 : 0; }
+/* rete#233 T10: a host process has no reset cause, and a re-exec with OEVM_RTC_FILE set
+   IS the simulated timer wake the ratchet harness relies on — so every host boot is one. */
+int reset_cause_timer_wake(void) { return 1; }
 int rtc_target_get(int i) { rtc_load_once(); if (i < 0 || i >= OEVM_RTC_FIELDS) return 0; return g_rtc[i]; }
 void rtc_target_put(int i, int v) { rtc_load_once(); if (i < 0 || i >= OEVM_RTC_FIELDS) return; g_rtc[i] = v; rtc_store(); }
 
@@ -528,6 +531,10 @@ extern int ntp_target_date(void);
 extern int rtc_target_valid(void);
 extern int rtc_target_get(int i);
 extern void rtc_target_put(int i, int v);
+/* rete#233 T10: the reset-cause leaf (hwinfo) lives in zephyr/src/main.c beside the
+   RTC retention block. Same rule: links on every board; a board whose hwinfo has no
+   reset cause answers 1 from the body. */
+extern int reset_cause_timer_wake(void);
 /* rete#215: the panic note's leaves live in zephyr/src/reboot_note.c, beside the RTC
    retention block they share a section with. Same rule as bell/ntp/rtc above — the
    symbols must link on EVERY Zephyr board, so that file guards bodies, never
@@ -1962,6 +1969,11 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
         /* SMI 0/1; the kernel forwarder coerces to a Boolean, so no true/false oop
            is needed in C. */
         *out = TAG_SMI(rtc_target_valid());
+        return 1;
+    }
+    case PRIM_pf_timerWake: {
+        /* SMI 0/1, the rtcValid shape; the kernel forwarder coerces to a Boolean. */
+        *out = TAG_SMI(reset_cause_timer_wake());
         return 1;
     }
     case PRIM_pf_rtcGet: {

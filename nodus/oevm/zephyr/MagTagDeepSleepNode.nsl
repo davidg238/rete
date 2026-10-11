@@ -36,12 +36,24 @@ The declared liveness is one slot plus an awake window, so porta reads a node th
 asleep as live until it misses four of them.
 
 Build (debug + profile image, from nodus/oevm/zephyr; the env is prj_esp32s2_porta.conf's,
-the bell fragment brings the panel, the speaker and SNTP back after it):
+the bell fragment brings the panel, the speaker and SNTP back after it, the ota fragment
+is the program-slot runner — rete#233 §10 T10: the stage in-channel, the registry sized
+from the `space: N of M channels` line this node prints at every deep sleep, the public
+key porta signs with):
   OEVM_IRAM_HOT=0 VM_STACK_INIT_WORDS=2048 OEVM_HEAP_SIZE=36864 \
   METHOD_CACHE_SIZE=128 SERIAL_FIFO_CAP=256 OEVM_DEBUG_HOOKS=1 OEVM_METHOD_PROFILE=1 \
   OEVM_NTP_SERVER6=<the LAN's NTP by IPv6 literal> \
+  OEVM_SPACE_MAX_CHANNELS=32 OEVM_MARK_STACK_SIZE=256 OEVM_MPROF_SLOTS=128 \
+  OEVM_OTA_PUBKEY=<gw ~/porta-v2/porta.pub, 64 hex> \
   ./run.sh --board esp32s2 --model B --node MagTagDeepSleepNode.nsl \
-    --conf-extra "prj_esp32s2_wifi.conf;prj_esp32s2_porta.conf;prj_esp32s2_bell.conf" --flash
+    --conf-extra "prj_esp32s2_wifi.conf;prj_esp32s2_porta.conf;prj_esp32s2_bell.conf;prj_esp32s2_ota.conf" --flash
+  The two extra knobs are the OTA half's price in dram0 (rete#233 §10 T10, measured
+  2026-10-10): the mark stack halved (-1 KB, an overflow is a rescan, never a fault) and
+  the profiler's table halved (-3 KB; the dump prints its overflow count, so a profile
+  that lost rows says so).
+  A program PUSH after that goes through porta (`goal/apps/main`); the first check-in of
+  the wake that reads it stages, the second activates; the new program's boot is a
+  reboot wake (no strike), and its first check-in confirms the trial.
   Bench: add OEVM_LOG_UDP6=<this desktop's STABLE ULA> and listen on UDP 54330 — the
   console with no cable on the board (zephyr/src/log_udp.c; the last line before the sleep
   never arrives, which is not a hang).
@@ -70,7 +82,9 @@ class MagTagDeepSleepNode usingPlatform: platform net: net = (
     space::  platform space.
 
     record valid
-      ifTrue:  [ self strikeWake ]
+      ifTrue:  [ platform timerWake
+                   ifTrue:  [ self strikeWake ]
+                   ifFalse: [ self rebootWake ] ]
       ifFalse: [ self coldBoot ].
 
     self joinPorta.            (* the first check-in replays the breakpoint set *)
@@ -94,6 +108,21 @@ class MagTagDeepSleepNode usingPlatform: platform net: net = (
     record bootTicks: record bootTicks + 1.
     summary:: 'half ' , half printString , ' bells ' , bells printString.
     bells = 8 ifTrue: [ clock trySync. self paint ].
+    ^ self )
+
+  (* A BOOT THAT IS NOT A TIMER WAKE NEVER STRIKES (rete#233 T10). The runner's trial or
+     revert reboot after a program push, and the observer's watchdog, both leave the RTC
+     record valid — and a bell struck on them is a bell at a meaningless time. The count
+     is untouched: `lastHalf` still names the last bell rung, so the sleep below lands on
+     the NEXT boundary. What is lost is the previous boot's awake window, which never
+     reached `sleepTarget` (it rebooted from its second check-in), so that bell is late by
+     one window until the next watch-end sync re-anchors the clock — the cost T10 accepts.
+     The trial boot still joins porta: its first check-in is the ack that confirms the
+     new program (kernel otaCheck step 1), and that is the whole point of waking. *)
+  rebootWake = (
+    'reboot wake: not a timer wake, no strike' out.
+    record bootTicks: record bootTicks + 1.
+    summary:: 'reboot wake'.
     ^ self )
 
   (* A COLD BOOT MUST NOT STRIKE. Power returns at an arbitrary second, and a bell struck

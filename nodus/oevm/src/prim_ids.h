@@ -574,4 +574,11 @@
    read with is_truthy (a literal `true` is the image's own Symbol). Answers the stored
    state as a Boolean, so a test can see what the observer will read. */
 #define PRIM_pf_debugHeld         161
+/* rete#233 T10: `timerWake` — did this boot come out of deep sleep on the timer? SMI 1
+   when the reset cause is RESET_LOW_POWER_WAKE or cannot be read (a host, a board with
+   no hwinfo reset cause); 0 for any other KNOWN cause (software, watchdog, power-on).
+   The deep-sleep bell strikes only on a 1: the runner's trial/revert reboot and the
+   observer's watchdog keep the RTC record valid, and a bell struck on them is a bell
+   at a meaningless time. Appended after debugHeld:; 162 by COUNTING PRIM_NAMES. */
+#define PRIM_pf_timerWake         162
 #endif /* OEVM_PRIM_IDS_H */

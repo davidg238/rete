@@ -72,7 +72,9 @@ void ota_exit_stage_ready(void);
  * thread to give (the inert boards; ota.c then fails the stage). One fetch at a
  * time, so the backend keeps ONE thread object and its stack (rete#233 T9: 3 KB
  * on zephyr until the high-water print says otherwise; a pthread on posix). The
- * function returns when the fetch ends, and the next start may reuse the slot. */
+ * function returns when the fetch ends, and the next start may reuse the slot.
+ * Never called under CONFIG_OEVM_OTA_INCHANNEL (rete#233 T10): there ota.c runs the
+ * fetch on the caller's thread and the backend keeps no thread at all. */
 int  ota_thread_start(void (*fn)(void *), void *arg);
 
 /* Sleep roughly `ms` milliseconds. The block wait is a deadline poll loop

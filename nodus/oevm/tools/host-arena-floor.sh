@@ -13,7 +13,7 @@
 # arena". It is the VM execution stack — vm.c:713 allocates a fixed-capacity
 # Stack of VM_STACK_INIT_WORDS (default 16384) — and on a 64-bit host a word is
 # 8 B, so the default stack is 131072 B, which is the C6's whole arena by
-# coincidence. zephyr/run.sh exports VM_STACK_INIT_WORDS=4096 for every board,
+# coincidence. zephyr/run.sh defaults VM_STACK_INIT_WORDS to 4096 for every board (the caller's value wins since rete#233),
 # where a word is 4 B, so the device spends 16 408 B (12.5%) on the same object.
 #
 # THE FLOOR IS THEREFORE A FORMULA, not a mystery:

@@ -486,9 +486,16 @@ case "$BOARD_ID" in nrf52840dk|nrf52840dongle) NRF=1 ;; *) NRF=0 ;; esac
 [ -f "$ZDIR/$NODE" ] || { echo "no such node: $ZDIR/$NODE" >&2; exit 2; }
 [ -f "$NSL" ]        || { echo "compiler not found: $NSL" >&2; exit 2; }
 
-# The seven load-bearing knobs. -p always discards the cache, so always export.
-export OEVM_HEAP_SIZE METHOD_CACHE_SIZE=256 PRIM_CACHE_SIZE=256 \
-       VM_STACK_INIT_WORDS=4096 OEVM_MARK_STACK_SIZE=512
+# The load-bearing knobs. -p always discards the cache, so always export — but the
+# CALLER'S value wins and the number here is only the default. Until rete#233 (2026-10-10)
+# this line was `METHOD_CACHE_SIZE=256 VM_STACK_INIT_WORDS=4096 OEVM_MARK_STACK_SIZE=512`,
+# an unconditional assignment that silently overrode every recipe that set them: the
+# MagTag's METHOD_CACHE_SIZE=128 / VM_STACK_INIT_WORDS=2048 never reached the compiler
+# (compile_commands.json said 256 / 4096), so its dram0 accounting credited a 2 KB cut
+# that never happened and its arena carried a 16 KB VM stack it was measured as 8 KB
+# with. PRIM_CACHE_SIZE went with the prim cache (rete#226) and is no longer read.
+export OEVM_HEAP_SIZE METHOD_CACHE_SIZE="${METHOD_CACHE_SIZE:-256}" \
+       VM_STACK_INIT_WORDS="${VM_STACK_INIT_WORDS:-4096}" OEVM_MARK_STACK_SIZE="${OEVM_MARK_STACK_SIZE:-512}"
 # The float-arena pair is NOT optional, despite every prior doc listing only five.
 # gc.c's boxed-Float slab defaults to 4096 cells; struct Float is 16 B on Xtensa
 # (8-byte double alignment), so one slab is ~64.5 KB against a ~60 KB libc heap —
@@ -498,7 +505,8 @@ export OEVM_HEAP_SIZE METHOD_CACHE_SIZE=256 PRIM_CACHE_SIZE=256 \
 # docs/ZEPHYR_NODE_GUIDE.md §3 and docs/results.md M3 (perfstex, 2026-06-28) —
 # same bug, found and fixed there first. zephyr/CMakeLists.txt already forwards
 # both; only the export was missing.
-export OEVM_FLOAT_ARENA_SLAB_CELLS=512 OEVM_FLOAT_ARENA_SLAB_BUDGET=4
+export OEVM_FLOAT_ARENA_SLAB_CELLS="${OEVM_FLOAT_ARENA_SLAB_CELLS:-512}" \
+       OEVM_FLOAT_ARENA_SLAB_BUDGET="${OEVM_FLOAT_ARENA_SLAB_BUDGET:-4}"
 # OEVM_IRAM_HOT is Xtensa-only: zephyr/CMakeLists.txt:141-145 gates it on
 # CONFIG_XTENSA and FATAL_ERRORs if it is set on a non-Xtensa target. Stated as an
 # ALLOWLIST of the Xtensa parts rather than a list of the boards to unset it for:

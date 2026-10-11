@@ -98,6 +98,8 @@ struct SpaceEvent {
 static struct SpaceChannel channels[OEVM_SPACE_MAX_CHANNELS];
 static int n_channels = 0;
 
+int space_channel_count(void) { return n_channels; }
+
 static struct SpaceEvent queue[OEVM_SPACE_QUEUE_DEPTH];
 static size_t q_head = 0;    /* oldest occupied ring slot (live, whenever count > 0) */
 static size_t q_count = 0;   /* occupied ring slots (see file-header note on staleness) */
@@ -475,7 +477,7 @@ int space_changed_since(uint32_t cursor, const char *prefix, size_t plen,
     /* `taken` is the last seq already emitted, so each pass picks the smallest
        last_seq strictly above it: a selection walk, ascending. Seqs are unique
        across channels (one counter), so there are no ties to break. n_channels
-       is bounded by OEVM_SPACE_MAX_CHANNELS (32 by default), so the quadratic
+       is bounded by OEVM_SPACE_MAX_CHANNELS, so the quadratic
        walk is bounded by a small constant and needs no scratch allocation —
        which also keeps this callable from a drain-time reaction. */
     uint32_t taken = cursor;
