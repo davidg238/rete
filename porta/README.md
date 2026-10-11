@@ -38,16 +38,9 @@ Documents: `docs/README.md` is the map. The decision record is
 
 ## License
 
-- The porta gateway (everything here except `devsdk/`) is licensed under the
-  **GNU Affero General Public License v3.0** — see [`LICENSE`](LICENSE). Run it, modify
-  it, self-host it freely; if you offer a modified porta to others over a network, offer
-  them the source too. For uses the AGPL doesn't fit, contact Ekorau LLC about a
-  commercial license.
-- **`devsdk/`** is licensed under the **MIT License** — see
-  [`devsdk/LICENSE`](devsdk/LICENSE) — so node-repo tooling in any language can import
-  it without copyleft obligations.
-- `../protocol/` is a published specification: implementing the wire protocol carries
-  no license obligation in either direction.
+Apache License 2.0, the repository's one licence — see [`../LICENSE`](../LICENSE).
+`devsdk/` included. `../protocol/` is a published specification: implementing the wire
+protocol carries no license obligation in either direction.
 
 porta v1 — commands, a queue, TFTP delivery, a report schema — was deleted on
 2026-08-01; the last v1 tree is tagged `porta-v1-final` and its protocol is archived under
