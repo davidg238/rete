@@ -1,0 +1,62 @@
+(*
+expect:
+true
+1
+one
+true
+false
+20
+true
+10
+true
+false
+3
+*)
+(* rete#37: Set and Dictionary keep each key's hash beside the key; a probe compares the
+   stored hash before it sends `=`, and grow and the cluster rehash re-place from it.
+   (1) A user key whose `hash` answers a LargeInteger (`a hash * big + b hash` overflows on
+       a 32-bit board) must find itself: equal hashes need not be the same object, so the
+       stored-hash comparison is `=`, never `==`.
+   (2) Keys that all collide into two buckets, through three grows and a removal of every
+       other key: each survivor is found, each removed key is absent. *)
+class StoredHashKeyTest packageUsing: manifest = () (
+  class Big n: anInt = ( | public n = anInt. | ) (
+    public hash = ( ^ (4294967295 * 4294967295) + n )
+    public = other = ( ^ n = other n )
+  ) : ( )
+  class Clash n: anInt = ( | public n = anInt. | ) (
+    public hash = ( ^ n \\ 2 )
+    public = other = ( ^ n = other n )
+  ) : ( )
+public main: platform args: args = (
+  | d s c all |
+  d:: platform Dictionary new.
+  d at: (Big n: 1) put: 'one'.
+  d at: (Big n: 1) put: 'one'.
+  (d includesKey: (Big n: 1)) println.               (* true *)
+  d size println.                                    (* 1    *)
+  (d at: (Big n: 1)) println.                        (* one  *)
+  s:: platform Set new.
+  s add: (Big n: 2).
+  (s includes: (Big n: 2)) println.                  (* true  *)
+  (s includes: (Big n: 3)) println.                  (* false *)
+
+  c:: platform Dictionary new.
+  1 to: 20 do: [ :i | c at: (Clash n: i) put: i ].   (* 8 -> 16 -> 32 -> 64 *)
+  c size println.                                    (* 20 *)
+  all:: true.
+  1 to: 20 do: [ :i | (c at: (Clash n: i)) = i ifFalse: [ all:: false ] ].
+  all println.                                       (* true *)
+  1 to: 20 by: 2 do: [ :i | c removeKey: (Clash n: i) ].
+  c size println.                                    (* 10 *)
+  all:: true.
+  2 to: 20 by: 2 do: [ :i | (c at: (Clash n: i)) = i ifFalse: [ all:: false ] ].
+  all println.                                       (* true *)
+  (c includesKey: (Clash n: 7)) println.             (* false *)
+  s:: platform Set new.
+  1 to: 12 do: [ :i | s add: (Clash n: i) ].
+  1 to: 9 do: [ :i | s remove: (Clash n: i) ].
+  s size println.                                    (* 3 *)
+)
+) : (
+)

@@ -150,7 +150,6 @@ class Kernel usingPlatform: platform = (
     public last = ( ^ self at: count )
     public removeLast = ( | v | v:: contents basicAt: count. count:: count - 1. ^ v )
     public removeFirst = ( | v | v:: contents basicAt: 1. 2 to: count do: [ :i | contents basicAt: i - 1 put: (contents basicAt: i) ]. count:: count - 1. ^ v )
-    ensureCapacity = ( count = contents basicSize ifTrue: [ self grow ]. ^ self )
     grow = ( | bigger | bigger:: platform basicNew: Array indexable: 2 * contents basicSize. bigger basicReplaceFrom: 1 to: count with: contents startingAt: 1. contents:: bigger. ^ self )
 
     (* ---- L1 sequence combinators (staged review/lib/combinators.ns) ----------
@@ -231,28 +230,25 @@ class Kernel usingPlatform: platform = (
   class HashedCollection = Collection ( | table count hashes | ) (
     (* Abstract open-addressing hash table over `table` (the keys/elements
        Array); `count` is the live-entry tally. Concrete subclasses re-declare
-       `table`/`count` WITH initializers to set the initial capacity — the bare
+       `table`/`count`/`hashes` WITH initializers to set the initial capacity — the bare
        `= Super` inheritance form does not run an ancestor's slot initializers,
        and a per-target bounded variant would pick a different capacity here. *)
-    capacity = ( ^ table basicSize )
     public size = ( ^ count )
     public isEmpty = ( ^ count = 0 )
 
-    (* 1-based home bucket for aKey. Floored `\\` answers non-negative for any
-       sign of hash; the value protocol supplies `hash`. *)
-    indexFor: aKey = ( | h c | h:: aKey hash. c:: table basicSize. ^ (h \\ c) + 1 )
-
     (* Linear probe from the home bucket (wrapping) to the slot holding aKey OR
        the first empty (nil) slot. Load factor < 1 guarantees an empty slot, so
-       this terminates. The `and:` short-circuits, so `=` is only sent to a
-       non-nil key. *)
+       this terminates. Floored `\\` answers a non-negative home bucket for any
+       sign of hash; the value protocol supplies `hash`.
+       rete#37: `hashes` holds each live key's hash beside it, as CPython's entries do. A probe
+       compares the stored hash before it sends the key's `=`, and a grow or a cluster rehash
+       re-places an entry from its stored hash without sending `hash` or `=` at all. The hash
+       comparison is `=`, not `==`: a user `hash` may answer a LargeInteger, and two equal ones
+       are not the same object (test 04/69). *)
     slotFor: aKey = ( ^ self slotFor: aKey hash: aKey hash )
-    (* rete#37: `hashes` holds each live key's hash beside it, as CPython's entries do. A probe compares
-       the stored hash (`==` on SmallIntegers) before it sends `=`, and a grow or a cluster rehash
-       re-places an entry from its stored hash without sending `hash` or `=` at all. *)
     slotFor: aKey hash: h = ( | c i k |
       c:: table basicSize. i:: (h \\ c) + 1. k:: table basicAt: i.
-      [ k == nil ifTrue: [ false ] ifFalse: [ ((hashes basicAt: i) == h and: [ k = aKey ]) not ] ] whileTrue: [
+      [ k == nil ifTrue: [ false ] ifFalse: [ ((hashes basicAt: i) = h and: [ k = aKey ]) not ] ] whileTrue: [
         i:: i + 1. i > c ifTrue: [ i:: 1 ]. k:: table basicAt: i ].
       ^ i )
     (* The first empty slot on h's probe path: for an entry known not to be in the table. *)
@@ -263,8 +259,8 @@ class Kernel usingPlatform: platform = (
 
     containsKey: aKey = ( ^ ((table basicAt: (self slotFor: aKey)) == nil) not )
 
-    atCapacity = ( ^ count * 4 >= (table basicSize * 3) )           (* load factor 0.75 *)
-    growIfNeeded = ( self atCapacity ifTrue: [ self grow ]. ^ self )
+    (* Load factor 0.75: Set>>add: and Dictionary>>at:put: test `count * 4 >= (table basicSize * 3)`
+       inline rather than through a helper send (rete#37). *)
 
     (* Cluster-rehash deletion (no tombstones): after a slot is vacated, walk the
        contiguous run that follows and re-place each entry, pulling forward any

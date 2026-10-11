@@ -614,6 +614,43 @@ these numbers. Size: +0 B on the bell (no site in any board node), DeltaBlue +0.
   instruction before checking whether it carried a jump label, and so propagated a copy across a join
   point. The iterator's join was the first shape to trigger it. Fixed (labels are checked first).
 
+## Opt #9 — fewer sends per collection operation: the send levers (rete#37, 2026-10-11)
+
+After Opt #8, STIC's array, dictionary and collection write rows still cost about one full send per kernel
+collection operation (~7 µs on the WeAct). Four changes, each a general mechanism:
+
+1. **The kernel's collections on the fast opcodes.** OrderedCollection, HashedCollection, Set and Dictionary
+   use `basicAt:`/`basicAt:put:`/`basicSize` on their own Arrays (OP_AT/OP_AT_PUT), and the one-line helpers
+   (`ensureCapacity`, `indexFor:`, `capacity`, `atCapacity`, `growIfNeeded`) are folded into their callers and deleted.
+2. **An Array's `at:`/`at:put:`/`size` at an app call site behind `IS_VT`.** On an exact Array the site runs
+   OP_AT/OP_AT_PUT (which carry the selector, so an index out of bounds falls back to the send and its error)
+   or reads slot 0; anything else sends. Off in a debug build, as Opt #8 is.
+3. **`basicReplaceFrom:to:with:startingAt:`** (prim 163, one bounds-checked `memmove`) for OrderedCollection's grow.
+4. **Stored hashes in Set and Dictionary** (`hashes` beside `table`, as CPython's entries keep theirs). A probe
+   compares the stored hash before it sends the key's `=`; a grow or a cluster rehash re-places from it with no
+   `hash` and no `=`. The comparison is `=`, not the spike's `==`: a user `hash` may answer a LargeInteger, and
+   two equal ones are not the same object, so `==` lost such a key (found while landing; master was correct).
+   On the host `=` measured no slower (dictionaryWrite 278 vs 281–288 ms).
+
+Kept: the initial capacity of 8 (a 16-slot start measured −26/−36 % on the host and was rejected as tuning to
+STIC's 10 elements; Toit, MicroPython and CPython all grow at least as often). Pinned by
+`nodus/tests/04_somns_basic/69_stored_hash_keys.nsl`, `70_basic_replace.nsl`, `71_array_at_inline.nsl`.
+Spike record, per-lever numbers and the competitors' growth policies: `docs/spikes/2026-10-11-37-send-levers/`.
+
+**STIC on the WeAct** (RP2350B, three boots each, the spike's `==` build; seconds):
+
+| test | Opt #8 | + levers | before Opt #8 → now |
+|---|--:|--:|--:|
+| **arrayWrite** | 68.5 | **22.9** | 3.0× |
+| **dictionaryWrite** | 18.1 | **7.5** | 2.6× |
+| **collectionWrite** | 38.6 | **17.0** | 2.3× |
+| alloc | 18.1 | 16.8 | 1.1× (no lever behind it; placement until measured) |
+| floatMath, integerMath, collectionIterate, stringCompare | 25.9, 4.8, 15.9, 3.1 | 25.9, 4.8, 15.8, 3.1 | 1.0× |
+
+Size: `performance.nsl` +680 B, DeltaBlue +696 B (.oimg, host). Not done: making the send itself cheaper; a host
+gprof puts ~19 % of a monomorphic send in `send_resolve` and ~8 % in `push_frame`, and the board's ~1,050 cycles a
+send (host ~300) point at XIP latency, which needs a board-side measurement before any design.
+
 ## Known weaknesses / tracked gaps (snapshot 2026-06-18)
 
 Captured after the sober-reference benchmark exercise (see

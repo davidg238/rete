@@ -1,0 +1,33 @@
+(*
+expect:
+7
+3
+9
+3
+b
+2
+expect-runtime-fail: out of bounds
+*)
+(* rete#37: an app call site's `at:`/`at:put:`/`size` runs on OP_AT/OP_AT_PUT/LD_SLOT when the
+   receiver is exactly an Array, and sends otherwise. Pins both arms at one call site (an
+   Array, then an OrderedCollection and a Dictionary through the same method), and that an
+   index out of bounds on the Array arm still fails as the send does. *)
+class ArrayAtInlineTest packageUsing: manifest = () (
+  poke: c at: i put: v = ( c at: i put: v. ^ (c at: i) )
+  sizeOf: c = ( ^ c size )
+public main: platform args: args = (
+  | a oc d |
+  a:: Array new: 3.
+  (self poke: a at: 2 put: 7) println.               (* 7 — the Array arm *)
+  (self sizeOf: a) println.                          (* 3 *)
+  oc:: platform OrderedCollection new. oc add: 1. oc add: 2. oc add: 3.
+  (self poke: oc at: 3 put: 9) println.              (* 9 — the send arm *)
+  (self sizeOf: oc) println.                         (* 3 *)
+  d:: platform Dictionary new.
+  (self poke: d at: #k put: 'b') println.            (* b — the send arm, a non-integer key *)
+  d at: #j put: 'c'. (self sizeOf: d) println.       (* 2 *)
+  self poke: a at: 4 put: 0.                         (* out of bounds: fails as the send does *)
+  'not reached' println.
+)
+) : (
+)

@@ -2,6 +2,9 @@
 
 > Code on branch `37-send-levers-spike` (on master after Opt #8, `7e3c4e59`). Not landed. The comparison
 > images are `docs/results/2026-10-11-37-stic/` (before = `0d773612`, Opt #8 = `7e3c4e59`).
+>
+> **Landed as Opt #9** (`nodus/oevm/docs/optimizations.md`) with one change: the stored-hash probe compares with
+> `=`, not `==`, since a user `hash` may answer a LargeInteger (test `nodus/tests/04_somns_basic/69_stored_hash_keys.nsl`).
 
 **Question.** After Opt #8, STIC's array, dictionary and collection write rows still cost about one full send
 per kernel collection operation: ~7 µs on the WeAct, ~9 µs on the ESP32. Counted from the kernel source:
