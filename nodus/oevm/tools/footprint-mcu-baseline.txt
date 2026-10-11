@@ -1,4 +1,18 @@
 # T0.3 footprint baseline — MCU config (arm-zephyr-eabi, cortex-m4).
+# Re-banked 2026-10-11 for rete#37 (Opt #9 put the ratchet over its 2 %: 44252 vs 43321).
+#
+#   +931 B  text, 43321 -> 44252, measured per merge on msi-7d43 (FOOTPRINT_CONFIG=mcu):
+#           +340  b759c43  #412's hot path (send and allocation paths, the peephole) and the
+#                          merges before it, not attributed further;
+#            +38  ccf59a60 the 233-magtag merge (in-channel stage, registry knob, timerWake);
+#           +186  9f1c6d4  Opt #7, OP_ITER_AT (0x1F), the kernel's do: in one dispatch;
+#            +72  7e3c4e59 Opt #8, OP_IS_VT (0x20), iterators inlined behind a class guard;
+#           +295  Opt #9, prim 163 basicReplaceFrom:to:with:startingAt: (one bounds-checked memmove).
+#           Bought: STIC on the WeAct, collectionIterate 100.8 -> 15.8 s, arrayWrite 67.7 -> 22.9,
+#           dictionaryWrite 19.4 -> 7.5, collectionWrite 38.7 -> 17.0 (optimizations.md Opt #7-#9).
+#    +16 B  data+bss, 73584 -> 73600, from b759c43; not attributed.
+#
+# Superseded header (2026-10-10, rete#233):
 # Re-banked 2026-10-10 for rete#233 (program OTA on the board).
 #
 #  +5036 B  data+bss, 68548 -> 73584. Two things, both measured on c6spare:
@@ -54,5 +68,5 @@
 #  what was broken was footprint.sh's un-SKIP instruction, which named a deleted
 #  path. That bank split 34488 -> 38872 into +3108 B of enrolment (ota.c + span.c)
 #  and +1276 B of real drift.
-text 43321
-data_bss 73584
+text 44252
+data_bss 73600
