@@ -227,7 +227,7 @@ int is_read_only(oop ptr) {
 
 /* O(1): range-check against the arena, require sizeof(oop) alignment, then
    confirm the bitmap marks this exact word as a live payload start. */
-static int is_valid_heap_object(oop ptr) {
+static OEVM_HOT int is_valid_heap_object(oop ptr) {
     if (heap_base == NULL) return 0;   /* M1: guard against NULL before heap_init() */
     uint8_t *p = (uint8_t *)ptr;
     if (p < heap_base + sizeof(struct HeapHeader) || p >= heap_top) return 0;
@@ -253,7 +253,7 @@ void gc_collect(void);
    splitting any reusable remainder back onto its size-class bin, and return it
    live. The remainder is only split off when it can hold a header + one granule;
    otherwise the slack stays with the allocation (bounded internal slack). */
-static oop finish_reuse(struct HeapHeader *h, oop vtable, size_t rounded) {
+static OEVM_HOT oop finish_reuse(struct HeapHeader *h, oop vtable, size_t rounded) {
     size_t leftover = h->size - rounded;
     if (leftover >= sizeof(struct HeapHeader) + OEVM_GRANULE) {
         struct HeapHeader *rem =
@@ -273,7 +273,7 @@ static oop finish_reuse(struct HeapHeader *h, oop vtable, size_t rounded) {
 
 /* One allocation attempt against the arena. Returns NULL if exact bin, bump, and
    the cross-bin first-fit all fail (caller decides whether to collect). */
-static oop arena_try_alloc(oop vtable, size_t rounded, size_t need) {
+static OEVM_HOT oop arena_try_alloc(oop vtable, size_t rounded, size_t need) {
     size_t bi = bin_index(rounded);
     /* 1. Exact size-class bin — the common reuse path. */
     struct HeapHeader **pp = &free_bins[bi];
@@ -341,7 +341,7 @@ static oop arena_try_alloc(oop vtable, size_t rounded, size_t need) {
     return NULL;
 }
 
-oop gc_allocate(oop vtable, size_t size) {
+OEVM_HOT oop gc_allocate(oop vtable, size_t size) {
     if (heap_base == NULL) heap_init();
 
     /* OEVM_GC_STRESS: collect before every allocation to expose GC correctness
@@ -590,7 +590,7 @@ static void trace_one(oop ptr);   /* forward: traces one already-marked object *
 static void mark(oop ptr);
 
 /* Trace all pointer fields within an object */
-static void trace_object(oop ptr, size_t size) {
+static OEVM_HOT void trace_object(oop ptr, size_t size) {
     // Scan the object payload at word granularity
     oop *fields = (oop *)ptr;
     size_t count = size / sizeof(oop);
@@ -601,7 +601,7 @@ static void trace_object(oop ptr, size_t size) {
 
 /* Classify a pointer, set its mark bit, and enqueue it for tracing. No
    recursion: children are reached when this object is later popped and traced. */
-static void mark(oop ptr) {
+static OEVM_HOT void mark(oop ptr) {
     if (IS_SMI(ptr)) return;
     if (ptr == NULL) return;
     if (is_in_blob(ptr)) return; /* blob objects are immutable ROM: never marked, never traced */
@@ -633,7 +633,7 @@ static void mark(oop ptr) {
 /* Trace one already-marked heap object: enqueue each of its child references.
    This is the per-vtable dispatch that used to live inside the recursive mark;
    every child is reached via mark() (an enqueue), never a recursive descent. */
-static void trace_one(oop ptr) {
+static OEVM_HOT void trace_one(oop ptr) {
     extern oop VtableVtable;
     extern oop FloatVtable;
     extern oop StringVtable;
@@ -731,7 +731,7 @@ void gc_forensics(int *in_progress, unsigned *msp, int *overflowed) {
 }
 
 /* Pop-and-trace until the worklist drains. */
-static void drain_mark_stack(void) {
+static OEVM_HOT void drain_mark_stack(void) {
     while (mark_sp > 0) {
         oop ptr = mark_stack[--mark_sp];
         trace_one(ptr);            /* may enqueue more via mark() */
@@ -764,7 +764,7 @@ static void mark_drain_with_recovery(void) {
    loses anything: every frame on this chain is reachable via this walk, and
    the frame STRUCT memory itself is kept alive transitively because it lives
    inside g_active_stack, which is marked as a root above. */
-static void scan_vm_stack(void) {
+static OEVM_HOT void scan_vm_stack(void) {
     struct MethodContext *frame = current_frame;
     struct MethodContext *prev_higher_frame = NULL;
 
@@ -830,7 +830,7 @@ void gc_temp_roots_clear(void) {
 }
 
 /* Trigger a Mark-and-Sweep Garbage Collection cycle */
-void gc_collect(void) {
+OEVM_HOT void gc_collect(void) {
     // 1. Reset mark tags: linear walk of the arena
     if (heap_base == NULL) heap_init();
 
