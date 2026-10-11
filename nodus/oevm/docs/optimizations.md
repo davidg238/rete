@@ -647,7 +647,11 @@ Spike record, per-lever numbers and the competitors' growth policies: `docs/spik
 | alloc | 18.1 | 16.8 | 1.1× (no lever behind it; placement until measured) |
 | floatMath, integerMath, collectionIterate, stringCompare | 25.9, 4.8, 15.9, 3.1 | 25.9, 4.8, 15.8, 3.1 | 1.0× |
 
-Size: `performance.nsl` +680 B, DeltaBlue +696 B (.oimg, host). Not done: making the send itself cheaper; a host
+**STIC on c6spare** (ESP32-C6, 160 MHz, the landed `=` build, three boots each, identical to within 1 ms;
+`docs/results/2026-10-11-37-stic-c6/`): arrayWrite 67.8 → **25.3 s** (2.7×), dictionaryWrite 17.1 → **7.5** (2.3×),
+collectionWrite 36.6 → **16.0** (2.3×); the other five rows within 0.4 %.
+
+Size: `performance.nsl` +680 B, DeltaBlue +696 B (.oimg, host); MCU text +295 B (re-banked 44252, `tools/footprint-mcu-baseline.txt`). Not done: making the send itself cheaper; a host
 gprof puts ~19 % of a monomorphic send in `send_resolve` and ~8 % in `push_frame`, and the board's ~1,050 cycles a
 send (host ~300) point at XIP latency, which needs a board-side measurement before any design.
 
