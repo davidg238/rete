@@ -29,6 +29,10 @@ PAUSE_APP = os.path.join(NSROOT, "..", "tests", "04_somns_basic", "47_debug_paus
 OIMG = "/tmp/custos_debug_pause.oimg"
 VM = "/tmp/oevm_img"
 CUSTOS = "/tmp/custos_debug_gate"
+# ... and their OWN compiler: custos runs the nsl tools from RETE_NSL_TOOLS, else from
+# ~/workspace/rete, so a worktree's custos gates compiled with the main checkout's
+# compiler until this was set (found when the #412 peephole met custos-patch on msi).
+os.environ["RETE_NSL_TOOLS"] = HERE
 
 
 def build():
