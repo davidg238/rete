@@ -80,4 +80,5 @@ get here; nothing is built to last, it is built to teach.
 Apache License 2.0 — see [`LICENSE`](LICENSE). One licence for the whole tree, porta and
 `porta/devsdk/` included. Code copied in from elsewhere keeps its own header: the Zephyr
 board files (Apache-2.0) and the vendored ed25519 in `nodus/oevm/zephyr/src/ed25519/`
-(MIT and BSD-3, listed in its `README.md`).
+(MIT and BSD-3, listed in its `README.md`); the spike copy of pyperformance's Richards
+(`docs/spikes/2026-10-10-296-image-in-sram/mpy/richards.py`, MIT, notice in the file).
