@@ -151,7 +151,7 @@ class Kernel usingPlatform: platform = (
     public removeLast = ( | v | v:: contents basicAt: count. count:: count - 1. ^ v )
     public removeFirst = ( | v | v:: contents basicAt: 1. 2 to: count do: [ :i | contents basicAt: i - 1 put: (contents basicAt: i) ]. count:: count - 1. ^ v )
     ensureCapacity = ( count = contents basicSize ifTrue: [ self grow ]. ^ self )
-    grow = ( | bigger | bigger:: platform basicNew: Array indexable: 2 * contents basicSize. 1 to: count do: [ :i | bigger basicAt: i put: (contents basicAt: i) ]. contents:: bigger. ^ self )
+    grow = ( | bigger | bigger:: platform basicNew: Array indexable: 2 * contents basicSize. bigger basicReplaceFrom: 1 to: count with: contents startingAt: 1. contents:: bigger. ^ self )
 
     (* ---- L1 sequence combinators (staged review/lib/combinators.ns) ----------
        These need indexed access (`at:`/`size`), so they live here rather than on
@@ -228,7 +228,7 @@ class Kernel usingPlatform: platform = (
     public from: a to: b by: s = ( ^ self new setStart: a stop: b step: s )
   )
 
-  class HashedCollection = Collection ( | table count | ) (
+  class HashedCollection = Collection ( | table count hashes | ) (
     (* Abstract open-addressing hash table over `table` (the keys/elements
        Array); `count` is the live-entry tally. Concrete subclasses re-declare
        `table`/`count` WITH initializers to set the initial capacity — the bare
@@ -246,10 +246,19 @@ class Kernel usingPlatform: platform = (
        the first empty (nil) slot. Load factor < 1 guarantees an empty slot, so
        this terminates. The `and:` short-circuits, so `=` is only sent to a
        non-nil key. *)
-    slotFor: aKey = ( | c i k |
-      c:: table basicSize. i:: (aKey hash \\ c) + 1. k:: table basicAt: i.
-      [ ((k == nil) not) and: [ (k = aKey) not ] ] whileTrue: [
+    slotFor: aKey = ( ^ self slotFor: aKey hash: aKey hash )
+    (* rete#37: `hashes` holds each live key's hash beside it, as CPython's entries do. A probe compares
+       the stored hash (`==` on SmallIntegers) before it sends `=`, and a grow or a cluster rehash
+       re-places an entry from its stored hash without sending `hash` or `=` at all. *)
+    slotFor: aKey hash: h = ( | c i k |
+      c:: table basicSize. i:: (h \\ c) + 1. k:: table basicAt: i.
+      [ k == nil ifTrue: [ false ] ifFalse: [ ((hashes basicAt: i) == h and: [ k = aKey ]) not ] ] whileTrue: [
         i:: i + 1. i > c ifTrue: [ i:: 1 ]. k:: table basicAt: i ].
+      ^ i )
+    (* The first empty slot on h's probe path: for an entry known not to be in the table. *)
+    emptySlotFor: h = ( | c i |
+      c:: table basicSize. i:: (h \\ c) + 1.
+      [ (table basicAt: i) == nil ] whileFalse: [ i:: i + 1. i > c ifTrue: [ i:: 1 ] ].
       ^ i )
 
     containsKey: aKey = ( ^ ((table basicAt: (self slotFor: aKey)) == nil) not )
@@ -273,7 +282,7 @@ class Kernel usingPlatform: platform = (
   ) : (
   )
 
-  class Set = HashedCollection ( | table ::= platform basicNew: Array indexable: 8. count ::= 0. | ) (
+  class Set = HashedCollection ( | table ::= platform basicNew: Array indexable: 8. count ::= 0. hashes ::= platform basicNew: Array indexable: 8. | ) (
     public add: anObject = ( (anObject == nil) ifTrue: [ ^ self error: 'nil element not allowed' ]. self place: anObject. count * 4 >= (table basicSize * 3) ifTrue: [ self grow ]. ^ anObject )
     public addAll: aCollection = ( aCollection do: [ :e | self add: e ]. ^ aCollection )
     public remove: anObject = ( ^ self remove: anObject ifAbsent: [ self error: 'element not found' ] )
@@ -283,13 +292,13 @@ class Kernel usingPlatform: platform = (
       table basicAt: i put: nil. count:: count - 1. self rehashFrom: i. ^ anObject )
     public includes: anObject = ( ^ self containsKey: anObject )
     public do: aBlock = ( 1 to: table basicSize do: [ :i | | e | e:: table basicAt: i. (e == nil) ifFalse: [ aBlock value: e ] ]. ^ self )
-    place: anObject = ( | i | i:: self slotFor: anObject. (table basicAt: i) == nil ifTrue: [ table basicAt: i put: anObject. count:: count + 1 ]. ^ self )
-    reinsertEntryAt: j = ( | e | e:: table basicAt: j. table basicAt: j put: nil. count:: count - 1. self place: e. ^ self )
-    grow = ( | old oldCap | old:: table. oldCap:: table basicSize. table:: platform basicNew: Array indexable: oldCap * 2. count:: 0. 1 to: oldCap do: [ :i | | e | e:: old basicAt: i. (e == nil) ifFalse: [ self place: e ] ]. ^ self )
+    place: anObject = ( | h i | h:: anObject hash. i:: self slotFor: anObject hash: h. (table basicAt: i) == nil ifTrue: [ table basicAt: i put: anObject. hashes basicAt: i put: h. count:: count + 1 ]. ^ self )
+    reinsertEntryAt: j = ( | e h i | e:: table basicAt: j. h:: hashes basicAt: j. table basicAt: j put: nil. i:: self emptySlotFor: h. table basicAt: i put: e. hashes basicAt: i put: h. ^ self )
+    grow = ( | old oldH oldCap | old:: table. oldH:: hashes. oldCap:: table basicSize. table:: platform basicNew: Array indexable: oldCap * 2. hashes:: platform basicNew: Array indexable: oldCap * 2. 1 to: oldCap do: [ :j | | e i | e:: old basicAt: j. (e == nil) ifFalse: [ i:: self emptySlotFor: (oldH basicAt: j). table basicAt: i put: e. hashes basicAt: i put: (oldH basicAt: j) ] ]. ^ self )
   ) : (
   )
 
-  class Dictionary = HashedCollection ( | table ::= platform basicNew: Array indexable: 8. count ::= 0. vals ::= platform basicNew: Array indexable: 8. | ) (
+  class Dictionary = HashedCollection ( | table ::= platform basicNew: Array indexable: 8. count ::= 0. vals ::= platform basicNew: Array indexable: 8. hashes ::= platform basicNew: Array indexable: 8. | ) (
     public at: aKey put: aValue = ( (aKey == nil) ifTrue: [ ^ self error: 'nil key not allowed' ]. self place: aKey value: aValue. count * 4 >= (table basicSize * 3) ifTrue: [ self grow ]. ^ aValue )
     public at: aKey ifAbsent: aBlock = ( | i | i:: self slotFor: aKey. (table basicAt: i) == nil ifTrue: [ ^ aBlock value ]. ^ vals basicAt: i )
     public at: aKey = ( ^ self at: aKey ifAbsent: [ self error: 'key not found' ] )
@@ -304,9 +313,9 @@ class Kernel usingPlatform: platform = (
     public values = ( | arr j | arr:: platform basicNew: Array indexable: count. j:: 0. 1 to: table basicSize do: [ :i | | k | k:: table basicAt: i. (k == nil) ifFalse: [ j:: j + 1. arr basicAt: j put: (vals basicAt: i) ] ]. ^ arr )
     public keysAndValuesDo: aBlock = ( 1 to: table basicSize do: [ :i | | k | k:: table basicAt: i. (k == nil) ifFalse: [ aBlock value: k value: (vals basicAt: i) ] ]. ^ self )
     public do: aBlock = ( 1 to: table basicSize do: [ :i | | k | k:: table basicAt: i. (k == nil) ifFalse: [ aBlock value: (vals basicAt: i) ] ]. ^ self )
-    place: aKey value: aValue = ( | i | i:: self slotFor: aKey. (table basicAt: i) == nil ifTrue: [ table basicAt: i put: aKey. count:: count + 1 ]. vals basicAt: i put: aValue. ^ self )
-    reinsertEntryAt: j = ( | k v | k:: table basicAt: j. v:: vals basicAt: j. table basicAt: j put: nil. count:: count - 1. self place: k value: v. ^ self )
-    grow = ( | oldK oldV oldCap | oldK:: table. oldV:: vals. oldCap:: table basicSize. table:: platform basicNew: Array indexable: oldCap * 2. vals:: platform basicNew: Array indexable: oldCap * 2. count:: 0. 1 to: oldCap do: [ :i | | k | k:: oldK basicAt: i. (k == nil) ifFalse: [ self place: k value: (oldV basicAt: i) ] ]. ^ self )
+    place: aKey value: aValue = ( | h i | h:: aKey hash. i:: self slotFor: aKey hash: h. (table basicAt: i) == nil ifTrue: [ table basicAt: i put: aKey. hashes basicAt: i put: h. count:: count + 1 ]. vals basicAt: i put: aValue. ^ self )
+    reinsertEntryAt: j = ( | k v h i | k:: table basicAt: j. v:: vals basicAt: j. h:: hashes basicAt: j. table basicAt: j put: nil. vals basicAt: j put: nil. i:: self emptySlotFor: h. table basicAt: i put: k. vals basicAt: i put: v. hashes basicAt: i put: h. ^ self )
+    grow = ( | oldK oldV oldH oldCap | oldK:: table. oldV:: vals. oldH:: hashes. oldCap:: table basicSize. table:: platform basicNew: Array indexable: oldCap * 2. vals:: platform basicNew: Array indexable: oldCap * 2. hashes:: platform basicNew: Array indexable: oldCap * 2. 1 to: oldCap do: [ :j | | k i | k:: oldK basicAt: j. (k == nil) ifFalse: [ i:: self emptySlotFor: (oldH basicAt: j). table basicAt: i put: k. vals basicAt: i put: (oldV basicAt: j). hashes basicAt: i put: (oldH basicAt: j) ] ]. ^ self )
   ) : (
   )
 
