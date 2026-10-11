@@ -1,0 +1,66 @@
+(*
+expect:
+55
+55
+55
+55
+6
+true
+true
+.2.4.6.8.10.12.14.16.18.20
+.2.4.6.8.10
+.1.3.5.7.9
+55
+10
+-1
+0
+0
+first
+9
+*)
+(* rete#37 (docs/design/2026-10-11-37-do-inline-design.md) — a literal block passed to do:,
+   collect:, select:, reject: or inject:into: is inlined at the call site behind a class guard.
+   Every line here is what the kernel's method answers; the inlined loop must agree:
+   OrderedCollection and Array hit their guards, an Interval and an app class miss both and
+   take the send (`^` in any of these blocks stays a compile error, no-NLR); a block whose nested closure
+   captures its param keeps the send (#417); do: answers its receiver; the iterators on an
+   empty collection; a non-literal block is a plain send. *)
+class IterInline packageUsing: manifest = () (
+public class Pair = () (
+  public do: b = ( b value: 1. b value: 2. ^ self )
+  public collect: b = ( ^ 'pair collect' )
+)
+public main: platform args: args = (
+  | oc ar iv sum blocks r empty pr blk |
+  oc:: platform OrderedCollection new.
+  1 to: 10 do: [ :k | oc add: k ].
+  ar:: platform Array new: 10.
+  1 to: 10 do: [ :k | ar at: k put: k ].
+  iv:: platform Interval from: 1 to: 10.
+  sum:: 0. oc do: [ :e | sum:: sum + e ]. sum printString out.
+  sum:: 0. ar do: [ :e | sum:: sum + e ]. sum printString out.
+  sum:: 0. iv do: [ :e | sum:: sum + e ]. sum printString out.
+  sum:: 0. oc do: [ :e | | t | t:: e * 2. sum:: sum + (t // 2) ]. sum printString out.
+  blocks:: platform OrderedCollection new.
+  oc do: [ :e | e < 4 ifTrue: [ blocks add: [ e ] ] ].
+  (blocks inject: 0 into: [ :a :b | a + b value ]) printString out.
+  r:: oc do: [ :e | e ]. (r == oc) printString out.
+  r:: ar do: [ :e | e ]. (r == ar) printString out.
+  r:: (oc collect: [ :e | e * 2 ]) inject: '' into: [ :a :e | a , '.' , e printString ].
+  r out.
+  r:: (oc select: [ :e | e \\ 2 = 0 ]) inject: '' into: [ :a :e | a , '.' , e printString ].
+  r out.
+  r:: (oc reject: [ :e | e \\ 2 = 0 ]) inject: '' into: [ :a :e | a , '.' , e printString ].
+  r out.
+  (oc inject: 0 into: [ :a :e | a + e ]) printString out.
+  ((oc collect: [ :e | e ]) inject: 0 into: [ :a :e | a + 1 ]) printString out.
+  (oc inject: -1 into: [ :a :e | a ]) printString out.
+  empty:: platform OrderedCollection new.
+  ((empty collect: [ :e | e ]) size) printString out.
+  (empty inject: 0 into: [ :a :e | a + e ]) printString out.
+  pr:: Pair new.
+  sum:: 0. pr do: [ :e | sum:: sum + e ]. (pr collect: [ :e | e ]) = 'pair collect' ifTrue: [ 'first' out ].
+  blk:: [ :e | sum:: sum + e ]. sum:: 3. oc do: blk. (sum - 49) printString out.
+)
+) : (
+)

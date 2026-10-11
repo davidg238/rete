@@ -1121,6 +1121,13 @@ OEVM_HOT oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
                 ctx->regs[dest] = TAG_SMI(idx + 1);
                 break;
             }
+            case OP_IS_VT: {
+                /* rete#37 spike, see oevm.h. */
+                oop o = ctx->regs[src2];
+                ctx->regs[dest] = (o != NULL && !IS_SMI(o) && obj_vtable(o) == cm_const_at(method, src1))
+                                ? (oop)&true_sym_obj : (oop)&false_sym_obj;
+                break;
+            }
             case OP_AT_PUT: {
                 oop r = ctx->regs[src2];
                 oop i = ctx->regs[src2 + 1];

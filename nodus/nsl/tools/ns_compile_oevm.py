@@ -58,6 +58,15 @@ OP_GE     = 0x1C
 OP_AT     = 0x1D       # basicAt:
 OP_AT_PUT = 0x1E       # basicAt:put:
 OP_ITER_AT = 0x1F      # one step of a kernel do: (rete#37); emitted by compile_iter_at only
+OP_IS_VT = 0x20        # R(a) = R(c)'s vtable is constant b: the class guard of an inlined iterator (rete#37)
+# rete#37 (docs/design/2026-10-11-37-do-inline-design.md): a literal block passed to a kernel iterator is
+# inlined at the call site behind a class guard. Off in a debug build (Q3): a board's debug build is chosen
+# with OEVM_DEBUG_HOOKS=1, which run.sh's caller also hands this compiler.
+ITER_INLINE = os.environ.get("OEVM_DEBUG_HOOKS") != "1"
+# Selectors whose literal-block arms are compiled into the enclosing frame: not closures, for the
+# capture check below.
+INLINED_ARMS = ("ifTrue:", "ifFalse:", "ifTrue:ifFalse:", "ifFalse:ifTrue:", "and:", "or:", "whileTrue:",
+                "whileFalse:", "whileTrue", "whileFalse", "to:do:", "to:by:do:", "timesRepeat:")
 FASTPATH_SEND_OPS = {"<": OP_LT, "<=": OP_LE, ">": OP_GT, ">=": OP_GE,
                      "basicAt:": OP_AT, "basicAt:put:": OP_AT_PUT}
 # rete#37: OP_ITER_AT is emitted only for kernel source (design 2026-10-11-37-iter-at-design.md D3).
@@ -332,6 +341,7 @@ class MethodCompiler:
         if op == OP_JMP:           return (set(), set())
         if op == OP_JMP_IF_FALSE:  return ({d}, set())
         if op == OP_ITER_AT:       return ({d, d + 1, d + 2}, {d, d + 3})
+        if op == OP_IS_VT:         return ({s2}, {d})
         if op == OP_RET:           return ({d}, set())
         if op == OP_LD_SLOT:       return ({s2}, {d})
         if op == OP_ST_SLOT:       return ({d, s2}, set())
@@ -461,10 +471,10 @@ class MethodCompiler:
                 j = None
                 ok = True
                 for m in range(i + 1, n):
+                    if m in labels:            # before the delete skip: a deleted instruction's label
+                        ok = False; break      # still joins paths here (rete#37, the iterator's l_done)
                     if m in delete:
                         continue
-                    if m in labels:
-                        ok = False; break
                     if rw[m] is None or self._peep_is_send(ins[m]):
                         ok = False; break
                     r, w = rw[m]
@@ -891,6 +901,144 @@ class MethodCompiler:
         self.emit_jump(OP_JMP, 0, l_start)
         self.bind_label(l_end)
         for _ in range(4):
+            self.free_reg()
+
+    # rete#37: the kernel iterators inlined at a call site with a literal block, and per selector the
+    # kernel classes whose method is known, in guard order -> how the ITER_AT window is filled: (limit,
+    # indexable) as slot names of the class, or None for an Array's (slot 0, the receiver). Array is not a
+    # Collection, so it answers do: alone. The loops reproduce Array>>do:, OrderedCollection>>do: and
+    # Collection>>inject:into: / collect: / select: / reject: in kernel.nsl; test_iter_inline.py holds
+    # the two to each other.
+    _OC = ("Kernel.OrderedCollection", ("count", "contents"))
+    ITER_INLINE_RECEIVERS = {
+        "do:": (_OC, ("Kernel.Array", None)),
+        "collect:": (_OC,), "select:": (_OC,), "reject:": (_OC,), "inject:into:": (_OC,),
+    }
+
+    def iter_inline_wanted(self, selector, args):
+        block = args[-1] if args else None
+        params = 2 if selector == "inject:into:" else 1
+        if (not ITER_INLINE or selector not in self.ITER_INLINE_RECEIVERS or block["type"] != "block"
+                or len(block.get("params", [])) != params or self.parent.current_file == KERNEL_PATH):
+            return False
+        # A nested closure that names the block's param or a temp would capture a register the loop
+        # reuses (an inlined local is not upward-safe, #417): keep the send.
+        own = set(block.get("params", [])) | set(block.get("temps", []))
+
+        def captures(n, nested):
+            if isinstance(n, list):
+                return any(captures(c, nested) for c in n)
+            if not isinstance(n, dict):
+                return False
+            if nested and n.get("type") == "varRef" and n.get("name") in own:
+                return True
+            if nested and n.get("type") == "assign" and n.get("target") in own:
+                return True
+            if n.get("type") == "send" and n.get("selector") in INLINED_ARMS:
+                parts = [n.get("receiver")] + list(n.get("args", []))
+                return any(captures(p.get("body", []), nested)
+                           if isinstance(p, dict) and p.get("type") == "block" else captures(p, nested)
+                           for p in parts)
+            inner = nested or n.get("type") == "block"
+            return any(captures(v, inner) for k, v in n.items() if k != "span")
+        return not captures(block["body"], False)
+
+    def _emit_send_reg(self, selector, recv_reg, arg_regs, target_reg):
+        """target_reg := R(recv_reg) selector R(arg_regs...), through a fresh contiguous window."""
+        base = self.alloc_reg()
+        self.emit_ABC(OP_LD_REG, base, recv_reg, 0)
+        for a in arg_regs:
+            self.emit_ABC(OP_LD_REG, self.alloc_reg(), a, 0)
+        self.emit_ABC(OP_SEND, len(arg_regs), self.add_constant(selector), base)
+        self.emit_ABC(OP_LD_REG, target_reg, base, 0)
+        for _ in range(len(arg_regs) + 1):
+            self.free_reg()
+
+    def compile_iter_inline(self, selector, receiver, args, target_reg):
+        """rete#37 (design P1): `recv <iterator> [literal block]`. For each kernel receiver class of the
+        selector: IS_VT + JMP_IF_FALSE, then the kernel method's loop as OP_ITER_AT with the block's body
+        inlined (its element param bound to the element register); after the last guard, the send with
+        the block as a closure. The result is the kernel method's: the receiver for do:, the accumulator
+        for inject:into:, a new OrderedCollection for collect:/select:/reject:."""
+        block = args[-1]
+        self.compile_expr(receiver, target_reg)
+        r = target_reg
+        init = None
+        if selector == "inject:into:":
+            init = self.alloc_reg()
+            self.compile_expr(args[0], init)
+        l_done = self.new_label()
+        for qname, slots in self.ITER_INLINE_RECEIVERS[selector]:
+            l_next = self.new_label()
+            t = self.alloc_reg()
+            cidx = self.add_constant(f"VTABLE:{self.parent.vt_id(qname)}")
+            if cidx > 0xFF:
+                raise CompileError("IS_VT: the method has more than 256 constants")
+            self.emit_ABC(OP_IS_VT, t, cidx, r)
+            self.emit_jump(OP_JMP_IF_FALSE, t, l_next)
+            self.free_reg()
+            acc = self.alloc_reg()        # collect:/select:/reject: the result; inject:into: the accumulator
+            if selector == "inject:into:":
+                self.emit_ABC(OP_LD_REG, acc, init, 0)
+            elif selector != "do:":       # `OrderedCollection new`, compiled as the kernel compiles it
+                kernel = qname.rsplit(".", 1)[0]                          # the class that nests it
+                self.emit_ABC(OP_LD_SLOT, acc, 0, r)                       # r's outer: the kernel
+                self.emit_ABC(OP_LD_SLOT, acc, self.parent.class_slots[kernel].index("OrderedCollection"), acc)
+                self.emit_ABC(OP_SEND, 0, self.add_constant("new"), acc)
+            b = self.alloc_reg()                                  # R(b) next index
+            self.alloc_reg(); self.alloc_reg(); self.alloc_reg()  # limit, indexable, element
+            e = b + 3
+            self.emit_ABx(OP_LD_CONST, b, self.add_constant("SMI:1"))
+            if slots is None:
+                self.emit_ABC(OP_LD_SLOT, b + 1, 0, r)            # an Array's size is its slot 0
+                self.emit_ABC(OP_LD_REG, b + 2, r, 0)
+            else:
+                names = self.parent.class_slots[qname]            # by name: the kernel owns the layout (P2)
+                self.emit_ABC(OP_LD_SLOT, b + 1, names.index(slots[0]), r)
+                self.emit_ABC(OP_LD_SLOT, b + 2, names.index(slots[1]), r)
+            l_start = self.new_label()
+            l_end = self.new_label()
+            self.bind_label(l_start)
+            self.emit_jump(OP_ITER_AT, b, l_end)
+            v = self.alloc_reg()
+            params = [acc, e] if selector == "inject:into:" else [e]
+            self.compile_inlined_block(block, v, param_regs=params, init_temps=True)
+            if selector == "inject:into:":
+                self.emit_ABC(OP_LD_REG, acc, v, 0)
+            elif selector == "collect:":
+                self._emit_send_reg("add:", acc, [v], v)
+            elif selector in ("select:", "reject:"):
+                l_skip = self.new_label()
+                if selector == "select:":
+                    self.emit_jump(OP_JMP_IF_FALSE, v, l_skip)
+                else:
+                    l_add = self.new_label()
+                    self.emit_jump(OP_JMP_IF_FALSE, v, l_add)
+                    self.emit_jump(OP_JMP, 0, l_skip)
+                    self.bind_label(l_add)
+                self._emit_send_reg("add:", acc, [e], v)
+                self.bind_label(l_skip)
+            self.free_reg()  # v
+            self.emit_jump(OP_JMP, 0, l_start)
+            self.bind_label(l_end)
+            for _ in range(4):
+                self.free_reg()
+            if selector != "do:":
+                self.emit_ABC(OP_LD_REG, target_reg, acc, 0)
+            self.free_reg()  # acc
+            self.emit_jump(OP_JMP, 0, l_done)
+            self.bind_label(l_next)
+        base = self.alloc_reg()                                   # the fallback: today's send
+        self.emit_ABC(OP_LD_REG, base, r, 0)
+        if init is not None:
+            self.emit_ABC(OP_LD_REG, self.alloc_reg(), init, 0)
+        self.compile_expr(block, self.alloc_reg())
+        self.emit_ABC(OP_SEND, len(args), self.add_constant(selector), base)
+        self.emit_ABC(OP_LD_REG, target_reg, base, 0)
+        for _ in range(len(args) + 1):
+            self.free_reg()
+        self.bind_label(l_done)
+        if init is not None:
             self.free_reg()
 
     def compile_to_by_do_runtime(self, start_expr, end_expr, step_expr, block, target_reg):
@@ -1543,6 +1691,11 @@ class MethodCompiler:
                     self.compile_to_do_inline(receiver, args[0], step_arg, args[2], target_reg)
                 else:
                     self.compile_to_by_do_runtime(receiver, args[0], step_arg, args[2], target_reg)
+                return
+
+            # rete#37: a kernel iterator with a literal block, inlined behind a class guard.
+            if selector in self.ITER_INLINE_RECEIVERS and self.iter_inline_wanted(selector, args):
+                self.compile_iter_inline(selector, receiver, args, target_reg)
                 return
 
             # whileTrue:/whileFalse: — always lowered to a bytecode loop. Literal
