@@ -30,6 +30,8 @@ def open_port(path, wait_s):
     attrs[2] = termios.CS8 | termios.CREAD | termios.CLOCAL   # cflag
     attrs[3] = 0                                  # lflag: raw, no echo
     attrs[4] = attrs[5] = termios.B115200
+    attrs[6][termios.VMIN] = 0
+    attrs[6][termios.VTIME] = 0
     termios.tcsetattr(fd, termios.TCSANOW, attrs)
     fcntl.ioctl(fd, TIOCMBIS, bytes([TIOCM_DTR, 0, 0, 0]))
     return fd
@@ -49,17 +51,34 @@ def main():
         log.write(line + "\n"); log.flush(); print(line, flush=True)
     fd = open_port(a.port, a.open_wait)
     note("open %s" % a.port)
+    def reopen(oldfd):
+        try: os.close(oldfd)
+        except OSError: pass
+        try:
+            nfd = open_port(a.port, a.open_wait); note("reopened %s" % a.port); return nfd
+        except OSError as e:
+            note("reopen failed: %s" % e); return None
     buf = b""; armed = False; last_arm = 0.0; parked = False; done = False
     t_end = time.time() + a.timeout
     while time.time() < t_end:
-        r, _, _ = select.select([fd], [], [], 0.2)
+        try:
+            r, _, _ = select.select([fd], [], [], 0.2)
+        except OSError as e:
+            r = []; note("select error: %s" % e); fd = reopen(fd)
+            if fd is None: log.close(); return 3
+            continue
         if r:
             try:
                 chunk = os.read(fd, 4096)
+            except BlockingIOError:
+                chunk = b""
             except OSError as e:
-                note("port gone: %s" % e); log.close(); return 3
+                note("port gone: %s" % e); fd = reopen(fd)
+                if fd is None: log.close(); return 3
+                continue
             if not chunk:
-                note("port EOF"); log.close(); return 3
+                # VMIN=0: a zero-length read is "nothing yet", not a hangup; a hangup raises.
+                time.sleep(0.05); continue
             buf += chunk
             while b"\n" in buf:
                 line, buf = buf.split(b"\n", 1)

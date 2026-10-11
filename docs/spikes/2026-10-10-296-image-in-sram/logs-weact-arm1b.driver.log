@@ -1,0 +1,32 @@
+18:47:57 open /dev/serial/by-id/usb-Zephyr_Project_CDC_ACM_serial_backend_371016190D903B10-if00
+18:47:57 < *** Booting Zephyr OS build v4.2.0-12-gbc47c6fab9cc ***
+18:47:57 < oevm: build-id porta-v1-final-1546-ge2b4002-20261010T184142
+18:47:57 < spike296: arm? sram|flash|bootsel|reboot (default flash, 8000 ms)
+18:48:03 port EOF
+[arms] resumed run 1 exit 3
+18:48:06 open /dev/serial/by-id/usb-Zephyr_Project_CDC_ACM_serial_backend_371016190D903B10-if00
+18:48:06 < *** Booting Zephyr OS build v4.2.0-12-gbc47c6fab9cc ***
+18:48:06 < oevm: build-id porta-v1-final-1546-ge2b4002-20261010T184142
+18:48:06 < spike296: arm? sram|flash|bootsel|reboot (default flash, 8000 ms)
+18:48:06 > sram
+18:48:06 > sram
+18:48:07 > sram
+18:48:08 > sram
+18:48:09 > sram
+18:48:10 > sram
+18:48:10 > sram
+18:48:11 port EOF
+[arms] run 2 exit 3
+18:48:14 open /dev/serial/by-id/usb-Zephyr_Project_CDC_ACM_serial_backend_371016190D903B10-if00
+18:48:14 < *** Booting Zephyr OS build v4.2.0-12-gbc47c6fab9cc ***
+18:48:14 < oevm: build-id porta-v1-final-1546-ge2b4002-20261010T184142
+18:48:14 < spike296: arm? sram|flash|bootsel|reboot (default flash, 8000 ms)
+18:48:14 > flash
+18:48:15 > flash
+18:48:16 > flash
+18:48:16 > flash
+18:48:17 > flash
+18:48:18 > flash
+18:48:19 > flash
+18:48:19 port EOF
+[arms] run 3 exit 3

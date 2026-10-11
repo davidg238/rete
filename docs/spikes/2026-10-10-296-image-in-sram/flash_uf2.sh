@@ -7,7 +7,7 @@ UF2="$1"; WAIT="${2:-120}"
 [ -f "$UF2" ] || { echo "no such uf2: $UF2" >&2; exit 2; }
 t0=$(date +%s)
 while :; do
-  DEV=$(lsblk -rno NAME,LABEL 2>/dev/null | awk '$2=="RP2350"{print "/dev/"$1; exit}')
+  DEV="${DEV_OVERRIDE:-$(lsblk -rno NAME,LABEL 2>/dev/null | awk '$2=="RP2350"{print "/dev/"$1; exit}')}"
   [ -n "$DEV" ] && break
   [ $(( $(date +%s) - t0 )) -ge "$WAIT" ] && { echo "no RP2350 BOOTSEL volume within ${WAIT}s" >&2; exit 3; }
   sleep 1

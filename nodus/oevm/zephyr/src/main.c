@@ -1846,14 +1846,41 @@ static int spike296_act(const char *line) {
     if (!strcmp(line, "flash")) { spike296_arm_sram = 0; return 1; }
     return 0;
 }
+/* Boot counter in SRAM that survives a warm reset (not cleared with .bss): a board that
+   reboots four times without reaching the node's main: drops itself into BOOTSEL, so a
+   boot-looping spike image can be replaced from here without a hand on the board. Reset
+   when main: is reached. */
+static uint32_t spike296_boot_magic __attribute__((section(".noinit.spike296")));
+static uint32_t spike296_boot_count __attribute__((section(".noinit.spike296")));
+#define SPIKE296_MAGIC 0x53503239u
+static void spike296_boot_guard(void) {
+    if (spike296_boot_magic != SPIKE296_MAGIC) { spike296_boot_magic = SPIKE296_MAGIC; spike296_boot_count = 0; }
+    spike296_boot_count++;
+    if (spike296_boot_count >= 4) {
+        spike296_boot_count = 0;
+        printk("spike296: %u boots without reaching main: — BOOTSEL\n", 4u);
+        k_msleep(200);
+        rom_reset_usb_boot(0, 0);
+    }
+}
 static void spike296_window(void) {
     const struct device *con = DEVICE_DT_GET(DT_CHOSEN(zephyr_console));
     char line[32];
     int64_t deadline = k_uptime_get() + OEVM_SPIKE_296_WINDOW_MS;
-    printk("spike296: arm? sram|flash|bootsel|reboot (default %s, %d ms)\n",
-           spike296_arm_sram ? "sram" : "flash", OEVM_SPIKE_296_WINDOW_MS);
+    int64_t next_beat = k_uptime_get();
+#ifdef CONFIG_UART_INTERRUPT_DRIVEN
+    uart_irq_rx_enable(con);   /* the CDC class starts OUT transfers on this (rl_arm does the same) */
+#endif
+    printk("spike296: arm? sram|flash|bootsel|reboot (default %s, %d ms) boot#%u\n",
+           spike296_arm_sram ? "sram" : "flash", OEVM_SPIKE_296_WINDOW_MS, (unsigned)spike296_boot_count);
     while (k_uptime_get() < deadline) {
-        if (spike296_readline(con, line, sizeof line, deadline) > 0 && spike296_act(line)) break;
+        int64_t slice = k_uptime_get() + 1000;
+        if (slice > deadline) slice = deadline;
+        if (spike296_readline(con, line, sizeof line, slice) > 0 && spike296_act(line)) break;
+        if (k_uptime_get() >= next_beat) {
+            printk("spike296: t=%u ms\n", (unsigned)k_uptime_get());
+            next_beat += 1000;
+        }
     }
     /* Swallow a duplicate arm line the host may have sent before it saw the echo, so the
        kernel's boot-time drainConsole (rete#312 Q1) never reads one as a request. */
@@ -1905,6 +1932,17 @@ int main(void) {
        sleep exists. printk, not printf: the fault path gags newlib stdio. */
     printk("oevm: build-id %s\n", oevm_build_id);
 #ifdef OEVM_SPIKE_296
+    spike296_boot_guard();
+    {   /* the retained note, read BEFORE the window so a crash inside it is named next boot */
+        struct RebootNote rn0;
+        reboot_note_init();
+        if (reboot_note_consecutive() > 0 && reboot_note_read(&rn0))
+            printk("spike296: previous death reason=%u mcause=0x%08x mepc=0x%08x ra=0x%08x up=%ums consec=%u\n",
+                   (unsigned)rn0.reason, (unsigned)rn0.mcause, (unsigned)rn0.mepc, (unsigned)rn0.ra,
+                   (unsigned)rn0.mono_ms, (unsigned)rn0.consecutive);
+        else
+            printk("spike296: no retained death note\n");
+    }
     spike296_window();   /* rete#296: choose the blob's home, or leave for BOOTSEL */
 #endif
 
@@ -1980,6 +2018,7 @@ int main(void) {
                    (unsigned)s296_size, (unsigned)(k_uptime_get() - t0));
         }
     }
+    spike296_boot_count = 0;   /* the boot guard: we got this far */
     printk("spike296: blob base %p (%s), hot path %s\n", (const void *)s296_base,
            spike296_arm_sram ? "sram" : "flash",
 #ifdef OEVM_HOT_SECTION_RAMFUNC

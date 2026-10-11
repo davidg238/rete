@@ -1,0 +1,11 @@
+18:46:29 /home/david/workspace/rete/docs/spikes/2026-10-10-296-image-in-sram/mpy/blockcost.py
+baseLoop: 2533
+blockValue: 9215
+methodSend: 12581
+blockCapture: 10391
+closureMake: 4575
+ocDo: 1491
+ocDoCall: 6673
+ocAt: 3206
+done
+

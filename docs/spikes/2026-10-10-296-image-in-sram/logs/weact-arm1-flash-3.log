@@ -1,0 +1,12 @@
+18:48:14 open /dev/serial/by-id/usb-Zephyr_Project_CDC_ACM_serial_backend_371016190D903B10-if00
+18:48:14 < *** Booting Zephyr OS build v4.2.0-12-gbc47c6fab9cc ***
+18:48:14 < oevm: build-id porta-v1-final-1546-ge2b4002-20261010T184142
+18:48:14 < spike296: arm? sram|flash|bootsel|reboot (default flash, 8000 ms)
+18:48:14 > flash
+18:48:15 > flash
+18:48:16 > flash
+18:48:16 > flash
+18:48:17 > flash
+18:48:18 > flash
+18:48:19 > flash
+18:48:19 port EOF
