@@ -1,0 +1,35 @@
+esptool v5.5.0
+Serial port /dev/ttyUSB0:
+Connecting.....
+Connected to ESP32 on /dev/ttyUSB0:
+Chip type:          ESP32-D0WDQ6 (revision v1.0)
+Features:           Wi-Fi, BT, Dual Core + LP Core, Coding Scheme None
+Crystal frequency:  40MHz
+MAC:                30:ae:a4:1a:62:08
+
+Uploading stub flasher...
+Running stub flasher...
+Stub flasher running.
+Changing baud rate to 921600...
+Changed.
+
+Configuring flash size...
+Flash will be erased from 0x00001000 to 0x0005bfff...
+Compressed 371564 bytes to 189475...
+Writing at 0x000074b6 ━━╸                              8.6% 16.00kB/185.03kB [0s] 
+Writing at 0x0000cc07 ━━━━━                           17.3% 32.00kB/185.03kB [0s] 
+Writing at 0x000127d5 ━━━━━━━╸                        25.9% 48.00kB/185.03kB [0s] 
+Writing at 0x00017bfd ━━━━━━━━━━                      34.6% 64.00kB/185.03kB [1s] 
+Writing at 0x0001cedf ━━━━━━━━━━━━╸                   43.2% 80.00kB/185.03kB [1s] 
+Writing at 0x000220f3 ━━━━━━━━━━━━━━━╸                51.9% 96.00kB/185.03kB [1s] 
+Writing at 0x000273b5 ━━━━━━━━━━━━━━━━━━              60.5% 112.00kB/185.03kB [2s] 
+Writing at 0x0002cc22 ━━━━━━━━━━━━━━━━━━━━╸           69.2% 128.00kB/185.03kB [2s] 
+Writing at 0x000411cc ━━━━━━━━━━━━━━━━━━━━━━━         77.8% 144.00kB/185.03kB [2s] 
+Writing at 0x0004b863 ━━━━━━━━━━━━━━━━━━━━━━━━━╸      86.5% 160.00kB/185.03kB [3s] 
+Writing at 0x00056252 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━╸   95.1% 176.00kB/185.03kB [3s] 
+Writing at 0x0005bb6c ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100.0% 185.03kB/185.03kB [3s] 
+Wrote 371564 bytes (189475 compressed) at 0x00001000 in 3.8 seconds (785.7 kbit/s).
+Verifying written data...
+Hash of data verified.
+
+Staying in bootloader.

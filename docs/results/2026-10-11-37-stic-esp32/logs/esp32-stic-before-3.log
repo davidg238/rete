@@ -1,0 +1,49 @@
+15:04:03 < ets Jun  8 2016 00:22:57
+15:04:03 < 
+15:04:03 < rst:0x1 (POWERON_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+15:04:03 < flash read err, 1000
+15:04:03 < ets_main.c 371 
+15:04:03 < ets Jun  8 2016 00:22:57
+15:04:03 < 
+15:04:03 < rst:0x10 (RTCWDT_RTC_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+15:04:03 < configsip: 0, SPIWP:0xee
+15:04:03 < clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+15:04:03 < mode:DIO, clock div:2
+15:04:03 < load:0x3ffb0000,len:7912
+15:04:03 < load:0x40080000,len:53232
+15:04:03 < entry 0x400884a4
+15:04:03 < I (39) soc_init: ESP Simple boot
+15:04:03 < I (39) soc_init: compile time Oct 11 2026 14:37:30
+15:04:03 < W (39) soc_init: Unicore bootloader
+15:04:03 < I (40) soc_init: chip revision: v1.0
+15:04:03 < E (43) soc_init: You are using ESP32 chip revision (1) that is unsupported. While it may work, it could cause unexpected behavior or issues.
+15:04:03 < E (55) soc_init: Proceeding with this ESP32 chip revision is not recommended unless you fully understand the potential risk and limitations.
+15:04:03 < I (68) flash_init: SPI Speed      : 40MHz
+15:04:04 < I (71) flash_init: SPI Mode       : DIO
+15:04:04 < I (75) flash_init: SPI Flash Size : 4MB
+15:04:04 < I (79) boot: DRAM: lma 0x00001020 vma 0x3ffb0000 len 0x1ee8   (7912)
+15:04:04 < I (85) boot: IRAM: lma 0x00002f10 vma 0x40080000 len 0xcff0   (53232)
+15:04:04 < I (91) boot: IRAM: lma 0x0000ff18 vma 0x00000000 len 0xe0     (224)
+15:04:04 < I (97) boot: IMAP: lma 0x00010000 vma 0x400d0000 len 0x1cce4  (117988)
+15:04:04 < I (103) boot: IRAM: lma 0x0002ccec vma 0x00000000 len 0x330c   (13068)
+15:04:04 < I (109) boot: DMAP: lma 0x00030000 vma 0x3f400000 len 0x2bb6c  (179052)
+15:04:04 < I (116) boot: Image with 6 segments
+15:04:04 < I (119) boot: IROM segment: paddr=00010000h, vaddr=400d0000h, size=1CCE4h (117988) map
+15:04:04 < I (126) boot: DROM segment: paddr=00030000h, vaddr=3f400000h, size=2BB6Ch (179052) map
+15:04:04 < I (145) boot: libc heap size 3 kB.
+15:04:04 < I (146) spi_flash: detected chip: gd
+15:04:04 < I (146) spi_flash: flash io: dio
+15:04:04 < *** Booting Zephyr OS build v4.2.0-12-gbc47c6fab9cc ***
+15:04:04 < oevm: build-id porta-v1-final-1581-g0d77361-dirty-20261011T143728
+15:04:04 < logudp: not built in (no OEVM_LOG_UDP6) — console is UART only
+15:04:04 < oevm: observer — CONFIG_TASK_WDT is not enabled, wedge detection is OFF
+15:04:23 < alloc: 19288
+15:05:57 < arrayWrite: 93815
+15:06:22 < dictionaryWrite: 25310
+15:07:06 < floatMath: 44149
+15:07:11 < integerMath: 5348
+15:09:14 < collectionIterate: 122586
+15:10:05 < collectionWrite: 51233
+15:10:09 < stringCompare: 4160
+15:10:09 < hanoi8: 2
+15:10:09 < done

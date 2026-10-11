@@ -1,0 +1,136 @@
+14:26:08 < ets Jun  8 2016 00:22:57
+14:26:08 < 
+14:26:08 < rst:0x1 (POWERON_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+14:26:08 < configsip: 0, SPIWP:0xee
+14:26:08 < clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+14:26:08 < mode:DIO, clock div:2
+14:26:08 < load:0x3ffb0000,len:7912
+14:26:08 < load:0x40080000,len:53232
+14:26:08 < entry 0x400884a4
+14:26:08 < I (39) soc_init: ESP Simple boot
+14:26:08 < I (39) soc_init: compile time Oct 11 2026 14:25:24
+14:26:08 < W (39) soc_init: Unicore bootloader
+14:26:08 < I (39) soc_init: chip revision: v1.0
+14:26:08 < E (43) soc_init: You are using ESP32 chip revision (1) that is unsupported. While it may work, it could cause unexpected behavior or issues.
+14:26:08 < E (55) soc_init: Proceeding with this ESP32 chip revision is not recommended unless you fully understand the potential risk and limitations.
+14:26:08 < I (67) flash_init: SPI Speed      : 40MHz
+14:26:08 < I (71) flash_init: SPI Mode       : DIO
+14:26:08 < I (75) flash_init: SPI Flash Size : 4MB
+14:26:08 < I (78) boot: DRAM: lma 0x00001020 vma 0x3ffb0000 len 0x1ee8   (7912)
+14:26:08 < I (84) boot: IRAM: lma 0x00002f10 vma 0x40080000 len 0xcff0   (53232)
+14:26:08 < I (90) boot: IRAM: lma 0x0000ff18 vma 0x00000000 len 0xe0     (224)
+14:26:08 < I (96) boot: IMAP: lma 0x00010000 vma 0x400d0000 len 0x1cce4  (117988)
+14:26:08 < I (103) boot: IRAM: lma 0x0002ccec vma 0x00000000 len 0x330c   (13068)
+14:26:08 < I (109) boot: DMAP: lma 0x00030000 vma 0x3f400000 len 0x2bb6c  (179052)
+14:26:08 < I (115) boot: Image with 6 segments
+14:26:08 < I (119) boot: IROM segment: paddr=00010000h, vaddr=400d0000h, size=1CCE4h (117988) map
+14:26:08 < I (126) boot: DROM segment: paddr=00030000h, vaddr=3f400000h, size=2BB6Ch (179052) map
+14:26:08 < I (145) boot: libc heap size 3 kB.
+14:26:08 < I (145) spi_flash: detected chip: gd
+14:26:08 < I (145) spi_flash: flash io: dio
+14:26:08 < *** Booting Zephyr OS build v4.2.0-12-gbc47c6fab9cc ***
+14:26:08 < oevm: build-id porta-v1-final-1581-g0d77361-dirty-20261011T142522
+14:26:08 < logudp: not built in (no OEVM_LOG_UDP6) — console is UART only
+14:26:08 < oevm: observer — CONFIG_TASK_WDT is not enabled, wedge detection is OFF
+14:26:27 < alloc: 19289
+14:28:01 < arrayWrite: 93816
+14:28:26 < dictionaryWrite: 25309
+14:28:26 < VM Float Arena Error: Out of Memory
+14:28:26 < abort()
+14:28:26 < 
+14:28:26 < 
+14:28:26 < Backtrace:0x40085230:0x3ffda0a0 0x400d836f:0x3ffda0b0 0x400d1351:0x3ffda0d0 0x40083201:0x3ffda0f0 0x400d204d:0x3ffda170 0x400d625a:0x3ffda1b0 0x400d0154:0x3ffda200 0x40085ade:0x3ffda260 0x400d6ebb:0x3ffda290 
+14:28:26 < 
+14:28:26 < oevm: FATAL reason=4 mcause=0x00000000 mepc=0x00000000 ra=0x00000000 up=138623ms consec=1
+14:28:26 < ets Jun  8 2016 00:22:57
+14:28:26 < 
+14:28:26 < rst:0xc (SW_CPU_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+14:28:26 < configsip: 0, SPIWP:0xee
+14:28:26 < clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+14:28:26 < mode:DIO, clock div:2
+14:28:26 < load:0x3ffb0000,len:7912
+14:28:26 < load:0x40080000,len:53232
+14:28:26 < entry 0x400884a4
+14:28:27 < I (39) soc_init: ESP Simple boot
+14:28:27 < I (39) soc_init: compile time Oct 11 2026 14:25:24
+14:28:27 < W (39) soc_init: Unicore bootloader
+14:28:27 < I (39) soc_init: chip revision: v1.0
+14:28:27 < E (43) soc_init: You are using ESP32 chip revision (1) that is unsupported. While it may work, it could cause unexpected behavior or issues.
+14:28:27 < E (55) soc_init: Proceeding with this ESP32 chip revision is not recommended unless you fully understand the potential risk and limitations.
+14:28:27 < I (68) flash_init: SPI Speed      : 40MHz
+14:28:27 < I (71) flash_init: SPI Mode       : DIO
+14:28:27 < I (75) flash_init: SPI Flash Size : 4MB
+14:28:27 < I (78) boot: DRAM: lma 0x00001020 vma 0x3ffb0000 len 0x1ee8   (7912)
+14:28:27 < I (84) boot: IRAM: lma 0x00002f10 vma 0x40080000 len 0xcff0   (53232)
+14:28:27 < I (91) boot: IRAM: lma 0x0000ff18 vma 0x00000000 len 0xe0     (224)
+14:28:27 < I (97) boot: IMAP: lma 0x00010000 vma 0x400d0000 len 0x1cce4  (117988)
+14:28:27 < I (103) boot: IRAM: lma 0x0002ccec vma 0x00000000 len 0x330c   (13068)
+14:28:27 < I (109) boot: DMAP: lma 0x00030000 vma 0x3f400000 len 0x2bb6c  (179052)
+14:28:27 < I (115) boot: Image with 6 segments
+14:28:27 < I (119) boot: IROM segment: paddr=00010000h, vaddr=400d0000h, size=1CCE4h (117988) map
+14:28:27 < I (126) boot: DROM segment: paddr=00030000h, vaddr=3f400000h, size=2BB6Ch (179052) map
+14:28:27 < I (145) boot: libc heap size 3 kB.
+14:28:27 < I (145) spi_flash: detected chip: gd
+14:28:27 < I (145) spi_flash: flash io: dio
+14:28:27 < *** Booting Zephyr OS build v4.2.0-12-gbc47c6fab9cc ***
+14:28:27 < oevm: build-id porta-v1-final-1581-g0d77361-dirty-20261011T142522
+14:28:27 < oevm: reboot-note reason=3 mcause=0x00000000 mepc=0x00000000 ra=0x00000000 boot=0 up=138623ms consec=1
+14:28:27 < logudp: not built in (no OEVM_LOG_UDP6) — console is UART only
+14:28:27 < oevm: observer — CONFIG_TASK_WDT is not enabled, wedge detection is OFF
+14:28:46 < alloc: 19288
+14:30:20 < arrayWrite: 93815
+14:30:45 < dictionaryWrite: 25310
+14:30:45 < VM Float Arena Error: Out of Memory
+14:30:45 < abort()
+14:30:45 < 
+14:30:45 < 
+14:30:45 < Backtrace:0x40085230:0x3ffda0a0 0x400d836f:0x3ffda0b0 0x400d1351:0x3ffda0d0 0x40083201:0x3ffda0f0 0x400d204d:0x3ffda170 0x400d625a:0x3ffda1b0 0x400d0154:0x3ffda200 0x40085ade:0x3ffda260 0x400d6ebb:0x3ffda290 
+14:30:45 < 
+14:30:45 < oevm: FATAL reason=4 mcause=0x00000000 mepc=0x00000000 ra=0x00000000 up=138633ms consec=2
+14:30:45 < ets Jun  8 2016 00:22:57
+14:30:45 < 
+14:30:45 < rst:0xc (SW_CPU_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+14:30:45 < configsip: 0, SPIWP:0xee
+14:30:45 < clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+14:30:45 < mode:DIO, clock div:2
+14:30:45 < load:0x3ffb0000,len:7912
+14:30:45 < load:0x40080000,len:53232
+14:30:45 < entry 0x400884a4
+14:30:45 < I (39) soc_init: ESP Simple boot
+14:30:45 < I (39) soc_init: compile time Oct 11 2026 14:25:24
+14:30:45 < W (39) soc_init: Unicore bootloader
+14:30:45 < I (39) soc_init: chip revision: v1.0
+14:30:45 < E (43) soc_init: You are using ESP32 chip revision (1) that is unsupported. While it may work, it could cause unexpected behavior or issues.
+14:30:45 < E (55) soc_init: Proceeding with this ESP32 chip revision is not recommended unless you fully understand the potential risk and limitations.
+14:30:45 < I (68) flash_init: SPI Speed      : 40MHz
+14:30:45 < I (71) flash_init: SPI Mode       : DIO
+14:30:45 < I (75) flash_init: SPI Flash Size : 4MB
+14:30:45 < I (78) boot: DRAM: lma 0x00001020 vma 0x3ffb0000 len 0x1ee8   (7912)
+14:30:45 < I (84) boot: IRAM: lma 0x00002f10 vma 0x40080000 len 0xcff0   (53232)
+14:30:45 < I (91) boot: IRAM: lma 0x0000ff18 vma 0x00000000 len 0xe0     (224)
+14:30:45 < I (97) boot: IMAP: lma 0x00010000 vma 0x400d0000 len 0x1cce4  (117988)
+14:30:45 < I (103) boot: IRAM: lma 0x0002ccec vma 0x00000000 len 0x330c   (13068)
+14:30:45 < I (109) boot: DMAP: lma 0x00030000 vma 0x3f400000 len 0x2bb6c  (179052)
+14:30:45 < I (115) boot: Image with 6 segments
+14:30:45 < I (119) boot: IROM segment: paddr=00010000h, vaddr=400d0000h, size=1CCE4h (117988) map
+14:30:45 < I (126) boot: DROM segment: paddr=00030000h, vaddr=3f400000h, size=2BB6Ch (179052) map
+14:30:45 < I (145) boot: libc heap size 3 kB.
+14:30:45 < I (145) spi_flash: detected chip: gd
+14:30:45 < I (145) spi_flash: flash io: dio
+14:30:45 < *** Booting Zephyr OS build v4.2.0-12-gbc47c6fab9cc ***
+14:30:45 < oevm: build-id porta-v1-final-1581-g0d77361-dirty-20261011T142522
+14:30:45 < oevm: reboot-note reason=3 mcause=0x00000000 mepc=0x00000000 ra=0x00000000 boot=0 up=138633ms consec=2
+14:30:45 < logudp: not built in (no OEVM_LOG_UDP6) — console is UART only
+14:30:45 < oevm: observer — CONFIG_TASK_WDT is not enabled, wedge detection is OFF
+14:31:04 < alloc: 19288
+14:32:38 < arrayWrite: 93815
+14:33:03 < dictionaryWrite: 25310
+14:33:03 < VM Float Arena Error: Out of Memory
+14:33:03 < abort()
+14:33:03 < 
+14:33:03 < 
+14:33:03 < Backtrace:0x40085230:0x3ffda0a0 0x400d836f:0x3ffda0b0 0x400d1351:0x3ffda0d0 0x40083201:0x3ffda0f0 0x400d204d:0x3ffda170 0x400d625a:0x3ffda1b0 0x400d0154:0x3ffda200 0x40085ade:0x3ffda260 0x400d6ebb:0x3ffda290 
+14:33:03 < 
+14:33:03 < oevm: FATAL reason=4 mcause=0x00000000 mepc=0x00000000 ra=0x00000000 up=138633ms consec=3
+14:33:03 < oevm: 3 consecutive faults with no check-in between — HALT
+14:33:03 < oevm: HALT requested with no watchdog subsystem — parking.

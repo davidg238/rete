@@ -600,6 +600,11 @@ identical to within 2 ms; `docs/results/2026-10-11-37-stic/`):
 | dictionaryWrite | 19421 | 18066 | 0.93 |
 | alloc, arrayWrite, floatMath, integerMath, collectionWrite, stringCompare | 18024, 67654, 26275, 4652, 38705, 3014 | 18119, 68474, 25916, 4804, 38586, 3071 | 0.99–1.03 (placement) |
 
+**STIC on the plain ESP32** (the E4 board, 240 MHz; three boots each, identical to the ms;
+`docs/results/2026-10-11-37-stic-esp32/`): collectionIterate 122586 → **22198 ms (0.18)**, against the published
+ESP32 column's Toit 12.7 s, CircuitPython 29.2 s and uLisp 42.5 s. dictionaryWrite is +0.7 % there (−7 % on the WeAct),
+unexplained; the other rows are within ±1 %.
+
 The #296 node's rows (spike, the same lowering behind a flag): ocDo 5681 → **1087 ms (0.73× MicroPython)**,
 arDo 6393 → 1155. A miss (an Interval: both guards fail, then the send) costs +2.3 %, ~1.7 µs a call. The
 guard on a hit is ~0.55 µs a call, ~5 % of ocDoInline, so static receiver knowledge is not worth building on
