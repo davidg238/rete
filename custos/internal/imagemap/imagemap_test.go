@@ -35,8 +35,8 @@ func TestTheFixtureMapLoadsEveryMethodByOffset(t *testing.T) {
 	if kernel == 0 {
 		t.Fatal("no kernel methods in the map")
 	}
-	if got := m.Methods[3992].Name; got != "Fixture>>main:args:" {
-		t.Fatalf("offset 3992 is %q", got)
+	if got := m.Methods[4088].Name; got != "Fixture>>main:args:" {
+		t.Fatalf("offset 4088 is %q", got)
 	}
 }
 
