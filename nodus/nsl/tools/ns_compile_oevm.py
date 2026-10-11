@@ -280,6 +280,227 @@ class MethodCompiler:
         self._pending_jumps.append((idx, op, cond_reg, label))
 
     def finalize_jumps(self):
+        self._finalize_jumps_inner()
+
+    def finalize_contexts(self):
+        self._finalize_contexts_inner()
+        if os.environ.get("NSL_PEEPHOLE", "1") != "0":
+            self.peephole()
+
+    # ---- Peephole (rete#296 follow-on, 2026-10-10) --------------------------------
+    # Runs at the end of finalize_contexts, on the finished frame: jumps encoded,
+    # Context patch applied, prologue prepended. Two rewrites, both on registers the allocator used as scratch:
+    #   (A) copy-propagation: `LD_REG t, x` whose one consumer j reads t, with no
+    #       label, jump or send between them and x unwritten -> j reads x; the
+    #       copy is deleted once t is dead after j.
+    #   (B) dead store: `LD_REG t, x` / `LD_CONST t` whose t is rewritten before
+    #       any read (no label or jump before that write) -> deleted.
+    # Never touched: r0 (self), the Context register, and every register a nested
+    # block may reach through home_ctx (OP_LD_LEXICAL / OP_ST_LEXICAL): those are
+    # the inlined-loop captures in _capture_regs. Any opcode without an operand
+    # model below is a barrier (reads and writes everything). Measured ceiling
+    # on the RP2350 before this existed: Hanoi 2217 -> 1801 ms by hand
+    # (docs/results/2026-10-10-296-image-in-sram.md section 9).
+    def _peep_decode(self, inst):
+        op = inst & 0xFF
+        d = (inst >> 8) & 0xFF
+        s1 = (inst >> 16) & 0xFF
+        s2 = (inst >> 24) & 0xFF
+        return op, d, s1, s2
+
+    def _peep_rw(self, inst):
+        """-> (reads, writes) register sets, or None for a barrier."""
+        op, d, s1, s2 = self._peep_decode(inst)
+        c = self.ctx_reg
+        if op == OP_LD_REG:        return ({s1}, {d})
+        if op == OP_LD_CONST:      return (set(), {d})
+        if op in (OP_ADD, OP_SUB, OP_MUL, OP_DIV): return ({s1, s2}, {d})
+        if op in (OP_LT, OP_LE, OP_GT, OP_GE):     return ({s2, s2 + 1}, {s2})
+        if op == OP_AT:            return ({s2, s2 + 1}, {s2})
+        if op == OP_AT_PUT:        return ({s2, s2 + 1, s2 + 2}, {s2})
+        if op in (OP_SEND, OP_SEND_IMPLICIT, OP_BLOCK_INVOKE):
+            return (set(range(s2, s2 + d + 1)), {s2})
+        if op == OP_SEND_SUPER:    return (set(range(s2, s2 + d + 2)), {s2})
+        if op == OP_JMP:           return (set(), set())
+        if op == OP_JMP_IF_FALSE:  return ({d}, set())
+        if op == OP_RET:           return ({d}, set())
+        if op == OP_LD_SLOT:       return ({s2}, {d})
+        if op == OP_ST_SLOT:       return ({d, s2}, set())
+        if op == OP_NEW:           return ({s1}, {d})
+        if op == OP_CLOSURE:       return ({0, c}, {d})
+        if op == OP_LD_SELF:       return (set(), {d})
+        if op == OP_LD_LEXICAL:    return ({0}, {d})
+        if op == OP_ST_LEXICAL:    return ({0, d}, set())
+        if op == OP_LD_CTX:        return ({c}, {d})
+        if op == OP_ST_CTX:        return ({c, d}, set())
+        if op == OP_MK_CONTEXT:    return ({0}, {d})
+        return None
+
+    def _peep_is_send(self, inst):
+        return self._peep_decode(inst)[0] in (OP_SEND, OP_SEND_IMPLICIT, OP_SEND_SUPER, OP_BLOCK_INVOKE)
+
+    def _peep_jump_target(self, i, inst):
+        op = inst & 0xFF
+        if op == OP_JMP:
+            off = (inst >> 8) & 0xFFFF
+        elif op == OP_JMP_IF_FALSE:
+            off = (inst >> 16) & 0xFFFF
+        else:
+            return None
+        if off >= 0x8000:
+            off -= 0x10000
+        return i + 1 + off
+
+    def _peep_set_jump_target(self, i, inst, target):
+        op = inst & 0xFF
+        off = target - (i + 1)
+        if op == OP_JMP:
+            return ((off & 0xFFFF) << 8) | op
+        return ((off & 0xFFFF) << 16) | (((inst >> 8) & 0xFF) << 8) | op
+
+    def _peep_replace_read(self, inst, old, new):
+        """Rewrite the plain-register read `old` -> `new` in inst, or None if the
+        read is part of a window (sends, compares, AT) which cannot move."""
+        op, d, s1, s2 = self._peep_decode(inst)
+        if op == OP_LD_REG and s1 == old:                 return pack_abc(op, d, new, s2)
+        if op in (OP_ADD, OP_SUB, OP_MUL, OP_DIV):
+            if s1 == old: s1 = new
+            if s2 == old: s2 = new
+            return pack_abc(op, d, s1, s2)
+        if op == OP_JMP_IF_FALSE and d == old:             return (inst & 0xFFFF0000) | (new << 8) | op
+        if op == OP_RET and d == old:                      return pack_abc(op, new, s1, s2)
+        if op == OP_LD_SLOT and s2 == old:                 return pack_abc(op, d, s1, new)
+        if op == OP_ST_SLOT:
+            if d == old: d = new
+            if s2 == old: s2 = new
+            return pack_abc(op, d, s1, s2)
+        if op == OP_NEW and s1 == old:                     return pack_abc(op, d, new, s2)
+        if op == OP_ST_CTX and d == old:                   return pack_abc(op, new, s1, s2)
+        if op == OP_ST_LEXICAL and d == old:               return pack_abc(op, new, s1, s2)
+        return None
+
+    def peephole(self):
+        ins = self.instructions
+        n = len(ins)
+        if n == 0:
+            return
+        protected = {0, self.ctx_reg} | set(self._capture_regs.values())
+        labels = set()
+        for i, inst in enumerate(ins):
+            t = self._peep_jump_target(i, inst)
+            if t is not None:
+                labels.add(t)
+        is_jump = [self._peep_jump_target(i, x) is not None or (x & 0xFF) == OP_RET for i, x in enumerate(ins)]
+        rw = [self._peep_rw(x) for x in ins]
+
+        def dead_after(k, t):
+            """t is dead after instruction k: no path from k+1 reaches a read of t
+            before a write of t. A depth-first walk of the frame's control flow;
+            barriers (unmodelled opcodes) count as reads."""
+            seen = set()
+            work = [k + 1]
+            while work:
+                m = work.pop()
+                while True:
+                    if m >= n:
+                        break                       # fell off the end
+                    if m in seen:
+                        break
+                    seen.add(m)
+                    if m in delete:
+                        m += 1; continue
+                    if rw[m] is None:
+                        return False
+                    r, w = rw[m]
+                    if t in r:
+                        return False
+                    op = ins[m] & 0xFF
+                    if op == OP_RET:
+                        break
+                    if t in w:
+                        break
+                    tgt = self._peep_jump_target(m, ins[m])
+                    if tgt is not None:
+                        if op == OP_JMP:
+                            m = tgt; continue
+                        work.append(tgt)            # JMP_IF_FALSE: both successors
+                    m += 1
+            return True
+
+        delete = set()
+        changed = True
+        while changed:
+            changed = False
+            for i in range(n):
+                if i in delete:
+                    continue
+                op, d, s1, s2 = self._peep_decode(ins[i])
+                if op not in (OP_LD_REG, OP_LD_CONST):
+                    continue
+                t = d
+                if t in protected:
+                    continue
+                # (B) dead store
+                if dead_after(i, t):
+                    delete.add(i)
+                    changed = True
+                    continue
+                if op != OP_LD_REG:
+                    continue
+                x = s1
+                # (A) copy-propagation to the one consumer j
+                j = None
+                ok = True
+                for m in range(i + 1, n):
+                    if m in delete:
+                        continue
+                    if m in labels:
+                        ok = False; break
+                    if rw[m] is None or self._peep_is_send(ins[m]):
+                        ok = False; break
+                    r, w = rw[m]
+                    if t in r:
+                        j = m
+                        break
+                    if x in w or t in w:
+                        ok = False; break
+                    if is_jump[m]:
+                        ok = False; break
+                if not ok or j is None:
+                    continue
+                r, w = rw[j]
+                if t in w:
+                    continue           # j rewrites t (a window op): leave it
+                new_inst = self._peep_replace_read(ins[j], t, x)
+                if new_inst is None:
+                    continue
+                if not dead_after(j, t):
+                    continue
+                ins[j] = new_inst
+                rw[j] = self._peep_rw(new_inst)
+                delete.add(i)
+                changed = True
+        if not delete:
+            return
+        remap = {}
+        new_ins = []
+        for i in range(n):
+            remap[i] = len(new_ins)
+            if i not in delete:
+                new_ins.append(ins[i])
+        remap[n] = len(new_ins)
+        for i in range(n):
+            if i in delete:
+                continue
+            t = self._peep_jump_target(i, ins[i])
+            if t is not None:
+                new_ins[remap[i]] = self._peep_set_jump_target(remap[i], ins[i], remap[t])
+        self.instructions = new_ins
+        self.source_map = [(remap[off], line) for (off, line) in self.source_map]
+        self.inlined_vars = [[nm, r, remap[a], remap[b]] for (nm, r, a, b) in self.inlined_vars]
+        self.peephole_deleted = getattr(self, "peephole_deleted", 0) + len(delete)
+
+    def _finalize_jumps_inner(self):
         # Offsets are relative to the instruction AFTER the jump, because the
         # interpreter does pc++ before decoding (see oevm/src/vm.c OP_JMP).
         for idx, op, cond_reg, label in self._pending_jumps:
@@ -334,7 +555,7 @@ class MethodCompiler:
     def is_block_frame(self):
         return "_block" in self.name
 
-    def finalize_contexts(self):
+    def _finalize_contexts_inner(self):
         """De-recursify deferred lift Phase 1 (Task 4): the frame's body + all
         descendant blocks are compiled and every frame's capture_slot is
         assigned. (1) Rewrite each recorded captured-local access to its
