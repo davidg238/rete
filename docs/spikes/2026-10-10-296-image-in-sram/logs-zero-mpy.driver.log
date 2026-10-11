@@ -1,0 +1,31 @@
+[flash] BOOTSEL volume /dev/sdb1
+[flash] mounted at /run/media/david/RP2350; copying RPI_PICO2-v1.29.0.uf2 (661504 B)
+[flash] copied; waiting for the volume to go away
+[flash] done
+[mpy] port /dev/serial/by-id/usb-MicroPython_Board_in_FS_mode_6c115d74c783b69d-if00
+hanoi 1: 3389
+hanoi 2: 3389
+hanoi 3: 3389
+hanoi 4: 3389
+hanoi 5: 3389
+done
+
+[mpy] hanoi exit 0
+baseLoop: 2533
+blockValue: 9215
+methodSend: 12581
+blockCapture: 10391
+closureMake: 4575
+ocDo: 1491
+ocDoCall: 6673
+ocAt: 3206
+done
+
+[mpy] blockcost exit 0
+richards: 9257
+richards: 9257
+richards: 9258
+verified: True
+
+[mpy] richards exit 0
+[mpy] done; board should be in BOOTSEL

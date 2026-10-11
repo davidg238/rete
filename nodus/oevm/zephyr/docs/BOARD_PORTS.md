@@ -120,6 +120,24 @@ future USB board inherits it automatically:
 
 ## Board matrix
 
+**The registry.** One row per board we own a port for — or own and have not ported, which is
+the row that earns its place by being empty. `run.sh --board <id>` is the list of what builds;
+this table is what we have and why. Add the row when the board arrives, not when it works.
+Bench *instances* (which physical board is on which cable) are NOT here: they live in
+`~/.config/rete/console-<name>.env` (`tools/bench-identity.sh`), because they change daily.
+
+| `--board` | Zephyr target | SoC · SRAM · flash | I/O | console | flash method | status | record |
+|---|---|---|---|---|---|---|---|
+| `nrf52840dk` | `nrf52840dk/nrf52840` | nRF52840 · 256 KB · 1 MB | 48 GPIO, Thread radio | uart0/VCOM | J-Link | ported, the Thread reference | this doc |
+| `nrf52840dongle` | `nrf52840dongle/nrf52840` | nRF52840 · 256 KB · 1 MB | Thread radio, 1 button | USB-CDC (polled) | DFU | ported, headless; **#402 applied** | this doc |
+| `esp32` | `esp32_devkitc/esp32/procpu` | ESP32 · 520 KB · 4 MB | 34 GPIO, WiFi | CP2102 UART | esptool | ported | this doc |
+| `esp32s2` | `esp32s2_saola/esp32s2` (MagTag) | ESP32-S2 · 320 KB + 2 MB PSRAM · 4 MB | 43 GPIO, WiFi, e-paper | USB-CDC | esptool | the deep-sleep demo (#379) | `boards/magtag/` |
+| `esp32c6` | `esp32c6_devkitc/esp32c6/hpcore` | ESP32-C6 · 512 KB · 4 MB | 30 GPIO, Thread + WiFi | CP2102N UART | esptool | the std node (#364), OTA (#233) | this doc |
+| `rpi_pico2` | `rpi_pico2/rp2350a/m33` (also runs the Waveshare RP2350-Zero) | RP2350A · 520 KB · 4 MB (Zero: 2 MB) | 30 GPIO, 4 ADC | USB-CDC or uart0 | UF2/BOOTSEL | 11.13 µs/act from flash (#302); hot path in SRAM + `-O2` default (#403) | `2026-10-01`, `2026-10-10` results |
+| `weact_rp2350b` | `weact_rp2350b_core/rp2350b/m33` | RP2350B · 520 KB · 2/4/8/16 MB (declared 4) | **48 GPIO, 8 ADC** | USB-CDC or uart0 | UF2/BOOTSEL | boots as itself (2026-10-10): **8.51 µs/act** (`-O2`, hot path in SRAM — both now the RP2350 default) | `boards/weact/rp2350b_core/README.md`, `2026-10-10` results |
+| `feather_rp2040` | `adafruit_feather_rp2040` | RP2040 · 264 KB · 8 MB | 30 GPIO | uart0 | UF2/BOOTSEL | built, never run | `boards/adafruit/feather_rp2040/README.md` |
+| — | — | Thingy:52, nRF52832 · 64 KB | — | — | — | **not a target** (dropped 2026-07-11) | below |
+
 - **nRF52840-DK** — ✅ **DONE** (rung-7 `BRIDGE OK`). The reference target. Console
   uart0/VCOM (immune to Issue A), trigger BUTTON1 P0.11, J-Link flash. Use the DK
   for all Thread/debug work.
@@ -367,6 +385,17 @@ radio, no Thread layer. Result record: [`docs/results/2026-10-01-rp2350-first-nu
     **no NVS, no bootId (= 0)**; no entropy driver (`CONFIG_TEST_RANDOM_GENERATOR`,
     non-cryptographic); second core unconfigured.
   - **Watchdog:** the C6's 11 s window fits the RP2350 (16.78 s ceiling).
+  - **Hot path in SRAM (rete#403, 2026-10-10):** `OEVM_HOT` places `run_interpreter`, `send_resolve`,
+    `push_frame`, `is_truthy` (8.4 KB) in `.ramfunc`; from flash through the 16 KB XIP cache the same
+    workload ran 2.1–2.7× slower once the image grew (6106 → 3111 ms per Hanoi-18 run, 11.87 µs/activation).
+    `OEVM_RAM_HOT=0` opts out. The 11.13 above was measured from flash on a layout that happened to fit.
+    **`-O2` is the RP2350 default since 2026-10-10** (`prj_rpi_pico2.conf`, David's decision on the measurement:
+    8.51 µs/activation against `-Os`'s 11.87, for 38 KB flash and 9 KB RAM).
+  - **A second board:** WeAct Studio RP2350B Core Board (bare RP2350B, primary QSPI flash only, no PSRAM),
+    built as `rpi_pico2/rp2350a/m33` unchanged — boots and runs; its GPIO map differs (found-during, #403).
+    Result record: [`docs/results/2026-10-10-rp2350-weact-first-boot.md`](../../../../docs/results/2026-10-10-rp2350-weact-first-boot.md).
+  - **Polled-console hang (rete#402):** every USB-CDC console board spun before `main:` from 2026-10-05
+    until the consoleLine prim answered nil instead of the VM's `false` singleton. Fixed in `platform.c`.
 - **Adafruit Feather RP2040 (Cortex-M0+)** — **built (`c4714a3`), never run on the bench.** An
   out-of-tree board port (`boards/adafruit/feather_rp2040/`) kept as the rehearsal board: the
   RP2040 has a Zephyr flash driver, so NVS/bootId is provable there. Watchdog window 7 + 1 s

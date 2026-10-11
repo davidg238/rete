@@ -355,6 +355,12 @@ endif()
 if(CONFIG_XTENSA AND NOT "$ENV{OEVM_IRAM_HOT}" STREQUAL "0")
   target_compile_definitions(app PRIVATE OEVM_HOT_SECTION_IRAM=1)
   target_compile_options(app PRIVATE -mtext-section-literals)
+elseif(CONFIG_SOC_FAMILY_RPI_PICO AND NOT "$ENV{OEVM_RAM_HOT}" STREQUAL "0")
+  # rete#403: the RP2350 is an XIP part too — the same placement, through Zephyr's
+  # .ramfunc. Measured 2026-10-10 on a WeAct RP2350B: 6106 -> 3111 ms per Hanoi run.
+  # Export OEVM_RAM_HOT=0 to keep the hot path in flash (the 2026-10-01 arrangement).
+  target_compile_definitions(app PRIVATE OEVM_HOT_SECTION_RAMFUNC=1)
+  message(STATUS "oevm: hot path in SRAM (.ramfunc, rete#403)")
 elseif(NOT CONFIG_XTENSA AND "$ENV{OEVM_IRAM_HOT}" STREQUAL "1")
   message(FATAL_ERROR "OEVM_IRAM_HOT is an ESP32/Xtensa knob; unset it for this target")
 endif()

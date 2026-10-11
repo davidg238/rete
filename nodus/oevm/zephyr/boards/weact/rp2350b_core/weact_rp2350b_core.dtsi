@@ -1,0 +1,113 @@
+/*
+ * Copyright (c) 2026 Ekorau LLC
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * WeAct Studio RP2350B Core Board (rete#403, found-during): a bare RP2350B — 520 KB SRAM,
+ * 48 GPIO, 8 ADC channels — with its primary QSPI flash, a blue LED, a BOOT key, a RESET
+ * circuit and a user key. The second QSPI footprint on the back (CS on GP0, "FLASH2_SS" in
+ * the schematic) is EMPTY on the boards we own, so no PSRAM and no second flash are declared.
+ *
+ * Pins are read from HDK/RP2350B_SCH.pdf in ~/workspace/WeActStudio.RP2350BCoreBoard (the
+ * LED and key nets); they have not yet been toggled from a running image. Flash size is the
+ * one thing this file cannot know: WeAct ships 2/4/8/16 MB variants under one part number.
+ * 4 MB (the Pico 2's) is declared until the chip marking is read — a smaller true size
+ * only ever bites something that writes near the end of the part.
+ */
+#include <freq.h>
+#include <zephyr/dt-bindings/gpio/gpio.h>
+#include <zephyr/dt-bindings/input/input-event-codes.h>
+#include "weact_rp2350b_core-pinctrl.dtsi"
+
+/ {
+	chosen {
+		zephyr,sram = &sram0;
+		zephyr,flash = &flash0;
+		zephyr,console = &uart0;
+		zephyr,shell-uart = &uart0;
+		zephyr,code-partition = &code_partition;
+	};
+
+	aliases {
+		watchdog0 = &wdt0;
+		led0 = &led0;
+		sw0 = &user_sw;
+		/* oevm's pulse seam (zephyr/src/main.c wire_pulse_gpio): the user key is the
+		   physical edge, as BUTTON1 is on the DK and SW1 on the dongle. */
+		pulsegpio = &user_sw;
+	};
+
+	leds {
+		compatible = "gpio-leds";
+		led0: led_0 {
+			gpios = <&gpio0 25 GPIO_ACTIVE_HIGH>;
+			label = "blue LED (GP25)";
+		};
+	};
+
+	buttons {
+		compatible = "gpio-keys";
+		user_sw: user_sw {
+			gpios = <&gpio0 23 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
+			label = "user key (GP23)";
+			zephyr,code = <INPUT_KEY_0>;
+		};
+	};
+};
+
+&flash0 {
+	reg = <0x10000000 DT_SIZE_M(4)>;
+
+	partitions {
+		compatible = "fixed-partitions";
+		#address-cells = <1>;
+		#size-cells = <1>;
+
+		image_def: partition@0 {
+			label = "image_def";
+			reg = <0x00000000 0x100>;
+			read-only;
+		};
+
+		/* The whole part after the image definition block, as the Pico 2 declares it.
+		   No program slots: rete#310's program_a/program_b is the C6's overlay, and
+		   this tree has no flash driver for the RP2350's QMI (prj_rpi_pico2.conf). */
+		code_partition: partition@100 {
+			label = "code-partition";
+			reg = <0x100 (DT_SIZE_M(4) - 0x100)>;
+			read-only;
+		};
+	};
+};
+
+&uart0 {
+	current-speed = <115200>;
+	status = "okay";
+	pinctrl-0 = <&uart0_default>;
+	pinctrl-names = "default";
+};
+
+gpio0_lo: &gpio0 {
+	status = "okay";
+};
+
+&gpio0_hi {
+	status = "okay";
+};
+
+&adc {
+	pinctrl-0 = <&adc_default>;
+	pinctrl-names = "default";
+	status = "okay";
+};
+
+&timer0 {
+	status = "okay";
+};
+
+&wdt0 {
+	status = "okay";
+};
+
+zephyr_udc0: &usbd {
+	status = "okay";
+};

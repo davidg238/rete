@@ -28,6 +28,13 @@
  */
 #ifdef OEVM_HOT_SECTION_IRAM
 #define OEVM_HOT __attribute__((section(".iram.text")))
+#elif defined(OEVM_HOT_SECTION_RAMFUNC)
+/* rete#403: Cortex-M XIP parts (RP2350). Zephyr collects .ramfunc into SRAM and copies
+   it at boot (CONFIG_ARCH_HAS_RAMFUNC_SUPPORT). Code fetched from QSPI flash through the
+   16 KB XIP cache cost 2–2.7× once the image grew past what fit; 8.4 KB in SRAM gave it back.
+   rete#412 added the per-send callees and the allocation and mark paths (+3.6 KB): without
+   them a compiler change that only moved flash layout cost blockValue 22 % on the WeAct. */
+#define OEVM_HOT __attribute__((noinline, long_call, section(".ramfunc")))
 #else
 #define OEVM_HOT
 #endif

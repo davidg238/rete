@@ -70,7 +70,7 @@ oop stack_alloc(uint32_t capacity) {
    ops for escaping captures. `outer` may be a heap oop we must keep live
    across the allocation (a GC during gc_allocate would otherwise sweep it
    before it's linked into the new Context). */
-oop context_alloc(uint32_t num_slots, oop outer, uint32_t home_generation) {
+OEVM_HOT oop context_alloc(uint32_t num_slots, oop outer, uint32_t home_generation) {
     extern oop gc_allocate(oop vtable, size_t size);
     extern void gc_temp_root_push(oop o);
     extern int gc_temp_roots_count;
@@ -129,7 +129,7 @@ static oop sm_to_int(int sign, uint64_t mag) {
    immediate is narrower than the tagged range); loading it unboxed keeps the
    one-value-one-representation invariant that `=`/`hash` (Dictionary keys)
    rely on. */
-oop oevm_int_demote(oop v) {
+OEVM_HOT oop oevm_int_demote(oop v) {
     if (v == NULL || IS_SMI(v)) return v;
     if (obj_vtable(v) != LargeIntegerVtable) return v;
     struct LargeInteger *li = (struct LargeInteger *)v;
@@ -409,7 +409,7 @@ oop lookup_defining_vtable(oop receiver_vtable, oop selector, oop *out_method) {
 
 /* Cached front-end to lookup_defining_vtable. Caller guarantees
    receiver_vtable != NULL. Misses (does-not-understand) are never cached. */
-oop lookup_method_cached(oop receiver_vtable, oop selector,
+OEVM_HOT oop lookup_method_cached(oop receiver_vtable, oop selector,
                          oop *out_method, oop *out_defining_vt) {
 #ifdef OEVM_CACHE_STATS
     method_cache_register_report();
@@ -1127,7 +1127,7 @@ int selector_prim_id(struct Symbol *sym) {
 /* Shared helper: allocate a BytecodeClosure capturing the running frame.
    Used by both PRIM_createClosure (reflective message path, still reachable)
    and OP_CLOSURE (new direct opcode path). */
-oop make_closure(oop method) {
+OEVM_HOT oop make_closure(oop method) {
     extern struct MethodContext *current_frame;
     extern oop *vm_stack;
     extern oop gc_allocate(oop vtable, size_t size);

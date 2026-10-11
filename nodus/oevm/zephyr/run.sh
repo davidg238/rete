@@ -25,7 +25,7 @@ while [ $# -gt 0 ]; do
   esac
 done
 case "$MODEL" in A|B) ;; *) echo "--model must be A or B" >&2; exit 2 ;; esac
-case "$BOARD_ID" in esp32|esp32s2|esp32c6|nrf52840dk|nrf52840dongle|rpi_pico2|feather_rp2040) ;; *) echo "--board must be esp32, esp32s2, esp32c6, nrf52840dk, nrf52840dongle, rpi_pico2 or feather_rp2040" >&2; exit 2 ;; esac
+case "$BOARD_ID" in esp32|esp32s2|esp32c6|nrf52840dk|nrf52840dongle|rpi_pico2|weact_rp2350b|feather_rp2040) ;; *) echo "--board must be esp32, esp32s2, esp32c6, nrf52840dk, nrf52840dongle, rpi_pico2, weact_rp2350b or feather_rp2040" >&2; exit 2 ;; esac
 
 ZDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"   # zephyr/ — the app dir
 ROOT="$(cd "$ZDIR/.." && pwd)"                          # nodus/oevm — the VM root, not the repo root
@@ -429,6 +429,28 @@ case "$BOARD_ID" in
     : "${OEVM_HEAP_SIZE:=131072}"
     : "${BUILD_DIR:=build-rpi_pico2-$MODEL}"
     ;;
+  weact_rp2350b)
+    # rete#403 (found-during, 2026-10-10) — the WeAct Studio RP2350B Core Board: the same
+    # RP2350 die family as the Pico 2 in the 80-pin package (48 GPIO, 8 ADC), bought for
+    # exactly that. Out-of-tree board under zephyr/boards/weact/rp2350b_core/ (BOARD_ROOT
+    # is set in CMakeLists.txt); its README is the hookup. Same workspace, same toolchain,
+    # same Kconfig as the Pico 2 — prj_rpi_pico2.conf is RP2350-generic.
+    BOARD="weact_rp2350b_core/rp2350b/m33"
+    CONF_FILE="prj_rpi_pico2.conf"
+    # BORROWED, and said so: the Pico 2's capture. The layout is the toolchain's and the
+    # ABI's, not the board's, and this is the same die family under the same compiler — but
+    # the rule is "captured from a board, never borrowed", so a capture from this board
+    # (layoutdump/capture.py) is owed and will replace this line with its own file.
+    LAYOUT_JSON="$ZDIR/layout-rp2350.json"
+    ROM_PATCH=0
+    # Same instance<->adapter rule as the Pico 2: uart0 on GP0/GP1 through whichever adapter
+    # the collector env file names; the instance is `weact`. An explicit CONSOLE_PORT wins.
+    if [ -z "${CONSOLE_PORT:-}" ]; then
+      CONSOLE_PORT=$(bench::port_for_board weact 2>/dev/null || true)
+    fi
+    : "${OEVM_HEAP_SIZE:=131072}"
+    : "${BUILD_DIR:=build-weact_rp2350b-$MODEL}"
+    ;;
   feather_rp2040)
     # rete#302's REHEARSAL board (2026-09-19): an Adafruit Feather RP2040 that was on
     # the desk while the Pico 2s were in the post. Out-of-tree board under
@@ -741,6 +763,21 @@ if [ "$BUILD_RC" = 0 ]; then
   else
     echo "[build] model A confirmed from the link set"
   fi
+  # rete#403 — THE XIP CACHE CLIFF. On a part that executes from QSPI flash through a small
+  # cache (ESP32 family, RP2 family) the interpreter's speed is a property of where its hot
+  # functions LAND, not of their code: 12 KB of unrelated growth moved them and cost 2.1–2.7×
+  # on the RP2350, with nothing in the diff to point at (docs/ZEPHYR_LESSONS.md §11). oevm.h
+  # OEVM_HOT routes them into RAM; this line says, after every build, whether it did. Read
+  # from the ELF with the build's own nm (the compiler path from compile_commands.json).
+  HOT_SYM_ADDR=$(CCPATH=$(grep -o -m1 '[^" ]*-gcc' "$ZDIR/$BUILD_DIR/compile_commands.json" | head -1); \
+    [ -n "$CCPATH" ] && "${CCPATH%-gcc}-nm" "$ZDIR/$BUILD_DIR/zephyr/zephyr.elf" 2>/dev/null | awk '$3=="run_interpreter"{print $1}')
+  case "$BOARD_ID:${HOT_SYM_ADDR:0:4}" in
+    rpi_pico2:2000|weact_rp2350b:2000|feather_rp2040:2000|esp32*:4008|esp32*:4037|esp32*:4002)
+      echo "[build] hot path: SRAM (run_interpreter @ 0x$HOT_SYM_ADDR)" ;;
+    rpi_pico2:*|weact_rp2350b:*|feather_rp2040:*|esp32*:*)
+      echo "[build] hot path: FLASH (run_interpreter @ 0x${HOT_SYM_ADDR:-?}) — the XIP cache cliff, ZEPHYR_LESSONS §11; OEVM_HOT is not landing in RAM" >&2 ;;
+    *) : ;;   # nRF52840: internal flash, not XIP; nothing to say
+  esac
 
   # WHERE THIS IMAGE PUT ITS SETTINGS PARTITION — a dongle-only check, and it is here
   # because the assertions above would have passed the image that went dark on
@@ -827,7 +864,7 @@ if [ "$DO_FLASH" = 1 ]; then
     echo "[flash] nrfutil dfu usb-serial -> $(readlink -f "$DFU_PORT")"
     NRFUTIL_HOME="$HOME/.nrfutil-rete" "$NRFUTIL_RETE" nrf5sdk-tools dfu usb-serial \
       -pkg "$DFU_ZIP" -p "$(readlink -f "$DFU_PORT")" || exit 2
-  elif [ "$BOARD_ID" = rpi_pico2 ] || [ "$BOARD_ID" = feather_rp2040 ]; then
+  elif [ "$BOARD_ID" = rpi_pico2 ] || [ "$BOARD_ID" = weact_rp2350b ] || [ "$BOARD_ID" = feather_rp2040 ]; then
     # UF2 over BOOTSEL mass storage — the bench path (#302 Task 4). Like the dongle's
     # DFU it is a PHYSICAL act: hold BOOTSEL while plugging the board in (the Feather:
     # hold BOOTSEL, tap RESET) and the ROM enumerates as a USB disk with an
@@ -836,7 +873,7 @@ if [ "$DO_FLASH" = 1 ]; then
     # own failure ("No matching UF2 partitions found") reads like a missing package
     # rather than an unpressed button. SWD via `openocd` + the debug probe is the
     # second path and cabot's OTA path (#233); not wired until a probe is on the desk.
-    case "$BOARD_ID" in rpi_pico2) ROM_USB=2e8a:000f ROM_VOL=RP2350 ;; *) ROM_USB=2e8a:0003 ROM_VOL=RPI-RP2 ;; esac
+    case "$BOARD_ID" in rpi_pico2|weact_rp2350b) ROM_USB=2e8a:000f ROM_VOL=RP2350 ;; *) ROM_USB=2e8a:0003 ROM_VOL=RPI-RP2 ;; esac
     if ! lsusb 2>/dev/null | grep -q "$ROM_USB"; then
       echo "[flash] the board is NOT in BOOTSEL mode (no $ROM_USB on USB)." >&2
       echo "[flash] Hold BOOTSEL while plugging the board in, then re-run with --flash." >&2
@@ -961,7 +998,7 @@ if [ "$DO_FLASH" = 1 ]; then
 fi
 
 if [ "${CAPTURE:-0}" != 0 ]; then
-  if [ "$BOARD_ID" = rpi_pico2 ] || [ "$BOARD_ID" = feather_rp2040 ]; then
+  if [ "$BOARD_ID" = rpi_pico2 ] || [ "$BOARD_ID" = weact_rp2350b ] || [ "$BOARD_ID" = feather_rp2040 ]; then
     # Same D6 shape as the C6 below — the collector owns the port — but the board is
     # NAMED: custos serves every board, so the read must say which. Resolved from the console port through the env files, and it
     # refuses rather than reads the wrong board's log when nothing names the port.

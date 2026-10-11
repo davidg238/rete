@@ -1,0 +1,6 @@
+board:
+  name: weact_rp2350b_core
+  full_name: WeAct Studio RP2350B Core Board
+  vendor: weact
+  socs:
+  - name: rp2350b

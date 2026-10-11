@@ -77,7 +77,7 @@ and `~/workspaceToit/nodus/docs/`:
 
 <!-- BEGIN GENERATED INVENTORY — do not edit below; rerun tools/docmap.sh -->
 
-_Regenerated 2026-10-10 by `tools/docmap.sh`. Legend: **record** = mainline doc of record · **design** = dated decision record (`docs/design/`) · **plan** = execution scaffolding (`docs/superpowers/plans/`) · **note** = superpowers notes/findings._
+_Regenerated 2026-10-11 by `tools/docmap.sh`. Legend: **record** = mainline doc of record · **design** = dated decision record (`docs/design/`) · **plan** = execution scaffolding (`docs/superpowers/plans/`) · **note** = superpowers notes/findings._
 
 ### review
 
@@ -85,7 +85,7 @@ _Regenerated 2026-10-10 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 - `review/2026-07-04-context-decision.md` — Task 8 design question: keep the deferred-lift heap Context? _(record, 2026-07-04)_
 - `review/2026-07-04-pre-fiber-baseline.md` — Pre-fiber baseline commits in oevm / ns-oevm _(record, 2026-08-02)_
 - `review/2026-07-21-issue-65-http-load-wedge/README.md` — tuvm#65 — evidence folder (2026-07-21) _(record, 2026-08-02)_
-- `review/DOCMAP.md` — DOCMAP — where every document of the program lives _(record, 2026-10-10)_
+- `review/DOCMAP.md` — DOCMAP — where every document of the program lives _(record, 2026-10-11)_
 - `review/ISSUE-dongle-usb-openthread.md` — DRAFT ISSUE (post to davidg238/tuvm — created from a session without gh permission) _(record, 2026-07-12)_
 - `review/WHY-AGENTS.md` — Why agents — nodus + porta as an agent-first platform _(record, 2026-08-29)_
 - `review/WHY-OEOM.md` — Why OEOM — the kernel that survived the graveyard _(record, 2026-07-12)_
@@ -166,7 +166,7 @@ _Regenerated 2026-10-10 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 - `docs/design/2026-08-05-timer-token-by-value-design.md` — The timer token rides by value, and the handle goes _(design, 2026-08-05)_
 - `docs/design/2026-08-06-method-profile-over-porta-design.md` — Per-method profiling, surfaced over porta _(design, 2026-08-07)_
 - `docs/design/2026-08-07-build-asset-archive-design.md` — Build-asset archive — keyed by build id, retained by intent, eventually at porta _(design, 2026-08-24)_
-- `docs/design/2026-08-07-code-push-host-slice-design.md` — Code-push, the host-only vertical slice (#25) — design _(design, 2026-08-08)_
+- `docs/design/2026-08-07-code-push-host-slice-design.md` — Code-push, the host-only vertical slice (#25) — design _(design, 2026-10-10)_
 - `docs/design/2026-08-07-inclusive-attribution-design.md` — Attributing profile cost to code, not to callees _(design, 2026-08-07)_
 - `docs/design/2026-08-10-node-memory-and-liveness-design.md` — Node memory accounting and fleet liveness — design _(design, 2026-08-22)_
 - `docs/design/2026-08-12-allocation-attribution-design.md` — Allocation attribution — the profiler's question, asked about bytes _(design, 2026-08-12)_
@@ -210,13 +210,15 @@ _Regenerated 2026-10-10 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 - `docs/results/2026-10-06-313-patch-restart-spike.md` — Stop, patch, restart, resume — desktop spike for rete#313 _(record, 2026-10-07)_
 - `docs/results/2026-10-07-342-sleepy-node-debug-spike.md` — Debugging and profiling a sleepy node through porta — host spike for rete#342 _(record, 2026-10-08)_
 - `docs/results/2026-10-09-cbor-aot-spike.md` — What would AOT-ing `Cbor>>encode:` return? — spike, 2026-10-09 _(record, 2026-10-10)_
-- `docs/results/2026-10-10-380-debug-through-porta-on-boards.md` — A debugger through porta, on two boards — rete#379 and rete#380, 2026-10-09/10 _(record)_
+- `docs/results/2026-10-10-296-image-in-sram.md` — rete#296 on the RP2350 — the image in SRAM, and nsl beside MicroPython on the same silicon _(record, 2026-10-11)_
+- `docs/results/2026-10-10-380-debug-through-porta-on-boards.md` — A debugger through porta, on two boards — rete#379 and rete#380, 2026-10-09/10 _(record, 2026-10-10)_
+- `docs/results/2026-10-10-rp2350-weact-first-boot.md` — RP2350 (WeAct RP2350B) first boot — a hang and a 2× that were both master's, not the board's _(record, 2026-10-10)_
 - `docs/spikes/2026-07-17-oeom-native-hanoi/README.md` — Spike archive: OEOM native-substitution (Hanoi AOT ceiling) — 2026-07-17 _(record, 2026-07-17)_
 - `docs/spikes/2026-08-11-rete199-refused-node/README.md` — rete#199 — a node whose frames the gateway refuses, reproduced off hardware _(record, 2026-08-11)_
 - `docs/spikes/2026-08-27-liveness-model/README.md` — The liveness contract, model-checked (2026-08-27) _(record, 2026-10-03)_
 - `docs/status/2026-08-12-where-we-are.html` — rete &mdash; where we are _(record, 2026-08-12)_
 - `docs/status/README.md` — docs/status — the orientation deck _(record, 2026-08-13)_
-- `docs/status/dev-status.html` — rete dev status _(record, 2026-10-09)_
+- `docs/status/dev-status.html` — rete dev status _(record, 2026-10-10)_
 - `docs/status/focus-history.md` — `## Current focus` — history _(record, 2026-09-30)_
 - `docs/superpowers/notes/2026-06-18-w1-rooting-audit.md` — W1 Rooting Audit — Runtime `gc_allocate` / `float_alloc` Sites _(note, 2026-07-03)_
 - `docs/superpowers/plans/2026-06-17-decoupled-xip-image.md` — Decoupled Image + Execute-In-Place Format — Implementation Plan _(plan, 2026-08-29)_
@@ -298,13 +300,13 @@ _Regenerated 2026-10-10 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 - `nodus/oevm/docs/archive/spec.md` — Architectural Specification: Open, Lazy-Reified Virtual Machine _(record, 2026-08-29)_
 - `nodus/oevm/docs/deployment-model.md` — Deployment model: resident VM + OTA'd image (Model B) _(record, 2026-08-29)_
 - `nodus/oevm/docs/op_send_implicit.md` — OP_SEND_IMPLICIT: Lexical Implicit-Receiver Message Sends _(record, 2026-08-29)_
-- `nodus/oevm/docs/optimizations.md` — OEVM interpreter optimization log _(record, 2026-10-05)_
+- `nodus/oevm/docs/optimizations.md` — OEVM interpreter optimization log _(record, 2026-10-11)_
 - `nodus/oevm/docs/topics.md` — Design topics _(record, 2026-08-29)_
 - `nodus/oevm/docs/vm.md` — oevm — what the VM is, as of 2026-08-29 _(record, 2026-10-05)_
 
 ### protocol
 
-- `protocol/IMAGE-ARTIFACTS.md` — Image artifacts — what the compiler writes and custos reads _(record, 2026-10-09)_
+- `protocol/IMAGE-ARTIFACTS.md` — Image artifacts — what the compiler writes and custos reads _(record, 2026-10-10)_
 - `protocol/PROTOCOL-NSL-RECORDS.md` — Porta ↔ nsl — the record schemas _(record, 2026-10-09)_
 - `protocol/PROTOCOL-NSL.md` — Porta ↔ nsl node protocol — the space-sync model _(record, 2026-10-09)_
 - `protocol/archive/PROTOCOL-NSL-draft-2026-07-11.md` — Porta ↔ nsl node protocol — the space-sync model (genesis draft) _(record, 2026-10-02)_
@@ -314,7 +316,7 @@ _Regenerated 2026-10-10 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 ### nodus/nsl/docs
 
 - `nodus/nsl/docs/NEWSPEAK_DIALECT.md` — nsl — a Newspeak dialect (intentional differences from full Newspeak) _(record, 2026-10-09)_
-- `nodus/nsl/docs/README.md` — nodus/nsl/docs — the dialect's documents _(record, 2026-10-06)_
+- `nodus/nsl/docs/README.md` — nodus/nsl/docs — the dialect's documents _(record, 2026-10-10)_
 - `nodus/nsl/docs/compiler.md` — The nsl compiler _(record, 2026-10-09)_
 - `nodus/nsl/docs/design/2026-06-16-block-inlining-design.md` — Block inlining via a scope/frame model _(design, 2026-08-02)_
 - `nodus/nsl/docs/design/2026-06-19-next-phase-stdlib-and-debug.md` — ns-oevm — next phase: standard library + debug story _(design, 2026-08-29)_
@@ -357,8 +359,8 @@ _Regenerated 2026-10-10 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 - `nodus/nsl/docs/design/2026-07-15-tuvm21-take-nil-vs-empty-design.md` — tuvm#21 — a posted `nil` must be distinguishable from an empty stream at `take:` _(design, 2026-08-02)_
 - `nodus/nsl/docs/design/2026-10-08-paper-split-outlines.md` — Splitting the nsl paper in two: outlines _(design, 2026-10-09)_
 - `nodus/nsl/docs/nsl-design-paper.md` — nsl: a Newspeak dialect in 112 KB — what it keeps, what it drops, and why _(record, 2026-10-09)_
-- `nodus/nsl/docs/nsl-embedded-paper-nocomments.md` — rete: a lifecycle for small radio nodes on Zephyr — what is built, what it costs, and what is not _(record)_
-- `nodus/nsl/docs/nsl-embedded-paper.md` — rete: a lifecycle for small radio nodes on Zephyr — what is built, what it costs, and what is not _(record, 2026-10-09)_
+- `nodus/nsl/docs/nsl-embedded-paper-nocomments.md` — rete: a lifecycle for small radio nodes on Zephyr — what is built, what it costs, and what is not _(record, 2026-10-10)_
+- `nodus/nsl/docs/nsl-embedded-paper.md` — rete: a lifecycle for small radio nodes on Zephyr — what is built, what it costs, and what is not _(record, 2026-10-10)_
 - `nodus/nsl/docs/programming_with_nsl.md` — Programming with nsl _(record, 2026-08-24)_
 - `nodus/nsl/docs/superpowers/findings/2026-07-04-oimg-large-smi-constant-corruption.md` — FINDING (2026-07-04): oimg backend corrupts large SMI integer constants _(note, 2026-08-02)_
 - `nodus/nsl/docs/superpowers/plans/2026-06-16-block-inlining-phase-a.md` — Block Inlining — Phase A (Foundation) Implementation Plan _(plan, 2026-08-29)_
@@ -414,8 +416,8 @@ _Regenerated 2026-10-10 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 
 ### nodus/oevm/zephyr/docs
 
-- `nodus/oevm/zephyr/docs/BOARD_PORTS.md` — oevm on Zephyr — board ports _(record, 2026-10-02)_
-- `nodus/oevm/zephyr/docs/ZEPHYR_LESSONS.md` — Zephyr / NCS + OpenThread + USB — hard-won lessons (nRF52840) _(record, 2026-08-24)_
+- `nodus/oevm/zephyr/docs/BOARD_PORTS.md` — oevm on Zephyr — board ports _(record, 2026-10-10)_
+- `nodus/oevm/zephyr/docs/ZEPHYR_LESSONS.md` — Zephyr / NCS + OpenThread + USB — hard-won lessons (nRF52840) _(record, 2026-10-10)_
 - `nodus/oevm/zephyr/docs/results.md` — tuvm on-device results — ESP32-WROOM-32 (Xtensa) _(record, 2026-08-29)_
 - `nodus/oevm/zephyr/docs/stic-README-snapshot-2026-07-17.md` — STIC Smalltalk benchmark _(record, 2026-08-24)_
 

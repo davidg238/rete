@@ -47,6 +47,27 @@ uintptr_t flash_rom_end = 0;
    first-fit by capacity. */
 #define FREE_BIN_COUNT 64
 static struct HeapHeader *free_bins[FREE_BIN_COUNT];
+/* The largest interior dead run the last sweep found, kept OUT of the bins and
+   carved O(1) like a second bump region (2026-10-10, rete#296 follow-on). Before
+   this, a single live object near heap_top made the trailing run tiny, the bulk
+   of the free arena went to the catch-all bin, and every allocation after bump
+   exhaustion walked the ~57 empty bins between its size class and the catch-all
+   before splitting that run and binning the remainder — 57 iterations per
+   allocation, measured as closureMake +22 % / ocDo +13 % on the RP2350 from a
+   compiler change that merely altered which object survived. */
+static struct HeapHeader *big_free = NULL;
+/* One bit per non-empty bin, so the cross-bin first-fit is a count-trailing-zeros
+   instead of a walk over up to 63 empty lists (2026-10-10: 23–42 M such iterations
+   per Spike296Node run, the whole residual between two otherwise equal images). */
+static uint64_t bins_nonempty = 0;
+static inline void bin_push(struct HeapHeader *h, size_t bi) {
+    h->next = free_bins[bi];
+    free_bins[bi] = h;
+    bins_nonempty |= (uint64_t)1 << bi;
+}
+static inline void bin_note_pop(size_t bi) {
+    if (free_bins[bi] == NULL) bins_nonempty &= ~((uint64_t)1 << bi);
+}
 
 /* ---- Heap telemetry (G3/M2, https://github.com/davidg238/nsl-tuvm/issues/3) --------------------------------
    Fragmentation early-warning counters for the fixed embedded arena. Kept as
@@ -206,7 +227,7 @@ int is_read_only(oop ptr) {
 
 /* O(1): range-check against the arena, require sizeof(oop) alignment, then
    confirm the bitmap marks this exact word as a live payload start. */
-static int is_valid_heap_object(oop ptr) {
+static OEVM_HOT int is_valid_heap_object(oop ptr) {
     if (heap_base == NULL) return 0;   /* M1: guard against NULL before heap_init() */
     uint8_t *p = (uint8_t *)ptr;
     if (p < heap_base + sizeof(struct HeapHeader) || p >= heap_top) return 0;
@@ -232,16 +253,14 @@ void gc_collect(void);
    splitting any reusable remainder back onto its size-class bin, and return it
    live. The remainder is only split off when it can hold a header + one granule;
    otherwise the slack stays with the allocation (bounded internal slack). */
-static oop finish_reuse(struct HeapHeader *h, oop vtable, size_t rounded) {
+static OEVM_HOT oop finish_reuse(struct HeapHeader *h, oop vtable, size_t rounded) {
     size_t leftover = h->size - rounded;
     if (leftover >= sizeof(struct HeapHeader) + OEVM_GRANULE) {
         struct HeapHeader *rem =
             (struct HeapHeader *)((uint8_t *)(h + 1) + rounded);
         rem->size = leftover - sizeof(struct HeapHeader);
         rem->marked = 0;
-        size_t rbi = bin_index(rem->size);
-        rem->next = free_bins[rbi];
-        free_bins[rbi] = rem;
+        bin_push(rem, bin_index(rem->size));
         h->size = rounded;
     }
     h->next = NULL;
@@ -254,7 +273,7 @@ static oop finish_reuse(struct HeapHeader *h, oop vtable, size_t rounded) {
 
 /* One allocation attempt against the arena. Returns NULL if exact bin, bump, and
    the cross-bin first-fit all fail (caller decides whether to collect). */
-static oop arena_try_alloc(oop vtable, size_t rounded, size_t need) {
+static OEVM_HOT oop arena_try_alloc(oop vtable, size_t rounded, size_t need) {
     size_t bi = bin_index(rounded);
     /* 1. Exact size-class bin — the common reuse path. */
     struct HeapHeader **pp = &free_bins[bi];
@@ -262,9 +281,32 @@ static oop arena_try_alloc(oop vtable, size_t rounded, size_t need) {
         if ((*pp)->size >= rounded) {
             struct HeapHeader *h = *pp;
             *pp = h->next;
+            bin_note_pop(bi);
             return finish_reuse(h, vtable, rounded);
         }
         pp = &(*pp)->next;
+    }
+    /* 1b. The largest coalesced interior run, carved like bump: O(1), no bin walk,
+           and the interior space is reused before the tail so the tail stays whole. */
+    if (big_free != NULL && big_free->size >= rounded) {
+        struct HeapHeader *h = big_free;
+        size_t leftover = h->size - rounded;
+        if (leftover >= sizeof(struct HeapHeader) + OEVM_GRANULE) {
+            struct HeapHeader *rem = (struct HeapHeader *)((uint8_t *)(h + 1) + rounded);
+            rem->size = leftover - sizeof(struct HeapHeader);
+            rem->marked = 0;
+            rem->next = NULL;
+            big_free = rem;
+            h->size = rounded;
+        } else {
+            big_free = NULL;              /* slack stays with the allocation */
+        }
+        h->next = NULL;
+        h->marked = 0;
+        oop obj = (oop)(h + 1);
+        bm_set(bm_granule(obj));
+        obj->vtable = vtable;
+        return obj;
     }
     /* 2. Bump — kept ahead of the cross-bin scan so steady-state allocation
           never pays the bin walk. */
@@ -281,21 +323,25 @@ static oop arena_try_alloc(oop vtable, size_t rounded, size_t need) {
     }
     /* 3. Cross-bin first-fit + split: only when the exact bin missed and bump is
           exhausted. Reuses a larger freed/coalesced block. */
-    for (size_t b = bi + 1; b < FREE_BIN_COUNT; b++) {
+    uint64_t m = (bi + 1 < FREE_BIN_COUNT) ? (bins_nonempty & ~(((uint64_t)2 << bi) - 1)) : 0;
+    while (m != 0) {
+        size_t b = (size_t)__builtin_ctzll(m);
         pp = &free_bins[b];
         while (*pp != NULL) {
             if ((*pp)->size >= rounded) {
                 struct HeapHeader *h = *pp;
                 *pp = h->next;
+                bin_note_pop(b);
                 return finish_reuse(h, vtable, rounded);
             }
             pp = &(*pp)->next;
         }
+        m &= ~((uint64_t)1 << b);   /* only the catch-all can hold a block too small; move on */
     }
     return NULL;
 }
 
-oop gc_allocate(oop vtable, size_t size) {
+OEVM_HOT oop gc_allocate(oop vtable, size_t size) {
     if (heap_base == NULL) heap_init();
 
     /* OEVM_GC_STRESS: collect before every allocation to expose GC correctness
@@ -544,7 +590,7 @@ static void trace_one(oop ptr);   /* forward: traces one already-marked object *
 static void mark(oop ptr);
 
 /* Trace all pointer fields within an object */
-static void trace_object(oop ptr, size_t size) {
+static OEVM_HOT void trace_object(oop ptr, size_t size) {
     // Scan the object payload at word granularity
     oop *fields = (oop *)ptr;
     size_t count = size / sizeof(oop);
@@ -555,7 +601,7 @@ static void trace_object(oop ptr, size_t size) {
 
 /* Classify a pointer, set its mark bit, and enqueue it for tracing. No
    recursion: children are reached when this object is later popped and traced. */
-static void mark(oop ptr) {
+static OEVM_HOT void mark(oop ptr) {
     if (IS_SMI(ptr)) return;
     if (ptr == NULL) return;
     if (is_in_blob(ptr)) return; /* blob objects are immutable ROM: never marked, never traced */
@@ -587,7 +633,7 @@ static void mark(oop ptr) {
 /* Trace one already-marked heap object: enqueue each of its child references.
    This is the per-vtable dispatch that used to live inside the recursive mark;
    every child is reached via mark() (an enqueue), never a recursive descent. */
-static void trace_one(oop ptr) {
+static OEVM_HOT void trace_one(oop ptr) {
     extern oop VtableVtable;
     extern oop FloatVtable;
     extern oop StringVtable;
@@ -685,7 +731,7 @@ void gc_forensics(int *in_progress, unsigned *msp, int *overflowed) {
 }
 
 /* Pop-and-trace until the worklist drains. */
-static void drain_mark_stack(void) {
+static OEVM_HOT void drain_mark_stack(void) {
     while (mark_sp > 0) {
         oop ptr = mark_stack[--mark_sp];
         trace_one(ptr);            /* may enqueue more via mark() */
@@ -718,7 +764,7 @@ static void mark_drain_with_recovery(void) {
    loses anything: every frame on this chain is reachable via this walk, and
    the frame STRUCT memory itself is kept alive transitively because it lives
    inside g_active_stack, which is marked as a root above. */
-static void scan_vm_stack(void) {
+static OEVM_HOT void scan_vm_stack(void) {
     struct MethodContext *frame = current_frame;
     struct MethodContext *prev_higher_frame = NULL;
 
@@ -784,7 +830,7 @@ void gc_temp_roots_clear(void) {
 }
 
 /* Trigger a Mark-and-Sweep Garbage Collection cycle */
-void gc_collect(void) {
+OEVM_HOT void gc_collect(void) {
     // 1. Reset mark tags: linear walk of the arena
     if (heap_base == NULL) heap_init();
 
@@ -926,6 +972,8 @@ void gc_collect(void) {
     // re-walked on every collection, so without this reset they would be pushed
     // onto a bin a second time, self-cycling the list and aliasing reused addresses.
     for (size_t i = 0; i < FREE_BIN_COUNT; i++) free_bins[i] = NULL;
+    bins_nonempty = 0;
+    big_free = NULL;   /* rebuilt by this walk: the largest interior run */
     /* Telemetry: recompute live_bytes from this sweep's marked survivors
        rather than subtracting per freed object — least invasive against the
        existing walk, and exact by construction. high_water is untouched here:
@@ -954,12 +1002,14 @@ void gc_collect(void) {
                    coalesced tail space is immediately reusable at any size. */
                 heap_top = cur;
             } else {
-                /* Interior dead run: one coalesced free block spanning [cur,run_end). */
+                /* Interior dead run: one coalesced free block spanning [cur,run_end).
+                   The largest one is kept as big_free (carved O(1), see arena_try_alloc);
+                   a run it displaces goes to its bin. */
                 h->size = (size_t)(run_end - cur) - sizeof(struct HeapHeader);
                 h->marked = 0;
-                size_t bi = bin_index(h->size);
-                h->next = free_bins[bi];
-                free_bins[bi] = h;
+                struct HeapHeader *to_bin = h;
+                if (big_free == NULL || h->size > big_free->size) { to_bin = big_free; big_free = h; h->next = NULL; }
+                if (to_bin != NULL) bin_push(to_bin, bin_index(to_bin->size));
             }
             cur = run_end;
         }
@@ -984,7 +1034,7 @@ struct OevmHeapStats oevm_heap_stats(void) {
     s.high_water = heap_high_water;
     s.gc_cycles = heap_gc_cycles;
 
-    size_t largest = 0;
+    size_t largest = (big_free != NULL) ? big_free->size : 0;
     for (size_t i = 0; i < FREE_BIN_COUNT; i++) {
         for (struct HeapHeader *h = free_bins[i]; h != NULL; h = h->next) {
             if (h->size > largest) largest = h->size;

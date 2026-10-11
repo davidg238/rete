@@ -181,7 +181,7 @@ static void (*ota_fn)(void *);
 static void ota_entry(void *a, void *b, void *c) {
     (void)b; (void)c;
     ota_fn(a);
-#ifdef CONFIG_THREAD_STACK_INFO
+#if defined(CONFIG_INIT_STACKS) && defined(CONFIG_THREAD_STACK_INFO)   /* kernel/thread.c builds the call only under both */
     size_t unused = 0;
     if (k_thread_stack_space_get(k_current_get(), &unused) == 0)
         printk("ota: fetch thread stack high-water %u of %u B\n",

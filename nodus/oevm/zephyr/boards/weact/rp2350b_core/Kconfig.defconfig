@@ -1,0 +1,9 @@
+# Copyright (c) 2026 Ekorau LLC
+# SPDX-License-Identifier: Apache-2.0
+
+if BOARD_WEACT_RP2350B_CORE
+
+config USB_SELF_POWERED
+	default n
+
+endif # BOARD_WEACT_RP2350B_CORE
