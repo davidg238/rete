@@ -11,8 +11,8 @@ blocks are in `docs/status/focus-history.md`; live state is in the issues and `d
   get the stub runner — move it to `prj_esp32s2.conf` (check storage vs the slots), add the slots-without-settings guard in `runner.c`;
   (2) the S2 recipe at `OEVM_SPACE_MAX_CHANNELS=16`, `OEVM_MPROF_SLOTS` default — one BOOT0+RESET flash, read `space:`;
   (3) the bell over Thread (daylight, `flash-bell.sh`); then #398.
-- **Second thread, opti7040: #37.** `OP_ITER_AT` merged (kernel `do:`, ocDo 7668 → 5594 ms, Opt #7). **Starts with:** if master
-  is not pushed, the suite on the merge (msi `~/rete-37-merge-suite.log`) then push; then the queued question (#37 2026-10-11):
+- **Second thread, opti7040: #37.** `OP_ITER_AT` merged (kernel `do:`, ocDo 7668 → 5594 ms, Opt #7). Suite ~5 min now (#416). **Starts with:** the
+  queued question (#37 2026-10-11):
   what inlining the `do:` block at the call site takes — the receiver-class guard first; draft in `docs/design/`, a guard spike row.
 - **Awaiting David:** #368's last item, the history rewrite (private names, force-push); close #314; #396;
   read E draft 4 and L; #175's memo; the dongle reflash from master (#402); the RP2 remote-BOOTSEL design (#413).

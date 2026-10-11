@@ -44,7 +44,7 @@ tutorial-porta's reason.
 broken was the gate's own un-SKIP instruction, which named a path the #79 consolidation
 deleted — so the SKIP was unfollowable, and this file recorded it as normal. `footprint.sh`
 now finds the SDK itself. **A SKIP here fails the suite (#314).** A second suite refuses to
-start (one lock, `/tmp/rete-nsl-suite.lock`). **The count above drifts upward as
+start (one lock, `/tmp/rete-nsl-suite.lock`). The suite takes ~5 min on msi (282 s, 2026-10-11): the compiler caches parsed ASTs under `~/.cache/nsl-parse/`, keyed by a hash of source, grammar, parser and ohm-js (`NSL_PARSE_CACHE=off` to bypass); before that every compile re-parsed the kernel and the suite took ~20 min (#416). **The count above drifts upward as
 tests land — treat a mismatch as staleness in this file, never as a missing test.** The
 suite also prints `target gates: NOT RUN BY THIS SUITE`: the posix timer backend bypasses
 the pulse mailbox, so coalescing, shedding and stale handles need `nodus/oevm/tests/target/run.sh`
