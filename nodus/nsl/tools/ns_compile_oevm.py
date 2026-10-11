@@ -1911,6 +1911,27 @@ class MethodCompiler:
 
             cidx = self.add_constant(selector)
             send_op = OP_BLOCK_INVOKE if self._is_block_value_selector(selector) else send_op_for(selector)
+            # rete#37 send-levers spike: an Array's at:/at:put:/size at an app call site, behind IS_VT. AT and
+            # AT_PUT carry the selector, so an index out of bounds still falls back to the send and its error.
+            if (ITER_INLINE and selector in ("at:", "at:put:", "size")
+                    and self.parent.current_file != KERNEL_PATH):
+                l_send = self.new_label()
+                l_done = self.new_label()
+                t = self.alloc_reg()
+                self.emit_ABC(OP_IS_VT, t, self.add_constant("VTABLE:Kernel_Array"), rcvr_reg)
+                self.emit_jump(OP_JMP_IF_FALSE, t, l_send)
+                self.free_reg()
+                if selector == "size":
+                    self.emit_ABC(OP_LD_SLOT, rcvr_reg, 0, rcvr_reg)     # an Array's size is its slot 0
+                else:
+                    self.emit_ABC(OP_AT if selector == "at:" else OP_AT_PUT, len(args), cidx, rcvr_reg)
+                self.emit_jump(OP_JMP, 0, l_done)
+                self.bind_label(l_send)
+                self.emit_ABC(send_op, len(args), cidx, rcvr_reg)
+                self.bind_label(l_done)
+                self.emit_ABC(OP_LD_REG, target_reg, rcvr_reg, 0)
+                self.next_free_reg = old_free
+                return
             self.emit_ABC(send_op, len(args), cidx, rcvr_reg)
             self.emit_ABC(OP_LD_REG, target_reg, rcvr_reg, 0)
             self.next_free_reg = old_free
