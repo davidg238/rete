@@ -1,21 +1,105 @@
 [flash] BOOTSEL volume /dev/sdc1
-[flash] mounted at /run/media/david/RP23501; copying spike296-arm1.uf2 (740352 B)
+[flash] mounted at /run/media/david/RP23501; copying spike296-arm1.uf2 (741888 B)
 [flash] copied; waiting for the volume to go away
 [flash] done
 [arms] weact-arm1 run 1 arm=flash then=reboot
-18:44:57 open /dev/serial/by-id/usb-Zephyr_Project_CDC_ACM_serial_backend_371016190D903B10-if00
-18:44:57 > flash
-18:44:58 > flash
-18:44:59 > flash
-18:45:00 < *** Booting Zephyr OS build v4.2.0-12-gbc47c6fab9cc ***
-18:45:00 < oevm: build-id porta-v1-final-1546-ge2b4002-20261010T184142
-18:45:00 < spike296: arm? sram|flash|bootsel|reboot (default flash, 8000 ms)
-18:45:00 > flash
-18:45:01 > flash
-18:45:02 > flash
-18:45:02 > flash
-18:45:03 > flash
-18:45:04 > flash
-18:45:05 > flash
-18:45:05 port EOF
-[arms] run 1 exit 3
+18:55:41 open /dev/serial/by-id/usb-Zephyr_Project_CDC_ACM_serial_backend_371016190D903B10-if00
+18:55:41 > flash
+18:55:42 > flash
+18:55:43 > flash
+18:55:44 < *** Booting Zephyr OS build v4.2.0-12-gbc47c6fab9cc ***
+18:55:44 < oevm: build-id porta-v1-final-1550-gb226fba-20261010T185515
+18:55:44 < spike296: no retained death note
+18:55:44 < logudp: not built in (no OEVM_LOG_UDP6) — console is UART only
+18:55:44 < oevm: observer armed (slack=8 tick=1000ms backstop=30000ms hw=yes)
+18:55:44 < spike296: arm? sram|flash|bootsel|reboot (default flash, 6000 ms) boot#1
+18:55:44 > flash
+18:55:44 < spike296: arm=flash
+18:55:44 < spike296: blob base 0x10023898 (flash), hot path sram
+18:55:44 < spike296-node: hanoi 18 x5, blockcost 1/10, richards x3
+18:55:46 < hanoi 1: 2217
+18:55:49 < hanoi 2: 2216
+18:55:51 < hanoi 3: 2216
+18:55:53 < hanoi 4: 2217
+18:55:55 < hanoi 5: 2217
+18:55:58 < baseLoop: 2741
+18:56:05 < blockValue: 6688
+18:56:12 < methodSend: 7543
+18:56:21 < blockCapture: 8980
+18:56:27 < closureMake: 5807
+18:56:37 < ocDo: 10121
+18:56:50 < ocAt: 12340
+18:56:59 < richards: 9132
+18:57:08 < richards: 9132
+18:57:17 < richards: 9253
+18:57:17 < verified: true
+18:57:17 < spike296-node: done
+18:57:17 < spike296: parked; bootsel|reboot
+18:57:17 > reboot
+[arms] run 1 exit 0
+[arms] weact-arm1 run 2 arm=sram then=reboot
+18:57:21 open /dev/serial/by-id/usb-Zephyr_Project_CDC_ACM_serial_backend_371016190D903B10-if00
+18:57:21 < *** Booting Zephyr OS build v4.2.0-12-gbc47c6fab9cc ***
+18:57:21 < oevm: build-id porta-v1-final-1550-gb226fba-20261010T185515
+18:57:21 > sram
+18:57:21 < spike296: no retained death note
+18:57:21 < logudp: not built in (no OEVM_LOG_UDP6) — console is UART only
+18:57:21 < oevm: observer armed (slack=8 tick=1000ms backstop=30000ms hw=yes)
+18:57:21 < spike296: arm? sram|flash|bootsel|reboot (default flash, 6000 ms) boot#1
+18:57:22 < spike296: arm=sram
+18:57:22 < spike296: blob 188896 B copied to SRAM in 16 ms
+18:57:22 < spike296: blob base 0x20005260 (sram), hot path sram
+18:57:22 < spike296-node: hanoi 18 x5, blockcost 1/10, richards x3
+18:57:24 < hanoi 1: 2221
+18:57:26 < hanoi 2: 2221
+18:57:28 < hanoi 3: 2221
+18:57:31 < hanoi 4: 2221
+18:57:33 < hanoi 5: 2221
+18:57:35 < baseLoop: 2748
+18:57:42 < blockValue: 6704
+18:57:50 < methodSend: 7556
+18:57:59 < blockCapture: 8986
+18:58:05 < closureMake: 5806
+18:58:15 < ocDo: 10135
+18:58:27 < ocAt: 12340
+18:58:36 < richards: 8661
+18:58:44 < richards: 8662
+18:58:53 < richards: 8781
+18:58:53 < verified: true
+18:58:53 < spike296-node: done
+18:58:53 < spike296: parked; bootsel|reboot
+18:58:53 > reboot
+[arms] run 2 exit 0
+[arms] weact-arm1 run 3 arm=flash then=bootsel
+18:58:57 open /dev/serial/by-id/usb-Zephyr_Project_CDC_ACM_serial_backend_371016190D903B10-if00
+18:58:57 < *** Booting Zephyr OS build v4.2.0-12-gbc47c6fab9cc ***
+18:58:57 < oevm: build-id porta-v1-final-1550-gb226fba-20261010T185515
+18:58:57 < spike296: no retained death note
+18:58:57 < logudp: not built in (no OEVM_LOG_UDP6) — console is UART only
+18:58:57 > flash
+18:58:57 < oevm: observer armed (slack=8 tick=1000ms backstop=30000ms hw=yes)
+18:58:57 < spike296: arm? sram|flash|bootsel|reboot (default flash, 6000 ms) boot#1
+18:58:58 < spike296: arm=flash
+18:58:58 < spike296: blob base 0x10023898 (flash), hot path sram
+18:58:58 < spike296-node: hanoi 18 x5, blockcost 1/10, richards x3
+18:59:00 < hanoi 1: 2217
+18:59:02 < hanoi 2: 2217
+18:59:04 < hanoi 3: 2217
+18:59:07 < hanoi 4: 2216
+18:59:09 < hanoi 5: 2216
+18:59:12 < baseLoop: 2742
+18:59:18 < blockValue: 6688
+18:59:26 < methodSend: 7543
+18:59:35 < blockCapture: 8980
+18:59:41 < closureMake: 5807
+18:59:51 < ocDo: 10121
+19:00:03 < ocAt: 12340
+19:00:12 < richards: 9131
+19:00:21 < richards: 9131
+19:00:31 < richards: 9252
+19:00:31 < verified: true
+19:00:31 < spike296-node: done
+19:00:31 < spike296: parked; bootsel|reboot
+19:00:31 > bootsel
+[arms] run 3 exit 0
+[arms] weact-arm1 done; board should be in BOOTSEL
