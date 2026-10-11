@@ -57,6 +57,28 @@ def image_map():
         return json.load(f)
 
 
+def pc_after_first_send(name, argc):
+    """The instruction index just past the first `argc`-argument send in method `name`,
+    decoded from the image: the peephole pass (2026-10-10) moves instructions, so a
+    debugger expectation about "just past the countTo: send" is derived, not pinned."""
+    m = image_map()
+    lay = m["image"]["layout"]
+    cm = lay["structs"]["CompiledMethod"]["fields"]
+    oopsz = lay["oop_size"]
+    blob = open(OIMG_B, "rb").read()
+    import struct
+    off = blob_offset(name)
+    fmt = "<Q" if oopsz == 8 else "<I"
+    ins = struct.unpack_from(fmt, blob, off + cm["instructions"]["offset"])[0] >> 2
+    n = struct.unpack_from("<I", blob, off + cm["instruction_count"]["offset"])[0]
+    for i in range(n):
+        w = struct.unpack_from("<I", blob, ins + 4 * i)[0]
+        op, d = w & 0xFF, (w >> 8) & 0xFF
+        if op in (2, 13, 15) and d == argc:      # OP_SEND, OP_SEND_IMPLICIT, OP_SEND_SUPER
+            return i + 1
+    raise AssertionError(f"no {argc}-arg send in {name}")
+
+
 def blob_offset(name):
     """The blob offset of method `name` in the target's image map."""
     hits = [int(k) for k, m in image_map()["methods"].items() if m["name"] == name]
@@ -135,7 +157,8 @@ def run_over_out(cid, main_off):
     out = session(f"dbg:break {cid} 0\ndbg:continue\ndbg:out\ndbg:continue\n")
     o, pc = step_stop(after_break(out, cid, "out"), "out", out)
     assert o == main_off, f"dbg:out landed in {o}, expected main:args: {main_off}:\n{out}"
-    assert pc == 6, f"dbg:out pc should be 6 (just past the countTo: send), got {pc}:\n{out}"
+    want = pc_after_first_send("DebugTargetTest>>main:args:", 1)
+    assert pc == want, f"dbg:out pc should be {want} (just past the countTo: send), got {pc}:\n{out}"
     assert finished(out), f"app did not finish after dbg:out + continue:\n{out}"
 
 

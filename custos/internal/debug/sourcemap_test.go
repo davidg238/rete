@@ -252,23 +252,23 @@ func TestTheFixtureMapReadsAsItsSourceSays(t *testing.T) {
 	if sm.Entry != "Fixture" || sm.Source != "Fixture.nsl" {
 		t.Fatalf("entry %q, source %q", sm.Entry, sm.Source)
 	}
-	// `(twice value: c bump) println.` is line 23 of main:args:, from offset 23.
-	if got := mustResolve(t, sm, "Fixture.nsl:23"); got != (Breakpoint{3992, 23, 23, "Fixture>>main:args:"}) {
+	// `(twice value: c bump) println.` is line 23 of main:args:, from pc 21.
+	if got := mustResolve(t, sm, "Fixture.nsl:23"); got != (Breakpoint{4088, 21, 23, "Fixture>>main:args:"}) {
 		t.Errorf("23 -> %+v", got)
 	}
 	// Line 21 holds the block `[ :x | x + x + k ]`, its own method at its own offset.
-	if got := mustResolve(t, sm, "21"); got != (Breakpoint{26616, 1, 21, "Fixture_block1>>value:"}) {
+	if got := mustResolve(t, sm, "21"); got != (Breakpoint{27544, 1, 21, "Fixture_block1>>value:"}) {
 		t.Errorf("21 -> %+v", got)
 	}
 	// Line 11 is the nested class's bump; line 14 the class side's from:, a Meta_ vtable.
-	if got := mustResolve(t, sm, "11"); got != (Breakpoint{4088, 0, 11, "Fixture_Counter>>bump"}) {
+	if got := mustResolve(t, sm, "11"); got != (Breakpoint{4184, 0, 11, "Fixture_Counter>>bump"}) {
 		t.Errorf("11 -> %+v", got)
 	}
-	if got := mustResolve(t, sm, "14"); got != (Breakpoint{4152, 0, 14, "Meta_Fixture_Counter>>from:"}) {
+	if got := mustResolve(t, sm, "14"); got != (Breakpoint{4248, 0, 14, "Meta_Fixture_Counter>>from:"}) {
 		t.Errorf("14 -> %+v", got)
 	}
-	if where, text, _ := sm.Where(3992, 31); where != "at Fixture.nsl:24  Fixture>>main:args:" || !strings.Contains(text, "^ 0 )") {
-		t.Errorf("Where(3992, 31) = %q, %q", where, text)
+	if where, text, _ := sm.Where(4088, 28); where != "at Fixture.nsl:24  Fixture>>main:args:" || !strings.Contains(text, "^ 0 )") {
+		t.Errorf("Where(4088, 28) = %q, %q", where, text)
 	}
 }
 

@@ -503,6 +503,49 @@ unbounded arena, like the rest of the heap, depends on issue #3 being fixed.
   a synthetic wedge.
 - **Not the RP2350,** until #296: its rows swing 0.40–2.63× on code placement alone.
 
+## Opt #6 — the allocator's bin walk, the compiler peephole, the send and allocation paths in SRAM (rete#412, 2026-10-10)
+
+Three changes, measured together on the WeAct RP2350B in one sitting (`rpi_pico2` image, `-O2`, blob in flash,
+`Spike296Node.nsl`, three boots per image, the median shown and the spread when it exceeds 2 ms; transcripts in
+`docs/spikes/2026-10-10-296-image-in-sram/logs-412/`, driver `run_412.sh`). Each column adds one change to the one
+before. ms per row.
+
+| row (ms) | master | + allocator | + peephole | + peephole, arm 2 | arm 2 / master |
+|---|---:|---:|---:|---:|---:|
+| hanoi | 2216 | 2219 | 1934 | 1906 | 0.86 |
+| baseLoop | 2742 | 2775 | 2581 | 2494 | 0.91 |
+| blockValue | 6688 | 6828 | 8185 | 6301 | 0.94 |
+| methodSend | 7543 | 7569 | 7176 | 7042 | 0.93 |
+| blockCapture | 8980 | 7215 | 7012 | 6994 | 0.78 |
+| closureMake | 5807 | 3869 | 3794 | 3762 | 0.65 |
+| ocDo | 10121 | 7995 | 7726 | 7620 | 0.75 |
+| ocAt | 12340 | 12399 | 11232 | 11058 | 0.90 |
+| richards | 9132 (9131–9252) | 8986 (8978–8998) | 8888 (8885–8897) | 8588 (8584–8600) | 0.94 |
+
+- **The allocator** (`gc.c`). The sweep binned each interior dead run by size class, so the one big coalesced run
+  sat in the catch-all bin. Once a live object near `heap_top` shrank the bump tail, every allocation that missed
+  its exact bin walked the ~57 empty bins up to the catch-all, split the big block, and walked again next time: 2.17 M
+  cross-bin searches and 126 M loop iterations against 0.75 M and 42 M, at the board's 128 KB arena (the host's 16 MB
+  arena hid it). Two fixes: the largest interior run is kept out of the bins as `big_free` and carved O(1) like a second
+  bump region, and a 64-bit mask of non-empty bins makes the remaining search a count-trailing-zeros. 20–34 % on every
+  row that allocates per element, and every block activation allocates a Context. Any program could trip the walk; a
+  compiler change tripped it by moving which object survived a collection.
+- **The peephole** (`ns_compile_oevm.py`, `NSL_PEEPHOLE=1|A|B|0`). Copy propagation of a scratch `LD_REG` into its one
+  consumer, and deletion of a load whose register is rewritten before any read, with liveness over the frame's
+  control flow; `self`, the Context register and every register a nested block reaches through `home_ctx` are never
+  touched. Image instructions −16.7 %, Hanoi's method 27 → 20. About 40 % of the emitted bytecode was register traffic
+  no semantics required, and each bytecode costs ~41 cycles on the M33 (rete#296 record §9).
+- **The placement** (`OEVM_HOT`). With only #403's hot set in SRAM, the peephole's new flash layout cost blockValue
+  22 % through the 16 KB XIP cache. Adding the per-send callees (`lookup_method_cached`, `check_access_allowed`,
+  `oevm_int_demote`, `make_closure`, `context_alloc`) and the allocation and mark paths (+3.6 KB of SRAM) removed it,
+  and every row ends at or below master. The lesson for an XIP part: a change that only moves code can cost a fifth of
+  a row, so the code a row touches per element belongs in RAM, not just the dispatch loop.
+- **Per method activation** (Hanoi): 8.46 → 7.27 µs. MicroPython on the same silicon is 12.9 µs.
+- **Gated by:** the nsl suite on msi-7d43 for each merge (aux line green), and all fourteen board scenarios on
+  `c6spare` (2026-10-10/11). The sweep first found two #233 defects on master that failed every scenario built
+  without the radio overlay: the OTA thread's stack call failed the link, and the runner compiled as its stub
+  for want of `CONFIG_SETTINGS`, so the node booted and idled. Both are fixed under #412.
+
 ## Known weaknesses / tracked gaps (snapshot 2026-06-18)
 
 Captured after the sober-reference benchmark exercise (see
