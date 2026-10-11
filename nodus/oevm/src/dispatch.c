@@ -70,7 +70,7 @@ oop stack_alloc(uint32_t capacity) {
    ops for escaping captures. `outer` may be a heap oop we must keep live
    across the allocation (a GC during gc_allocate would otherwise sweep it
    before it's linked into the new Context). */
-oop context_alloc(uint32_t num_slots, oop outer, uint32_t home_generation) {
+OEVM_HOT2 oop context_alloc(uint32_t num_slots, oop outer, uint32_t home_generation) {
     extern oop gc_allocate(oop vtable, size_t size);
     extern void gc_temp_root_push(oop o);
     extern int gc_temp_roots_count;
@@ -1123,7 +1123,7 @@ int selector_prim_id(struct Symbol *sym) {
 /* Shared helper: allocate a BytecodeClosure capturing the running frame.
    Used by both PRIM_createClosure (reflective message path, still reachable)
    and OP_CLOSURE (new direct opcode path). */
-oop make_closure(oop method) {
+OEVM_HOT2 oop make_closure(oop method) {
     extern struct MethodContext *current_frame;
     extern oop *vm_stack;
     extern oop gc_allocate(oop vtable, size_t size);
