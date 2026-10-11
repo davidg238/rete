@@ -49,11 +49,14 @@ the gap: at `oc do: [:e | …]` the compiler does not know `oc` is an OrderedCol
   them. A miss costs one `IS_VT` + `JMP_IF_FALSE` per guard before the send (§Spike, row `miss`).
 - **P4 — The body follows the rules already in force for inlined `to:do:`.** `^` in the block is
   the enclosing method's return. Block temps get registers and are reset each iteration. A nested
-  closure that captures `e` captures the element register, as it captures `i` today. The debugger
+  closure that captures `e` would capture the element register, which the loop reuses (§Spike: the probe
+  read garbage). So **a block whose nested closures name its params or temps keeps the send**. The arms
+  of always-inlined selectors are not closures and do not count. The debugger
   sees `e` through `inlined_vars`. The `do:` frame and the block frame no longer exist, so a breakpoint
   in the kernel's `do:` no longer fires for an inlined site.
-- **P5 — Code size is a gate, measured on the bell.** Each literal `do:` body is emitted twice per
-  guarded receiver plus the fallback: three copies for OC + Array. §Spike, step 3.
+- **P5 — Code size is a gate.** Each literal `do:` body is emitted once per guarded receiver, plus the
+  closure for the fallback: three copies for OC + Array. Measured (§Spike): the bell +0 B (it has no
+  site), DeltaBlue +0.7 %.
 
 ## Spike
 
@@ -61,27 +64,64 @@ Branch `37-do-inline-spike` (from master after `OP_ITER_AT`). The spike puts the
 VM, and the compiler emits P1 for OrderedCollection and Array when `NSL_DO_INLINE` names the method
 (`all` for every app method; kernel source excluded). Rows on the WeAct, one image, three boots:
 
-| row | what | ms | vs MicroPython (1491) |
+| row | what | ms (×3 boots) | vs MicroPython (1491) |
 |---|---|---:|---:|
-| ocDo | control: today's send + kernel `do:` (ITER_AT) | | |
-| ocDoInline | P1, OC hit | | |
-| arDo / arDoInline | the same over a 10-element Array | | |
-| miss | P1 compiled, receiver an Interval: both guards miss, then the send | | |
+| ocDo | control: today's send + kernel `do:` (ITER_AT) | 5681 | 3.8× |
+| **ocDoInline** | P1, OC hit | **1087** | **0.73×** |
+| arDo | the same over a 10-element Array | 6393 | 4.3× |
+| **arDoInline** | P1, Array hit (one OC guard missed first) | **1155** | **0.78×** |
+| ivDo / ivDoInline | Interval: both guards miss, then the send | 7340 / 7506 | +2.3 % |
 
-Correctness: the full nsl suite with `NSL_DO_INLINE=all`.
-Code size: the bell image with and without `NSL_DO_INLINE=all`.
+The record, with the arithmetic, is `docs/spikes/2026-10-11-37-do-inline/README.md`. **The guard costs
+~0.55 µs per call on a hit (~5 % of ocDoInline) and ~1.7 µs per call on a miss.** Static knowledge would
+buy at most that 5 %. On these numbers P1's guard is the answer, and the deferred alternative stays deferred.
 
-_(results to follow)_
+Correctness: the full nsl suite with `NSL_DO_INLINE=all`, 293 passed / 0 failed (opti7040; the aux gates
+that need 32-bit headers, pytest or cmake did not run there).
+
+**Code size (step 3), C6 layout, `NSL_DO_INLINE=all`.**
+
+- **The bell: +0 B.** `ShipsBellNodeC6.nsl` and `lib/Bells.nsl` contain no collection `do:` with a literal
+  block. Their `do:` lines are `on:do:` handlers and `whenever:do:`. The images are byte-identical. None of
+  the board nodes under `nodus/oevm/zephyr/` has a site either. Today's node code iterates with
+  `to:do:` or through kernel helpers, so on the nodes P1 buys nothing and costs nothing.
+- **DeltaBlue** (`tests/05_somns_benchmarks/07_deltablue.nsl`, the densest real program): 7 sites
+  lowered, 178,736 → 180,064 B (**+1,328 B, +0.7 %, ~190 B a site** for two guarded copies, with the
+  fallback closure kept). perfstex: 1 site, +352 B (a ten-statement body).
+- No block disappears from the image: the fallback still needs the closure. Only a static-knowledge
+  site (P1's deferred alternative) would drop it.
+
+**Found while building the spike.**
+
+- **A closure inside the inlined body that captures `e` reads a register the loop reuses.** The first
+  probe printed `6.37e-322` where the send printed `6`. The spike refuses those blocks and keeps the
+  send (`do_inline_wanted`). This is the limitation at `finalize_contexts` ("inlined-loop captured
+  locals remain NOT upward-safe"), and **plain `to:do:` has it today**: `1 to: 3 do: [:e | blocks add:
+  [e]]` and summing the closures answers 12, not 6. That bug is separate from this design: **#417**
+  (P3, found-during #37).
+- **The fallback's closure still forces the method's captured temps into a heap Context.** `sum:: sum + e`
+  in an inlined body reads and writes `sum` through `LD_CTX`/`ST_CTX` because the fallback copy captures
+  it. This is no regression (the send captures it too), but the inlined path does not get registers.
+  Only static knowledge would fix it.
 
 ## Questions for David
 
-1. **OC and Array both, or OC only?** Each guarded receiver adds one copy of every literal `do:` body
-   and one `IS_VT` to every miss.
-2. **Slot indices by name (P2) now, kernel-method inlining later?** Or go straight to inlining the
-   kernel's method, which is the more general mechanism and the larger build.
+1. **OC and Array both, or OC only?** Both, I lean. The Array arm adds ~95 B a site and costs an OC hit
+   nothing (its guard is never reached). It costs a miss one more `IS_VT` (~0.3 µs). The Array row gains 5.5×.
+2. **Slot indices by name (P2) now, kernel-method inlining later?** By name now, I lean. The spike's
+   lookup is four lines, and it already fails the compile if the kernel renames a slot. Inlining the kernel's
+   method is the more general mechanism. It is worth building when a second kernel method wants the same
+   treatment (`collect:` and friends, Q4), not before.
 3. **Off in debug builds?** The hot-patch precedent (#313) makes debug builds the faithful ones. An
    inlined `do:` cannot be stepped into, and a patched kernel `do:` would no longer affect inlined
    sites. My lean: on in both, because the debugger shows the inlined `e` and patching the kernel's
    `do:` is not a thing anyone does. But it is your call.
 4. **`collect:` / `select:` / `inject:into:`.** They stay sends (Q3 of the iter-at design) unless
-   the spike's numbers say otherwise.
+   profiles say otherwise. No board node has even a literal `do:` site today (P5), so the case for
+   any of this on the nodes is the benchmarks' and the tutorials', not the bell's.
+5. **New: is this worth landing now, given that no node uses it?** It is ~70 lines of compiler and one
+   opcode, the suite is green with it on everywhere, and it closes ocDo to 0.73× MicroPython. Against that,
+   every literal `do:` in app code changes shape, and the fix for #417 (closures capturing an inlined
+   local) belongs to the same machinery. Options: (a) land P1 as it stands, keeping the send for the
+   capturing blocks; (b) fix #417 first, then land P1 without the capture exception; (c) park it on the
+   branch until an app has a hot `do:`.
