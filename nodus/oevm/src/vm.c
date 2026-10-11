@@ -1095,6 +1095,32 @@ OEVM_HOT oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
                 }
                 goto do_send;
             }
+            case OP_ITER_AT: {
+                /* rete#37, see oevm.h. Emitted only from kernel source, whose discipline (basicAt: on
+                   kernel Arrays, limit <= size at entry) makes these shapes sound: a miss is a
+                   compiler bug, so it aborts by name rather than falling back to a send. */
+                oop k = ctx->regs[dest];
+                oop lim = ctx->regs[dest + 1];
+                oop r = ctx->regs[dest + 2];
+                if (!IS_SMI(k) || !IS_SMI(lim) || r == NULL || IS_SMI(r) ||
+                    !IS_SMI(instance_slot((struct ObjectInstance *)r, 0))) {
+                    fprintf(stderr, "VM Error: OP_ITER_AT shape\n");
+                    abort();
+                }
+                intptr_t idx = UNTAG_SMI(k);
+                if (idx > UNTAG_SMI(lim)) {
+                    pc += (int16_t)(inst >> 16);
+                    break;
+                }
+                struct ObjectInstance *ix = (struct ObjectInstance *)r;
+                if (idx < 1 || idx > UNTAG_SMI(instance_slot(ix, 0))) {
+                    fprintf(stderr, "VM Error: OP_ITER_AT index %ld out of bounds\n", (long)idx);
+                    abort();
+                }
+                ctx->regs[dest + 3] = instance_slot(ix, (size_t)idx);
+                ctx->regs[dest] = TAG_SMI(idx + 1);
+                break;
+            }
             case OP_AT_PUT: {
                 oop r = ctx->regs[src2];
                 oop i = ctx->regs[src2 + 1];

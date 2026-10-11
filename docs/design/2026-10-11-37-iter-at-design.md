@@ -1,6 +1,6 @@
 # `OP_ITER_AT`: the kernel's `do:` in one dispatch per element (rete#37)
 
-> Status: **DRAFT for David**, 2026-10-11. Follows the spike record
+> Status: **approved by David, 2026-10-11** (Q1 no, Q2 yes, Q3 leave it). Follows the spike record
 > `docs/spikes/2026-10-11-37-ocdo-lowered/README.md` (branch `37-ocdo-spike`, not for merging)
 > and David's direction of the same day: the kernel's own `OrderedCollection>>do:` on
 > `OP_ITER_AT`, gated by the full nsl suite, **before** any lowering at call sites.
@@ -13,7 +13,7 @@ lowered by hand 2838 ms (1.9×), **fused 1219 ms (0.82×)**. A fused step is wha
 MicroPython. The spike left one question open: how does the compiler come to emit the opcode
 from kernel source, when no source syntax names it?
 
-## Decisions (proposed)
+## Decisions
 
 - **D1 — The compiler recognises a shape the kernel already has.** No new syntax, no new
   selector. Both kernel `do:` methods are already in that shape:
@@ -84,9 +84,9 @@ Call-site lowering (inlining the block too) stays the next lever after that.
 5. Close-out: the opcode and the rule into `nodus/oevm/docs/optimizations.md` (Opt #7)
    and the ISA reference; the recogniser into `nodus/nsl/docs/`.
 
-## Questions for David
+## Questions for David (answered 2026-10-11)
 
-1. **Fail fast, as Java does?** My recommendation is no. Java's `ConcurrentModificationException`
+1. **Fail fast, as Java does?** **No (David).** Java's `ConcurrentModificationException`
    needs a `modCount` slot on the collection, an increment in every `add:`/`remove…`, and a
    check after every body. The check cannot live in `ITER_AT`, because it sees the Array
    and not the OrderedCollection. So it adds about two dispatches per element: roughly the
@@ -94,9 +94,9 @@ Call-site lowering (inlining the block too) stays the next lever after that.
    best-effort, not a guarantee. D4 already makes the undefined case memory-safe. If a
    check is wanted, it fits the debug-build-only precedent (#313, hot patch), and a real
    bug caught in the field is what would earn it.
-2. **Kernel-only (D3) for now?** The alternative is a send fallback inside the opcode, so
+2. **Kernel-only (D3) for now?** **Yes (David).** The alternative is a send fallback inside the opcode, so
    the rule can apply to user code as well. That means a second exit path in the
    instruction, for loops nobody writes yet.
-3. **Is `inject:into:` worth a direct shape?** It is `self do: [...]` today: two block
+3. **Is `inject:into:` worth a direct shape?** **Leave it (David).** It is `self do: [...]` today: two block
    round trips per element (the `do:` block, then `b`). Leave it until the rerun says
    where the time goes.

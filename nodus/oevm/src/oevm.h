@@ -354,6 +354,11 @@ enum Opcode {
     OP_GE     = 0x1C,
     OP_AT     = 0x1D,       /* basicAt:      — 1-based indexable read  */
     OP_AT_PUT = 0x1E,       /* basicAt:put:  — 1-based indexable write */
+    /* One step of a kernel `do:` over an indexable, in one dispatch (rete#37). a = base register b,
+       bx (bits 16..31) = signed exit offset, as OP_JMP_IF_FALSE. R(b) = next index, R(b+1) = limit,
+       R(b+2) = the indexable, R(b+3) <- the element. Index past limit: branch; else load the element
+       and R(b) = index + 1. Emitted only for kernel source (design 2026-10-11-37-iter-at-design.md). */
+    OP_ITER_AT = 0x1F,
 };
 
 enum AccessModifier {
