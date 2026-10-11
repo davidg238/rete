@@ -133,8 +133,8 @@ Bench *instances* (which physical board is on which cable) are NOT here: they li
 | `esp32` | `esp32_devkitc/esp32/procpu` | ESP32 · 520 KB · 4 MB | 34 GPIO, WiFi | CP2102 UART | esptool | ported | this doc |
 | `esp32s2` | `esp32s2_saola/esp32s2` (MagTag) | ESP32-S2 · 320 KB + 2 MB PSRAM · 4 MB | 43 GPIO, WiFi, e-paper | USB-CDC | esptool | the deep-sleep demo (#379) | `boards/magtag/` |
 | `esp32c6` | `esp32c6_devkitc/esp32c6/hpcore` | ESP32-C6 · 512 KB · 4 MB | 30 GPIO, Thread + WiFi | CP2102N UART | esptool | the std node (#364), OTA (#233) | this doc |
-| `rpi_pico2` | `rpi_pico2/rp2350a/m33` (also runs the Waveshare RP2350-Zero) | RP2350A · 520 KB · 4 MB (Zero: 2 MB) | 30 GPIO, 4 ADC | USB-CDC or uart0 | UF2/BOOTSEL | measured 11.13 µs/act (#302); hot path in SRAM (#403) | `2026-10-01`, `2026-10-10` results |
-| `weact_rp2350b` | `weact_rp2350b_core/rp2350b/m33` | RP2350B · 520 KB · 2/4/8/16 MB (declared 4) | **48 GPIO, 8 ADC** | USB-CDC or uart0 | UF2/BOOTSEL | boots as itself (2026-10-10): 11.94 µs/act `-Os` in SRAM; 8.51 at `-O2` | `boards/weact/rp2350b_core/README.md`, `2026-10-10` results |
+| `rpi_pico2` | `rpi_pico2/rp2350a/m33` (also runs the Waveshare RP2350-Zero) | RP2350A · 520 KB · 4 MB (Zero: 2 MB) | 30 GPIO, 4 ADC | USB-CDC or uart0 | UF2/BOOTSEL | 11.13 µs/act from flash (#302); hot path in SRAM + `-O2` default (#403) | `2026-10-01`, `2026-10-10` results |
+| `weact_rp2350b` | `weact_rp2350b_core/rp2350b/m33` | RP2350B · 520 KB · 2/4/8/16 MB (declared 4) | **48 GPIO, 8 ADC** | USB-CDC or uart0 | UF2/BOOTSEL | boots as itself (2026-10-10): **8.51 µs/act** (`-O2`, hot path in SRAM — both now the RP2350 default) | `boards/weact/rp2350b_core/README.md`, `2026-10-10` results |
 | `feather_rp2040` | `adafruit_feather_rp2040` | RP2040 · 264 KB · 8 MB | 30 GPIO | uart0 | UF2/BOOTSEL | built, never run | `boards/adafruit/feather_rp2040/README.md` |
 | — | — | Thingy:52, nRF52832 · 64 KB | — | — | — | **not a target** (dropped 2026-07-11) | below |
 
@@ -389,6 +389,8 @@ radio, no Thread layer. Result record: [`docs/results/2026-10-01-rp2350-first-nu
     `push_frame`, `is_truthy` (8.4 KB) in `.ramfunc`; from flash through the 16 KB XIP cache the same
     workload ran 2.1–2.7× slower once the image grew (6106 → 3111 ms per Hanoi-18 run, 11.87 µs/activation).
     `OEVM_RAM_HOT=0` opts out. The 11.13 above was measured from flash on a layout that happened to fit.
+    **`-O2` is the RP2350 default since 2026-10-10** (`prj_rpi_pico2.conf`, David's decision on the measurement:
+    8.51 µs/activation against `-Os`'s 11.87, for 38 KB flash and 9 KB RAM).
   - **A second board:** WeAct Studio RP2350B Core Board (bare RP2350B, primary QSPI flash only, no PSRAM),
     built as `rpi_pico2/rp2350a/m33` unchanged — boots and runs; its GPIO map differs (found-during, #403).
     Result record: [`docs/results/2026-10-10-rp2350-weact-first-boot.md`](../../../../docs/results/2026-10-10-rp2350-weact-first-boot.md).

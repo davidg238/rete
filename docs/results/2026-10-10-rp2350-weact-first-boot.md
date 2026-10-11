@@ -84,8 +84,8 @@ RAM 217,444 → 225,884 B of 532,480; FLASH 308,936 → 309,624 B. `OEVM_RAM_HOT
 ## Not done / found-during
 
 - `-O2` beside the SRAM placement: **8.51 µs/activation**, 28 % under `-Os`'s 11.87 — FLASH 309,624 → 347,284 B,
-  RAM 225,884 → 235,012 B (`.ramfunc` 8,440 → 17,512 B, since `-O2` inlines into the hot functions). Whether the
-  RP2350 profile follows the C6 to `-O2` by default is David's call; the number is here for it.
+  RAM 225,884 → 235,012 B (`.ramfunc` 8,440 → 17,512 B, since `-O2` inlines into the hot functions). **Decided the same
+  day (David): `-O2` is the RP2350 default** — `prj_rpi_pico2.conf`, both boards.
 - `platform_dispatch` (5,288 B, the prims) stays in flash; a further gain is plausible, unmeasured.
 - The `weact_rp2350b` board definition (`zephyr/boards/weact/rp2350b_core/`, built as
   `weact_rp2350b_core/rp2350b/m33` on `rp2350b.dtsi`) **boots and runs**: 3131 ms per run, 11.94 µs/activation,

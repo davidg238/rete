@@ -403,5 +403,5 @@ unchanged but relocated. The diagnostic that found it was a timer-ISR PC sampler
 thread, then `nm`/`addr2line` against the ELF — twenty minutes, one BOOTSEL per image.
 
 **Measured the same day.** `-O2` beside the SRAM placement: 8.51 µs/activation against `-Os`'s 11.87 (+38 KB
-flash, +9 KB RAM). **Not yet measured.** `platform_dispatch` (the prims) is still in flash on the RP2350;
+flash, +9 KB RAM). Made the RP2350 default the same day (`prj_rpi_pico2.conf`): the board has the room, so spend it. **Not yet measured.** `platform_dispatch` (the prims) is still in flash on the RP2350;
 whether the C6's `-O2` default (#329) was itself partly a layout effect.
