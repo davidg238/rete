@@ -1685,7 +1685,7 @@ static oop find_defining_vtable(oop receiver_vtable, oop closure) {
     return NULL;
 }
 
-int check_access_allowed(oop receiver, oop selector, struct CompiledMethod *target_method, oop target_defining_vtable) {
+OEVM_HOT int check_access_allowed(oop receiver, oop selector, struct CompiledMethod *target_method, oop target_defining_vtable) {
     (void)selector;
     if (target_method->access_modifier == ACCESS_PUBLIC) {
         return 1;
