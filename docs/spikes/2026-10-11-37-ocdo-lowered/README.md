@@ -68,9 +68,10 @@ WeAct, one image with all three rows, three boots (`logs/weact-37-fused-*`, `log
 
 1. A guarded lowering of a literal `do:` reaches MicroPython **only with a fused iterate step**; on today's
    ISA it stops at 1.9×. The fused step is one new opcode, against re-encoding `LE` and `AT`.
-2. The pass needs three things the compiler does not have: the receiver-class guard (a class-test opcode or
-   equivalent, #395's gap), the slot indices of the kernel collection it lowers for, and the `contents`
-   re-read question (a body that grows the receiver; see `patch_ocdo.py`'s docstring). Each kernel collection
+2. The pass needs two things the compiler does not have: the receiver-class guard (a class-test opcode or
+   equivalent, #395's gap) and the slot indices of the kernel collection it lowers for. Hoisting `contents`
+   out of the loop is legal: modifying a collection inside its own `do:` is undefined (dialect row 33,
+   David 2026-10-11). Each kernel collection
    with its own `do:` (Array, OrderedCollection, Interval, Dictionary) is a separate lowering.
 3. Not measured, and cheap to measure the same way: the kernel's own `OrderedCollection>>do:` rewritten with
    `OP_ITER_AT`. That is no compiler work at all and helps every `do:`, including non-literal blocks and
