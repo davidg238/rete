@@ -63,6 +63,7 @@ Fix: the prim answers nil when it cannot arm. First Hanoi line printed on both b
 | WeAct, master fixed | 6106–6107 (4 runs) | 23.30 | `pico2-fix-console.log` |
 | WeAct, master fixed, **256 KB arena** | 6107 | 23.30 | `pico2-fix-256k-console.log` |
 | **WeAct, master fixed, hot path in SRAM** | **3111–3112 (8 runs)** | **11.87** | `pico2-fix-ram-console.log` |
+| **WeAct, master fixed, hot path in SRAM, `-O2`** (`CONFIG_SPEED_OPTIMIZATIONS`, #329's C6 default) | **2229–2231 (12 runs)** | **8.51** | `pico2-ram-o2-console.log` |
 | Host, master vs `cc235eb`, -O2 | 17.9 vs 18.1 | — | — |
 | Host, master vs `cc235eb`, -Os | 29.7 vs 31.5 | — | — |
 
@@ -77,13 +78,19 @@ code from QSPI flash through a 16 KB XIP cache. The two boards' flash parts set 
 `oevm.h` already routes `OEVM_HOT` into instruction RAM on the ESP32 (`OEVM_IRAM_HOT`). The same marker
 into `.ramfunc` (Zephyr copies it to SRAM at boot; `CONFIG_ARCH_HAS_RAMFUNC_SUPPORT=y`) puts
 `run_interpreter`, `send_resolve`, `push_frame`, `is_truthy` at `0x20000000`–`0x200020f8` (8,440 B).
-RAM 217,444 → 225,884 B of 532,480; FLASH 308,936 → 309,624 B. `OEVM_RAM_HOT=0` opts out.
+RAM 217,444 → 225,884 B of 532,480; FLASH 308,936 → 309,624 B. `OEVM_RAM_HOT=0` opts out. Adding `-O2`
+(`CONFIG_SPEED_OPTIMIZATIONS=y`): 2230 ms, 8.51 µs/activation, 17.5 KB in `.ramfunc`.
 
 ## Not done / found-during
 
-- The `-O2` variant (`CONFIG_SPEED_OPTIMIZATIONS=y`, the C6's default since #329) was built, not flashed.
+- `-O2` beside the SRAM placement: **8.51 µs/activation**, 28 % under `-Os`'s 11.87 — FLASH 309,624 → 347,284 B,
+  RAM 225,884 → 235,012 B (`.ramfunc` 8,440 → 17,512 B, since `-O2` inlines into the hot functions). Whether the
+  RP2350 profile follows the C6 to `-O2` by default is David's call; the number is here for it.
 - `platform_dispatch` (5,288 B, the prims) stays in flash; a further gain is plausible, unmeasured.
-- A `weact_rp2350b` board definition (RP2350B, 48 GPIO, primary flash only — the second flash pad is empty).
+- The `weact_rp2350b` board definition (`zephyr/boards/weact/rp2350b_core/`, built as
+  `weact_rp2350b_core/rp2350b/m33` on `rp2350b.dtsi`) **boots and runs**: 3131 ms per run, 11.94 µs/activation,
+  `-Os` in SRAM — the Pico 2 target's 3111 within 0.6 % (`weact-own-definition-console.log`). LED and key pins are
+  declared from the schematic and not yet toggled; the flash size (4 MB declared) awaits the chip marking.
 - `rg "== false|== true" nodus/nsl/lib` — are there other identity compares against prim-answered booleans?
 - The STIC row for the RP2350 should name the placement ("hot path in SRAM") beside "FPv5-SP, double in software".
 - `opti7040` has no Zephyr toolchain, no `west`, no pyserial; it flashes UF2s and reads consoles only. The

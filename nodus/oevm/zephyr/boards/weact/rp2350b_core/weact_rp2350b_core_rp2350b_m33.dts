@@ -1,0 +1,9 @@
+/*
+ * Copyright (c) 2026 Ekorau LLC
+ * SPDX-License-Identifier: Apache-2.0
+ */
+/dts-v1/;
+
+#include <raspberrypi/rpi_pico/rp2350b.dtsi>
+#include <raspberrypi/rpi_pico/m33.dtsi>
+#include "weact_rp2350b_core.dtsi"
