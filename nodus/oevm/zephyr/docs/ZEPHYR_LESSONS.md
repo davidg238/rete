@@ -372,3 +372,36 @@ The `libc` row is the one we wrongly copied for two rungs (see §1, §6).
   `SoakNode` (:54361) sends regardless and counts misses — the endurance load.
   Fleet status page: `http://gw85224-01:8085` (`soak-web` systemd unit on the gw,
   read-only tail of the udp-echo6 journal).
+
+## 11. The XIP cache cliff (2026-10-10, rete#403) — watch for it in every build and every port
+
+**What happened.** On the RP2350 the same workload ran **2.1–2.7× slower** on master than on the
+2026-09-21 binary — same silicon, same Zephyr, same SDK, same Kconfig (the old build dir's `.config`
+diffed empty), same `vm.c` compile command, every hot function byte-identical in size. The host showed
+no change. What had changed was **12 KB of new code ahead of the interpreter** (`channels`, the OTA
+runner), which moved every hot function's address. An XIP part fetches code from QSPI flash through a
+small cache — 16 KB on the RP2350 — and the interpreter's working set (`run_interpreter` 2.6 KB,
+`send_resolve` 4.9 KB, `platform_dispatch` 5.3 KB, the GC) is about that size. A layout that fit in
+September thrashed in October. Nothing in the diff pointed at it; only the measurement did.
+
+**The rule.** On an XIP part the interpreter's speed is a property of *placement*, not of the code.
+Two consequences:
+
+1. **The hot path lives in RAM on every XIP part, by default.** `oevm.h` `OEVM_HOT` already did this on
+   the ESP32 (`.iram.text`, since 2026-07-17); rete#403 did it for the RP2350 (`.ramfunc`,
+   `CONFIG_SOC_FAMILY_RPI_PICO`, 8.4 KB of SRAM, `OEVM_RAM_HOT=0` opts out). 6106 → 3111 ms per
+   Hanoi-18 run. A new XIP port is not done until its `OEVM_HOT` lands in RAM — `run.sh` now prints
+   `[build] hot path: SRAM` / `FLASH` after every build so the omission is in the log.
+2. **A per-activation number is measured per build, not inherited.** A flash-resident figure (the
+   2026-10-01 11.13 µs/activation) is a statement about one layout. Any result that quotes µs/activation
+   names the placement beside the optimisation level, and the STIC table row carries it.
+
+**How to recognise it.** Same µs/activation on the host, a step change on the board; the step is not
+proportional to anything in the diff; different boards with different flash parts show different
+factors (WeAct 2.1×, Zero 2.7×); the arena size does not move it; `size`/`nm` show the hot functions
+unchanged but relocated. The diagnostic that found it was a timer-ISR PC sampler printed from a coop
+thread, then `nm`/`addr2line` against the ELF — twenty minutes, one BOOTSEL per image.
+
+**Measured the same day.** `-O2` beside the SRAM placement: 8.51 µs/activation against `-Os`'s 11.87 (+38 KB
+flash, +9 KB RAM). Made the RP2350 default the same day (`prj_rpi_pico2.conf`): the board has the room, so spend it. **Not yet measured.** `platform_dispatch` (the prims) is still in flash on the RP2350;
+whether the C6's `-O2` default (#329) was itself partly a layout effect.

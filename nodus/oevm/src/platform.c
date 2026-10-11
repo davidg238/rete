@@ -1478,7 +1478,12 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
             g_console_chan = space_intern("sys/console", 11);
             armed = platform_console_arm(g_console_chan);
         }
-        if (!armed) { *out = false_symbol; return 1; }
+        /* rete#402: a console that cannot be armed answers NIL, the same answer as "no
+           line", never the VM's false singleton. The image's `false` literal is a
+           distinct object with the same name (is_truthy, dispatch.c), so a kernel
+           `first == false` never matched and Profiler>>drainConsole spun on `false`
+           before main: on every polled-console board (RP2350 USB-CDC, the dongle). */
+        if (!armed) { *out = NULL; return 1; }
         n = platform_console_take_line(buf, (int)sizeof buf);
         *out = (n < 0) ? NULL : space_make_string_pub(buf, (size_t)n);
         return 1;

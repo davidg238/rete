@@ -1,0 +1,16 @@
+identifier: weact_rp2350b_core/rp2350b/m33
+name: WeAct Studio RP2350B Core Board
+type: mcu
+arch: arm
+toolchain:
+  - zephyr
+  - gnuarmemb
+ram: 520
+flash: 4096
+supported:
+  - adc
+  - gpio
+  - uart
+  - usb_device
+  - watchdog
+vendor: weact

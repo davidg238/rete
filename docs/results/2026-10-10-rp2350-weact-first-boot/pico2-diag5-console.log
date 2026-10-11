@@ -1,0 +1,23 @@
+*** Booting Zephyr OS build v4.2.0-12-gbc47c6fab9cc ***
+oevm: build-id porta-v1-final-1537-g357640f-dirty-20261010T145645
+logudp: not built in (no OEVM_LOG_UDP6) — console is UART only
+oevm: observer armed (slack=8 tick=1000ms backstop=30000ms hw=yes)
+diag: kernel_boot done
+diag: blob loaded, wiring gpio
+diag: entering oimg_bootstrap
+diag: stdout via printf
+diag: stdout via fwrite
+diag: stdout via fputs
+diag: stdout tests issued
+diag: blob 167656 bytes sum 0035bf18 0035bf18
+diag: 5 samples (pc/lr): 100013e6/100013d9 10002d36/10002d35 10004d02/10005411 10014cd2/10014cd1 10003452/100034fd
+diag: frames: 18128
+diag: 13 samples (pc/lr): 1000165a/1000134d 100010b2/1000376b 1000345c/100034fd 100012ac/10014cd1 10014cc6/100022a9 100140ae/1000ba65 10014aa0/10014aa1 10003472/10014aa1
+diag: frames: 17904
+diag: 22 samples (pc/lr): 10002d68/10002ced 10004d56/100044a5 1000453a/20020fd0 10004f46/10014cd1 1000346e/100034fd 10002d16/10002d09 100037b2/200010b8 10014ce2/10014cd1
+diag: frames: 9488
+diag: 30 samples (pc/lr): 10004f40/10014cd1 100014b0/10014cd1 10002d92/200010b8 10014cd0/10014cd1 10003ad8/10002d35 10001078/1000376b 1000453a/20020fd0 10002ce4/10003ce7
+diag: frames: 18128
+diag: 38 samples (pc/lr): 10014cc2/100014c7 100035ca/10005425 100037b8/200010b8 10002c2c/10002d09 1000313c/100014e1 10004f4c/10014cd1 100037b8/200010b8 100010b0/1000376b
+diag: frames: 18128
+diag: 46 samples (pc/lr): 10005c02/100013d9 1000387a/100034fd 10004d54/100044a5 1000500a/10004ffd 10003472/10014aa1 10004f40/100
