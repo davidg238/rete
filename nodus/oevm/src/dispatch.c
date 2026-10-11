@@ -1051,6 +1051,8 @@ enum {
        computed). Appended after debugHeld:; no pre-existing id shifts.
        Platform-dispatched (mirrored in prim_ids.h). */
     PRIM_pf_timerWake,
+    /* rete#37: `basicReplaceFrom:to:with:startingAt:` — the 163rd entry; kernel-only block copy. */
+    PRIM_ix_basicReplace,
 };
 
 /* Must stay parallel to the enum above (index i -> id i+1).
@@ -1073,7 +1075,7 @@ static const char *const PRIM_NAMES[] = {
    — this catches it at build time instead. C99-safe (no _Static_assert under
    -std=c99): a false condition makes a negative-sized array, which is a hard
    compile error. ADVANCE THIS to the new last id whenever prims are appended. */
-typedef char prim_names_enum_parity_check[(N_PRIM_NAMES == PRIM_pf_timerWake) ? 1 : -1];
+typedef char prim_names_enum_parity_check[(N_PRIM_NAMES == PRIM_ix_basicReplace) ? 1 : -1];
 
 /* rete#226 — CLASSIFICATION HAPPENS ONCE, WHERE THE SYMBOL IS MADE.
 
@@ -1379,7 +1381,8 @@ OEVM_HOT oop send_resolve(oop receiver, oop selector, int argc, oop *args,
             // basicAt:/basicAt:put: sends to OP_AT/OP_AT_PUT (vm.c), which use this
             // same shape gate and fall back into OP_SEND (reaching here) on a miss.
             if (receiver != NULL && !IS_SMI(receiver) &&
-                (pid == PRIM_ix_basicAt || pid == PRIM_ix_basicAt_put || pid == PRIM_ix_basicSize) &&
+                (pid == PRIM_ix_basicAt || pid == PRIM_ix_basicAt_put || pid == PRIM_ix_basicSize ||
+                 pid == PRIM_ix_basicReplace) &&
                 IS_SMI(instance_slot((struct ObjectInstance *)receiver, 0))) {
                 struct ObjectInstance *ix = (struct ObjectInstance *)receiver;
                 intptr_t n = UNTAG_SMI(instance_slot(ix, 0));
@@ -1394,6 +1397,23 @@ OEVM_HOT oop send_resolve(oop receiver, oop selector, int argc, oop *args,
                         abort();
                     }
                     return instance_slot(ix, (size_t)idx);
+                }
+                if (pid == PRIM_ix_basicReplace) {
+                    /* rete#37: receiver[start..stop] := src[from..]; one memmove (overlap-safe). */
+                    oop src = args[2];
+                    intptr_t start = IS_SMI(args[0]) ? UNTAG_SMI(args[0]) : 0;
+                    intptr_t stop = IS_SMI(args[1]) ? UNTAG_SMI(args[1]) : -1;
+                    intptr_t from = IS_SMI(args[3]) ? UNTAG_SMI(args[3]) : 0;
+                    intptr_t len = stop - start + 1;
+                    if (src == NULL || IS_SMI(src) || !IS_SMI(instance_slot((struct ObjectInstance *)src, 0)) ||
+                        len < 0 || (len > 0 && (start < 1 || stop > n || from < 1 ||
+                        from + len - 1 > UNTAG_SMI(instance_slot((struct ObjectInstance *)src, 0))))) {
+                        fprintf(stderr, "VM Error: basicReplaceFrom:to:with:startingAt: out of bounds\n");
+                        abort();
+                    }
+                    if (len > 0)
+                        memmove(&ix->slots[start], &((struct ObjectInstance *)src)->slots[from], (size_t)len * sizeof(oop));
+                    return receiver;
                 }
                 if (pid == PRIM_ix_basicAt_put) {
                     intptr_t idx = IS_SMI(args[0]) ? UNTAG_SMI(args[0]) : 0;

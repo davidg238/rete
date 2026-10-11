@@ -1,0 +1,40 @@
+(*
+expect:
+1 2 3 0 0
+1 1 2 3 0
+2 3 0 3 0
+2 3 0 3 0
+2 3 0 3 0
+true
+30
+1 30
+expect-runtime-fail: basicReplaceFrom:to:with:startingAt: out of bounds
+*)
+(* rete#37: `basicReplaceFrom:to:with:startingAt:` (prim 163) — receiver[start..stop] :=
+   src[from..], one memmove. Covers a plain copy, an overlapping copy in each direction
+   (same array as source), an empty range (stop = start - 1) and an empty range outside
+   the array, OrderedCollection's grow (which uses it) across two grows and a removeFirst,
+   then an out-of-bounds copy, which stops the VM as basicAt:put: does. *)
+class BasicReplaceTest packageUsing: manifest = () (
+  show: a = ( | line | line:: ''. 1 to: a size do: [ :i | line:: line , (a at: i) printString , (i < a size ifTrue: [ ' ' ] ifFalse: [ '' ]) ]. line println )
+public main: platform args: args = (
+  | a b oc ok |
+  a:: Array new: 5. 1 to: 5 do: [ :i | a at: i put: 0 ].
+  b:: Array new: 3. b at: 1 put: 1. b at: 2 put: 2. b at: 3 put: 3.
+  a basicReplaceFrom: 1 to: 3 with: b startingAt: 1. self show: a.   (* 1 2 3 0 0 *)
+  a basicReplaceFrom: 2 to: 4 with: a startingAt: 1. self show: a.   (* overlap right: 1 1 2 3 0 *)
+  a basicReplaceFrom: 1 to: 3 with: a startingAt: 3. self show: a.   (* overlap left: 2 3 0 3 0 *)
+  a basicReplaceFrom: 3 to: 2 with: b startingAt: 1. self show: a.   (* empty: unchanged *)
+  a basicReplaceFrom: 9 to: 8 with: b startingAt: 9. self show: a.   (* empty, out of range: unchanged *)
+  oc:: platform OrderedCollection new.
+  1 to: 30 do: [ :i | oc add: i ].                                   (* 8 -> 16 -> 32 *)
+  ok:: true. 1 to: 30 do: [ :i | (oc at: i) = i ifFalse: [ ok:: false ] ].
+  ok println.                                                        (* true *)
+  oc size println.                                                   (* 30 *)
+  oc removeFirst. oc add: 31.
+  (((oc at: 1) - 1) printString , ' ' , oc size printString) println.  (* 1 30 *)
+  a basicReplaceFrom: 4 to: 6 with: b startingAt: 1.                 (* stop > size: fails *)
+  'not reached' println.
+)
+) : (
+)
