@@ -58,6 +58,12 @@ OP_GE     = 0x1C
 OP_AT     = 0x1D       # basicAt:
 OP_AT_PUT = 0x1E       # basicAt:put:
 OP_ITER_AT = 0x1F      # one step of a kernel do: (rete#37); emitted by compile_iter_at only
+OP_IS_VT = 0x20        # rete#37 do-inline spike: R(a) = R(c)'s vtable is constant b; NSL_DO_INLINE only
+# rete#37 do-inline spike (draft docs/design/2026-10-11-37-do-inline-design.md): a comma list of method
+# selectors whose literal `do:` blocks are lowered behind a class guard, or `all` for every app method.
+INLINED_ARMS = ("ifTrue:", "ifFalse:", "ifTrue:ifFalse:", "ifFalse:ifTrue:", "and:", "or:", "whileTrue:",
+                "whileFalse:", "whileTrue", "whileFalse", "to:do:", "to:by:do:", "timesRepeat:")
+DO_INLINE = [x for x in os.environ.get("NSL_DO_INLINE", "").split(",") if x]
 FASTPATH_SEND_OPS = {"<": OP_LT, "<=": OP_LE, ">": OP_GT, ">=": OP_GE,
                      "basicAt:": OP_AT, "basicAt:put:": OP_AT_PUT}
 # rete#37: OP_ITER_AT is emitted only for kernel source (design 2026-10-11-37-iter-at-design.md D3).
@@ -332,6 +338,7 @@ class MethodCompiler:
         if op == OP_JMP:           return (set(), set())
         if op == OP_JMP_IF_FALSE:  return ({d}, set())
         if op == OP_ITER_AT:       return ({d, d + 1, d + 2}, {d, d + 3})
+        if op == OP_IS_VT:         return ({s2}, {d})
         if op == OP_RET:           return ({d}, set())
         if op == OP_LD_SLOT:       return ({s2}, {d})
         if op == OP_ST_SLOT:       return ({d, s2}, set())
@@ -892,6 +899,86 @@ class MethodCompiler:
         self.bind_label(l_end)
         for _ in range(4):
             self.free_reg()
+
+    # rete#37 do-inline spike: the receivers lowered, in guard order -> how the ITER_AT window is
+    # filled: (limit, indexable) as slot names of the kernel class, or None for "slot 0, the receiver".
+    DO_INLINE_RECEIVERS = (("Kernel.OrderedCollection", ("count", "contents")), ("Kernel.Array", None))
+
+    def do_inline_wanted(self, block):
+        if (not DO_INLINE or block["type"] != "block" or len(block.get("params", [])) != 1
+                or self.parent.current_file == KERNEL_PATH):
+            return False
+        if not ("all" in DO_INLINE or any(self.name.endswith("_" + sel.replace(":", "_")) for sel in DO_INLINE)):
+            return False
+        # A nested closure that names the block's param or a temp would capture a register the loop
+        # reuses (an inlined local is not upward-safe, the LIMITATION at finalize_contexts): keep the send.
+        own = set(block.get("params", [])) | set(block.get("temps", []))
+
+        def captures(n, nested):
+            if isinstance(n, list):
+                return any(captures(c, nested) for c in n)
+            if not isinstance(n, dict):
+                return False
+            if nested and n.get("type") == "varRef" and n.get("name") in own:
+                return True
+            if nested and n.get("type") == "assign" and n.get("target") in own:
+                return True
+            if n.get("type") == "send" and n.get("selector") in INLINED_ARMS:
+                # the receiver and literal block args of an always-inlined selector stay in this frame
+                parts = [n.get("receiver")] + list(n.get("args", []))
+                return any(captures(p.get("body", []), nested) if isinstance(p, dict) and p.get("type") == "block"
+                           else captures(p, nested) for p in parts)
+            inner = nested or n.get("type") == "block"
+            return any(captures(v, inner) for k, v in n.items() if k != "span")
+        return not captures(block["body"], False)
+
+    def compile_do_inline(self, receiver, block, target_reg):
+        """rete#37 do-inline spike (draft P1): for each kernel receiver class, IS_VT + JMP_IF_FALSE, then
+        the kernel do:'s loop as OP_ITER_AT with the literal block's body inlined, `e` the element
+        register; after the last guard, today's send with the block as a closure. Result = the receiver,
+        as the kernel's `do:` answers `self` (the send's own result on the fallback)."""
+        self.compile_expr(receiver, target_reg)
+        r = target_reg
+        l_done = self.new_label()
+        for qname, slots in self.DO_INLINE_RECEIVERS:
+            l_next = self.new_label()
+            t = self.alloc_reg()
+            cidx = self.add_constant(f"VTABLE:{self.parent.vt_id(qname)}")
+            assert cidx < 256, "IS_VT: constant index past 8 bits"
+            self.emit_ABC(OP_IS_VT, t, cidx, r)
+            self.emit_jump(OP_JMP_IF_FALSE, t, l_next)
+            self.free_reg()
+            b = self.alloc_reg()                              # R(b) next index
+            self.alloc_reg(); self.alloc_reg(); self.alloc_reg()   # limit, indexable, element
+            self.emit_ABx(OP_LD_CONST, b, self.add_constant("SMI:1"))
+            if slots is None:
+                self.emit_ABC(OP_LD_SLOT, b + 1, 0, r)        # an Array's size is its slot 0
+                self.emit_ABC(OP_LD_REG, b + 2, r, 0)
+            else:
+                names = self.parent.class_slots[qname]        # by name: the kernel owns the layout (P2)
+                self.emit_ABC(OP_LD_SLOT, b + 1, names.index(slots[0]), r)
+                self.emit_ABC(OP_LD_SLOT, b + 2, names.index(slots[1]), r)
+            l_start = self.new_label()
+            l_end = self.new_label()
+            self.bind_label(l_start)
+            self.emit_jump(OP_ITER_AT, b, l_end)
+            body_reg = self.alloc_reg()
+            self.compile_inlined_block(block, body_reg, param_regs=[b + 3], init_temps=True)
+            self.free_reg()  # body_reg
+            self.emit_jump(OP_JMP, 0, l_start)
+            self.bind_label(l_end)
+            for _ in range(4):
+                self.free_reg()
+            self.emit_jump(OP_JMP, 0, l_done)
+            self.bind_label(l_next)
+        base = self.alloc_reg()                               # the fallback: r do: <closure>
+        self.emit_ABC(OP_LD_REG, base, r, 0)
+        arg = self.alloc_reg()
+        self.compile_expr(block, arg)
+        self.emit_ABC(OP_SEND, 1, self.add_constant("do:"), base)
+        self.emit_ABC(OP_LD_REG, target_reg, base, 0)
+        self.free_reg(); self.free_reg()
+        self.bind_label(l_done)
 
     def compile_to_by_do_runtime(self, start_expr, end_expr, step_expr, block, target_reg):
         # `start to: end by: step do: [:i | body]` when `step` is not a
@@ -1543,6 +1630,11 @@ class MethodCompiler:
                     self.compile_to_do_inline(receiver, args[0], step_arg, args[2], target_reg)
                 else:
                     self.compile_to_by_do_runtime(receiver, args[0], step_arg, args[2], target_reg)
+                return
+
+            # rete#37 do-inline spike: `recv do: [:e | ...]` behind a class guard (NSL_DO_INLINE).
+            if selector == "do:" and len(args) == 1 and self.do_inline_wanted(args[0]):
+                self.compile_do_inline(receiver, args[0], target_reg)
                 return
 
             # whileTrue:/whileFalse: — always lowered to a bytecode loop. Literal

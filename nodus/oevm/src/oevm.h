@@ -359,6 +359,10 @@ enum Opcode {
        R(b+2) = the indexable, R(b+3) <- the element. Index past limit: branch; else load the element
        and R(b) = index + 1. Emitted only for kernel source (design 2026-10-11-37-iter-at-design.md). */
     OP_ITER_AT = 0x1F,
+    /* rete#37 do-inline spike: R(a) <- true when R(c) is a heap object whose vtable is constant b, else
+       false. The class guard in front of a literal `do:` lowered at the call site (draft
+       docs/design/2026-10-11-37-do-inline-design.md P1); emitted only under NSL_DO_INLINE. */
+    OP_IS_VT = 0x20,
 };
 
 enum AccessModifier {
