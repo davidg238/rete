@@ -24,12 +24,15 @@ boards (ESP32-C6 is the bench board) and a POSIX host for the suite.
   operating on a per-frame register window `regs[]`. The choice of register over stack
   bytecode is a decision record: `nodus/oevm/docs/deployment-model.md` §Decisions (fewer dispatches per
   method, which is why Lua/Dalvik/Berry are register VMs).
-- **32 opcodes, densely numbered `0x00`–`0x1F`** (`nodus/oevm/src/oevm.h`, `enum Opcode`).
+- **33 opcodes, densely numbered `0x00`–`0x20`** (`nodus/oevm/src/oevm.h`, `enum Opcode`).
   Loads, `SEND` / `SEND_IMPLICIT` / `SEND_SUPER` / `BLOCK_INVOKE`, `RET`, arithmetic and
   comparison with a small-integer fast path that falls back to a send, jumps, slot and
-  lexical access, `CLOSURE`, the heap-`Context` trio `MK_CONTEXT` / `LD_CTX` / `ST_CTX`, and
-  `ITER_AT`, one step of the kernel's `do:` in one dispatch, emitted for kernel source only
-  (#37, `docs/design/2026-10-11-37-iter-at-design.md`).
+  lexical access, `CLOSURE`, the heap-`Context` trio `MK_CONTEXT` / `LD_CTX` / `ST_CTX`,
+  `ITER_AT`, one step of an indexable's traversal in one dispatch, and `IS_VT`, an exact class
+  test. Together they let a literal block passed to `do:`, `collect:`, `select:`, `reject:` or
+  `inject:into:` compile into its caller behind a class guard, with the send as the fallback
+  (#37: `docs/design/2026-10-11-37-iter-at-design.md`, `docs/design/2026-10-11-37-do-inline-design.md`;
+  `nodus/oevm/docs/optimizations.md` Opt #7, #8).
 - **`OP_SEND_IMPLICIT`** is Newspeak's implicit-receiver send — it walks the lexical
   enclosure chain before the inheritance chain — and is what makes nested classes and
   module-as-object work: `nodus/oevm/docs/op_send_implicit.md`.

@@ -1,0 +1,119 @@
+[flash] BOOTSEL volume /dev/sdb1
+[flash] mounted at /run/media/david/RP2350; copying inline.uf2 (726016 B)
+[flash] copied; waiting for the volume to go away
+[flash] done
+[412] weact-37-inline run 1 then=reboot
+13:28:35 open /dev/serial/by-id/usb-Zephyr_Project_CDC_ACM_serial_backend_371016190D903B10-if00
+13:28:36 > flash
+13:28:36 > flash
+13:28:37 > flash
+13:28:38 < *** Booting Zephyr OS build v4.2.0-12-gbc47c6fab9cc ***
+13:28:38 < oevm: build-id porta-v1-final-1583-gcd5400f-20261011T132823
+13:28:38 < spike296: no retained death note
+13:28:38 < logudp: not built in (no OEVM_LOG_UDP6) — console is UART only
+13:28:38 < oevm: observer armed (slack=8 tick=1000ms backstop=30000ms hw=yes)
+13:28:38 < spike296: arm? sram|flash|bootsel|reboot (default flash, 6000 ms) boot#1
+13:28:38 > flash
+13:28:38 < spike296: arm=flash
+13:28:38 < spike296: blob base 0x10022d38 (flash), hot path sram
+13:28:38 < spike296-node: hanoi 18 x5, blockcost 1/10, richards x3
+13:28:40 < hanoi 1: 1947
+13:28:42 < hanoi 2: 1946
+13:28:44 < hanoi 3: 1946
+13:28:46 < hanoi 4: 1946
+13:28:48 < hanoi 5: 1946
+13:28:51 < baseLoop: 2608
+13:28:57 < blockValue: 6523
+13:29:04 < methodSend: 7216
+13:29:12 < blockCapture: 7177
+13:29:15 < closureMake: 3761
+13:29:21 < ocDo: 5681
+13:29:22 < ocDoInline: 1087
+13:29:29 < arDo: 6393
+13:29:30 < arDoInline: 1156
+13:29:37 < ivDo: 7339
+13:29:45 < ivDoInline: 7507
+13:29:56 < ocAt: 11371
+13:30:04 < richards: 8582
+13:30:13 < richards: 8595
+13:30:22 < richards: 8587
+13:30:22 < verified: true
+13:30:22 < spike296-node: done
+13:30:22 < spike296: parked; bootsel|reboot
+13:30:22 > reboot
+[412] run 1 exit 0
+[412] weact-37-inline run 2 then=reboot
+13:30:26 open /dev/serial/by-id/usb-Zephyr_Project_CDC_ACM_serial_backend_371016190D903B10-if00
+13:30:26 < *** Booting Zephyr OS build v4.2.0-12-gbc47c6fab9cc ***
+13:30:26 < oevm: build-id porta-v1-final-1583-gcd5400f-20261011T132823
+13:30:26 > flash
+13:30:26 < spike296: no retained death note
+13:30:26 < logudp: not built in (no OEVM_LOG_UDP6) — console is UART only
+13:30:26 < oevm: observer armed (slack=8 tick=1000ms backstop=30000ms hw=yes)
+13:30:26 < spike296: arm? sram|flash|bootsel|reboot (default flash, 6000 ms) boot#1
+13:30:26 < spike296: arm=flash
+13:30:26 < spike296: blob base 0x10022d38 (flash), hot path sram
+13:30:26 < spike296-node: hanoi 18 x5, blockcost 1/10, richards x3
+13:30:28 < hanoi 1: 1947
+13:30:30 < hanoi 2: 1947
+13:30:32 < hanoi 3: 1947
+13:30:34 < hanoi 4: 1947
+13:30:36 < hanoi 5: 1947
+13:30:39 < baseLoop: 2608
+13:30:45 < blockValue: 6522
+13:30:52 < methodSend: 7216
+13:30:59 < blockCapture: 7177
+13:31:03 < closureMake: 3760
+13:31:09 < ocDo: 5681
+13:31:10 < ocDoInline: 1087
+13:31:16 < arDo: 6393
+13:31:18 < arDoInline: 1155
+13:31:25 < ivDo: 7340
+13:31:32 < ivDoInline: 7506
+13:31:44 < ocAt: 11370
+13:31:52 < richards: 8583
+13:32:01 < richards: 8595
+13:32:10 < richards: 8587
+13:32:10 < verified: true
+13:32:10 < spike296-node: done
+13:32:10 < spike296: parked; bootsel|reboot
+13:32:10 > reboot
+[412] run 2 exit 0
+[412] weact-37-inline run 3 then=bootsel
+13:32:13 open /dev/serial/by-id/usb-Zephyr_Project_CDC_ACM_serial_backend_371016190D903B10-if00
+13:32:13 < *** Booting Zephyr OS build v4.2.0-12-gbc47c6fab9cc ***
+13:32:13 < oevm: build-id porta-v1-final-1583-gcd5400f-20261011T132823
+13:32:13 > flash
+13:32:13 < spike296: no retained death note
+13:32:13 < logudp: not built in (no OEVM_LOG_UDP6) — console is UART only
+13:32:13 < oevm: observer armed (slack=8 tick=1000ms backstop=30000ms hw=yes)
+13:32:13 < spike296: arm? sram|flash|bootsel|reboot (default flash, 6000 ms) boot#1
+13:32:14 < spike296: arm=flash
+13:32:14 < spike296: blob base 0x10022d38 (flash), hot path sram
+13:32:14 < spike296-node: hanoi 18 x5, blockcost 1/10, richards x3
+13:32:16 < hanoi 1: 1947
+13:32:18 < hanoi 2: 1947
+13:32:20 < hanoi 3: 1947
+13:32:22 < hanoi 4: 1947
+13:32:24 < hanoi 5: 1947
+13:32:26 < baseLoop: 2607
+13:32:33 < blockValue: 6522
+13:32:40 < methodSend: 7216
+13:32:47 < blockCapture: 7177
+13:32:51 < closureMake: 3760
+13:32:57 < ocDo: 5681
+13:32:58 < ocDoInline: 1087
+13:33:04 < arDo: 6393
+13:33:05 < arDoInline: 1155
+13:33:13 < ivDo: 7340
+13:33:20 < ivDoInline: 7506
+13:33:32 < ocAt: 11371
+13:33:40 < richards: 8582
+13:33:49 < richards: 8595
+13:33:57 < richards: 8587
+13:33:57 < verified: true
+13:33:57 < spike296-node: done
+13:33:57 < spike296: parked; bootsel|reboot
+13:33:58 > bootsel
+[412] run 3 exit 0
+[412] weact-37-inline done

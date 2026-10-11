@@ -577,6 +577,38 @@ master: every row the opcode does not touch reproduces it to the ms.
 - richards' +1 % is not explained by the opcode (it is not a `do:`-heavy row); read it as placement until a
   profile says otherwise.
 
+## Opt #8 — kernel iterators inlined at the call site behind a class guard: `OP_IS_VT` (rete#37, 2026-10-11)
+
+What Opt #7 left was the block call: about 4.4 of the 5.6 µs per element. A literal block passed to `do:`
+(receiver OrderedCollection or Array) or to `collect:`/`select:`/`reject:`/`inject:into:` (OrderedCollection)
+in app code now compiles into its caller. `IS_VT a, k, c` (0x20) sets R(a) to whether R(c)'s vtable is exactly
+the constant k. Behind it runs that kernel method's own loop on `ITER_AT`, with the block's body inlined and its
+element param bound to the element register. After the last guard comes today's send, with the block as a
+closure, so a miss, a subclass or any other receiver means what it always meant. The compiler reproduces six kernel
+methods by hand and reads `count`/`contents` by slot name; `nodus/nsl/tools/test_iter_inline.py` pins their
+source. Two cases keep the send: a block whose nested closure captures its own param or temp (#417), and a debug
+build (`OEVM_DEBUG_HOOKS=1` at compile time). Pinned by `test_iter_inline.py`, `nodus/tests/04_somns_basic/68_iter_inline.nsl` and
+`nodus/oevm/tests/test_op_fast.c`. Decision record: `docs/design/2026-10-11-37-do-inline-design.md`; spike
+`docs/spikes/2026-10-11-37-do-inline/`.
+
+**STIC on the WeAct** (`nodus/tests/00_perf/performance.nsl`, RP2350B, `-O2`, blob in flash, three boots each,
+identical to within 2 ms; `docs/results/2026-10-11-37-stic/`):
+
+| test (ms) | before | after | ratio |
+|---|---:|---:|---:|
+| **collectionIterate** | 100755 | **15918** | **0.16** |
+| dictionaryWrite | 19421 | 18066 | 0.93 |
+| alloc, arrayWrite, floatMath, integerMath, collectionWrite, stringCompare | 18024, 67654, 26275, 4652, 38705, 3014 | 18119, 68474, 25916, 4804, 38586, 3071 | 0.99–1.03 (placement) |
+
+The #296 node's rows (spike, the same lowering behind a flag): ocDo 5681 → **1087 ms (0.73× MicroPython)**,
+arDo 6393 → 1155. A miss (an Interval: both guards fail, then the send) costs +2.3 %, ~1.7 µs a call. The
+guard on a hit is ~0.55 µs a call, ~5 % of ocDoInline, so static receiver knowledge is not worth building on
+these numbers. Size: +0 B on the bell (no site in any board node), DeltaBlue +0.7 %, `performance.nsl` +832 B.
+
+- **Found while landing: a peephole bug, latent since Opt #6.** Copy-propagation skipped a deleted
+  instruction before checking whether it carried a jump label, and so propagated a copy across a join
+  point. The iterator's join was the first shape to trigger it. Fixed (labels are checked first).
+
 ## Known weaknesses / tracked gaps (snapshot 2026-06-18)
 
 Captured after the sober-reference benchmark exercise (see
