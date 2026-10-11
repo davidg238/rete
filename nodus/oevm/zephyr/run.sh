@@ -528,6 +528,11 @@ else
   [ -f "$LAYOUT" ] || { echo "missing $LAYOUT — run the layoutdump app (stage 0) for $BOARD_ID" >&2; exit 2; }
   OIMG="$ZDIR/${NODE%.nsl}.oimg"
   python3 "$NSL" "$ZDIR/$NODE" "$OIMG" --format=oimg --layout="$LAYOUT"
+  # rete#37 spike (branch 37-ocdo-spike): OEVM_OIMG_PATCH names a script run as `SCRIPT IN OUT` on the
+  # baked image before it is linked — a hand-written method's bytecode in place of the compiler's.
+  if [ -n "${OEVM_OIMG_PATCH:-}" ]; then
+    python3 "$OEVM_OIMG_PATCH" "$OIMG" "$OIMG" || exit 1
+  fi
   echo "[blob]  $(stat -c %s "$OIMG") bytes -> .incbin"
   BLOB_ARG=(-DOEVM_BLOB="$OIMG")
 fi
