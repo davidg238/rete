@@ -1,7 +1,7 @@
 # `OP_ITER_AT`: the kernel's `do:` in one dispatch per element (rete#37)
 
 > Status: **approved by David, 2026-10-11** (Q1 no, Q2 yes, Q3 leave it). Follows the spike record
-> `docs/spikes/2026-10-11-37-ocdo-lowered/README.md` (branch `37-ocdo-spike`, not for merging)
+> `docs/spikes/2026-10-11-37-ocdo-lowered/README.md` (the spike's code stays on branch `37-ocdo-spike`)
 > and David's direction of the same day: the kernel's own `OrderedCollection>>do:` on
 > `OP_ITER_AT`, gated by the full nsl suite, **before** any lowering at call sites.
 
