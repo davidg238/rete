@@ -908,7 +908,7 @@ class MethodCompiler:
         if (not DO_INLINE or block["type"] != "block" or len(block.get("params", [])) != 1
                 or self.parent.current_file == KERNEL_PATH):
             return False
-        if not ("all" in DO_INLINE or any(self.name.endswith("_" + sel.replace(":", "_")) for sel in DO_INLINE)):
+        if not ("all" in DO_INLINE or self.selector in DO_INLINE):
             return False
         # A nested closure that names the block's param or a temp would capture a register the loop
         # reuses (an inlined local is not upward-safe, the LIMITATION at finalize_contexts): keep the send.
