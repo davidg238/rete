@@ -1,7 +1,8 @@
 import time
 """
 richards.py — the pyperformance Richards (pyperformance/data-files/benchmarks/bm_richards/
-run_benchmark.py, fetched 2026-10-10), pyperf stripped, self-timed like 00_perf/richards.nsl:
+run_benchmark.py, fetched 2026-10-10;
+https://github.com/python/pyperformance, MIT License, notice below), pyperf stripped, self-timed like 00_perf/richards.nsl:
 3 verified runs, "richards: <ms>" each, then "verified: <bool>". Runs on MicroPython and CPython.
 
 based on a Java version:
@@ -12,6 +13,19 @@ based on a Java version:
  Java version:  Copyright (C) 1995 Sun Microsystems, Inc.
  Translation from C++, Mario Wolczko
  Outer loop added by Alex Jacoby
+
+pyperformance's licence (COPYING), kept as it requires:
+ Permission is hereby granted, free of charge, to any person obtaining a copy of this software
+ and associated documentation files (the "Software"), to deal in the Software without
+ restriction, including without limitation the rights to use, copy, modify, merge, publish,
+ distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the
+ Software is furnished to do so, subject to the following conditions: The above copyright notice
+ and this permission notice shall be included in all copies or substantial portions of the
+ Software. THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+ INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE
+ AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+ DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 """
 
 
