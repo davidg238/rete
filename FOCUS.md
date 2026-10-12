@@ -11,15 +11,15 @@ blocks are in `docs/status/focus-history.md`; live state is in the issues and `d
   get the stub runner — move it to `prj_esp32s2.conf` (check storage vs the slots), add the slots-without-settings guard in `runner.c`;
   (2) the S2 recipe at `OEVM_SPACE_MAX_CHANNELS=16`, `OEVM_MPROF_SLOTS` default — one BOOT0+RESET flash, read `space:`;
   (3) the bell over Thread (daylight, `flash-bell.sh`); then #398.
-- **Second thread, opti7040: #37.** Opt #9 (the send levers) merged `173211b5`; STIC on c6spare `docs/results/2026-10-11-37-stic-c6/`.
-  Q4 measured (spike `37-c6-send-cost-spike`, `docs/spikes/2026-10-11-37-c6-send-cost/`): code placement is not the cost on the C6;
-  a send ~707 cycles = lookup ~85 + frame/entry/return ~620; ~60–75 cycles per instruction (estimated). **Starts with:** count the
-  instructions each blockcost row dispatches (host + c6spare), then split one instruction with `rdcycle` — before any design.
+- **Second thread, opti7040: #37.** C6 perf counter (spike `37-insn-count-spike`, `docs/spikes/2026-10-11-37-c6-insn-count/`): 160 MHz,
+  CPI ~1.35, ~36 RV32 instr/bytecode, ~500 cycles/round trip; `OEVM_LEAN_DISPATCH` 12–24 % every row. **Starts with (David, yes Q1–5):**
+  land lean dispatch + a load-time verifier in `oimg_loader.c` (`oevm_int_demote` at image build); then the dispatch head, compiler
+  bytecodes (add-imm, fused cmp-branch), the frame, Dictionary as a prim. No RAM split for speed (#296 §7).
 - **Awaiting David:** #368's last item, the history rewrite (private names, force-push); close #314; #396;
   read E draft 4 and L; #175's memo; the MCU footprint re-bank to 44252 (#37, revert if unwanted); the dongle reflash from master (#402); the RP2 remote-BOOTSEL design (#413).
-- **Bench:** the bell `c6` is on the WALL (never flash). `c6spare` on opti7040 USB (`/dev/ttyUSB1`, CP2102N `…d2e21074…`; msi's `console-c6spare.env` still names it there), holds the blockcost IRAM spike image. MagTag
+- **Bench:** the bell `c6` is on the WALL (never flash). `c6spare` on opti7040 USB (`/dev/ttyUSB1`, CP2102N `…d2e21074…`; msi's `console-c6spare.env` still names it there), holds the lean+perfmon spike image. MagTag
   `7cdfa11aaaaa` on the extender, build `…T140328` + program v2 (slot b, confirmed); enumerates only in BOOT0+RESET.
-  **opti7040: both RP2350s parked in BOOTSEL** (WeAct `1-7`: the levers STIC image; Zero `1-3`); msi build worktree `~/rete-37c6`; a UF2 on the volume boots them; build on msi.
+  **opti7040: both RP2350s parked in BOOTSEL** (WeAct `1-7`: the levers STIC image; Zero `1-3`); msi build worktree `~/rete-37c6` (on `37-ic-sync2`); opti7040 worktree `~/rete-37ic`; a UF2 on the volume boots them; build on msi.
   The plain ESP32 (WROOM-32, CP2104 `/dev/ttyUSB0`) is retired from #37 work (David: too painful).
 - **Decided — do not re-litigate:** custos = nsl peer, porta language-neutral (D1–D2); share only `protocol/` (#338); agent first,
   HTTP the only agent surface (D11–D12); D13–D19; hot patch debug-build only (#313); one suite lock (#314); no third node (#384);
