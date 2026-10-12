@@ -158,3 +158,15 @@ about 40 % of the M upper bound (Richards' accessor frames were priced at the av
 that L6 does not touch move 2–8 %, which is code placement in flash. **Next:** the C6 hot path in SRAM (the
 `OEVM_HOT_SECTION_IRAM` mechanism the ESP32/S2 use, unset for the C6 in run.sh), which stabilises every later C6
 measurement and tests how much of the 36-cycle base instruction is cache misses. Then L3 and L4.
+
+## Addendum, 2026-10-12: L4(c) lands (Opt #15), L3 does not
+
+`docs/results/2026-10-12-37-l4/`. **L4(c)**, `gen_tag` deleted (Q3 above): AWFY C6 0.988, WeAct 0.981; STIC C6 0.995,
+WeAct 0.978. **L3** was built only in a reduced form, L3-lite: the frame globals read once into locals in `push_frame`
+and the return, `ctx` taken from `push_frame`. The full form was not built, because the write-back it needs at every
+call-out falls on nearly every send (`send_resolve` is out of line, and allocation can reach the GC). L3-lite is level
+on the C6 and loses 2–4 % on the WeAct, so it is dropped, and L3 with it: the frame state stays in the globals. L4(a)
+(`vtable` left unset) and L4(b) (`home_ctx` NULL for a method frame) remain untried: each removes one store per frame
+and adds a test where the field is read. The destination register stored at send time trades the return's load and shift for a store
+at the send, so it was not tried. **Next: L5**, the `send_resolve` preamble behind the cache.
+
