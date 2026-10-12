@@ -1,7 +1,8 @@
 # rete#37 — L5, the `send_resolve` head (2026-10-12)
 
-**Verdict: kept (Opt #16). AWFY: C6 0.985, WeAct 0.963; STIC: C6 0.987, WeAct 0.978 (`run2/`, each pair of boards
-within 0.002). MCU text 45,070 B (−11).** Richards −2.0 % (C6) / −6.5 % (WeAct), DeltaBlue −2.6 / −4.6 %, List
+**Verdict: kept (Opt #16) in its first-cut form. AWFY: C6 0.978, WeAct 0.949; STIC: C6 0.980, WeAct 0.969 (`run1/`,
+`85525dba`; each pair of boards within 0.002). MCU text 45,930 B, banked (David: give the ratchet the memory).** The
+form merged first (`aad8a67b`, `run2/`) measured AWFY C6 0.985, WeAct 0.963, MCU text 45,070; the figures below are its. Richards −2.0 % (C6) / −6.5 % (WeAct), DeltaBlue −2.6 / −4.6 %, List
 −2.1 / −5.7 %, stringCompare −4.4 / −6.6 %, alloc −2.3 / −3.7 %; the rows that do not send are level.
 
 The change, inside `send_resolve` (the loop is untouched):
@@ -18,7 +19,7 @@ at the top. Under the footprint gate's `-Os` Cortex-M4 build, gcc threaded the c
 primitive block and copied it: `send_resolve` 4,778 → 5,622 B, MCU text 45,930 (the ratchet failed). Moving the SMI
 arm to just before the lookup gives 4,762 B. The copy was also a fast path: the first cut measured AWFY C6 0.978,
 WeAct 0.949; STIC C6 0.980, WeAct 0.969. **What the 844 B bought: about 1.5 % more on every board.** Merged without
-it (David: fix the footprint, then merge); re-banking the ratchet for it is the open alternative.
+it at first (David: fix the footprint, then merge), then restored (David: give the ratchet the memory).
 
 **The one-word arena header** (`38c9b557`, branch `37-alloc-hdr`, `run1/`): `struct HeapHeader` from three words to
 one (the size with the mark in bit 0; a free block's link in its payload), 8 B less per object on the boards. Speed

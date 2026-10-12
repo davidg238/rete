@@ -178,4 +178,6 @@ capability compares, the `Symbol =` gate and the primitive id load remain ahead 
 entries the cache returns, as this design proposed, is the rest of L5 and is not started. A finding to keep: the first
 cut's +844 B came from `-Os` copying the primitive block for a known receiver vtable, and that copy was itself worth
 ~1.5 %, which says a primitive test placed after the probe could be worth more than its instructions suggest.
+Later the same evening (David): the 844 B were given to the ratchet, and the SMI arm went back to the top: L5 stands at
+AWFY C6 0.978, WeAct 0.949.
 
