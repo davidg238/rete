@@ -34,9 +34,9 @@ stale-handle probe done
    Holds ONE Timers instance. Never returns from a phase with a live repeater —
    there are none here, only one-shots. Dialect: `[ ... ] whileTrue:`. *)
 class StaleHandleProbeC6 packageUsing: manifest = (
-  | plat space timers lostCh kickCh beatCh beatTok beats ::= 0.
-    delivered ::= 0. kicks ::= 0. armDecoy ::= false.
-    tapPass ::= 0. tapFail ::= 0. |
+  | private plat private space private timers private lostCh private kickCh private beatCh private beatTok private beats ::= 0.
+    private delivered ::= 0. private kicks ::= 0. private armDecoy ::= false.
+    private tapPass ::= 0. private tapFail ::= 0. |
 ) (
 
   public main: platform args: args = (

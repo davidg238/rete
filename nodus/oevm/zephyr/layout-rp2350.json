@@ -94,6 +94,11 @@
           "is_ref": false,
           "is_ptr": false
         },
+        "access": {
+          "offset": 10,
+          "is_ref": false,
+          "is_ptr": false
+        },
         "num_arguments": {
           "offset": 12,
           "is_ref": false,

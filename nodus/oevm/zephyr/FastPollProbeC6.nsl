@@ -24,8 +24,8 @@ TAP fastpoll done
    pass=2. If the observer fired, boot 2 finds the note and reports not ok —
    which is exactly what today's build must do. *)
 class FastPollProbeC6 packageUsing: manifest = (
-  | plat space timers fastCh slowCh fast ::= 0. slow ::= 0.
-    tapPass ::= 0. tapFail ::= 0. |
+  | private plat private space private timers private fastCh private slowCh private fast ::= 0. private slow ::= 0.
+    private tapPass ::= 0. private tapFail ::= 0. |
 ) (
 
   slowTicksToPass = ( ^ 20 )

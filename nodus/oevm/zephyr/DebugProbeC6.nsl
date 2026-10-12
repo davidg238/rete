@@ -20,7 +20,7 @@ Run: OEVM_DEBUG_HOOKS=1 run.sh --node DebugProbeC6.nsl
 reader hangs the board, and the ISR is what lets `dbg:pause` stop a running tick.)
 *)
 class DebugProbeC6 packageUsing: manifest = (
-  | plat space timers tickCh ticks ::= 0. |
+  | private plat private space private timers private tickCh private ticks ::= 0. |
 ) (
 
   public main: platform args: args = (

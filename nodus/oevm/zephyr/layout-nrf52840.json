@@ -23,6 +23,7 @@
       "instructions": {"offset": 0, "is_ref": false, "is_ptr": true},
       "instruction_count": {"offset": 4, "is_ref": false, "is_ptr": false},
       "num_registers": {"offset": 8, "is_ref": false, "is_ptr": false},
+      "access": {"offset": 10, "is_ref": false, "is_ptr": false},
       "num_arguments": {"offset": 12, "is_ref": false, "is_ptr": false},
       "shape": {"offset": 14, "is_ref": false, "is_ptr": false},
       "constants": {"offset": 16, "is_ref": false, "is_ptr": true},

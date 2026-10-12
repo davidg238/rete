@@ -19,7 +19,7 @@ done
    (starts=2), crash 3 hits the limit and quarantines (no restart), crashes 4-6 are
    no-ops (already quarantined). A second, healthy job keeps running throughout
    (survivor), proving the supervisor isolates policy per job. *)
-class RestartQuarantine packageUsing: manifest = ( | starts ::= 0. survivorHits ::= 0. | ) (
+class RestartQuarantine packageUsing: manifest = ( | private starts ::= 0. private survivorHits ::= 0. | ) (
   public main: platform args: args = (
     | space sup crasher survivor |
     space:: platform space.

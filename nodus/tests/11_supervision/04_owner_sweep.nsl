@@ -9,7 +9,7 @@ done
    channels, plus one through a different capability `other`. Dropping reactions owned
    by `job` removes exactly the three (they no longer fire on drain); `other`'s
    reaction is untouched. Sweep matches by == against the exact capability object. *)
-class OwnerSweep packageUsing: manifest = ( | jobHits ::= 0. otherHits ::= 0. | ) (
+class OwnerSweep packageUsing: manifest = ( | private jobHits ::= 0. private otherHits ::= 0. | ) (
   public main: platform args: args = (
     | space job other |
     space:: platform space.

@@ -14,7 +14,7 @@ class Benchmark = () (
 )
 class Mandelbrot usingPlatform: platform = () (
   public class Mandelbrot = Benchmark (
-    | firstResult |
+    | private firstResult |
   ) (
     public innerBenchmarkLoop: innerIterations numThreads: threads = (
       ^ self verify: (self mandelbrot: innerIterations) inner: innerIterations

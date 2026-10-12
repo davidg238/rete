@@ -40,7 +40,7 @@ float-smoke sum=167167
 float-smoke ok
 *)
 class FloatSmokeNode packageUsing: manifest = (
-| sum ::= 0.0 asFloat. |
+| private sum ::= 0.0 asFloat. |
 ) (
   public main: platform args: args = (
     1 to: 1001 do: [ :i | sum:: sum + (i asFloat / 3.0) ].

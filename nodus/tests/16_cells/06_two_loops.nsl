@@ -22,8 +22,8 @@ done
    the same app image run on any node. *)
 class TwoLoops packageUsing: manifest = () (
 
-  class Loop = ( | goal sp | ) (
-    setGoal: g = ( goal:: g. ^ self )
+  class Loop = ( | private goal private sp | ) (
+    public setGoal: g = ( goal:: g. ^ self )
     public sp = ( ^ sp )
     public start = ( sp:: goal peek: 'sp' ifAbsent: [ 0 ]. ^ self )
   ) : (

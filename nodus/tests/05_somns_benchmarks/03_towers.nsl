@@ -14,7 +14,7 @@ class Benchmark = () (
 )
 class Towers usingPlatform: platform = () (
   public class Towers = Benchmark (
-    | piles movesdone |
+    | private piles private movesdone |
   )(
     private pushDisk: disk onPile: pile = (
       | top |

@@ -20,13 +20,13 @@ node alive
    recovery (errors.md) — a driver absorbing a transient fault without ever reaching the supervisor. *)
 class TdCrashRecover packageUsing: manifest = () (
 
-  class Driver = ( | lastGood ::= 0. | ) (
+  class Driver = ( | private lastGood ::= 0. | ) (
     acquireBus = ( 'bus acquired' out. )
     releaseBus = ( 'bus released' out. )
 
     (* reading == nil models a silent sensor -> #timeout. The on:do: degrades to last-good;
        the ensure: releases the bus whether the body returns normally or unwinds. *)
-    sample: reading = (
+    public sample: reading = (
       ^ [ [ acquireBus.
             reading == nil ifTrue: [ self error: 'sensor silent' tag: #timeout ].
             lastGood:: reading.

@@ -25,7 +25,7 @@ expect (DK console, every ~15s once attached):
 BRIDGE OK
 *)
 class ThreadTimerNode usingPlatform: platform net: net = (
-  | space bridge rec awaiting ::= false. |
+  | private space private bridge private rec private awaiting ::= false. |
 ) (
   (* The gateway's ML-EID — NOT its OMR. An MTD child never SLAAC-configures an OMR
      address, so it has no route or source address for the OMR prefix and zsock_sendto

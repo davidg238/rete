@@ -62,10 +62,10 @@
    exactly 12 by `line:val:`. This node never returns, so it drains forever and
    cannot leak a live repeater the way TimerNode could. *)
 class MagTagClockNode packageUsing: manifest = (
-  | plat timers halfHours ::= 0. bootTicks ::= 0. lastBells ::= 8. hasDisplay ::= false.
-    tick phaseCh ntpCh strikeTok phaseTok ntpTok.
-    synced ::= false. lastCorr ::= 0. corrMin ::= 0. corrMax ::= 0. haveCorr ::= false.
-    syncCount ::= 0. | ) (
+  | private plat private timers private halfHours ::= 0. private bootTicks ::= 0. private lastBells ::= 8. private hasDisplay ::= false.
+    private tick private phaseCh private ntpCh private strikeTok private phaseTok private ntpTok.
+    private synced ::= false. private lastCorr ::= 0. private corrMin ::= 0. private corrMax ::= 0. private haveCorr ::= false.
+    private syncCount ::= 0. | ) (
 
   public main: platform args: args = (
     | space btnA btnB |
@@ -141,7 +141,7 @@ class MagTagClockNode packageUsing: manifest = (
 
   (* Attempt one sync. nil -> leave the clock free-running and try again in the next
      window; there is no error path here BY DESIGN (see the kernel forwarder). *)
-  trySync = (
+  public trySync = (
     | secs |
     secs:: plat ntpSyncTz: self tzOffset.
     secs == nil ifTrue: [ 'ntp miss' out. ^ self ].
@@ -370,7 +370,7 @@ class MagTagClockNode packageUsing: manifest = (
   (* Phoenix, UTC-7, no DST — correct year-round, which is why a fixed offset is
      honest here and would not be in a DST zone. A product fact, so it lives in nsl
      and is passed into the prim rather than compiled into C. *)
-  tzOffset = ( ^ -25200 )
+  public tzOffset = ( ^ -25200 )
 
   (* Boot NTP retry cadence, until the first success flips `synced`. *)
   bootRetryMillis = ( ^ 30000 )

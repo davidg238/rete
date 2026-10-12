@@ -22,7 +22,7 @@ each call (it owns the nsl-side pending registry), so hold ONE instance.
 expect:
 TIMER OK
 *)
-class TimerNode packageUsing: manifest = ( | ticks ::= 0. | ) (
+class TimerNode packageUsing: manifest = ( | private ticks ::= 0. | ) (
   public main: platform args: args = (
     | space timers ping tok |
     space:: platform space.

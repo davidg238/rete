@@ -8,7 +8,7 @@ done
    invocations and then faults at the bottom. Unwind to the reactor is clean from a
    deep stack shape; the healthy handler on `after` still fires, and one crash record
    is observed. *)
-class CrashAtDepth packageUsing: manifest = ( | afterHits ::= 0. crashes ::= 0. | ) (
+class CrashAtDepth packageUsing: manifest = ( | private afterHits ::= 0. private crashes ::= 0. | ) (
   public main: platform args: args = (
     | space deep after sys |
     space:: platform space.

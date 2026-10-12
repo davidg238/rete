@@ -65,8 +65,8 @@ class ThermalHttpNode usingPlatform: platform net: net = () (
      Knows nothing about HTTP. Capabilities arrive as constructor args (the
      Milestone-C rule). The cadence exists only because a ctl record asked for it
      (G9): no unrequested periodic work, and the CPU idles between ticks. *)
-  class ThermalNode = ( | space seam timers sample ctl event tick timer rate
-                          spans sJob sAcquire sCompute sPublish | ) (
+  class ThermalNode = ( | private space private seam private timers private sample private ctl private event private tick private timer private rate
+                          private spans private sJob private sAcquire private sCompute private sPublish | ) (
     (* tuvm#61: the span table arrives as a capability like every other (the
        Milestone-C constructor-args rule), and the node registers ITS OWN segment
        names here rather than being handed indices. The names are this class's
@@ -74,7 +74,7 @@ class ThermalHttpNode usingPlatform: platform net: net = () (
        register: is idempotent, so a re-entered setup cannot consume the budget.
        Registration happens ONCE, at construction: a name lookup is a send and an
        allocation, and the measured path must do neither. *)
-    onSpace: sp seam: s timers: t spans: sn = (
+    public onSpace: sp seam: s timers: t spans: sn = (
       space::  sp.  seam:: s.  timers:: t.  rate:: 2.
       sample:: sp channel: 'dev/thermal0/sample'.    (* CELL:   latest frame out *)
       ctl::    sp channel: 'dev/thermal0/ctl'.       (* CELL:   {rate: N} in     *)
@@ -152,8 +152,8 @@ class ThermalHttpNode usingPlatform: platform net: net = () (
      Knows nothing about sensors or presentation. C owns the socket and chunk
      framing; routing is nsl. `id` is an opaque correlation token that the C side
      resolves back to the response socket — nsl never touches a file descriptor. *)
-  class HttpServer = ( | space seam paths blocks | ) (
-    onSpace: sp seam: s = (
+  class HttpServer = ( | private space private seam private paths private blocks | ) (
+    public onSpace: sp seam: s = (
       space:: sp. seam:: s.
       paths::  s OrderedCollection new.
       blocks:: s OrderedCollection new.
@@ -170,7 +170,7 @@ class ThermalHttpNode usingPlatform: platform net: net = () (
 
     (* Run-to-completion: one request is framed begin->body->end before the next,
        so responses for different ids never interleave. *)
-    handle: r = (
+    public handle: r = (
       | id path i n found |
       id:: r basicAt: 1.  path:: r basicAt: 3.
       i:: 1. n:: paths size. found:: nil.

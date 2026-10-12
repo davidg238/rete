@@ -5,7 +5,7 @@
 
 (* The header is the program's authority: the platform and the network, nothing else. *)
 class ThreadSensorNode usingPlatform: platform net: net = (
-  | space bridge timers ticks ::= 0. |
+  | private space private bridge private timers private ticks ::= 0. |
 ) (
   gwAddr  = ( ^ 'fdc5:9109:9afe:97ea:9541:d963:f8d9:8567' )   (* the gateway, mesh-local *)
   gwPort  = ( ^ 6969 )

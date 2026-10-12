@@ -850,6 +850,25 @@ A frame stores its closure's `home_ctx` as-is (NULL for a method) instead of enc
 level: the geomean moved 0.992 (C6 AWFY) on placement, while the frame-heavy rows were level
 (`docs/results/2026-10-12-37-l4b/`). Kept for simplicity.
 
+## A cost, not a lever — method visibility enforced (rete#372, 2026-10-12)
+
+Visibility is a mandatory language feature (David), built at no cost on a cache hit
+(`docs/design/2026-10-12-372-method-visibility-design.md`): a `CompiledMethod.access` header field read at a
+fill, `OP_SEND_SELF` and `OP_SEND_PRIVATE`, and the lookup rule ORed into the method cache's key. On c6spare
+(`docs/results/2026-10-12-372-visibility-board/`, against master): **AWFY 1.018, STIC 1.010** once super and private
+sends went through the cache; uncached, the private send had cost AWFY 1.034 (Permute's recursive private
+`permute:`, +8.5 %). Firmware text −4 B. David: merge, and record the cost.
+
+Deferred fronts, with what would earn each back:
+
+- **The send path's own cost (integerMath +3.5 %, alloc +3.6 %, rows with no visibility in them).** Suspects:
+  `send_resolve`'s new `rule` argument, and the OP_SEND/OP_SEND_SELF and OP_SEND_SUPER/OP_SEND_PRIVATE handlers'
+  shared bodies moving the loop's layout (L2's lesson). Try: the ordinary path with no rule argument, only
+  OP_SEND_SELF tagging its key. Earns its place by a board A/B that moves those two rows.
+- **A private send is one more dispatched instruction than the OP_SEND it replaced** (the vtable constant; Permute
+  and Towers +4 %). Try: resolve a private send's target once, at load or first fill, so the site needs no vtable
+  register. Earns its place by Permute and Towers moving on the board.
+
 ## Known weaknesses / tracked gaps (snapshot 2026-06-18)
 
 Captured after the sober-reference benchmark exercise (see

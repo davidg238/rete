@@ -20,8 +20,8 @@ done
    are the shapes that failed: construction in a block with the class in this class
    (hops0) and in the enclosing one (hops1), and `self new` / `self make` in a block
    inside a class-side method. *)
-class NestedClassNewInBlock packageUsing: manifest = ( | plat | ) (
-  class Bag = ( | items ::= plat OrderedCollection new. | ) (
+class NestedClassNewInBlock packageUsing: manifest = ( | private plat | ) (
+  class Bag = ( | private items ::= plat OrderedCollection new. | ) (
     public put: x = ( items add: x. ^ self )
     public n = ( ^ items size )
   ) : (
@@ -29,8 +29,8 @@ class NestedClassNewInBlock packageUsing: manifest = ( | plat | ) (
     public viaBlock = ( | blk | blk:: [ self new ]. ^ blk value )
     public viaBlockSend = ( | blk | blk:: [ self make ]. ^ blk value )
   )
-  class Host = ( | ch | ) (
-    setCh: c = ( ch:: c. ^ self )
+  class Host = ( | private ch | ) (
+    public setCh: c = ( ch:: c. ^ self )
     public start = (
       ch whenever: 'hops1' do: [ :v | | c | c:: Bag new put: v. ('hops1 ' , c n printString) out ].
       ^ self )

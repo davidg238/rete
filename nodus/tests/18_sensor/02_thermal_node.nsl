@@ -24,8 +24,8 @@ class ThermalNodeTest packageUsing: manifest = () (
      Knows nothing about HTTP. Capabilities arrive as constructor args (the
      Milestone-C rule). The cadence exists only because a ctl record asked for it
      (G9): no unrequested periodic work, and the CPU idles between ticks. *)
-  class ThermalNode = ( | space seam timers sample ctl event tick timer rate | ) (
-    onSpace: sp seam: s timers: t = (
+  class ThermalNode = ( | private space private seam private timers private sample private ctl private event private tick private timer private rate | ) (
+    public onSpace: sp seam: s timers: t = (
       space::  sp.  seam:: s.  timers:: t.  rate:: 2.
       sample:: sp channel: 'dev/thermal0/sample'.    (* CELL:   latest frame out *)
       ctl::    sp channel: 'dev/thermal0/ctl'.       (* CELL:   {rate: N} in     *)

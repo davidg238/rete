@@ -14,7 +14,7 @@ class ClassSideMethodsTest packageUsing: manifest = () (
      metaclass support, `State withSeven` was silently rewritten to
      `State new`, dropping the class-side method entirely. *)
   public class State = (
-    | value flag |
+    | private value private flag |
   )(
     public value = ( ^ value )
     public flag  = ( ^ flag )

@@ -47,13 +47,13 @@ probe done
    live repeater the way TimerNode documents. Dialect: `[ ... ] whileTrue:`, never
    `repeat`. *)
 class PulseCoalesceProbeC6 packageUsing: manifest = (
-  | plat space timers
-    strokeCh tickCh
-    strokes ::= 0. ticks ::= 0. busyMillis ::= 0.
-    chaining ::= false.
-    tapPass ::= 0. tapFail ::= 0.
-    p1Strokes ::= 0. p1Coal ::= 0. p2Coal ::= 0.
-    p3Ran ::= false. p3Strokes ::= 0. |
+  | private plat private space private timers
+    private strokeCh private tickCh
+    private strokes ::= 0. private ticks ::= 0. private busyMillis ::= 0.
+    private chaining ::= false.
+    private tapPass ::= 0. private tapFail ::= 0.
+    private p1Strokes ::= 0. private p1Coal ::= 0. private p2Coal ::= 0.
+    private p3Ran ::= false. private p3Strokes ::= 0. |
 ) (
 
   public main: platform args: args = (
@@ -201,7 +201,7 @@ class PulseCoalesceProbeC6 packageUsing: manifest = (
             ' drops ' , (self drops - d0) printString) out.
     ^ self )
 
-  widthMillis = ( ^ 10 )    (* the striker's own on-time *)
+  public widthMillis = ( ^ 10 )    (* the striker's own on-time *)
 
   (* --- TAP-lite (design D3) ------------------------------------------------
      Identical in shape to StaleHandleProbeC6's. It is duplicated rather than

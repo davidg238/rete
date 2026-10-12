@@ -9,7 +9,7 @@ expect:
    Regression for deltablue's `unsatisfied do: [:u | ... incrementalAdd: u]`. *)
 class ImplicitSendInBlockTest packageUsing: manifest = () (
   public class C = (
-  | sum ::= 0. |
+  | private sum ::= 0. |
   )(
     public add: n = ( sum:: sum + n )
     public bump = ( sum:: sum + 7 )

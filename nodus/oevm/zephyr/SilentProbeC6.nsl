@@ -49,11 +49,11 @@ Dialect: `[ ... ] whileTrue:`, never `repeat`; state in instance slots so every
 reaction block is a one-line self-send.
 *)
 class SilentProbeC6 usingPlatform: platform net: net = (
-  | space bridge timers ticks ::= 0.
-    verdictDone ::= false. tapPass ::= 0. tapFail ::= 0.
-    spans sTick sCheckIn sPublish |
+  | private space private bridge private timers private ticks ::= 0.
+    private verdictDone ::= false. private tapPass ::= 0. private tapFail ::= 0.
+    private spans private sTick private sCheckIn private sPublish |
 ) (
-  nodeId    = ( ^ platform nodeId )
+  public nodeId    = ( ^ platform nodeId )
   (* gw85224-01's mesh-local EID — the SAME literal as PortaBridgeNodeC6; the
      silent instance lives beside the real gateway. *)
   gwAddr    = ( ^ 'fdc5:9109:9afe:97ea:9541:d963:f8d9:8567' )

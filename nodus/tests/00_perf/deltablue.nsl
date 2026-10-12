@@ -112,7 +112,7 @@ class DeltaBlueNS usingPlatform: platform = (
   )
 
   private class Direction named: n = (
-  | name = n. |
+  | private name = n. |
   )()
 
   private class Plan = (
@@ -128,12 +128,12 @@ class DeltaBlueNS usingPlatform: platform = (
   )
 
   private class Planner = (
-  | currentMark ::= 0. |
+  | private currentMark ::= 0. |
   )(
     private class BinaryConstraint var: v1 var: v2 strength: s = Constraint strength: s (
-    | v1 = v1.
-      v2 = v2.
-      direction
+    | private v1 = v1.
+      private v2 = v2.
+      private direction
     |)(
       public addToGraph = (
         v1 addConstraint: self.
@@ -298,8 +298,8 @@ class DeltaBlueNS usingPlatform: platform = (
     )
 
     private class ScaleConstraint source: src scale: scale offset: offset destination: dest strength: s = BinaryConstraint var: src var: dest strength: s (
-    | scaleVal = scale.
-      offsetVal = offset.
+    | private scaleVal = scale.
+      private offsetVal = offset.
     |
       addConstraint
     )(

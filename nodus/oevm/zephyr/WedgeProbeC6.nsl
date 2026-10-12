@@ -28,8 +28,8 @@ TAP wedge done
    RETENTION from detection. wedge-detect uses the default build and lets the real wedge
    below do the work. The 15 < 30 ordering is what keeps them different tests. *)
 class WedgeProbeC6 packageUsing: manifest = (
-  | plat space timers tickCh ticks ::= 0. wedging ::= false.
-    tapPass ::= 0. tapFail ::= 0. |
+  | private plat private space private timers private tickCh private ticks ::= 0. private wedging ::= false.
+    private tapPass ::= 0. private tapFail ::= 0. |
 ) (
 
   wedgeAtTick = ( ^ 30 )   (* 30 s at the 1 s period below — comfortably past boot, and

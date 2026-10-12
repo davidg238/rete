@@ -49,15 +49,15 @@ Dialect: `[ ... ] whileTrue:`, never `repeat`; state in instance slots so every
 reaction block is a one-line self-send.
 *)
 class ReplayProbeC6 usingPlatform: platform net: net = (
-  | space bridge timers ticks ::= 0.
+  | private space private bridge private timers private ticks ::= 0.
     (* difference 5 — the bridge-health self-check. `obsCap` is held rather than
        re-derived per tick for the same reason `timers` is: one instance, minted
        once. *)
-    obsCap goalName ::= nil. lastUnacked ::= -1. lastAcked ::= 0.
-    obsConverged ::= false.
-    verdictDone ::= false. tapPass ::= 0. tapFail ::= 0.
+    private obsCap private goalName ::= nil. private lastUnacked ::= -1. private lastAcked ::= 0.
+    private obsConverged ::= false.
+    private verdictDone ::= false. private tapPass ::= 0. private tapFail ::= 0.
     (* tuvm#107: the span table. ONE window per boot — see `main:args:`. *)
-    spans capture sTick sCheckIn sPublish | 
+    private spans private capture private sTick private sCheckIn private sPublish | 
 ) (
   (* rete#186: THE ID IS THE BOARD, and it is baked at build time rather than written
      here. This method used to answer a string literal, and the literal was the bug:
@@ -70,7 +70,7 @@ class ReplayProbeC6 usingPlatform: platform net: net = (
      field of `obs/build`, from run.sh's OEVM_BOARD_NAME.
      The ROLE is not gone, it just lives where it always belonged: porta writes
      `goal/name` and this node converges `obs/name` onto it. *)
-  nodeId    = ( ^ platform nodeId )
+  public nodeId    = ( ^ platform nodeId )
   (* gw85224-01's mesh-local EID, read from the OTBR on 2026-06-28 and unchanged
      since; the same literal SoakNode.nsl has been echoing against. *)
   gwAddr    = ( ^ 'fdc5:9109:9afe:97ea:9541:d963:f8d9:8567' )

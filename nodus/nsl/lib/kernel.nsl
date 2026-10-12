@@ -17,7 +17,7 @@ indexable: n` (Array as an argument is a slot read of the class object).
 class Kernel usingPlatform: platform = (
   (* rete#244: the ONE Timers this kernel instance answers. Lazy because the
      accessor below is the only reader, nil until first asked. *)
-  | timersOne ::= nil. profilerOne ::= nil. debuggerOne ::= nil. |
+  | private timersOne ::= nil. private profilerOne ::= nil. private debuggerOne ::= nil. |
 ) (
   class Object = () (
     (* Milestone E Task 1: the in-flight error value is a crash Record (#tag/#text),
@@ -46,7 +46,7 @@ class Kernel usingPlatform: platform = (
   ) : (
   )
 
-  class Array = () (
+  public class Array = () (
     public at: i = ( ^ self basicAt: i )
     public at: i put: v = ( self basicAt: i put: v. ^ v )
     public size = ( ^ self basicSize )
@@ -56,7 +56,7 @@ class Kernel usingPlatform: platform = (
   )
 
   class Collection = () (
-    do: aBlock = ( ^ self error: 'subclassResponsibility' )
+    public do: aBlock = ( ^ self error: 'subclassResponsibility' )
     public size = ( ^ self inject: 0 into: [ :n :e | n + 1 ] )
     public isEmpty = ( ^ self size = 0 )
     public inject: a into: b = ( | acc | acc:: a. self do: [ :e | acc:: b value: acc value: e ]. ^ acc )
@@ -130,8 +130,8 @@ class Kernel usingPlatform: platform = (
   ) : (
   )
 
-  class OrderedCollection = Collection (
-    | contents ::= platform basicNew: Array indexable: 8. count ::= 0. |
+  public class OrderedCollection = Collection (
+    | private contents ::= platform basicNew: Array indexable: 8. private count ::= 0. |
   ) (
     (* Hot paths index `contents` (always a kernel Array) via basicAt: directly,
        skipping the Array>>at: frame — the perf/op-cmp-at trial widened the
@@ -202,7 +202,7 @@ class Kernel usingPlatform: platform = (
      not a library one.
 
      Only do:/size/at: are primitive to it; everything else is inherited. *)
-  class Interval = Collection ( | start stop step | ) (
+  public class Interval = Collection ( | private start private stop private step | ) (
     public do: aBlock = (
       | i |
       step > 0
@@ -219,7 +219,7 @@ class Kernel usingPlatform: platform = (
       ^ start + ((i - 1) * step) )
     public first = ( ^ self at: 1 )
     public last = ( ^ self at: self size )
-    setStart: a stop: b step: s = (
+    public setStart: a stop: b step: s = (
       s = 0 ifTrue: [ ^ self error: 'zero step' ].
       start:: a. stop:: b. step:: s. ^ self )
   ) : (
@@ -227,7 +227,7 @@ class Kernel usingPlatform: platform = (
     public from: a to: b by: s = ( ^ self new setStart: a stop: b step: s )
   )
 
-  class HashedCollection = Collection ( | table count hashes | ) (
+  class HashedCollection = Collection ( | private table private count private hashes | ) (
     (* Abstract open-addressing hash table over `table` (the keys/elements
        Array); `count` is the live-entry tally. Concrete subclasses re-declare
        `table`/`count`/`hashes` WITH initializers to set the initial capacity — the bare
@@ -257,7 +257,7 @@ class Kernel usingPlatform: platform = (
       [ (table basicAt: i) == nil ] whileFalse: [ i:: i + 1. i > c ifTrue: [ i:: 1 ] ].
       ^ i )
 
-    containsKey: aKey = ( ^ ((table basicAt: (self slotFor: aKey)) == nil) not )
+    public containsKey: aKey = ( ^ ((table basicAt: (self slotFor: aKey)) == nil) not )
 
     (* Load factor 0.75: Set>>add: and Dictionary>>at:put: test `count * 4 >= (table basicSize * 3)`
        inline rather than through a helper send (rete#37). *)
@@ -278,7 +278,7 @@ class Kernel usingPlatform: platform = (
   ) : (
   )
 
-  class Set = HashedCollection ( | table ::= platform basicNew: Array indexable: 8. count ::= 0. hashes ::= platform basicNew: Array indexable: 8. | ) (
+  public class Set = HashedCollection ( | private table ::= platform basicNew: Array indexable: 8. private count ::= 0. private hashes ::= platform basicNew: Array indexable: 8. | ) (
     public add: anObject = ( (anObject == nil) ifTrue: [ ^ self error: 'nil element not allowed' ]. self place: anObject. count * 4 >= (table basicSize * 3) ifTrue: [ self grow ]. ^ anObject )
     public addAll: aCollection = ( aCollection do: [ :e | self add: e ]. ^ aCollection )
     public remove: anObject = ( ^ self remove: anObject ifAbsent: [ self error: 'element not found' ] )
@@ -294,7 +294,7 @@ class Kernel usingPlatform: platform = (
   ) : (
   )
 
-  class Dictionary = HashedCollection ( | table ::= platform basicNew: Array indexable: 8. count ::= 0. vals ::= platform basicNew: Array indexable: 8. hashes ::= platform basicNew: Array indexable: 8. | ) (
+  public class Dictionary = HashedCollection ( | private table ::= platform basicNew: Array indexable: 8. private count ::= 0. private vals ::= platform basicNew: Array indexable: 8. private hashes ::= platform basicNew: Array indexable: 8. | ) (
     public at: aKey put: aValue = ( (aKey == nil) ifTrue: [ ^ self error: 'nil key not allowed' ]. self place: aKey value: aValue. count * 4 >= (table basicSize * 3) ifTrue: [ self grow ]. ^ aValue )
     public at: aKey ifAbsent: aBlock = ( | i | i:: self slotFor: aKey. (table basicAt: i) == nil ifTrue: [ ^ aBlock value ]. ^ vals basicAt: i )
     public at: aKey = ( ^ self at: aKey ifAbsent: [ self error: 'key not found' ] )
@@ -315,8 +315,8 @@ class Kernel usingPlatform: platform = (
   ) : (
   )
 
-  class Association = ( | key value | ) (
-    setKey: aKey value: aValue = ( key:: aKey. value:: aValue. ^ self )
+  class Association = ( | private key private value | ) (
+    public setKey: aKey value: aValue = ( key:: aKey. value:: aValue. ^ self )
     public key = ( ^ key )
     public value = ( ^ value )
     public printString = ( ^ key printString , ' -> ' , value printString )
@@ -332,7 +332,7 @@ class Kernel usingPlatform: platform = (
      private `setItems:`, which validates each element (checkValue:, via the
      `outer` link to the module-level helpers below) and folds the max child
      depth in the same O(children) pass. *)
-  class List = ( | items depth | ) (
+  public class List = ( | private items private depth | ) (
     public size = ( ^ items size )
     public at: i = ( (i < 1 or: [ i > items size ]) ifTrue: [ ^ self error: 'index out of bounds' ]. ^ items at: i )
     public at: i ifAbsent: aBlock = ( (i < 1 or: [ i > items size ]) ifTrue: [ ^ aBlock value ]. ^ items at: i )
@@ -357,7 +357,7 @@ class Kernel usingPlatform: platform = (
       ^ outer value: self equals: other
     )
     public hash = ( ^ outer valueHashOf: self )
-    setItems: anArray = (
+    public setItems: anArray = (
       | d |
       d:: 0.
       1 to: anArray size do: [ :i | | e cd |
@@ -393,7 +393,7 @@ class Kernel usingPlatform: platform = (
      future CBOR decoders construct by overwrite. Both keys AND values are
      validated via `outer checkValue:`; `depth` is folded over ALL keys and
      ALL values (mirrors List's `setItems:`) and cached at construction. *)
-  class Map = ( | keys vals depth | ) (
+  public class Map = ( | private keys private vals private depth | ) (
     public size = ( ^ keys size )
     public at: aKey ifAbsent: aBlock = ( | lo hi mid c |
       lo:: 1. hi:: keys size.
@@ -439,7 +439,7 @@ class Kernel usingPlatform: platform = (
        fold/check depth over the final (deduplicated) entries. Messages are
        small, so plain insertion sort — "no need for anything cleverer"
        (plan's own words) — and a linear compaction pass. *)
-    setPairs: karr values: varr = ( | n j outCount i d k v nextI kk vv cd |
+    public setPairs: karr values: varr = ( | n j outCount i d k v nextI kk vv cd |
       n:: karr size.
       1 to: n do: [ :ii | outer checkValue: (karr at: ii). outer checkValue: (varr at: ii) ].
       2 to: n do: [ :ii |
@@ -529,7 +529,7 @@ class Kernel usingPlatform: platform = (
      is `fields`' own depth plus one (tag is a Symbol, depth 0, so it never
      drives the fold) — computed once at construction and cached, same as
      List/Map's `valueDepth`. *)
-  class Record = ( | tag fields depth | ) (
+  public class Record = ( | private tag private fields private depth | ) (
     public tag = ( ^ tag )
     public fields = ( ^ fields )
     public at: aKey ifAbsent: aBlock = ( ^ fields at: aKey ifAbsent: aBlock )
@@ -547,7 +547,7 @@ class Kernel usingPlatform: platform = (
       ^ outer value: self equals: other
     )
     public hash = ( ^ outer valueHashOf: self )
-    setTag: aTag fields: aMap = (
+    public setTag: aTag fields: aMap = (
       aTag isSymbol ifFalse: [ ^ self error: 'not a value' ].
       aMap isMap ifFalse: [ ^ self error: 'not a value' ].
       tag:: aTag.
@@ -576,14 +576,14 @@ class Kernel usingPlatform: platform = (
      bounds/range crashes come from the C layer (frozen strings), so the
      accessors here are thin forwarders — no nsl-side bounds/range checks
      (superseded staged-design decision; see Task 10 brief). *)
-  class ByteArray = BytesReadProtocol ( | raw | ) (
+  public class ByteArray = BytesReadProtocol ( | private raw | ) (
     public byteSize = ( ^ raw size )
     public u8At: i = ( ^ raw at: i )
     public u8At: i put: v = ( raw at: i put: v. ^ v )
     public u16At: i put: v = ( self u8At: i put: (v bitAnd: 255). self u8At: i + 1 put: ((v >> 8) bitAnd: 255). ^ v )
     public u16BeAt: i put: v = ( self u8At: i put: ((v >> 8) bitAnd: 255). self u8At: i + 1 put: (v bitAnd: 255). ^ v )
     public freeze = ( ^ Bytes overRaw: (platform freezeBytes: raw) )
-    setRaw: r = ( raw:: r. ^ self )
+    public setRaw: r = ( raw:: r. ^ self )
   ) : (
     public new: n = ( ^ self new setRaw: (platform basicNewBytes: n) )
     public fromList: aList = ( | r | r:: self new: aList size. 1 to: aList size do: [ :i | r u8At: i put: (aList at: i) ]. ^ r )
@@ -618,7 +618,7 @@ class Kernel usingPlatform: platform = (
      via ByteArray>>freeze; no module accessor exposes this class to app
      code (keeping the class-side constructor unreachable keeps app code
      from minting a Bytes without going through a real freeze copy). *)
-  class Bytes = BytesReadProtocol ( | raw | ) (
+  class Bytes = BytesReadProtocol ( | private raw | ) (
     public byteSize = ( ^ raw size )
     public u8At: i = ( ^ raw at: i )
     public freeze = ( ^ self )
@@ -644,7 +644,7 @@ class Kernel usingPlatform: platform = (
         j:: j + 1. arr at: j put: (hi < 10 ifTrue: [ 48 + hi ] ifFalse: [ 87 + hi ]).
         j:: j + 1. arr at: j put: (lo < 10 ifTrue: [ 48 + lo ] ifFalse: [ 87 + lo ]) ].
       ^ platform string: arr )
-    setRaw: r = ( raw:: r. ^ self )
+    public setRaw: r = ( raw:: r. ^ self )
     (* Module-internal (Rung 6 Layer 2): answer the underlying RawBytes leaf for
        the send prim to read. Non-public by convention only, like every other
        non-public kernel setter — this VM's access modifiers are not enforced
@@ -653,7 +653,7 @@ class Kernel usingPlatform: platform = (
        this is not an immutability boundary; it works only because the single
        caller, Socket>>sendTo:, is relied upon to treat it as read-only (memcpy
        out to the socket). *)
-    rawLeaf = ( ^ raw )
+    public rawLeaf = ( ^ raw )
   ) : (
     public overRaw: r = ( ^ self new setRaw: r )
   )
@@ -688,7 +688,7 @@ class Kernel usingPlatform: platform = (
      Deliberately minimal: only the selectors the codec actually sends (`add:`,
      `size`, `at:`, `do:`) exist, so this is a drop-in for the OrderedCollection it
      replaces and nothing else can start depending on it. *)
-  class ByteBuilder = ( | buf ::= platform basicNewBytes: 16. count ::= 0. | ) (
+  class ByteBuilder = ( | private buf ::= platform basicNewBytes: 16. private count ::= 0. | ) (
     public size = ( ^ count )
     public at: i = ( ^ buf at: i )
     public add: b = (
@@ -734,7 +734,7 @@ class Kernel usingPlatform: platform = (
      No float<->int coercion (the ranks dispatch to distinct leaves). A receiver
      `rankOf:` cannot classify fails `not a value`; over-deep nesting fails
      `message depth exceeded`. *)
-  class Cbor = () (
+  public class Cbor = () (
     public encode: v = ( | acc |
       acc:: ByteBuilder new.
       self encode: v into: acc depth: 1.
@@ -1099,7 +1099,7 @@ class Kernel usingPlatform: platform = (
   ) : (
   )
 
-  class HeapStats = ( | heapSize liveBytes highWater largestFreeBlock gcCycles | ) (
+  class HeapStats = ( | private heapSize private liveBytes private highWater private largestFreeBlock private gcCycles | ) (
     (* A read-only snapshot of GC heap telemetry (src/gc.c oevm_heap_stats),
        surfaced by the native `platform heapStats` leaf (prim 104) as a 5-element
        Array in field order. Construct via the class-side `fromList:`. *)
@@ -1108,7 +1108,7 @@ class Kernel usingPlatform: platform = (
     public highWater        = ( ^ highWater )
     public largestFreeBlock = ( ^ largestFreeBlock )
     public gcCycles         = ( ^ gcCycles )
-    setFromList: a = (
+    public setFromList: a = (
       (* `platform heapStats` answers a raw IndexableVtable Array (like udp
          basicReceive / cborReadHead), so read slots with basicAt:, not the
          Array-class at: — the prim receiver does not carry the Array vtable. *)
@@ -1122,7 +1122,7 @@ class Kernel usingPlatform: platform = (
     public fromList: a = ( ^ self new setFromList: a )
   )
 
-  class CHeapStats = ( | outBytes outHigh allocs frees fails | ) (
+  class CHeapStats = ( | private outBytes private outHigh private allocs private frees private fails | ) (
     (* rete#190: a read-only snapshot of C-allocation accounting (src/gc.c
        oevm_cheap_stats), surfaced by the native `platform cheapStats` leaf
        (prim 152) as a 5-element Array in field order. Construct via the
@@ -1132,7 +1132,7 @@ class Kernel usingPlatform: platform = (
     public allocs   = ( ^ allocs )
     public frees    = ( ^ frees )
     public fails    = ( ^ fails )
-    setFromList: a = (
+    public setFromList: a = (
       (* raw IndexableVtable Array, so basicAt: — the HeapStats precedent *)
       outBytes:: a basicAt: 1. outHigh:: a basicAt: 2. allocs:: a basicAt: 3.
       frees:: a basicAt: 4. fails:: a basicAt: 5. ^ self )
@@ -1144,7 +1144,7 @@ class Kernel usingPlatform: platform = (
     public fromList: a = ( ^ self new setFromList: a )
   )
 
-  class Spans = ( | names fails | ) (
+  public class Spans = ( | private names private fails | ) (
     (* tuvm#61: named access to the C span slots (prims 118-121). The C side is
        NAMELESS — slots are integers 0..N-1 — exactly as the timer seam carries
        only a token and keeps the channel and the message in nsl. This class owns
@@ -1344,8 +1344,8 @@ class Kernel usingPlatform: platform = (
      Deliberately generic: it knows a Space and a Spans and nothing else — no
      sensor, no HTTP, no device. That is why it lives here beside Spans rather than
      in a node file, and it is also what makes it host-testable. *)
-  class SpanCapture = ( | space spans ctl result t0 running | ) (
-    onSpace: sp spans: sn = (
+  public class SpanCapture = ( | private space private spans private ctl private result private t0 private running | ) (
+    public onSpace: sp spans: sn = (
       space::   sp.
       spans::   sn.
       running:: false.
@@ -1442,7 +1442,7 @@ class Kernel usingPlatform: platform = (
       ^ self new onSpace: aSpace spans: aSpans )
   )
 
-  class ReadStream = ( | source position | ) (
+  public class ReadStream = ( | private source private position | ) (
     (* Byte-granular cursor over an immutable String. `next`/`peek` answer a byte
        SMI; substring reads build Strings via `platform string:`. Open-ended reads
        answer nil at EOF so a blank line ('') stays distinct from end-of-stream. *)
@@ -1479,12 +1479,12 @@ class Kernel usingPlatform: platform = (
       ^ platform string: r asArray )
     public do: aBlock = ( [ self atEnd ] whileFalse: [ aBlock value: self next ]. ^ self )
     prefixOf: s upTo: k = ( | a | a:: platform basicNew: Array indexable: k. 1 to: k do: [ :i | a at: i put: (s at: i) ]. ^ platform string: a )
-    setSource: aString = ( source:: aString. position:: 0. ^ self )
+    public setSource: aString = ( source:: aString. position:: 0. ^ self )
   ) : (
     public on: aString = ( ^ self new setSource: aString )
   )
 
-  class WriteStream = ( | bytes ::= OrderedCollection new. | ) (
+  public class WriteStream = ( | private bytes ::= OrderedCollection new. | ) (
     (* io.Buffer-style String builder: accumulate bytes, emit one String via
        `platform string:` — the O(n) replacement for O(n^2) `,` chaining. *)
     public nextPut: aByte = ( (aByte < 0 or: [ aByte > 255 ]) ifTrue: [ ^ self error: 'byte out of range 0..255' ]. bytes add: aByte. ^ aByte )
@@ -1497,11 +1497,11 @@ class Kernel usingPlatform: platform = (
   ) : (
   )
 
-  class Serial = ( | port | ) (
+  class Serial = ( | private port | ) (
     (* Confined native capability: byte/line port over a link-time backend.
        `port` holds the native serial singleton; raw bytes go through its
        basicReadByte/basicWriteByte:/basicAtEnd prims. Strings via platform. *)
-    setPort: aPort = ( port:: aPort. ^ self )
+    public setPort: aPort = ( port:: aPort. ^ self )
     public writeByte: aByte = ( port basicWriteByte: aByte. ^ self )
     public write: aString = ( 1 to: aString size do: [ :i | port basicWriteByte: (aString at: i) ]. ^ self )
     public atEnd = ( ^ port basicAtEnd )
@@ -1523,9 +1523,9 @@ class Kernel usingPlatform: platform = (
     public onPort: aPort = ( ^ self new setPort: aPort )
   )
 
-  class Net = ( | port | ) (
+  class Net = ( | private port | ) (
     (* Confined native capability: vends UDP Sockets over a link-time backend. *)
-    setPort: aPort = ( port:: aPort. ^ self )
+    public setPort: aPort = ( port:: aPort. ^ self )
     public udp = ( ^ self udpBindPort: 0 )                       (* ephemeral port *)
     public udpBindPort: aPort = ( | h |
       h:: port basicBind: aPort.
@@ -1535,8 +1535,8 @@ class Kernel usingPlatform: platform = (
     public onPort: aPort = ( ^ self new setPort: aPort )
   )
 
-  class Socket = ( | port handle | ) (
-    setPort: aPort handle: h = ( port:: aPort. handle:: h. ^ self )
+  class Socket = ( | private port private handle | ) (
+    public setPort: aPort handle: h = ( port:: aPort. handle:: h. ^ self )
     public sendTo: host port: aPort data: aBytes = (
       port basicSend: handle to: host port: aPort data: aBytes rawLeaf. ^ self )
     public receive = ( | t |
@@ -1548,8 +1548,8 @@ class Kernel usingPlatform: platform = (
     public onPort: aPort handle: h = ( ^ self new setPort: aPort handle: h )
   )
 
-  class Datagram = ( | data senderHost senderPort | ) (
-    setData: d host: h port: p = ( data:: d. senderHost:: h. senderPort:: p. ^ self )
+  class Datagram = ( | private data private senderHost private senderPort | ) (
+    public setData: d host: h port: p = ( data:: d. senderHost:: h. senderPort:: p. ^ self )
     public data = ( ^ data )
     public senderHost = ( ^ senderHost )
     public senderPort = ( ^ senderPort )
@@ -1565,8 +1565,8 @@ class Kernel usingPlatform: platform = (
      reactor's pump-then-drain idiom — pumpInbound stages, drain fires). Peer is a
      raw host String + port SMI. A malformed inbound datagram is DROPPED (untrusted
      network input, errors.md expected condition) — it must never crash the node. *)
-  class NetBridge = ( | socket out peerHost peerPort in | ) (
-    setSocket: s out: o peerHost: ph peerPort: pp in: i = (
+  public class NetBridge = ( | private socket private out private peerHost private peerPort private in | ) (
+    public setSocket: s out: o peerHost: ph peerPort: pp in: i = (
       socket:: s. out:: o. peerHost:: ph. peerPort:: pp. in:: i. ^ self )
     public start = (
       out whenever: '' do: [ :v | socket sendTo: peerHost port: peerPort data: (Cbor new encode: v) ].
@@ -1637,8 +1637,8 @@ class Kernel usingPlatform: platform = (
      next push, and `readLine` answers the next line, running held exchanges while
      there is none. nil (the debugger's EOF, which resumes) when an exchange is
      already on the stack. *)
-  class DebugLink = ( | bridge space lines armed | ) (
-    setBridge: b space: s = (
+  class DebugLink = ( | private bridge private space private lines private armed | ) (
+    public setBridge: b space: s = (
       bridge:: b. space:: s.
       lines:: OrderedCollection new. armed:: OrderedCollection new.
       ^ self )
@@ -1699,23 +1699,23 @@ class Kernel usingPlatform: platform = (
     public onBridge: b space: s = ( ^ self new setBridge: b space: s )
   )
 
-  class PortaBridge = (
-    | socket space nodeId peerHost peerPort
-      cursor ::= 0. acked ::= 0. rejected ::= 0. misses ::= 0. dropped ::= 0.
-      crossed ::= 0.
+  public class PortaBridge = (
+    | private socket private space private nodeId private peerHost private peerPort
+      private cursor ::= 0. private acked ::= 0. private rejected ::= 0. private misses ::= 0. private dropped ::= 0.
+      private crossed ::= 0.
       (* The debugger's link through the space (rete#376: set at construction in
          a debug image, nil in a standard one), and whether an exchange is on the
          stack — a stop inside one must not start another. *)
-      dbgLink ::= nil. exchanging ::= false. heldExchanges ::= 0.
+      private dbgLink ::= nil. private exchanging ::= false. private heldExchanges ::= 0.
       (* rete#272 D3.3 — this boot's check-ins, counted in `checkIn` and sent as
          #wak in every pull. Per-boot and deliberately not persisted. *)
-      wakes ::= 0.
+      private wakes ::= 0.
       (* rete#161/rete#199 — how many rows fitted the last push frame, so the next
          one starts its search there instead of at "all of them". A HINT and never
          a bound: `pushFrame` clamps it and corrects it in both directions, so a
          stale value costs an encode and can never cost a row. Zero means "no push
          yet"; per-boot and deliberately not persisted, like the cursor. *)
-      fitRows ::= 0.
+      private fitRows ::= 0.
       (* rete#199 — the frame the gateway has NOT accepted yet, kept rather than
          rebuilt. `checkIn`'s own comment already promised that the next check-in
          "re-pushes the same entries"; it simply rebuilt them from scratch to keep
@@ -1728,14 +1728,14 @@ class Kernel usingPlatform: platform = (
          of its ticks against a healthy node's 10%. It was never a leak; nothing
          accumulated. It was the allocation RATE, and the arena fragmented under
          it. `framesBuilt` is the observable that makes the reuse falsifiable. *)
-      lastFrame ::= nil. lastFrameAcked ::= 0. framesBuilt ::= 0.
+      private lastFrame ::= nil. private lastFrameAcked ::= 0. private framesBuilt ::= 0.
       (* rete#114 — the seq of the sys/panic entry currently on offer, 0 when
          none is. Latched from `pending` (never at publish time — capture is
          deferred to `space drain`, so the stamp does not exist yet when
          offerPanic writes). Cleared by capture:'s eviction, which is what
          keeps an evicted, never-pushed offer from being mistaken for a
          delivered one when `acked` later sweeps past its seq. *)
-      panicSeq ::= 0.
+      private panicSeq ::= 0.
       (* rete#199 — a REFUSAL is not a timeout, and until this counter existed the
          node could not say which was happening to it: an #err incremented neither
          `misses` nor `acked`, so `obs/health` read identically for a node being
@@ -1743,7 +1743,7 @@ class Kernel usingPlatform: platform = (
          original diagnosis took two hours — the console said `misses 0` the whole
          way to the panic. `lastErrMsg` makes the message itself reportable ONCE
          rather than once per tick. *)
-      refused ::= 0. lastErrMsg ::= nil.
+      private refused ::= 0. private lastErrMsg ::= nil.
       (* rete#25 — the whole of the image-push policy's state, four slots and no
          object. `otaStaged` is the one-tick delay between "the bytes are on
          flash" and "boot them" made explicit (see otaCheck); `otaConfirmed` is
@@ -1756,7 +1756,7 @@ class Kernel usingPlatform: platform = (
          reasoning the cursor rests on. `appsPublished` is the fifth and belongs
          to the same story from the other end: obs/apps/main is written once per
          boot because the running hash cannot change without one. *)
-      otaStaged ::= false. otaConfirmed ::= false. appsPublished ::= false.
+      private otaStaged ::= false. private otaConfirmed ::= false. private appsPublished ::= false.
       (* rete#231 D2 / rete#273 D2 — the liveness contract. `cadMs` is telCad: how
          often this node INTENDS to speak. `missBudget` is how many consecutive
          check-ins it tolerates losing to ordinary mesh loss before its silence
@@ -1782,7 +1782,7 @@ class Kernel usingPlatform: platform = (
          because a cell that never changes must not be allowed to crowd out the one
          that does under pushFrame's tail-trim. A declaration or an accepted goal
          clears it, which is the only way the value can move. *)
-      cadMs ::= 30000. missBudget ::= 8. appCadDeclared ::= 0. livenessPublished ::= false.
+      private cadMs ::= 30000. private missBudget ::= 8. private appCadDeclared ::= 0. private livenessPublished ::= false.
       (* rete#231 D1 — the base tick the KERNEL owns. `tickTimers` is the app's
          Timers instance, handed in and never minted here. Since rete#244
          `platform timers` answers the per-kernel singleton, so handing it is
@@ -1791,16 +1791,16 @@ class Kernel usingPlatform: platform = (
          C registry, so the handed-in shape stays. `tickToken` is what makes the registration
          once-per-boot observable, and it is what adoptCad:misses:'s re-arm cancels
          now that the cadence half of goal/liveness is honoured (rete#240.2). *)
-      tickTimers ::= nil. tickChannel ::= nil. tickToken ::= nil.
-      pending ::= OrderedCollection new.
+      private tickTimers ::= nil. private tickChannel ::= nil. private tickToken ::= nil.
+      private pending ::= OrderedCollection new.
       (* tuvm#107 follow-on: the six spans that decompose `checkIn`. See the
          bracket comment on checkIn for what each one covers and why the sends are
          separated from the waits.
          tuvm#161: three more NESTED inside `pushBuild`, which measured 62% of the
          check-in — see the bracket comment on pushFrame. *)
-      spans sPullSend sPullWait sApplyIn sPushBuild sPushSend sPushWait
-      sPushCollect sPushEncode sPushTrim
-      stagedHash stagedSig bootId |
+      private spans private sPullSend private sPullWait private sApplyIn private sPushBuild private sPushSend private sPushWait
+      private sPushCollect private sPushEncode private sPushTrim
+      private stagedHash private stagedSig private bootId |
   ) (
     (* `spans` is a CONSTRUCTOR ARGUMENT and not optional, for the reason
        src/span.h gives for pinning the two C-owned slots: a node must not be able
@@ -1820,7 +1820,7 @@ class Kernel usingPlatform: platform = (
        table is complete before any capture window opens: SpanCapture publishes one
        cell per slot, and a table that grew mid-window would publish a different set
        of cells at stop than existed at start. *)
-    setSocket: s space: sp id: anId peer: h port: p spans: sn = (
+    public setSocket: s space: sp id: anId peer: h port: p spans: sn = (
       socket:: s. space:: sp. nodeId:: anId. peerHost:: h. peerPort:: p.
       spans:: sn.
       (* rete#162 — read ONCE, here, for the reason the bracket comment on
@@ -1916,7 +1916,7 @@ class Kernel usingPlatform: platform = (
        is proven only for the runs where it never does. At one capture per tick
        and the 2 s cadence, the bound bites after roughly 65 consecutive unacked
        ticks, about 130 seconds of sustained disconnection. *)
-    maxPending = ( ^ 64 )
+    public maxPending = ( ^ 64 )
 
     public cursor = ( ^ cursor )
     public acked = ( ^ acked )
@@ -2321,7 +2321,7 @@ class Kernel usingPlatform: platform = (
 
        maxRows applies PER PREFIX, so up to 2x maxRows rows can enter before pushFrame
        trims by bytes. Safe, and not free — see the starvation note on pushFrame. *)
-    collectOutbound = (
+    public collectOutbound = (
       | rows i |
       rows:: OrderedCollection new.
       i:: 1.
@@ -2524,7 +2524,7 @@ class Kernel usingPlatform: platform = (
        The ceiling of the elaborate design is the simple design, and it is the only
        setting whose cost can be measured. Do not add cadence logic here without the
        data D6 names as earning it back. *)
-    publishMetrics = (
+    public publishMetrics = (
       space put: 'sys/metrics' value: outer metrics.
       ^ self )
 
@@ -3049,8 +3049,8 @@ class Kernel usingPlatform: platform = (
       ^ self new setSocket: s space: sp id: anId peer: h port: p spans: sn )
   )
 
-  serialOn: aPort = ( ^ Serial onPort: aPort )
-  netOn: aPort = ( ^ Net onPort: aPort )
+  public serialOn: aPort = ( ^ Serial onPort: aPort )
+  public netOn: aPort = ( ^ Net onPort: aPort )
 
   (* Capability-scoped channel (Milestone C Task 2, addendum A1) — a
      rooted-prefix capability into the C tuple-space singleton (Task 1's
@@ -3076,14 +3076,14 @@ class Kernel usingPlatform: platform = (
      `take:`, `whenever:do:` — each validates/resolves, then makes exactly
      one `platform` send); Task 3 lands `Space>>drain`, the reactor loop that
      actually fires `whenever:`-registered blocks. *)
-  class Channel = ( | root | ) (
-    setRoot: r = ( root:: r. ^ self )
+  class Channel = ( | private root | ) (
+    public setRoot: r = ( root:: r. ^ self )
     (* Module-internal accessor (Milestone D Task 2) — answers the capability's
        own root String, so `Space>>drain` can post it as `#channel` on a crash
        record and `postCrash:channel:` can run the sys/-loop guard on it. No
        reflective escape hatch: only code inside this module (`outer`/sibling
        sends) can reach it, same confinement as every other Channel verb. *)
-    rootPath = ( ^ root )
+    public rootPath = ( ^ root )
     (* Validate `rel` (crash `bad channel path` on any A1 violation), then
        join it under `root`: `''` answers `root` itself (the capability's own
        channel — demo-node's `chan out: '' value: ...` idiom); an empty
@@ -3387,7 +3387,7 @@ class Kernel usingPlatform: platform = (
      pattern; a `^` inside a block actually passed to a real method (`do:`,
      `detect:ifNone:`, `whenever:do:`) would be unsafe and is avoided
      throughout this class and Supervisor below. *)
-  class SupervisedJob = ( | rootCap rootPath restartThunk crashes ::= 0. quarantined ::= false. | ) (
+  class SupervisedJob = ( | private rootCap private rootPath private restartThunk private crashes ::= 0. private quarantined ::= false. | ) (
     public rootCap = ( ^ rootCap )
     public rootPath = ( ^ rootPath )
     public restartThunk = ( ^ restartThunk )
@@ -3407,7 +3407,7 @@ class Kernel usingPlatform: platform = (
         (chPath at: i) = (rootPath at: i) ifFalse: [ ^ false ].
         i:: i + 1 ].
       ^ (chPath at: rlen + 1) = 47 )
-    setRootCap: c restart: t = (
+    public setRootCap: c restart: t = (
       rootCap:: c. rootPath:: c rootPath. restartThunk:: t. ^ self )
   ) : (
     public rootCap: c restart: t = ( ^ self new setRootCap: c restart: t )
@@ -3429,8 +3429,8 @@ class Kernel usingPlatform: platform = (
      `whenever: '' do:` reaction — no special mechanism, just a channel
      event), resetting its crash count so transient trouble doesn't
      accumulate toward quarantine across unrelated healthy periods. *)
-  class Supervisor = ( | space jobs quarantineLimit ::= 3. timers | ) (
-    setSpace: s = ( space:: s. jobs:: OrderedCollection new. ^ self )
+  class Supervisor = ( | private space private jobs private quarantineLimit ::= 3. private timers | ) (
+    public setSpace: s = ( space:: s. jobs:: OrderedCollection new. ^ self )
 
     (* tuvm#23: hand the supervisor the Timers registry so its crash sweep can
        cancel a job's timers alongside its reactions (see sweepJob: below).
@@ -3479,7 +3479,7 @@ class Kernel usingPlatform: platform = (
       timers == nil ifFalse: [ timers cancelAddressedBy: j rootPath ].
       ^ self )
 
-    restart: j = (
+    public restart: j = (
       self sweepJob: j.
       j restartThunk value.
       ^ self )
@@ -3503,10 +3503,10 @@ class Kernel usingPlatform: platform = (
      sibling here, matching this module's exclusively-flat class shape — no
      other kernel.nsl class nests a class, and the public surface — `action`,
      `target`, class-side `action:target:` — is unchanged by the move). *)
-  class Transition = ( | action target | ) (
+  class Transition = ( | private action private target | ) (
     public action = ( ^ action )
     public target = ( ^ target )
-    setAction: a target: t = ( action:: a. target:: t. ^ self )
+    public setAction: a target: t = ( action:: a. target:: t. ^ self )
   ) : (
     public action: a target: t = ( ^ self new setAction: a target: t )
   )
@@ -3523,11 +3523,11 @@ class Kernel usingPlatform: platform = (
      by convention only, the channel surface (a transition/entry action may
      `out:value:`; this class itself sends no channel prim — it adds no new
      VM surface, exactly as the staged header promises). *)
-  class Protocol = ( | name ::= #protocol. current ::= #initial.
-      states ::= Dictionary new.       (* state -> (eventKey -> Transition) *)
-      unhandled ::= nil.               (* block or nil; nil = silently ignore *)
-      entryActions ::= Dictionary new. (* state -> block, optional *)
-      trace ::= false. | ) (
+  public class Protocol = ( | private name ::= #protocol. private current ::= #initial.
+      private states ::= Dictionary new.       (* state -> (eventKey -> Transition) *)
+      private unhandled ::= nil.               (* block or nil; nil = silently ignore *)
+      private entryActions ::= Dictionary new. (* state -> block, optional *)
+      private trace ::= false. | ) (
 
     (* ---- definition ---- *)
     public state: s on: eventKey do: action then: target = (
@@ -3594,7 +3594,7 @@ class Kernel usingPlatform: platform = (
       a == nil ifFalse: [ a value: self value: event ].
       ^ self
     )
-    setName: n = ( name:: n. ^ self )
+    public setName: n = ( name:: n. ^ self )
   ) : (
     public named: n = ( ^ self new setName: n )
   )
@@ -3606,11 +3606,11 @@ class Kernel usingPlatform: platform = (
      shape — no other kernel.nsl class nests a class, and the public surface
      — `chan`, `msg`, `repeating`, class-side `chan:msg:repeating:` — is
      unchanged by the move). *)
-  class Pending = ( | chan msg repeating | ) (
+  class Pending = ( | private chan private msg private repeating | ) (
     public chan = ( ^ chan )
     public msg = ( ^ msg )
     public repeating = ( ^ repeating )
-    setChan: c msg: m repeating: r = ( chan:: c. msg:: m. repeating:: r. ^ self )
+    public setChan: c msg: m repeating: r = ( chan:: c. msg:: m. repeating:: r. ^ self )
   ) : (
     public chan: c msg: m repeating: r = ( ^ self new setChan: c msg: m repeating: r )
   )
@@ -3637,7 +3637,7 @@ class Kernel usingPlatform: platform = (
      ISR-context nsl execution ever happens (host_advance's C posts are the
      only ISR-adjacent code and they only ever call space_post). A timer
      token is a small capability: holding it is the right to cancel it. *)
-  class Timers = ( | space seam nextToken ::= 1. pending ::= Dictionary new. | ) (
+  public class Timers = ( | private space private seam private nextToken ::= 1. private pending ::= Dictionary new. | ) (
     (* pending: token -> Pending(chan, msg, repeating) *)
 
     public after: ms post: aMessage on: aChannel = (
@@ -3726,7 +3726,7 @@ class Kernel usingPlatform: platform = (
     )
 
     allocateToken = ( | t | t:: nextToken. nextToken:: nextToken + 1. ^ t )
-    setSpace: s seam: c = ( space:: s. seam:: c. ^ self )
+    public setSpace: s seam: c = ( space:: s. seam:: c. ^ self )
   ) : (
     public usingSpace: s seam: c = ( ^ self new setSpace: s seam: c )
   )
@@ -3744,7 +3744,7 @@ class Kernel usingPlatform: platform = (
      drains its space, so nothing here reaches it; its profile is a build option
      (OEVM_MPROF_FLIP_AT/DUMP_AT). The console is read with `consoleLine`, which never
      blocks: an app that reads the cable itself may already have taken the line. *)
-  class Profiler = ( | kernel space timers tok ::= nil. endCh | ) (
+  class Profiler = ( | private kernel private space private timers private tok ::= nil. private endCh | ) (
     public install: withCable = (
       | first |
       (space channel: 'dbg/req') whenever: '' do: [ :v | self request: v ].
@@ -3780,8 +3780,8 @@ class Kernel usingPlatform: platform = (
       tok:: timers after: ms post: #profileEnd on: endCh.
       ^ self
     )
-    close = ( tok:: nil. kernel profileStop. ^ self )
-    setKernel: k = ( kernel:: k. space:: k space. timers:: k timers. ^ self )
+    public close = ( tok:: nil. kernel profileStop. ^ self )
+    public setKernel: k = ( kernel:: k. space:: k space. timers:: k timers. ^ self )
   ) : (
     public usingKernel: k = ( ^ self new setKernel: k )
   )
@@ -3790,7 +3790,7 @@ class Kernel usingPlatform: platform = (
      hands the seam a (pin, edge, message, channel-path); C pins the message via the
      M6 handle table and stores the ISR slot. On target a GPIO edge ISR posts the
      pulse; on host, `fire:` simulates the edge. No nsl-side state — data, not policy. *)
-  class GpioPulse = ( | space seam | ) (
+  class GpioPulse = ( | private space private seam | ) (
     public pin: n edge: e post: aMessage on: aChannel = (
       seam gpioPin: n edge: e post: aMessage on: aChannel rootPath.
       ^ self )
@@ -3811,7 +3811,7 @@ class Kernel usingPlatform: platform = (
       v:: seam gpioLevel: n.
       v == nil ifTrue: [ ^ self error: 'gpio pin not declared' tag: #gpioUndeclared ].
       ^ v )
-    setSpace: s seam: c = ( space:: s. seam:: c. ^ self )
+    public setSpace: s seam: c = ( space:: s. seam:: c. ^ self )
   ) : (
     public usingSpace: s seam: c = ( ^ self new setSpace: s seam: c )
   )
@@ -3824,7 +3824,7 @@ class Kernel usingPlatform: platform = (
      responses: unavailable is the wrong board, bounds is a wrong literal, and
      fault is the panel or its wiring. A node probing an unknown board can catch
      #displayUnavailable alone and carry on headless. *)
-  class Display = ( | seam | ) (
+  class Display = ( | private seam | ) (
     public clear = ( ^ self check: (seam displayClear) )
     public at: r col: c put: s = ( ^ self check: (seam displayAt: r col: c put: s) )
     public refresh = ( ^ self check: (seam displayRefresh) )
@@ -3834,7 +3834,7 @@ class Kernel usingPlatform: platform = (
       rc = 1 ifTrue: [ ^ self error: 'row or column outside the grid' tag: #displayBounds ].
       rc = 2 ifTrue: [ ^ self error: 'display driver fault' tag: #displayFault ].
       ^ self )
-    setSeam: c = ( seam:: c. ^ self )
+    public setSeam: c = ( seam:: c. ^ self )
   ) : (
     public usingSeam: c = ( ^ self new setSeam: c )
   )
@@ -3848,7 +3848,7 @@ class Kernel usingPlatform: platform = (
      where they can be read — and where a raise can be written at all, since
      build_and_raise is static to dispatch.c. C therefore has no bounds status
      code; there are only two tags here, not the display's three. *)
-  class Bell = ( | seam | ) (
+  class Bell = ( | private seam | ) (
     public strike: n = (
       ((n < 1) or: [ n > 8 ]) ifTrue: [
         ^ self error: 'bell count outside 1-8' tag: #bellBounds ].
@@ -3873,7 +3873,7 @@ class Kernel usingPlatform: platform = (
       rc == nil ifTrue: [ ^ self error: 'no bell on this board' tag: #bellUnavailable ].
       rc = 2 ifTrue: [ ^ self error: 'bell driver fault' tag: #bellFault ].
       ^ self )
-    setSeam: c = ( seam:: c. ^ self )
+    public setSeam: c = ( seam:: c. ^ self )
   ) : (
     public usingSeam: c = ( ^ self new setSeam: c )
   )
@@ -3888,11 +3888,11 @@ class Kernel usingPlatform: platform = (
      a real state of a real board, and a node that must survive a MISSED alarm has
      to survive an unarmable one by the same path. A raise would push that into an
      exception handler and tempt a caller to treat it as impossible. *)
-  class RtcAlarm = ( | space seam | ) (
+  class RtcAlarm = ( | private space private seam | ) (
     public at: secondsOfDay post: aMessage on: aChannel = (
       ^ (seam rtcAlarmAt: secondsOfDay post: aMessage on: aChannel rootPath) == nil
           ifTrue: [ false ] ifFalse: [ true ] )
-    setSpace: s seam: c = ( space:: s. seam:: c. ^ self )
+    public setSpace: s seam: c = ( space:: s. seam:: c. ^ self )
   ) : (
     public usingSpace: s seam: c = ( ^ self new setSpace: s seam: c )
   )

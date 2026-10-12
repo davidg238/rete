@@ -165,7 +165,7 @@ class Bells = () (
      identical to the C struct order in zephyr/src/main.c (OEVM_RTC_FIELDS = 10). Cold
      power-on leaves the struct UNDEFINED (not zeroed), so a magic mismatch means "no valid
      state". *)
-  class RtcRecord = ( | plat | ) (
+  class RtcRecord = ( | private plat | ) (
     public valid = ( ^ plat rtcValid )
 
     (* Free-run from 00:00: ratchet 0 (so the first strike is half 1), anchor 0, stale
@@ -222,7 +222,7 @@ class Bells = () (
        cold-booted forever. *)
     magicWord   = ( ^ 348000704 )
 
-    setPlat: p = ( plat:: p. ^ self )
+    public setPlat: p = ( plat:: p. ^ self )
   ) : (
     public on: platform = ( ^ self new setPlat: platform )
   )
@@ -247,7 +247,7 @@ class Bells = () (
      ~0, which as a replacement would set the calibration to zero and put the 1% error
      straight back. Composing two rates is a multiply, but at these magnitudes adding the
      ppm is accurate to ~3 ppm — far inside the residual — and the loop self-corrects. *)
-  class Drift = ( | record | ) (
+  class Drift = ( | private record | ) (
 
     (* ROUNDED, not truncated, and that is not a nicety. The correction is whole seconds,
        so throwing the fraction away is itself a rate error: at the shipping slot a
@@ -308,7 +308,7 @@ class Bells = () (
        Retires when the DS3231M (tuvm#100, +/-5 ppm) takes over the timebase. *)
     public seedPpm = ( ^ -10513 )
 
-    setRecord: r = ( record:: r. ^ self )
+    public setRecord: r = ( record:: r. ^ self )
   ) : (
     public on: record = ( ^ self new setRecord: record )
   )
@@ -333,7 +333,7 @@ class Bells = () (
      Wake-local state: `basisMillis` is the instant within this wake at which the predicted
      clock was last trued (nil = never this wake, the basis is boot); `lastDrift` and
      `syncOk` are this wake's sync outcome, read by StatsPage. *)
-  class BellClock = ( | record drift ntp dial basisMillis lastDrift syncOk | ) (
+  class BellClock = ( | private record private drift private ntp private dial private basisMillis private lastDrift private syncOk | ) (
 
     (* --- the dial --- *)
 
@@ -519,7 +519,7 @@ class Bells = () (
       n < 0 ifTrue: [ ^ '-' , (0 - n) printString ].
       ^ '+' , n printString )
 
-    setRecord: r drift: d ntp: n dial: l = ( record:: r. drift:: d. ntp:: n. dial:: l. ^ self )
+    public setRecord: r drift: d ntp: n dial: l = ( record:: r. drift:: d. ntp:: n. dial:: l. ^ self )
   ) : (
     public on: record drift: drift ntp: ntp dial: dial = (
       ^ self new setRecord: record drift: drift ntp: ntp dial: dial )
@@ -532,7 +532,7 @@ class Bells = () (
      nothing else: this class cannot reach the radio, the bell or the sleep. Per-row
      best-effort: each row draws inside its own catch, so an over-wide value (e.g. the
      16 MB host arena's heap row) skips just that row instead of blanking the panel. *)
-  class StatsPage = ( | disp record clock heap | ) (
+  class StatsPage = ( | private disp private record private clock private heap | ) (
 
     public paint = (
       self row: 0 s: (self line: 'oevm' val: '').
@@ -606,7 +606,7 @@ class Bells = () (
     kRound: bytes = ( ^ ((bytes + 512) // 1024) printString )
     pad: n = ( (n < 10) ifTrue: [ ^ '0' , n printString ]. ^ n printString )
 
-    setDisp: d record: r clock: c heap: h = ( disp:: d. record:: r. clock:: c. heap:: h. ^ self )
+    public setDisp: d record: r clock: c heap: h = ( disp:: d. record:: r. clock:: c. heap:: h. ^ self )
   ) : (
     public on: display record: record clock: clock heap: heapStats = (
       ^ self new setDisp: display record: record clock: clock heap: heapStats )
@@ -625,7 +625,7 @@ class Bells = () (
      nil at any step leaves the part alone and the bell ringing off it. The date comes
      from the same response as the time: the part will not accept a time without one,
      and the bell itself never reads the date. *)
-  class RtcClock = ( | plat dial | ) (
+  class RtcClock = ( | private plat private dial | ) (
 
     (* Seconds since local midnight, or nil: no part, a bus fault, or never set. *)
     public secondsOfDay = ( ^ plat wallClock )
@@ -653,7 +653,7 @@ class Bells = () (
         ifFalse: [ ('rtc ' , (dial hms: secs) , '  slot ' , (dial slotOf: secs) printString) out ].
       ^ self )
 
-    setPlat: p dial: d = ( plat:: p. dial:: d. ^ self )
+    public setPlat: p dial: d = ( plat:: p. dial:: d. ^ self )
   ) : (
     public on: platform dial: dial = ( ^ self new setPlat: platform dial: dial )
   )
@@ -689,7 +689,7 @@ class Bells = () (
      already rung, because the node moves its marker when the ring STARTS; it is also
      the only diagnostic — when it finds the boundary unrung, that is positive evidence
      the alarm failed, and the node says so. *)
-  class Trigger = ( | alarm timers tick dial armedFor. alarmOk ::= false. | ) (
+  class Trigger = ( | private alarm private timers private tick private dial private armedFor. private alarmOk ::= false. | ) (
     public alarmOk  = ( ^ alarmOk )
     public armedFor = ( ^ armedFor )
 
@@ -740,7 +740,7 @@ class Bells = () (
     strikeMarginMillis = ( ^ 200 )     (* countdown overshoot; see countdownAt: *)
     retryMillis        = ( ^ 60000 )
 
-    setAlarm: a timers: t tick: c dial: d = ( alarm:: a. timers:: t. tick:: c. dial:: d. ^ self )
+    public setAlarm: a timers: t tick: c dial: d = ( alarm:: a. timers:: t. tick:: c. dial:: d. ^ self )
   ) : (
     public on: alarm timers: timers tick: tick dial: dial = (
       ^ self new setAlarm: alarm timers: timers tick: tick dial: dial )
@@ -766,9 +766,9 @@ class Bells = () (
      (collector log 21:19:01 through 21:21:12, b4/b8/b3), a piezo result: §19 took the
      solenoid off this device for good, so here the piezo is the ringer and not a
      stand-in. *)
-  class Striker = ( | gpio timers chan pin
-                     striking ::= false. strokeCount ::= 0. strokeIndex ::= 0. pinOn ::= false.
-                     gpioMissing ::= false. | ) (
+  class Striker = ( | private gpio private timers private chan private pin
+                     private striking ::= false. private strokeCount ::= 0. private strokeIndex ::= 0. private pinOn ::= false.
+                     private gpioMissing ::= false. | ) (
     public striking = ( ^ striking )
 
     (* Two refusals, and an answer of whether the pattern started. In flight is
@@ -832,7 +832,7 @@ class Bells = () (
     public pairGapMillis = ( ^ 500 )
     public setGapMillis  = ( ^ 1600 )
 
-    setGpio: g pin: p timers: t channel: c = ( gpio:: g. pin:: p. timers:: t. chan:: c. ^ self )
+    public setGpio: g pin: p timers: t channel: c = ( gpio:: g. pin:: p. timers:: t. chan:: c. ^ self )
   ) : (
     public on: gpio pin: pin timers: timers channel: channel = (
       ^ self new setGpio: gpio pin: pin timers: timers channel: channel )

@@ -24,7 +24,7 @@ done
 
    Below the overflow line nothing changes: 16_cells/04 still pins 3 puts ->
    3 fires when the ring has room. *)
-class CellCoalesce packageUsing: manifest = ( | fired ::= 0. last ::= nil. | ) (
+class CellCoalesce packageUsing: manifest = ( | private fired ::= 0. private last ::= nil. | ) (
   public main: platform args: args = (
     | space pid filler |
     space:: platform space.

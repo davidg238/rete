@@ -55,8 +55,8 @@ bell slot 30 at 15:00:00 — 6 bells
 uses: lib/Bells.nsl
 *)
 class ShipsBellNodeC6 usingPlatform: platform net: net = (
-  | dial rtc trigger striker space timers tick bridge
-    lastSlot. haveClock ::= false. midnightPending ::= false. checkIns ::= 0. |
+  | private dial private rtc private trigger private striker private space private timers private tick private bridge
+    private lastSlot. private haveClock ::= false. private midnightPending ::= false. private checkIns ::= 0. |
 ) (
   gwAddr    = ( ^ 'fdc5:9109:9afe:97ea:9541:d963:f8d9:8567' )   (* gw85224-01 on the mesh *)
   gwPort    = ( ^ 6969 )
@@ -188,7 +188,7 @@ class ShipsBellNodeC6 usingPlatform: platform net: net = (
      and carried, never propagated: the bell outranks its own telemetry. Printed every
      time, with the bridge's counters: a proof of life that cannot be told from silence is
      not one, and `misses` rising is what separates "the mesh ate it" from "never tried". *)
-  checkIn = (
+  public checkIn = (
     striker striking ifTrue: [ ^ self ].
     [ bridge checkIn. checkIns:: checkIns + 1 ]
       on: [ :e | true ]
@@ -199,7 +199,7 @@ class ShipsBellNodeC6 usingPlatform: platform net: net = (
       ' acked ' , bridge acked printString) out.
     ^ self )
 
-  report: txt = (
+  public report: txt = (
     space out: 'tel/log' value:
       (platform Record tag: #Log with: #lvl -> #info with: #txt -> txt).
     ^ self )

@@ -37,8 +37,8 @@ TAP timerless done
    after the first build-id line and a plan emitted twice fails for duplication; and the
    reporting boot must not wedge again inside rete#216's observation window. *)
 class TimerlessNodeC6 usingPlatform: platform net: net = (
-  | plat space timers bridge spans tickCh
-    ticks ::= 0. wedging ::= false. tapPass ::= 0. tapFail ::= 0. |
+  | private plat private space private timers private bridge private spans private tickCh
+    private ticks ::= 0. private wedging ::= false. private tapPass ::= 0. private tapFail ::= 0. |
 ) (
 
   (* rete#186: THE ID IS THE BOARD, and it is baked at build time rather than written
@@ -52,7 +52,7 @@ class TimerlessNodeC6 usingPlatform: platform net: net = (
      field of `obs/build`, from run.sh's OEVM_BOARD_NAME.
      The ROLE is not gone, it just lives where it always belonged: porta writes
      `goal/name` and this node converges `obs/name` onto it. *)
-  nodeId    = ( ^ platform nodeId )
+  public nodeId    = ( ^ platform nodeId )
   gwAddr    = ( ^ 'fdc5:9109:9afe:97ea:9541:d963:f8d9:8567' )
   gwPort    = ( ^ 6969 )
   localPort = ( ^ 16972 )

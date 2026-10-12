@@ -2,6 +2,19 @@ from prim_ids import PRIM_IDS   # rete#226: the single source, oevm/src/prim_nam
 import os
 import sys
 
+# A selector or symbol as a C identifier, and the id the image writer names methods by. It must be
+# injective (rete#372: `taskHolding:` and a slot `taskHolding_`'s getter were one method id while the
+# mapping sent both `:` and `_` to `_`). So `_` escapes to `__`, and every other mapping is `_` plus a
+# letter, which `__` can never begin. Shared with oimg_serialize, which names block methods the same way.
+_SANITIZE = {':': '_c', '=': '_eq', '+': '_add', '-': '_sub', '*': '_mul', '/': '_div', '<': '_lt',
+             '>': '_gt', '&': '_and', '|': '_or', '!': '_not', '?': '_q', '@': '_at', '%': '_mod',
+             '_': '__'}
+
+
+def sanitize_symbol_name(name):
+    return "".join(ch if ch.isalnum() else _SANITIZE.get(ch, f"_u{ord(ch)}_") for ch in name)
+
+
 class SolidifyCompiler:
     def __init__(self):
         self.symbols = {}
@@ -15,31 +28,7 @@ class SolidifyCompiler:
         self.string_consts = {}
 
     def sanitize_symbol_name(self, name):
-        mapping = {
-            ':': '_',
-            '=': '_eq',
-            '+': '_add',
-            '-': '_sub',
-            '*': '_mul',
-            '/': '_div',
-            '<': '_lt',
-            '>': '_gt',
-            '&': '_and',
-            '|': '_or',
-            '!': '_not',
-            '?': '_q',
-            '@': '_at',
-            '%': '_mod',
-        }
-        res = []
-        for char in name:
-            if char.isalnum() or char == '_':
-                res.append(char)
-            elif char in mapping:
-                res.append(mapping[char])
-            else:
-                res.append(f"_u{ord(char)}")
-        return "".join(res)
+        return sanitize_symbol_name(name)
 
     def get_symbol_ref(self, name):
         if name not in self.symbols:
@@ -73,7 +62,7 @@ class SolidifyCompiler:
             'meta': meta,
         }
 
-    def add_method(self, vtable_name, selector, num_registers, num_arguments, constants, instructions):
+    def add_method(self, vtable_name, selector, num_registers, num_arguments, constants, instructions, access=0):
         sanitized_sel = self.sanitize_symbol_name(selector)
         method_id = f"Method_{vtable_name}_{sanitized_sel}"
         self.vtables[vtable_name]['bindings'].append((selector, method_id))
@@ -81,6 +70,7 @@ class SolidifyCompiler:
             'id': method_id,
             'num_registers': num_registers,
             'num_arguments': num_arguments,
+            'access': access,              # rete#372: a MethodAccess (0 public, 1 protected, 2 private)
             'constants': constants,
             'instructions': instructions
         })
@@ -216,7 +206,7 @@ class SolidifyCompiler:
                 
             c_code.append(f"static const struct CompiledMethod {mid}_compiled = {{")
             c_code.append(f"    {mid}_insts, {len(method['instructions'])},")
-            c_code.append(f"    {method['num_registers']}, {method['num_arguments']}, {method.get('shape', 0)},")
+            c_code.append(f"    {method['num_registers']}, {method.get('access', 0)}, {method['num_arguments']}, {method.get('shape', 0)},")
             c_code.append(f"    {const_ptr}, {len(method['constants'])}")
             c_code.append("};")
             

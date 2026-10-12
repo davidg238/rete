@@ -28,6 +28,7 @@
     F(CompiledMethod, "instructions",     0, 1, offsetof(struct CompiledMethod, instructions)) \
     F(CompiledMethod, "instruction_count",0, 0, offsetof(struct CompiledMethod, instruction_count)) \
     F(CompiledMethod, "num_registers",    0, 0, offsetof(struct CompiledMethod, num_registers)) \
+    F(CompiledMethod, "access",           0, 0, offsetof(struct CompiledMethod, access)) \
     F(CompiledMethod, "num_arguments",    0, 0, offsetof(struct CompiledMethod, num_arguments)) \
     F(CompiledMethod, "shape",            0, 0, offsetof(struct CompiledMethod, shape)) \
     F(CompiledMethod, "constants",        0, 1, offsetof(struct CompiledMethod, constants)) \

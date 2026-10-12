@@ -21,13 +21,13 @@ done
 
    Under option C (the cell in the bridge's private Map) this test cannot be written at
    all: the job has nothing to peek and nobody to ask. See oevm/review/cells-sketch.ns. *)
-class SurvivesCrash packageUsing: manifest = ( | live ::= nil. starts ::= 0. | ) (
+class SurvivesCrash packageUsing: manifest = ( | private live ::= nil. private starts ::= 0. | ) (
 
   (* The control loop. On start — and start IS restart; it does not know which — it
      walks to the pigeonhole and reads what is in it. `ifAbsent:` is the fail-safe
      default, not an error path: it means nobody has ever told this node its setpoint. *)
-  class Loop = ( | goal sp | ) (
-    setGoal: g = ( goal:: g. ^ self )
+  class Loop = ( | private goal private sp | ) (
+    public setGoal: g = ( goal:: g. ^ self )
     public sp = ( ^ sp )
     public start = (
       sp:: goal peek: 'sp' ifAbsent: [ 0 ].

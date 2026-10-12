@@ -36,7 +36,7 @@ home, `nodus/oevm/tools/bench-identity.sh`, and a copy in prose is a copy that
 goes stale silently. `ls -l /dev/serial/by-id/` still tells you what is on the
 bench; c6spare is the disposable one.
 *)
-class CborBenchNodeC6 packageUsing: manifest = ( | platform cbor | ) (
+class CborBenchNodeC6 packageUsing: manifest = ( | private platform private cbor | ) (
 
   (* Encodes per timed run. `batch` cost ~118 ms per encode before the rework, so
      20 is ~2.4 s there and still ~0.6 s after — comfortably above the 1 ms clock
@@ -55,7 +55,7 @@ class CborBenchNodeC6 packageUsing: manifest = ( | platform cbor | ) (
     pairs add: #sdr -> 17.
     ^ platform Record tag: #Health fields: (platform Map fromPairs: pairs) )
 
-  metrics = ( | pairs |
+  public metrics = ( | pairs |
     pairs:: platform OrderedCollection new.
     pairs add: #hsz -> 53248.
     pairs add: #lb -> 36196.

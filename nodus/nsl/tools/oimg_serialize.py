@@ -9,7 +9,8 @@ Reference encoding (low 2 bits = tag):
 """
 import struct
 
-from prim_ids import PRIM_IDS   # rete#226: oevm/src/prim_names.def, the single source
+from prim_ids import PRIM_IDS
+from solidify import sanitize_symbol_name   # rete#226: oevm/src/prim_names.def, the single source
 
 TAG_APP, TAG_BUILTIN, TAG_SMI, TAG_SINGLETON = 0b00, 0b01, 0b10, 0b11
 
@@ -232,7 +233,7 @@ KIND_STRUCT = {
     "INSTANCE": "ObjectInstance", "BOXEDBINDING": "BoxedBinding",
 }
 # C int / uint32_t fields (4 bytes on every target ABI we support: x86-32/64, ESP32).
-WIDTH4 = {"is_nested", "num_registers"}
+WIDTH4 = {"is_nested"}
 # Fixed 64-bit fields, independent of oop width (LargeInteger sign/magnitude).
 WIDTH8_SIGNED = {"sign"}
 WIDTH8_UNSIGNED = {"mag"}
@@ -385,20 +386,7 @@ class OimgSerializer:
 
     @staticmethod
     def _sanitize(name):
-        # Mirror solidify.SolidifyCompiler.sanitize_symbol_name exactly so the
-        # METHOD: block-method id matches the C path's Method_Block_* id.
-        m = {':': '_', '=': '_eq', '+': '_add', '-': '_sub', '*': '_mul',
-             '/': '_div', '<': '_lt', '>': '_gt', '&': '_and', '|': '_or',
-             '!': '_not', '?': '_q', '@': '_at', '%': '_mod'}
-        out = []
-        for ch in name:
-            if ch.isalnum() or ch == '_':
-                out.append(ch)
-            elif ch in m:
-                out.append(m[ch])
-            else:
-                out.append(f"_u{ord(ch)}")
-        return "".join(out)
+        return sanitize_symbol_name(name)   # the C path's Method_Block_* id, from the one mapping
 
     @classmethod
     def _method_block_id(cls, name):
@@ -717,7 +705,8 @@ class OimgSerializer:
             base = self.offset[f"cm:{m['id']}"]
             self._put(buf, base, "CompiledMethod", "instructions", self.w.word(self._aref(f"insts:{m['id']}")))
             self._put(buf, base, "CompiledMethod", "instruction_count", self._scalar_bytes("instruction_count", len(m["instructions"])))
-            self._put(buf, base, "CompiledMethod", "num_registers", self._scalar_bytes("num_registers", m["num_registers"]))
+            self._put_scalar(buf, base, "CompiledMethod", "num_registers", m["num_registers"])
+            self._put_scalar(buf, base, "CompiledMethod", "access", m.get("access", 0))
             self._put_scalar(buf, base, "CompiledMethod", "num_arguments", m["num_arguments"])
             self._put_scalar(buf, base, "CompiledMethod", "shape", m.get("shape", 0))
             nc = len(m["constants"])

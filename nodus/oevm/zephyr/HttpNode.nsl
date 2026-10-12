@@ -93,7 +93,7 @@ class HttpNode packageUsing: manifest = () (
     ^ self
   )
 
-  renderFrame: f toId: id on: platform = (
+  public renderFrame: f toId: id on: platform = (
     | row col line t k |
     (f == nil) ifTrue: [ platform httpChunkId: id data: '<html><body>no frame</body></html>'. ^ self ].
     platform httpChunkId: id data: '<html><body><svg viewBox=''0 0 8 8'' width=''320'' height=''320'' shape-rendering=''crispEdges''>'.

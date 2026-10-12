@@ -114,12 +114,12 @@ Dialect: `[ ... ] whileTrue:`, never `repeat`; state in instance slots so every
 reaction block is a one-line self-send.
 *)
 class ProfileCostNodeC6 usingPlatform: platform net: net = (
-  | space bridge timers ticks ::= 0.
-    spans sTick sCheckIn sPublish sHanoi
+  | private space private bridge private timers private ticks ::= 0.
+    private spans private sTick private sCheckIn private sPublish private sHanoi
     (* the arm sequencer. phase 0 = settling, 1 = off-a, 2 = on, 3 = off-b,
        then round + 1 and back to 1. `round` is on every printed line, because
        a triple is only a triple if its three blocks can be paired back up. *)
-    phase ::= 0. round ::= 0. blockTick ::= 0. settleCount ::= 0. blockT0 ::= 0. |
+    private phase ::= 0. private round ::= 0. private blockTick ::= 0. private settleCount ::= 0. private blockT0 ::= 0. |
 ) (
   (* rete#186: THE ID IS THE BOARD, and it is baked at build time rather than written
      here. This method used to answer a string literal, and the literal was the bug:
@@ -132,7 +132,7 @@ class ProfileCostNodeC6 usingPlatform: platform net: net = (
      field of `obs/build`, from run.sh's OEVM_BOARD_NAME.
      The ROLE is not gone, it just lives where it always belonged: porta writes
      `goal/name` and this node converges `obs/name` onto it. *)
-  nodeId    = ( ^ platform nodeId )
+  public nodeId    = ( ^ platform nodeId )
   gwAddr    = ( ^ 'fdc5:9109:9afe:97ea:9541:d963:f8d9:8567' )
   gwPort    = ( ^ 6969 )
   localPort = ( ^ 16970 )
@@ -276,7 +276,7 @@ class ProfileCostNodeC6 usingPlatform: platform net: net = (
   (* Body verbatim from MethodProfileNodeC6.nsl, which took it from
      00_perf/performance.nsl. Kept identical on purpose: the two nodes' numbers
      are comparable only while the workload is the same one. *)
-  hanoiMove: n from: src to: dst temp: tmp = (
+  public hanoiMove: n from: src to: dst temp: tmp = (
     n > 1 ifTrue: [
       self hanoiMove: n - 1 from: src to: tmp temp: dst.
       self hanoiMove: n - 1 from: tmp to: dst temp: src.

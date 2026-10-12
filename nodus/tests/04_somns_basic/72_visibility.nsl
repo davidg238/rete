@@ -1,0 +1,75 @@
+(*
+expect:
+A foo
+foo
+helper
+A helper
+A helper
+A helper
+B helper
+prot
+A prot
+B prot
+B prot
+A prot
+helper
+outer secret
+outer secret
+12
+skip-berry: true
+*)
+(* rete#372: method visibility. An ordinary send reaches public methods only: a protected one
+   answers doesNotUnderstand: where it is found (B narrows foo, so A's public foo does not answer
+   instead), and a private one is passed by. A send to self, an implicit send, `outer` and `super`
+   also reach protected methods, virtually, on the class side too. A private method is lexical: it
+   answers only sends from the class that defines it, or from a class nested inside it. *)
+class VisibilityTest packageUsing: manifest = () (
+public class A = () (
+  public foo = ( ^ 'A foo' )
+  public callHelper = ( ^ helper )
+  public callSelfHelper = ( ^ self helper )
+  private helper = ( ^ 'A helper' )
+  public callProt = ( ^ self prot )
+  public callImplicitProt = ( ^ prot )
+  protected prot = ( ^ 'A prot' )
+  protected doesNotUnderstand: message = ( ^ message selector )
+) : (
+  public quad: x = ( ^ self twice: (self twice: x) )
+  protected twice: x = ( ^ x * 2 )
+)
+public class B = A () (
+  protected foo = ( ^ 'B foo' )
+  public helper = ( ^ 'B helper' )
+  protected prot = ( ^ 'B prot' )
+)
+public class C = A () (
+  public callSuperProt = ( ^ super prot )
+  public tryInheritedPrivate = ( ^ self helper )
+)
+public class Outer = () (
+  private secret = ( ^ 'outer secret' )
+  public class Inner = () (
+    public reach = ( ^ secret )
+    public reachOuter = ( ^ outer Outer secret )
+  )
+)
+public main: platform args: args = (
+    A new foo println.
+    B new foo asString println.
+    A new helper asString println.
+    A new callHelper println.
+    A new callSelfHelper println.
+    B new callHelper println.
+    B new helper println.
+    A new prot asString println.
+    A new callProt println.
+    B new callProt println.
+    B new callImplicitProt println.
+    C new callSuperProt println.
+    C new tryInheritedPrivate asString println.
+    Outer new Inner new reach println.
+    Outer new Inner new reachOuter println.
+    (A quad: 3) println.
+)
+) : (
+)

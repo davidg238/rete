@@ -27,7 +27,7 @@ done
    its own deadline, and closes the second window early — the line would read
    `restarted 1`. *)
 class DbgReqChainTest packageUsing: manifest = (
-  | ends ::= 0. |
+  | private ends ::= 0. |
 ) (
   public main: platform args: args = (
     | space timers req |

@@ -63,9 +63,9 @@ uses: ../../oevm/zephyr/lib/Bells.nsl *)
 class BellClasses packageUsing: manifest = () (
 
   (* A sync source that answers one fixed second, in place of the platform's NTP. *)
-  class FixedNtp = ( | secs | ) (
+  class FixedNtp = ( | private secs | ) (
     public ntpSyncTz: tz = ( ^ secs )
-    setSecs: s = ( secs:: s. ^ self )
+    public setSecs: s = ( secs:: s. ^ self )
   ) : (
     public at: s = ( ^ self new setSecs: s )
   )

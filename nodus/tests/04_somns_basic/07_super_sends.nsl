@@ -15,7 +15,7 @@ skip-berry: true
 class SuperSendsTest packageUsing: manifest = () (
   public class TestSuperClassClause1 = ()(
   	public class SuperHierarchy = ()(
-  		public class Inner1 new: x = (| v = x. |)(
+  		public class Inner1 new: x = (| private v = x. |)(
   			public foo = ( ^ v + 42 )
   		)
       public makeInnerInstance = ( ^ (Inner1 new: 1) foo )
@@ -30,7 +30,7 @@ class SuperSendsTest packageUsing: manifest = () (
   
   public class TestSuperClassClause2 = ()(
   	public class InnerHierarchy = ()(	
-  		public class Inner1 new: x = (| v = x. |)(
+  		public class Inner1 new: x = (| private v = x. |)(
   			public foo = ( ^ v + 42 )
   		)
   		public class InnerInnerHierarchy = ()(
@@ -42,7 +42,7 @@ class SuperSendsTest packageUsing: manifest = () (
   )
   
   public class TestSuperClassClause3 = ()(
-  	public class Inner0 new: x =  (| v = x. |)(
+  	public class Inner0 new: x =  (| private v = x. |)(
   		public foo = ( ^ v + 42 )
   	)
 
@@ -52,7 +52,7 @@ class SuperSendsTest packageUsing: manifest = () (
   )
   
   public class TestSuperClassClause4 = ()(
-  	public class Inner0 new: x = (| v = x. |)(
+  	public class Inner0 new: x = (| private v = x. |)(
   		public foo = ( ^ v + 42 )
   	)
   	public class Inner1 new: x = self Inner0 new: x ()(

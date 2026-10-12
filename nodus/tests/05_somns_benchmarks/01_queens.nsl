@@ -15,7 +15,7 @@ class Benchmark = () (
 class Queens usingPlatform: platform = (
 ) (
   public class Queens = Benchmark (
-    | freeMaxs freeRows freeMins queenRows |
+    | private freeMaxs private freeRows private freeMins private queenRows |
   )(
     public benchmark = (
       | result |
@@ -24,7 +24,7 @@ class Queens usingPlatform: platform = (
       ^ result
     )
 
-    verifyResult: result = (
+    public verifyResult: result = (
       ^ result
     )
 

@@ -22,7 +22,7 @@ done
    instead of a 3rd) cancel everything -> pendingCount 0.
    Wiring: `sup timers: timers` hands the supervisor the timer registry to sweep,
    exactly parallel to the reaction sweep (spaceDropReactionsOwnedBy:) it already does. *)
-class CrashTimerSweep packageUsing: manifest = ( | starts ::= 0. ticks ::= 0. | ) (
+class CrashTimerSweep packageUsing: manifest = ( | private starts ::= 0. private ticks ::= 0. | ) (
   public main: platform args: args = (
     | space sup timers looper alive |
     space:: platform space.

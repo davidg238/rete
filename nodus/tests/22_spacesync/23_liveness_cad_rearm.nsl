@@ -15,7 +15,7 @@ done
    period after the re-arm (clock 7000). The budget is telCad x misses by
    construction: 5000 x 3 = 15000. Host virtual clock; the pulse-mailbox
    half of this seam is target work (nodus/oevm/tests/target). *)
-class LivenessCadRearm packageUsing: manifest = ( | ticks ::= 0. | ) (
+class LivenessCadRearm packageUsing: manifest = ( | private ticks ::= 0. | ) (
   public main: platform args: args = (
     | space timers bridge tickChan |
     space:: platform space.

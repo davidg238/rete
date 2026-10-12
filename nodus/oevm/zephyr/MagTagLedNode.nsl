@@ -28,7 +28,7 @@ led off  readback false
 held=AC
 *)
 class MagTagLedNode packageUsing: manifest = (
-  | ledOn ::= false. |
+  | private ledOn ::= false. |
 ) (
   heldOf: gpio = (
     | s |

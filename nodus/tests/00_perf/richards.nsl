@@ -30,8 +30,8 @@ class Richards usingPlatform: platform = (
   )
 
   class RichardsBenchmarks = (
-  | taskList currentTask currentTaskIdentity taskTable tracing layout
-    queuePacketCount holdCount |
+  | private taskList private currentTask private currentTaskIdentity private taskTable private tracing private layout
+    private queuePacketCount private holdCount |
   )(
     createDevice: identity priority: priority work: work state: state = (
       | data |
@@ -315,8 +315,8 @@ class Richards usingPlatform: platform = (
   )
 
   class Transcript = ()() : (
-    cr = ( )
-    show: text = ( text printString out )
+    public cr = ( )
+    public show: text = ( text printString out )
   )
 
   class DeviceTaskDataRecord create = (
@@ -366,7 +366,7 @@ class Richards usingPlatform: platform = (
   )
 
   class TaskState = RBObject (
-    | packetPending_ taskWaiting_ taskHolding_ |
+    | private packetPending_ private taskWaiting_ private taskHolding_ |
   )(
     public isPacketPending = ( ^ packetPending_ )
     public isTaskHolding   = ( ^ taskHolding_ )

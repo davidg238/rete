@@ -25,7 +25,7 @@ Modulo is `\\` (rete#246), floored like `//`.
 expect:
 finished
 *)
-class WallClockNode packageUsing: manifest = ( | reads ::= 0. prev ::= nil. | ) (
+class WallClockNode packageUsing: manifest = ( | private reads ::= 0. private prev ::= nil. | ) (
   public main: platform args: args = (
     | space timers tick tok |
     space:: platform space.
@@ -67,7 +67,7 @@ class WallClockNode packageUsing: manifest = ( | reads ::= 0. prev ::= nil. | ) 
       ifFalse: [ 'seeded 2026-07-31 11:55:00 (approximate — replace via the real set path)' out ].
   )
 
-  report: platform = (
+  public report: platform = (
     | secs |
     reads:: reads + 1.
     secs:: platform wallClock.
@@ -83,7 +83,7 @@ class WallClockNode packageUsing: manifest = ( | reads ::= 0. prev ::= nil. | ) 
 
   (* seconds-since-midnight -> 'HH:MM:SS', zero-padded so the columns line up in a
      serial log. *)
-  hms: secs = (
+  public hms: secs = (
     | h rem m s |
     h::   secs // 3600.
     rem:: secs \\ 3600.
