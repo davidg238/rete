@@ -27,6 +27,25 @@ harness's own sources (`~/workspaceToit/stic`: `performance`, `richards`, `delta
 
 All three VMs verify Richards and DeltaBlue (`verified: true`).
 
+**Update, 2026-10-12 (night): nsl after Opt #12–#18** (rete `e2fa47e3`, the VM code of master `d9c4fdae`; same board,
+same C6 defaults, hot path in SRAM since Opt #14; `logs-opt18/`). Toit and MicroPython were not rerun.
+
+| test | nsl (`532a2391`) | nsl (`e2fa47e3`) | Toit | MicroPython |
+|---|--:|--:|--:|--:|
+| alloc (s) | 13.9 | 10.91 | 28.0 | 13.19 |
+| array write (s) | 17.6 | 17.96 | 25.9 | 41.50 |
+| dictionary write (s) | 6.2 | 5.31 | 5.5 | 0.98 |
+| float math (s) | 23.1 | 23.31 | 78.7 | 48.97 |
+| integer math (s) | 3.5 | 3.57 | 13.8 | 17.61 |
+| collection iterate (s) | 10.6 | 10.93 | 17.1 | 35.26 |
+| collection write (s) | 13.7 | 11.84 | 12.1 | 6.42 |
+| string compare (s) | 2.7 | 2.15 | 1.9 | 3.96 |
+| Richards (ms per run) | 6989–7047 | 5079–5081 | 1177–1179 | 7471 |
+| DeltaBlue (ms per run) | 542–548 | 335–337 | 76–78 | 326–359 |
+
+Toit's lead: Richards 4.3× (from 5.9×), DeltaBlue 4.4× (from 7.1×). nsl is now ahead of MicroPython on Richards and
+level on DeltaBlue.
+
 - **STIC:** nsl leads on alloc, array write, float math, integer math and collection iterate. Toit leads on
   dictionary and collection write and on string compare. MicroPython leads on dictionary and collection write
   (built-in dict and list are C).
