@@ -5,9 +5,6 @@
 #include <stdio.h>
 #include <string.h>
 
-/* Heap Header prepended to every general-object allocation. The `next` field
-   links FREE blocks within their size-class bin (Task 2); it is unused while a
-   block is live. */
 /* rete#37: one word before every arena object — its payload capacity in bytes (a
    multiple of OEVM_GRANULE, so bit 0 is free) with the mark in bit 0. A free block
    keeps its free-list link in its first payload word (every block has one). */
