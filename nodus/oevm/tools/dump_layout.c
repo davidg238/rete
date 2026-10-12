@@ -31,7 +31,6 @@
     F(CompiledMethod, "num_arguments",    0, 0, offsetof(struct CompiledMethod, num_arguments)) \
     F(CompiledMethod, "constants",        0, 1, offsetof(struct CompiledMethod, constants)) \
     F(CompiledMethod, "constant_count",   0, 0, offsetof(struct CompiledMethod, constant_count)) \
-    F(CompiledMethod, "access_modifier",  0, 0, offsetof(struct CompiledMethod, access_modifier)) \
   S(Closure) \
     F(Closure, "base.vtable",     1, 0, offsetof(struct Closure, base.vtable)) \
     F(Closure, "home_ctx",        1, 0, offsetof(struct Closure, home_ctx)) \

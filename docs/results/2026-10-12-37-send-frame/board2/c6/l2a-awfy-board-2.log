@@ -1,0 +1,236 @@
+09:14:03 < ESP-ROM:esp32c6-20220919
+09:14:03 < Build:Sep 19 2022
+09:14:03 < rst:0x1 (POWERON),boot:0x4c (SPI_FAST_FLASH_BOOT)
+09:14:03 < SPIWP:0xee
+09:14:03 < mode:DIO, clock div:2
+09:14:03 < load:0x40800000,len:0xc9b8
+09:14:03 < load:0x4080c9d0,len:0x23b8
+09:14:03 < SHA-256 comparison failed:
+09:14:03 < Calculated: 4eca42aa0ac41fa95935bc351c6fb8861aab193cc4366a5a207d5c41cc30ab92
+09:14:03 < Expected: 0000000050120000000000000000000000000000000000000000000000000000
+09:14:03 < Attempting to boot anyway...
+09:14:03 < entry 0x408031da
+09:14:03 < I (55) soc_init: ESP Simple boot
+09:14:03 < I (56) soc_init: compile time Oct 12 2026 08:03:06
+09:14:03 < I (56) soc_init: chip revision: v0.0
+09:14:03 < I (56) flash_init: SPI Speed      : 80MHz
+09:14:03 < I (59) flash_init: SPI Mode       : DIO
+09:14:03 < I (62) flash_init: SPI Flash Size : 8MB
+09:14:03 < I (66) boot: DRAM: lma 0x00000020 vma 0x40800000 len 0xc9b8   (51640)
+09:14:03 < I (72) boot: DRAM: lma 0x0000c9e0 vma 0x4080c9d0 len 0x23b8   (9144)
+09:14:03 < I (78) boot: IRAM: lma 0x0000eda8 vma 0x00000000 len 0x1250   (4688)
+09:14:03 < I (84) boot: IMAP: lma 0x00010000 vma 0x42800000 len 0x5cf8   (23800)
+09:14:03 < I (90) boot: IRAM: lma 0x00015d00 vma 0x00000000 len 0xa2f8   (41720)
+09:14:03 < I (96) boot: IMAP: lma 0x00020000 vma 0x42000000 len 0x28c98  (167064)
+09:14:03 < I (103) boot: Image with 6 segments
+09:14:03 < I (106) boot: IROM segment: paddr=00020000h, vaddr=42000000h, size=28C98h (167064) map
+09:14:03 < I (114) boot: DROM segment: paddr=00010000h, vaddr=42800000h, size=05D00h ( 23808) map
+09:14:03 < I (132) boot: libc heap size 98 kB.
+09:14:03 < I (133) spi_flash: detected chip: gd
+09:14:03 < I (133) spi_flash: flash io: dio
+09:14:03 < E: Couldn't set control register.
+09:14:03 < E: Failed to init settings.
+09:14:03 < *** Booting Zephyr OS build v4.2.0-12-gbc47c6fab9cc ***
+09:14:03 < oevm: build-id porta-v1-final-1622-g45bfc75-20261012T080303
+09:14:03 < logudp: not built in (no OEVM_LOG_UDP6) — console is UART only
+09:14:03 < oevm: observer armed (slack=8 tick=1000ms backstop=30000ms hw=yes)
+09:14:03 < I: 8 Sectors of 4096 bytes
+09:14:03 < I: alloc wra: 0, ee0
+09:14:03 < I: data wra: 0, 250
+09:14:03 < runner: slot a was written by the cable (hash=6ad4315daf7b2dc6…) — active, unsigned, no trial
+09:14:04 < runner: exec a hash=6ad4315daf7b2dc6… cable
+09:14:04 < oevm: image loaded and verified (11817 us)
+09:14:04 < oevm: program sha256 6ad4315daf7b2dc61177b1c46b6a2568d0ec59bac9d0235d99ff2cf39da372fb (169 ms)
+09:14:04 < Bounce: 76
+09:14:04 < List: 365
+09:14:04 < Permute: 178
+09:14:11 < Richards: 6477
+09:14:11 < Queens: 179
+09:14:11 < Sieve: 73
+09:14:12 < Towers: 477
+09:17:15 < Mandelbrot: 182829
+09:17:15 < NBody: 4
+09:17:32 < CD: 17765
+09:17:33 < DeltaBlue: 735
+09:17:34 < VM GC Error: Out of Memory (requested 136, used 262136 of 262144)
+09:17:34 < abort()
+09:17:34 < E: 
+09:17:34 < E:  mcause: 11, Environment call from M-mode
+09:17:34 < E:   mtval: 73
+09:17:34 < E:      a0: 00000004    t0: 00000000
+09:17:34 < E:      a1: 408128b0    t1: 40812994
+09:17:34 < E:      a2: 00000001    t2: 40819000
+09:17:34 < E:      a3: 60000000    t3: 00000000
+09:17:34 < E:      a4: 42804f44    t4: 00002000
+09:17:34 < E:      a5: 0000000a    t5: 00000001
+09:17:34 < E:      a6: a0000000    t6: 40869c08
+09:17:34 < E:      a7: 0000000a
+09:17:34 < E:      sp: 408129b0
+09:17:34 < E:      ra: 42016b96
+09:17:34 < E:    mepc: 42016b9e
+09:17:34 < E: mstatus: 00001880
+09:17:34 < E: 
+09:17:34 < E:      s0: 00000040    s6: 40812dc4
+09:17:34 < E:      s1: 40812ce0    s7: 40812dc8
+09:17:34 < E:      s2: 00000020    s8: 40812dc0
+09:17:34 < E:      s3: 42040850    s9: 40819000
+09:17:34 < E:      s4: 00000088   s10: 42040000
+09:17:34 < E:      s5: 408195bc   s11: 00000043
+09:17:34 < E: 
+09:17:34 < E: call trace:
+09:17:34 < E:       0: sp: 408129b0 ra: 42016b9e
+09:17:34 < E:       1: sp: 408129c0 ra: 42004f54
+09:17:34 < E:       2: sp: 40812a20 ra: 42005d02
+09:17:34 < E:       3: sp: 40812a40 ra: 4200c988
+09:17:34 < E:       4: sp: 40812a60 ra: 420059a4
+09:17:34 < E:       5: sp: 40812a90 ra: 42005cc8
+09:17:34 < E:       6: sp: 40812ab0 ra: 4200bd20
+09:17:34 < E:       7: sp: 40812be0 ra: 42009a24
+09:17:34 < E: 
+09:17:34 < E: >>> ZEPHYR FATAL ERROR 4: Kernel panic on CPU 0
+09:17:34 < E: Current thread: 0x408597b8 (unknown)
+09:17:34 < oevm: FATAL reason=4 mcause=0x0000000b mepc=0x42016b9e ra=0x42016b96 up=210744ms consec=1
+09:17:34 < ESP-ROM:esp32c6-20220919
+09:17:34 < Build:Sep 19 2022
+09:17:34 < rst:0xc (SW_CPU),boot:0x4c (SPI_FAST_FLASH_BOOT)
+09:17:34 < Saved PC:0x4001975a
+09:17:34 < SPIWP:0xee
+09:17:34 < mode:DIO, clock div:2
+09:17:34 < load:0x40800000,len:0xc9b8
+09:17:34 < load:0x4080c9d0,len:0x23b8
+09:17:34 < SHA-256 comparison failed:
+09:17:34 < Calculated: 4eca42aa0ac41fa95935bc351c6fb8861aab193cc4366a5a207d5c41cc30ab92
+09:17:34 < Expected: 0000000050120000000000000000000000000000000000000000000000000000
+09:17:34 < Attempting to boot anyway...
+09:17:34 < entry 0x408031da
+09:17:34 < I (57) soc_init: ESP Simple boot
+09:17:34 < I (57) soc_init: compile time Oct 12 2026 08:03:06
+09:17:34 < I (58) soc_init: chip revision: v0.0
+09:17:34 < I (58) flash_init: SPI Speed      : 80MHz
+09:17:34 < I (60) flash_init: SPI Mode       : DIO
+09:17:34 < I (64) flash_init: SPI Flash Size : 8MB
+09:17:34 < I (68) boot: DRAM: lma 0x00000020 vma 0x40800000 len 0xc9b8   (51640)
+09:17:34 < I (74) boot: DRAM: lma 0x0000c9e0 vma 0x4080c9d0 len 0x23b8   (9144)
+09:17:34 < I (80) boot: IRAM: lma 0x0000eda8 vma 0x00000000 len 0x1250   (4688)
+09:17:34 < I (86) boot: IMAP: lma 0x00010000 vma 0x42800000 len 0x5cf8   (23800)
+09:17:34 < I (92) boot: IRAM: lma 0x00015d00 vma 0x00000000 len 0xa2f8   (41720)
+09:17:34 < I (98) boot: IMAP: lma 0x00020000 vma 0x42000000 len 0x28c98  (167064)
+09:17:34 < I (105) boot: Image with 6 segments
+09:17:34 < I (108) boot: IROM segment: paddr=00020000h, vaddr=42000000h, size=28C98h (167064) map
+09:17:34 < I (115) boot: DROM segment: paddr=00010000h, vaddr=42800000h, size=05D00h ( 23808) map
+09:17:34 < I (134) boot: libc heap size 98 kB.
+09:17:34 < I (135) spi_flash: detected chip: gd
+09:17:34 < I (135) spi_flash: flash io: dio
+09:17:34 < E: Couldn't set control register.
+09:17:34 < E: Failed to init settings.
+09:17:34 < *** Booting Zephyr OS build v4.2.0-12-gbc47c6fab9cc ***
+09:17:34 < oevm: build-id porta-v1-final-1622-g45bfc75-20261012T080303
+09:17:34 < oevm: reboot-note reason=3 mcause=0x0000000b mepc=0x42016b9e ra=0x42016b96 boot=0 up=210744ms consec=1
+09:17:34 < logudp: not built in (no OEVM_LOG_UDP6) — console is UART only
+09:17:34 < oevm: observer armed (slack=8 tick=1000ms backstop=30000ms hw=yes)
+09:17:34 < I: 8 Sectors of 4096 bytes
+09:17:34 < I: alloc wra: 0, ed8
+09:17:34 < I: data wra: 0, 270
+09:17:35 < runner: exec a hash=6ad4315daf7b2dc6… cable
+09:17:35 < oevm: image loaded and verified (11769 us)
+09:17:35 < oevm: program sha256 6ad4315daf7b2dc61177b1c46b6a2568d0ec59bac9d0235d99ff2cf39da372fb (169 ms)
+09:17:35 < Bounce: 76
+09:17:35 < List: 365
+09:17:35 < Permute: 178
+09:17:42 < Richards: 6477
+09:17:42 < Queens: 179
+09:17:42 < Sieve: 73
+09:17:43 < Towers: 477
+09:20:45 < Mandelbrot: 182829
+09:20:45 < NBody: 4
+09:21:03 < CD: 17767
+09:21:04 < DeltaBlue: 735
+09:21:05 < VM GC Error: Out of Memory (requested 136, used 262136 of 262144)
+09:21:05 < abort()
+09:21:05 < E: 
+09:21:05 < E:  mcause: 11, Environment call from M-mode
+09:21:05 < E:   mtval: 73
+09:21:05 < E:      a0: 00000004    t0: 00000000
+09:21:05 < E:      a1: 408128b0    t1: 40812994
+09:21:05 < E:      a2: 00000001    t2: 40819000
+09:21:05 < E:      a3: 60000000    t3: 00000000
+09:21:05 < E:      a4: 42804f44    t4: 00002000
+09:21:05 < E:      a5: 0000000a    t5: 00000001
+09:21:05 < E:      a6: a0000000    t6: 40869c08
+09:21:05 < E:      a7: 0000000a
+09:21:05 < E:      sp: 408129b0
+09:21:05 < E:      ra: 42016b96
+09:21:05 < E:    mepc: 42016b9e
+09:21:05 < E: mstatus: 00001880
+09:21:05 < E: 
+09:21:05 < E:      s0: 00000040    s6: 40812dc4
+09:21:05 < E:      s1: 40812ce0    s7: 40812dc8
+09:21:05 < E:      s2: 00000020    s8: 40812dc0
+09:21:05 < E:      s3: 42040850    s9: 40819000
+09:21:05 < E:      s4: 00000088   s10: 42040000
+09:21:05 < E:      s5: 408195bc   s11: 00000043
+09:21:05 < E: 
+09:21:05 < E: call trace:
+09:21:05 < E:       0: sp: 408129b0 ra: 42016b9e
+09:21:05 < E:       1: sp: 408129c0 ra: 42004f54
+09:21:05 < E:       2: sp: 40812a20 ra: 42005d02
+09:21:05 < E:       3: sp: 40812a40 ra: 4200c988
+09:21:05 < E:       4: sp: 40812a60 ra: 420059a4
+09:21:05 < E:       5: sp: 40812a90 ra: 42005cc8
+09:21:05 < E:       6: sp: 40812ab0 ra: 4200bd20
+09:21:05 < E:       7: sp: 40812be0 ra: 42009a24
+09:21:05 < E: 
+09:21:05 < E: >>> ZEPHYR FATAL ERROR 4: Kernel panic on CPU 0
+09:21:05 < E: Current thread: 0x408597b8 (unknown)
+09:21:05 < oevm: FATAL reason=4 mcause=0x0000000b mepc=0x42016b9e ra=0x42016b96 up=210727ms consec=2
+09:21:05 < ESP-ROM:esp32c6-20220919
+09:21:05 < Build:Sep 19 2022
+09:21:05 < rst:0xc (SW_CPU),boot:0x4c (SPI_FAST_FLASH_BOOT)
+09:21:05 < Saved PC:0x4001975a
+09:21:05 < SPIWP:0xee
+09:21:05 < mode:DIO, clock div:2
+09:21:05 < load:0x40800000,len:0xc9b8
+09:21:05 < load:0x4080c9d0,len:0x23b8
+09:21:05 < SHA-256 comparison failed:
+09:21:05 < Calculated: 4eca42aa0ac41fa95935bc351c6fb8861aab193cc4366a5a207d5c41cc30ab92
+09:21:05 < Expected: 0000000050120000000000000000000000000000000000000000000000000000
+09:21:05 < Attempting to boot anyway...
+09:21:05 < entry 0x408031da
+09:21:05 < I (57) soc_init: ESP Simple boot
+09:21:05 < I (57) soc_init: compile time Oct 12 2026 08:03:06
+09:21:05 < I (58) soc_init: chip revision: v0.0
+09:21:05 < I (58) flash_init: SPI Speed      : 80MHz
+09:21:05 < I (60) flash_init: SPI Mode       : DIO
+09:21:05 < I (64) flash_init: SPI Flash Size : 8MB
+09:21:05 < I (68) boot: DRAM: lma 0x00000020 vma 0x40800000 len 0xc9b8   (51640)
+09:21:05 < I (74) boot: DRAM: lma 0x0000c9e0 vma 0x4080c9d0 len 0x23b8   (9144)
+09:21:05 < I (80) boot: IRAM: lma 0x0000eda8 vma 0x00000000 len 0x1250   (4688)
+09:21:05 < I (86) boot: IMAP: lma 0x00010000 vma 0x42800000 len 0x5cf8   (23800)
+09:21:05 < I (92) boot: IRAM: lma 0x00015d00 vma 0x00000000 len 0xa2f8   (41720)
+09:21:05 < I (98) boot: IMAP: lma 0x00020000 vma 0x42000000 len 0x28c98  (167064)
+09:21:05 < I (105) boot: Image with 6 segments
+09:21:05 < I (108) boot: IROM segment: paddr=00020000h, vaddr=42000000h, size=28C98h (167064) map
+09:21:05 < I (115) boot: DROM segment: paddr=00010000h, vaddr=42800000h, size=05D00h ( 23808) map
+09:21:05 < I (134) boot: libc heap size 98 kB.
+09:21:05 < I (135) spi_flash: detected chip: gd
+09:21:05 < I (135) spi_flash: flash io: dio
+09:21:05 < E: Couldn't set control register.
+09:21:05 < E: Failed to init settings.
+09:21:05 < *** Booting Zephyr OS build v4.2.0-12-gbc47c6fab9cc ***
+09:21:05 < oevm: build-id porta-v1-final-1622-g45bfc75-20261012T080303
+09:21:05 < oevm: reboot-note reason=3 mcause=0x0000000b mepc=0x42016b9e ra=0x42016b96 boot=0 up=210727ms consec=2
+09:21:05 < logudp: not built in (no OEVM_LOG_UDP6) — console is UART only
+09:21:05 < oevm: observer armed (slack=8 tick=1000ms backstop=30000ms hw=yes)
+09:21:05 < I: 8 Sectors of 4096 bytes
+09:21:05 < I: alloc wra: 0, ed8
+09:21:05 < I: data wra: 0, 270
+09:21:06 < runner: exec a hash=6ad4315daf7b2dc6… cable
+09:21:06 < oevm: image loaded and verified (11769 us)
+09:21:06 < oevm: program sha256 6ad4315daf7b2dc61177b1c46b6a2568d0ec59bac9d0235d99ff2cf39da372fb (169 ms)
+09:21:06 < Bounce: 76
+09:21:06 < List: 365
+09:21:07 < Permute: 178
+09:21:13 < Richards: 6477
+09:21:13 < Queens: 179
+09:21:13 < Sieve: 73
+09:21:14 < Towers: 477

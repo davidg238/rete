@@ -37,6 +37,8 @@ int main(void) {
     assert(strcmp(symbol_name((struct Symbol *)builtin_registry[13]), "value") == 0);
     assert(builtin_registry[11] != NULL);   /* == */
     assert(strcmp(symbol_name((struct Symbol *)builtin_registry[11]), "==") == 0);
+    assert(strcmp(symbol_name((struct Symbol *)builtin_registry[14]), "debug:") == 0);
+    assert(builtin_registry[15] == LargeIntegerVtable);
 
     /* Global kernel symbol vars are wired to the registered symbols. */
     extern oop Symbol_value;
@@ -44,7 +46,7 @@ int main(void) {
 
     /* Version constant present (bumped 4->5 in Task 9a). */
     extern const uint32_t BUILTIN_REGISTRY_VERSION;
-    assert(BUILTIN_REGISTRY_VERSION == 5);
+    assert(BUILTIN_REGISTRY_VERSION == 6);   /* rete#37 L1: accessViolation: deleted, rows renumbered */
 
     printf("kernel_boot PASS\n");
     return 0;

@@ -29,6 +29,9 @@ measured, whether or not it lands. The numbers and the reasoning live in the rec
 | 10-11 | operands decoded per case; SMI + − × on tagged words | every row 0.7–24 % | kept, Opt #11 | `docs/results/2026-10-11-37-dispatch-head/` |
 | 10-11 | the arithmetic slow path inlined in the loop | floatMath fixed, every other row +2–3 % (register pressure) | **dead end**: out of line, Float first | same |
 | 10-11 | peephole result forwarding (`op t; LD_REG v,t` → `op v`) | integerMath −2.3 %, alloc/dictionaryWrite +2 %, fixture churn | **dead end** for now | same, branch `37-dispatch-head` |
+| 10-12 | L1: the access mechanism deleted (check, field, builtin #14, patch line) | AWFY: C6 0.936, WeAct 0.961, host 0.963; STIC: C6 0.986, WeAct 0.997; MCU text −754 B | kept, Opt #12 | `docs/results/2026-10-12-37-send-frame/` |
+| 10-12 | L2: `push_frame` answers its method, one prologue, gcc left to inline | host 1.051 against L1 (gcc inlined 3 of 7 sites); C6 AWFY 0.995, STIC 1.021; WeAct AWFY 1.004, STIC 1.021 | **dead end** | same |
+| 10-12 | L2 with `push_frame` always inlined | host 0.983 against L1; boards: C6 AWFY 0.981, STIC 1.022; WeAct AWFY 1.024, STIC 1.035 | **dead end** on the boards; reverted (Opt #12) | same |
 | — | the jump table's bound check (`cmp`/`bhi`) | GCC 12 keeps it despite `__builtin_unreachable()` | open: only computed goto removes it; untried | Opt #11 |
 
 Open levers, not yet tried: the frame and send cost (next), GC performance (pause, throughput, heap high-water),
@@ -735,6 +738,27 @@ takes 97 ms on the same boot.
 
 Size: MCU text +244 B (decode +156, Float-first +88) on top of Opt #10's unbanked +860; re-banked 45356
 (`tools/footprint-mcu-baseline.txt`). Host text 77801, inside its 2 %.
+
+## Opt #12 — the access mechanism deleted (rete#37 L1, 2026-10-12)
+
+The first lever of the send/frame design (`docs/design/2026-10-12-37-send-frame-cost-design.md`). Every send to
+a bytecode method called `check_access_allowed`, and the check never refused anyone, because the compiler never set a
+method's `access_modifier` (dialect row 25). David: delete the whole mechanism. Deleted: the check and its two
+helpers, `trigger_access_violation`, `Symbol_accessViolation` and its GC root, `CompiledMethod.access_modifier`
+(28 → 24 B on 32-bit; the five board layouts were edited by hand and checked with static asserts on the SDK's RV32,
+ARM and Xtensa compilers), builtin #14 `accessViolation:` (registry version 5 → 6), the patch format's `access` line,
+and `test_access.c`.
+
+**AWFY** (`docs/results/2026-10-12-37-send-frame/`, L1 ÷ base): **C6 0.936** (two chips, identical: DeltaBlue −13 %,
+List −7.4 %, Richards −3.5 %), **WeAct 0.961**, host x86-64 0.963. **STIC:** C6 0.986 (alloc −6.7 %), WeAct 0.997.
+The loop rows do not move. stringCompare on the C6 (+3 %) is the only row that got worse. MCU text 44,602 B (−754
+against the bank of 45,356), host 76,929 (−872).
+
+Measured and not kept (same record): **L2, a frame push that answers its method** (one `push_frame`, so a send site
+skips its second `closure_entry`, with the entry prologue folded in). On the host it was 0.983 when forced inline.
+Left to gcc it was 1.051 (gcc stopped inlining it at four of seven sites). On the boards both forms lose: C6
+STIC +2 %, WeAct STIC +2–3.5 %, WeAct AWFY +2.4 % forced inline, C6 AWFY about level. Changing `run_interpreter`'s
+body moves register allocation for the whole loop, and the boards' gcc 12 pays where host gcc 16 did not. Reverted.
 
 ## Known weaknesses / tracked gaps (snapshot 2026-06-18)
 

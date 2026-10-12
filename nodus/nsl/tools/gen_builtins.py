@@ -6,7 +6,7 @@ from pathlib import Path
 # The compiler's registry must follow the live VM as the registry compacts.
 DEF = Path(__file__).resolve().parent.parent.parent / "oevm" / "src" / "builtins.def"
 OUT = Path(__file__).resolve().parent / "builtins_registry.py"
-VERSION = 5  # keep in lockstep with BUILTIN_REGISTRY_VERSION in oimg_loader.c
+VERSION = 6  # keep in lockstep with BUILTIN_REGISTRY_VERSION in oimg_loader.c
 
 
 def parse():

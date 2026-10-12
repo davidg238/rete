@@ -51,7 +51,6 @@ int main(void) {
     consts[0] = TAG_SMI(42);
     method->constants = consts;
     method->constant_count = 1;
-    method->access_modifier = ACCESS_PUBLIC;
 
     uint32_t *insts = malloc(5 * sizeof(uint32_t));
     insts[0] = enc(OP_MK_CONTEXT, /*dest=*/1, /*num_slots=*/1, /*outer=*/0);

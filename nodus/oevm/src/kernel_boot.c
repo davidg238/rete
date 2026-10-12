@@ -17,8 +17,8 @@
  *   0..2   singletons : nil(NULL) / true / false
  *   3..10  vtables    : Integer, Float, MethodContext, Symbol, Vtable,
  *                       PrimitiveClosure, BytecodeClosure, BoxedBinding
- *   11..15 symbols    : == sender value accessViolation: debug:
- *   16..18 vtables    : LargeInteger, String, RawBytes (Milestone B Task 3)
+ *   11..14 symbols    : == sender value debug:
+ *   15..17 vtables    : LargeInteger, String, RawBytes (Milestone B Task 3)
  */
 #include "oevm.h"
 #include "oimg.h"
@@ -56,7 +56,6 @@ static const struct Symbol KSym_sender          = { .base = { (oop)&Vtable_Symbo
 /* KSym_executeCleanup / KSym_resumeWith_ / KSym_unwindTo_value_ removed (Task 9a):
  * NLR-only symbols retired in Task 3; their registry rows are gone. */
 static const struct Symbol KSym_value           = { .base = { (oop)&Vtable_SymbolVtable }, .length = 5, .prim_id = 0, .name = "value" };
-static const struct Symbol KSym_accessViolation_= { .base = { (oop)&Vtable_SymbolVtable }, .length = 16, .prim_id = 0, .name = "accessViolation:" };
 static const struct Symbol KSym_debug_          = { .base = { (oop)&Vtable_SymbolVtable }, .length = 6, .prim_id = 0, .name = "debug:" };
 
 /* Singleton true/false symbols (nil is the VM's NULL). */
@@ -117,7 +116,6 @@ void kernel_boot(void) {
     booted = 1;
 
     extern oop Symbol_value;
-    extern oop Symbol_accessViolation;
     extern oop Symbol_debug_;
 
     /* (a) Assign global vtable pointers (as init_solidified_vtables did). */
@@ -140,7 +138,6 @@ void kernel_boot(void) {
 
     /* (a') Assign global kernel symbol vars to the firmware-static symbols. */
     Symbol_value          = (oop)&KSym_value;
-    Symbol_accessViolation= (oop)&KSym_accessViolation_;
     Symbol_debug_         = (oop)&KSym_debug_;
 
     /* (b) Singletons 0..2: nil(NULL) / true / false. */
@@ -167,10 +164,9 @@ void kernel_boot(void) {
     builtin_registry[12] = (oop)&KSym_sender;
     /* executeCleanup / resumeWith: / unwindTo:value: rows removed in Task 9a. */
     builtin_registry[13] = (oop)&KSym_value;
-    builtin_registry[14] = (oop)&KSym_accessViolation_;
-    builtin_registry[15] = (oop)&KSym_debug_;
+    builtin_registry[14] = (oop)&KSym_debug_;
 
-    builtin_registry[16] = LargeIntegerVtable;
-    builtin_registry[17] = StringVtable;
-    builtin_registry[18] = RawBytesVtable;
+    builtin_registry[15] = LargeIntegerVtable;
+    builtin_registry[16] = StringVtable;
+    builtin_registry[17] = RawBytesVtable;
 }

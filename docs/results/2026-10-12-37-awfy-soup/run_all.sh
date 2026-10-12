@@ -10,23 +10,7 @@ OEVM=$REPO/nodus/oevm
 W=$(mktemp -d /tmp/awfy-soup-XXXXXX)
 mkdir -p "$HERE/logs"
 
-# The board counts in awfy.nsl's runAll, scaled so each row runs ~0.2-5 s on a desktop host.
-# Mandelbrot (500) and CD (10) keep theirs: those are problem sizes AWFY verifies, and the host ones are not.
-sed -E \
-  -e "s/(bench: Bounce new +inner: )1\)/\1300)/" \
-  -e "s/(bench: List new +inner: )1\)/\1100)/" \
-  -e "s/(bench: Permute new +inner: )1\)/\1200)/" \
-  -e "s/(bench: Storage new +inner: )1\)/\1200)/" \
-  -e "s/(bench: Richards new +inner: )1\)/\15)/" \
-  -e "s/(bench: Queens new +inner: )1\)/\1200)/" \
-  -e "s/(bench: Sieve new +inner: )1\)/\1300)/" \
-  -e "s/(bench: Towers new +inner: )1\)/\160)/" \
-  -e "s/(bench: NBody new +inner: )1\)/\1250000)/" \
-  -e "s/(bench: DeltaBlue new +inner: )100\)/\12000)/" \
-  -e "s/(bench: Json new +inner: )1\)/\120)/" \
-  "$REPO/nodus/tests/00_perf/awfy.nsl" > "$W/awfy-host.nsl"
-[ "$(diff "$REPO/nodus/tests/00_perf/awfy.nsl" "$W/awfy-host.nsl" | grep -c '^>')" = 11 ] \
-  || { echo "run_all: awfy.nsl's runAll moved; update the counts" >&2; exit 1; }
+python3 "$REPO/nodus/tests/00_perf/awfy_counts.py" host > "$W/awfy-host.nsl"   # the host profile: counts in one place
 
 # The image VM as the suite builds it (run_tests_oevm.py), plus -O2 and no debug hooks.
 B=posix

@@ -90,31 +90,6 @@ static int debugger_hook_global_survives(void) {
     return live;
 }
 
-/* --- Symbol_accessViolation global root test --- */
-extern oop Symbol_accessViolation;
-
-/* Allocate an object and stash it ONLY in Symbol_accessViolation; no C local
-   survives back to the caller, so the global is the sole root. */
-__attribute__((noinline))
-static void stash_accessviolation(void) {
-    Symbol_accessViolation = gc_allocate((oop)&PlainVtable, sizeof(struct ObjectInstance));
-}
-
-/* Test that Symbol_accessViolation is covered by the precise root list in
-   gc_collect. Conservative C-stack scan is gone (de-recursify Phase 3) —
-   precise roots are ALL there is now. Before the fix, gc_collect does not mark
-   Symbol_accessViolation, so the object is swept and gc_is_live returns 0.
-   After the fix, gc_collect marks it and gc_is_live returns 1. */
-__attribute__((noinline))
-static int accessviolation_global_survives(void) {
-    stash_accessviolation();
-    /* At this point Symbol_accessViolation is the ONLY reference to the object. */
-    gc_collect();
-    int live = gc_is_live(Symbol_accessViolation);
-    Symbol_accessViolation = NULL;  /* cleanup: don't leak into later tests */
-    return live;
-}
-
 int main(void) {
     heap_init();
     PlainVtable.base.vtable = NULL;   /* VtableVtable is NULL pre-boot; fine */
@@ -129,9 +104,6 @@ int main(void) {
 
     assert(debugger_hook_global_survives() == 1);
     printf("test_gc_trigger: debugger_hook global root survives GC OK\n");
-
-    assert(accessviolation_global_survives() == 1);
-    printf("test_gc_trigger: Symbol_accessViolation global root survives GC OK\n");
 
     printf("ALL TESTS PASSED\n");
     return 0;

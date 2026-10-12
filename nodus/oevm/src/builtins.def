@@ -27,19 +27,17 @@ BUILTIN(10, VTABLE,    "BoxedBindingVtable")
  *  - 11: ==             (Symbol comparison)
  *  - 12: sender         (OP_LD_SENDER)
  *  - 13: value          (Symbol_value, hardcoded in vm.c)
- *  - 14: accessViolation: (Symbol_accessViolation, dispatch.c)
- *  - 15: debug:         (Symbol_debug_, vm.c debugger hook) */
+ *  - 14: debug:         (Symbol_debug_, vm.c debugger hook) */
 BUILTIN(11, SYMBOL,    "==")
 BUILTIN(12, SYMBOL,    "sender")
 BUILTIN(13, SYMBOL,    "value")
-BUILTIN(14, SYMBOL,    "accessViolation:")
-BUILTIN(15, SYMBOL,    "debug:")
-/* Boxed LargeInteger vtable (index 16+). Appended after the kernel symbols;
+BUILTIN(14, SYMBOL,    "debug:")
+/* Boxed LargeInteger vtable (index 15+). Appended after the kernel symbols;
  * referenced by overflowing integer literals an app may carry. */
-BUILTIN(16, VTABLE,    "LargeIntegerVtable")
-BUILTIN(17, VTABLE,    "StringVtable")
+BUILTIN(15, VTABLE,    "LargeIntegerVtable")
+BUILTIN(16, VTABLE,    "StringVtable")
 /* RawBytes leaf vtable (Milestone B Task 3): pointer-free byte storage
  * builtin backing Task 10's ByteArray/Bytes kernel classes. Reuses the
  * String C layout (length + inline bytes) but is a DISTINCT vtable, so
  * String does not gain at:put: — only a RawBytesVtable receiver does. */
-BUILTIN(18, VTABLE,    "RawBytesVtable")
+BUILTIN(17, VTABLE,    "RawBytesVtable")

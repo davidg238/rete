@@ -914,14 +914,6 @@ OEVM_HOT void gc_collect(void) {
     for (int i = 0; i < method_patch_count; i++) { mark(method_patches[i].from); mark(method_patches[i].to); }
 #endif
 
-    // Mark lazy-allocated dispatch globals (dispatch.c) — these are allocated
-    // once on first use and stored only in these globals, never on the VM stack.
-    // Under Model A (-DOEVM_APPLIANCE), Symbol_accessViolation is lazily
-    // heap-allocated (not a data-segment const); without this mark it would be
-    // swept on the next collection → use-after-free.
-    extern oop Symbol_accessViolation;
-    mark(Symbol_accessViolation);
-
     // Milestone D: the in-flight raised condition (self error:'s argument),
     // live between vm_raise's longjmp and vm_protected_fire's handler reading
     // it — held only in this global, not on the VM stack. mark() is a no-op

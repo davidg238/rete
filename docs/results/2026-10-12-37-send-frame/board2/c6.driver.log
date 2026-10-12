@@ -1,0 +1,24 @@
+[c6] base awfy-board 1 rc 124
+done
+[c6] base performance 1 rc 0
+[c6] l1 awfy-board 1 rc 124
+done
+[c6] l1 performance 1 rc 0
+[c6] l2a awfy-board 1 rc 124
+done
+[c6] l2a performance 1 rc 0
+[c6] l2 awfy-board 1 rc 124
+done
+[c6] l2 performance 1 rc 0
+[c6] base awfy-board 2 rc 124
+done
+[c6] base performance 2 rc 0
+[c6] l1 awfy-board 2 rc 124
+done
+[c6] l1 performance 2 rc 0
+[c6] l2a awfy-board 2 rc 124
+done
+[c6] l2a performance 2 rc 0
+[c6] l2 awfy-board 2 rc 124
+done
+[c6] l2 performance 2 rc 0

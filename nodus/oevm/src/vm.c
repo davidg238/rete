@@ -1737,76 +1737,6 @@ oop primitive_closure_home(oop receiver, int argc, oop *args) {
    exactly g_active_stack (a Stack heap object) + vm_stack/vm_stack_ptr +
    current_frame. */
 
-static oop get_top_level_method_closure(oop closure) {
-    /* The lexical walk this function used to perform is unreachable through
-       dispatch. Its only caller (find_defining_vtable, from the ACCESS_PRIVATE
-       branch of check_access_allowed) is reached only when receiver ==
-       caller_self == current_frame->regs[0]; a private method's receiver is a
-       user instance, and a block frame's regs[0] is the closure (push_frame at
-       OP_BLOCK_INVOKE) — so the closure here is always a METHOD closure
-       (home_ctx == NULL) and the old lexical loop never iterated. Removing it
-       drops the last home_ctx frame-identity walk from this path at zero
-       runtime cost. The invariant is pinned: a non-NULL home_ctx here would
-       mean a block reached access control, which the model does not produce —
-       fail loudly (house posture) rather than silently walk a dead path. Note
-       the whole send-visibility access subsystem is vestigial (oevm#36). See
-       design 2026-07-03-derecursify-e1-retire-dead-access-walk-design.md §2. */
-    if (((struct Closure *)closure)->home_ctx != NULL) {
-        fprintf(stderr, "VM Error: access-control method lookup on a block closure "
-            "(home_ctx != NULL) — unexpected for a top-level method closure.\n");
-        abort();
-    }
-    return closure;
-}
-
-static oop find_defining_vtable(oop receiver_vtable, oop closure) {
-    oop method_closure = get_top_level_method_closure(closure);
-    oop curr = receiver_vtable;
-    while (curr != NULL && !IS_SMI(curr)) {
-        struct Vtable *vt = (struct Vtable *)curr;
-        struct Binding *bs = vtable_bindings((oop)vt);
-        for (size_t i = 0; i < vt->size; i++) {
-            if (binding_method(&bs[i]) == method_closure) {
-                return curr;
-            }
-        }
-        curr = vtable_delegate((oop)vt);
-    }
-    return NULL;
-}
-
-OEVM_HOT int check_access_allowed(oop receiver, oop selector, struct CompiledMethod *target_method, oop target_defining_vtable) {
-    (void)selector;
-    if (target_method->access_modifier == ACCESS_PUBLIC) {
-        return 1;
-    }
-    if (current_frame == NULL) {
-        return 1; // Trust trusted C entry point calls
-    }
-    
-    oop caller_self = current_frame->regs[0];
-    
-    if (target_method->access_modifier == ACCESS_PROTECTED) {
-        if (receiver == caller_self) {
-            return 1;
-        }
-        return 0;
-    }
-    
-    if (target_method->access_modifier == ACCESS_PRIVATE) {
-        if (receiver != caller_self) {
-            return 0;
-        }
-        oop caller_defining_vtable = find_defining_vtable(obj_vtable(caller_self), current_frame->closure);
-        if (caller_defining_vtable == target_defining_vtable) {
-            return 1;
-        }
-        return 0;
-    }
-    
-    return 0;
-}
-
 extern oop debugger_hook;
 extern oop Symbol_debug_;
 extern oop SymbolVtable;
@@ -1926,7 +1856,7 @@ oop primitive_debugger_set_single_step(oop receiver, int argc, oop *args) {
    loader resolves them exactly as it resolves the blob's (oimg_resolve). It arrives
    as text, one debug line on every target (dbg:patch <text>), whitespace-separated:
        oevm-patch 1 vtable <word> selector <word>
-       registers <n> arguments <n> access <n>
+       registers <n> arguments <n>
        instructions <k> <u32 hex>... constants <c> <word hex>...
    A line is capped by the debug transport's buffer (platform.c PRIM_pf_readLine), so
    a longer patch arrives cut and is refused here as malformed. The CompiledMethod is
@@ -1975,7 +1905,7 @@ oop primitive_patch(oop text, int argc, oop *args) {
     struct String *ts = (struct String *)text;
     patch_cur = (const char *)ts->bytes;
     patch_end = patch_cur + ts->length;
-    unsigned long ver, vt_w, sel_w, nregs, nargs, access, ninst, ncon, w;
+    unsigned long ver, vt_w, sel_w, nregs, nargs, ninst, ncon, w;
     uint32_t *insts = NULL;
     oop *consts = NULL;
     struct CompiledMethod *m = NULL;
@@ -1983,7 +1913,7 @@ oop primitive_patch(oop text, int argc, oop *args) {
     if (!patch_field("oevm-patch", 10, &ver) || ver != 1
         || !patch_field("vtable", 16, &vt_w) || !patch_field("selector", 16, &sel_w)
         || !patch_field("registers", 10, &nregs) || !patch_field("arguments", 10, &nargs)
-        || !patch_field("access", 10, &access) || !patch_field("instructions", 10, &ninst))
+        || !patch_field("instructions", 10, &ninst))
         goto bad;
     why = "out of memory";
     insts = oevm_malloc((ninst ? ninst : 1) * sizeof *insts);
@@ -2010,7 +1940,7 @@ oop primitive_patch(oop text, int argc, oop *args) {
     why = "out of memory";
     m = oevm_malloc(sizeof *m);
     if (m == NULL) goto bad;
-    *m = (struct CompiledMethod){insts, ninst, (int)nregs, (int)nargs, consts, ncon, (int)access};
+    *m = (struct CompiledMethod){insts, ninst, (int)nregs, (int)nargs, consts, ncon};
     if ((why = oevm_method_check(m)) != NULL) goto bad;   /* rete#37: the loop trusts it from here */
     oop cl = gc_allocate(BytecodeClosureVtable, sizeof(struct Closure));
     struct Closure *c = (struct Closure *)cl;
