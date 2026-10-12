@@ -17490,6 +17490,7 @@ oop run_solidified_entry_point(void) {
     send(supervisor_inst, (oop)&StaticSymbol_init_mirror_, 1, sup_init_args);
     oop dbg_flag = getenv("OEVM_DEBUG") ? TAG_SMI(1) : TAG_SMI(0);
     oop run_args[4] = { entry_inst, kernel_inst, fake_args, dbg_flag };
+    g_kernel_instance = kernel_inst;   /* the raise prims' route to Record (vm.c) */
     oop res = send(supervisor_inst, (oop)&StaticSymbol_run_platform_args_debug_, 4, run_args);
     gc_temp_roots_clear();
     return res;

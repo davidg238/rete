@@ -3251,6 +3251,7 @@ def main():
         c_code += "    extern int platform_debug_enabled(void);   /* rete#311: platform_backend.h */\n"
         c_code += "    oop dbg_flag = platform_debug_enabled() ? TAG_SMI(1) : TAG_SMI(0);\n"
         c_code += "    oop run_args[4] = { entry_inst, kernel_inst, fake_args, dbg_flag };\n"
+        c_code += "    g_kernel_instance = kernel_inst;   /* the raise prims' route to Record (vm.c) */\n"
         c_code += f"    oop res = send(supervisor_inst, (oop)&{srun_sym}, 4, run_args);\n"
         c_code += "    gc_temp_roots_clear();\n"
         c_code += "    return res;\n"

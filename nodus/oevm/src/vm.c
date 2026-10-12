@@ -75,12 +75,12 @@ struct MethodContext *current_frame = NULL;
    code path is the general one so phase-2 on:do: generalizes it (exceptions.md C4). */
 static jmp_buf *g_protect_top = NULL;   /* NULL = no protection active */
 oop g_raised_condition = NULL;          /* rooted by gc_collect; see gc.c */
-/* Milestone E Task 1: the Kernel module instance (Kernel usingPlatform: platform),
-   captured by dispatch.c's send_resolve at the first `main:args:` send — the only
-   object that reaches the `Record` class from any context. The error:/error:tag:
+/* Milestone E Task 1: the Kernel module instance (Kernel usingPlatform: platform), the
+   only object that reaches the `Record` class from any context. The error:/error:tag:
    raise prims send it `crashRecordTag:text:` to build the in-flight crash Record.
-   Rooted in gc_collect (see gc.c); NULL until app entry (both boot paths pass the
-   kernel instance as main:args: arg 0, before any app code can raise). */
+   Rooted in gc_collect (see gc.c); NULL until app entry: both boot paths (oimg_loader.c
+   and the compiler's run_solidified_entry_point) set it just before they launch the
+   app, after the kernel's and the entry's init (rete#37 L5: it was a per-send test). */
 oop g_kernel_instance = NULL;
 
 extern int gc_temp_roots_count;         /* gc.c:645 — save/restore across a fire */
