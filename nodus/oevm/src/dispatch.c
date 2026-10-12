@@ -1246,9 +1246,10 @@ OEVM_HOT oop send_resolve(oop receiver, oop selector, int argc, oop *args,
                  oop *out_method, oop *out_recv, int *out_argc) {
     *out_method = NULL;
     /* rete#37 L5: the receiver's vtable, read once; the special receivers below and the
-       method lookup all test it. NULL for nil. */
-    oop receiver_vtable = IS_SMI(receiver) ? IntegerVtable
-                        : receiver != NULL ? obj_vtable(receiver) : NULL;
+       method lookup all test it. NULL for nil and, until just before the lookup, for an
+       SMI: an IntegerVtable arm here let -Os thread that constant through the primitive
+       block below and copy it (send_resolve +844 B on Cortex-M4). */
+    oop receiver_vtable = (receiver != NULL && !IS_SMI(receiver)) ? obj_vtable(receiver) : NULL;
     // BoundClass receiver: ANY send constructs the nested instance (see
     // BoundClassVtable). Must precede primitive interception so a construction
     // selector that happens to collide with a primitive name (e.g. `size`) still
@@ -2020,6 +2021,7 @@ OEVM_HOT oop send_resolve(oop receiver, oop selector, int argc, oop *args,
         }
     }
 
+    if (IS_SMI(receiver)) receiver_vtable = IntegerVtable;
     if (receiver_vtable == BytecodeClosureVtable) {
         if (SymbolVtable != NULL && obj_vtable(selector) == SymbolVtable) {
             struct Symbol *sym = (struct Symbol *)selector;
