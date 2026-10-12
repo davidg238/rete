@@ -210,7 +210,6 @@ C_UNIT_TESTS = [
     ("test_cheap_oom",        ENG_A, ["-Wl,--wrap=malloc"], None),
     ("test_gc_trigger",       ENG_A, ["-DOEVM_HEAP_SIZE=65536"], None),
     # oevm#36: the vestigial access-control subsystem.
-    ("test_access",           ENG_A, [], None),
     ("test_enclosures",       ENG_A, [], None),
     # perf/op-cmp-at: hand-assembled fast-path opcodes (OP_LT..OP_GE, OP_AT/OP_AT_PUT).
     ("test_op_fast",          ENG_A, [], None),

@@ -73,7 +73,7 @@ class SolidifyCompiler:
             'meta': meta,
         }
 
-    def add_method(self, vtable_name, selector, num_registers, num_arguments, constants, instructions, access_modifier=0):
+    def add_method(self, vtable_name, selector, num_registers, num_arguments, constants, instructions):
         sanitized_sel = self.sanitize_symbol_name(selector)
         method_id = f"Method_{vtable_name}_{sanitized_sel}"
         self.vtables[vtable_name]['bindings'].append((selector, method_id))
@@ -82,8 +82,7 @@ class SolidifyCompiler:
             'num_registers': num_registers,
             'num_arguments': num_arguments,
             'constants': constants,
-            'instructions': instructions,
-            'access_modifier': access_modifier
+            'instructions': instructions
         })
 
     def generate_c(self):
@@ -218,8 +217,7 @@ class SolidifyCompiler:
             c_code.append(f"static const struct CompiledMethod {mid}_compiled = {{")
             c_code.append(f"    {mid}_insts, {len(method['instructions'])},")
             c_code.append(f"    {method['num_registers']}, {method['num_arguments']},")
-            c_code.append(f"    {const_ptr}, {len(method['constants'])},")
-            c_code.append(f"    {method.get('access_modifier', 0)}")
+            c_code.append(f"    {const_ptr}, {len(method['constants'])}")
             c_code.append("};")
             
             # Closure

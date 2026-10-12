@@ -58,7 +58,6 @@ static oop run_binop(uint8_t op, int argc, oop a, oop b, oop c) {
     consts[3] = NULL;                    /* selector slot: fast path must not read it */
     method->constants = consts;
     method->constant_count = 4;
-    method->access_modifier = ACCESS_PUBLIC;
     uint32_t *insts = calloc(6, sizeof(uint32_t));
     int n = 0;
     insts[n++] = enc(OP_LD_CONST, 1, 0, 0);
@@ -88,7 +87,6 @@ static oop run_iter_sum(oop ix, intptr_t limit) {
     consts[0] = TAG_SMI(1); consts[1] = TAG_SMI(limit); consts[2] = ix; consts[3] = TAG_SMI(0);
     method->constants = consts;
     method->constant_count = 4;
-    method->access_modifier = ACCESS_PUBLIC;
     uint32_t insts[8];
     insts[0] = enc(OP_LD_CONST, 1, 0, 0);
     insts[1] = enc(OP_LD_CONST, 2, 1, 0);
@@ -120,7 +118,6 @@ static oop run_is_vt(oop obj, oop vt) {
     consts[0] = obj; consts[1] = vt;
     method->constants = consts;
     method->constant_count = 2;
-    method->access_modifier = ACCESS_PUBLIC;
     uint32_t insts[3];
     insts[0] = enc(OP_LD_CONST, 1, 0, 0);
     insts[1] = enc(TOP_IS_VT, 2, 1, 1);

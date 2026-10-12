@@ -286,7 +286,6 @@ int main(void) {
     cm_brk->num_arguments = 0;
     cm_brk->instruction_count = 3;
     cm_brk->constant_count = 1;
-    cm_brk->access_modifier = ACCESS_PUBLIC;
     uint32_t *insts_brk = malloc(3 * sizeof(uint32_t));
     insts_brk[0] = 0x00000300; // OP_LD_CONST dest=3, src1=0
     insts_brk[1] = (uint32_t)OP_BREAK;
@@ -322,7 +321,6 @@ int main(void) {
     cm_step->num_arguments = 0;
     cm_step->instruction_count = 3;
     cm_step->constant_count = 1;
-    cm_step->access_modifier = ACCESS_PUBLIC;
     uint32_t *insts_step = malloc(3 * sizeof(uint32_t));
     insts_step[0] = 0x00000300; // OP_LD_CONST dest=3, src1=0
     insts_step[1] = (0x03030300u | OP_ADD); // OP_ADD dest=3, src1=3, src2=3
@@ -429,7 +427,6 @@ int main(void) {
     cm_arm->num_arguments = 0;
     cm_arm->instruction_count = 4;
     cm_arm->constant_count = 1;
-    cm_arm->access_modifier = ACCESS_PUBLIC;
     uint32_t *insts_arm = malloc(4 * sizeof(uint32_t));
     insts_arm[0] = (uint32_t)OP_BREAK;          /* fires hook; hook arms stepping    */
     insts_arm[1] = 0x00000300;                   /* OP_LD_CONST dest=3, src1=0        */
@@ -496,7 +493,6 @@ int main(void) {
         cm_off->instruction_count = 2;
         cm_off->constant_count = 0;
         cm_off->constants = NULL;
-        cm_off->access_modifier = ACCESS_PUBLIC;
         uint32_t *insts_off = malloc(2 * sizeof(uint32_t));
         insts_off[0] = (uint32_t)OP_BREAK;    /* fires hook */
         insts_off[1] = (uint32_t)OP_RET;       /* OP_RET R0  */
@@ -591,7 +587,6 @@ int main(void) {
         cm_rs->num_arguments = 0;
         cm_rs->instruction_count = 4;
         cm_rs->constant_count = 1;
-        cm_rs->access_modifier = ACCESS_PUBLIC;
         uint32_t *insts_rs = malloc(4 * sizeof(uint32_t));
         insts_rs[0] = (uint32_t)OP_BREAK;   /* fires hook; hook arms stepping via requestStep: */
         insts_rs[1] = 0x00000300;            /* OP_LD_CONST dest=3, src1=0                      */
@@ -679,7 +674,6 @@ int main(void) {
         cm_bp->num_arguments = 0;
         cm_bp->instruction_count = 3;
         cm_bp->constant_count = 1;
-        cm_bp->access_modifier = ACCESS_PUBLIC;
         uint32_t *insts_bp = malloc(3 * sizeof(uint32_t));
         insts_bp[0] = 0x00000300;            /* OP_LD_CONST dest=3, src1=0 */
         insts_bp[1] = (0x03030300u | OP_ADD); /* OP_ADD dest=3, src1=3, src2=3 */
@@ -781,7 +775,6 @@ int main(void) {
         cm_nr->num_arguments = 0;
         cm_nr->instruction_count = 3;
         cm_nr->constant_count = 1;
-        cm_nr->access_modifier = ACCESS_PUBLIC;
         uint32_t *insts_nr = malloc(3 * sizeof(uint32_t));
         insts_nr[0] = 0x00000300;            /* OP_LD_CONST dest=3, src1=0 */
         insts_nr[1] = (uint32_t)OP_BREAK;     /* fires hook */

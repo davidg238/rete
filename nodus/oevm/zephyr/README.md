@@ -483,6 +483,10 @@ reason to assume a future target's layout will match without generating it.
 own capture predated rete#226 and differed from the C6's only in `Symbol`, the struct #226
 changed, so since 2026-10-09 it is a copy of the C6 capture — derived, not captured — until
 the MagTag is recaptured over its UART header (`layoutdump/prj_esp32s2.conf`).
+**One hand edit to all five files, 2026-10-12 (rete#37 L1):** `CompiledMethod.access_modifier`, its last field,
+was deleted, so its size went from 28 to 24 and no other offset moved. This was checked rather than assumed: `_Static_assert`s on
+`sizeof` and every `offsetof` of the edited struct, against `src/oevm.h`, passed under the SDK's RV32 (ilp32), ARM
+(Cortex-M33) and both Xtensa compilers. A recapture should reproduce the files byte for byte.
 
 **Capturing on a board whose console is its own USB (the dongle) takes three things that
 a UART target does not need**, all of them in `layoutdump/prj_dongle.conf` and

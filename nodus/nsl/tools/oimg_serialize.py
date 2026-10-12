@@ -232,7 +232,7 @@ KIND_STRUCT = {
     "INSTANCE": "ObjectInstance", "BOXEDBINDING": "BoxedBinding",
 }
 # C int / uint32_t fields (4 bytes on every target ABI we support: x86-32/64, ESP32).
-WIDTH4 = {"is_nested", "num_registers", "num_arguments", "access_modifier", "home_generation"}
+WIDTH4 = {"is_nested", "num_registers", "num_arguments", "home_generation"}
 # Fixed 64-bit fields, independent of oop width (LargeInteger sign/magnitude).
 WIDTH8_SIGNED = {"sign"}
 WIDTH8_UNSIGNED = {"mag"}
@@ -723,7 +723,6 @@ class OimgSerializer:
             cptr = self._aref(f"consts:{m['id']}") if nc else 0
             self._put(buf, base, "CompiledMethod", "constants", self.w.word(cptr))
             self._put(buf, base, "CompiledMethod", "constant_count", self._scalar_bytes("constant_count", nc))
-            self._put(buf, base, "CompiledMethod", "access_modifier", self._scalar_bytes("access_modifier", m.get("access_modifier", 0)))
             ibase = self.offset[f"insts:{m['id']}"]
             for i, w in enumerate(m["instructions"]):
                 buf[ibase + i * 4: ibase + i * 4 + 4] = struct.pack("<I", w & 0xFFFFFFFF)

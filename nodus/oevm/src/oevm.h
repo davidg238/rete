@@ -365,12 +365,6 @@ enum Opcode {
     OP_IS_VT = 0x20,
 };
 
-enum AccessModifier {
-    ACCESS_PUBLIC = 0,
-    ACCESS_PROTECTED = 1,
-    ACCESS_PRIVATE = 2
-};
-
 /* Compiled method structure wrapping instruction stream and constants */
 struct CompiledMethod {
     const uint32_t *instructions;
@@ -379,7 +373,6 @@ struct CompiledMethod {
     int num_arguments;
     const oop *constants;
     size_t constant_count;
-    int access_modifier;
 };
 
 /*
@@ -537,7 +530,6 @@ void method_cache_flush(void);
 #ifdef OEVM_CACHE_STATS
 struct MethodCacheStats method_cache_stats(void);
 #endif
-int check_access_allowed(oop receiver, oop selector, struct CompiledMethod *target_method, oop target_defining_vtable);
 int is_truthy(oop obj);
 
 /* Heap telemetry (G3/M2, https://github.com/davidg238/nsl-tuvm/issues/3): fragmentation early-warning for the

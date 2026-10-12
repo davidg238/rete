@@ -82,7 +82,6 @@ def build(image_map, old_src, new_src, qual):
         f"selector {old_ser._symbol_ref(selector):x}",
         f"registers {new_m['num_registers']}",
         f"arguments {new_m['num_arguments']}",
-        f"access {new_m.get('access_modifier', 0)}",
         f"instructions {len(new_m['instructions'])}",
         " ".join(f"{w & 0xFFFFFFFF:x}" for w in new_m["instructions"]),
         f"constants {len(consts)}",

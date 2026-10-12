@@ -22,7 +22,7 @@ oop oimg_singleton[3] = {0};
 /* Registry version — keep in lockstep with gen_builtins.VERSION (Python).
  * Owned here (oimg_loader.c) so every build that links this TU automatically
  * has the definition; kernel_boot.c no longer needs to define it. */
-const uint32_t BUILTIN_REGISTRY_VERSION = 5;
+const uint32_t BUILTIN_REGISTRY_VERSION = 6;
 
 /* ---------------- .oimg header byte layout (CONTRACT) ----------------
  * Mirrors tools/oimg_serialize.py OimgWriter.header_bytes(). All scalars

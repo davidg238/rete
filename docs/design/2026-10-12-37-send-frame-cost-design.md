@@ -107,3 +107,7 @@ the call- and allocation-bound ones (List 4.95×, Storage 2.38×, Permute/Towers
 Mandelbrot, CD, Bounce and Sieve and ties Richards (`AWFY.md`, #37 comment). This is the baseline L1
 and L2 are measured against. David (2026-10-12): Havlak host-only; next session commits the results
 record and takes L1 + L2; String `copyFrom:to:`, `sin`/`cos` and Float→Integer become VM prims.
+
+The record (2026-10-12, next session): `docs/results/2026-10-12-37-awfy-soup/`, `run_all.sh`, median of
+three at `33cb0e16`. Geomean 1.26×; List 4.14×, Storage 1.95×, Json 1.77×, Towers 1.75×, DeltaBlue
+1.72×. Soup's runs vary up to ±25 % and nsl's ~10 %, so a lever needs more than one run to count.

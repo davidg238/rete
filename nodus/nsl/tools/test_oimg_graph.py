@@ -14,10 +14,10 @@ LAYOUT = json.loads('''{"oop_size":8,"structs":{
    "is_nested":{"offset":40,"is_ref":false,"is_ptr":false}}},
  "Binding":{"size":16,"fields":{"symbol":{"offset":0,"is_ref":true,"is_ptr":false},
    "method":{"offset":8,"is_ref":true,"is_ptr":false}}},
- "CompiledMethod":{"size":56,"fields":{"instructions":{"offset":0,"is_ref":false,"is_ptr":true},
+ "CompiledMethod":{"size":40,"fields":{"instructions":{"offset":0,"is_ref":false,"is_ptr":true},
    "instruction_count":{"offset":8,"is_ref":false,"is_ptr":false},"num_registers":{"offset":16,"is_ref":false,"is_ptr":false},
    "num_arguments":{"offset":20,"is_ref":false,"is_ptr":false},"constants":{"offset":24,"is_ref":false,"is_ptr":true},
-   "constant_count":{"offset":32,"is_ref":false,"is_ptr":false},"access_modifier":{"offset":40,"is_ref":false,"is_ptr":false}}},
+   "constant_count":{"offset":32,"is_ref":false,"is_ptr":false}}},
  "Closure":{"size":32,"fields":{"base.vtable":{"offset":0,"is_ref":true,"is_ptr":false},
    "home_ctx":{"offset":8,"is_ref":true,"is_ptr":false},"home_generation":{"offset":16,"is_ref":false,"is_ptr":false},
    "entry_point":{"offset":24,"is_ref":false,"is_ptr":true}}},
@@ -40,8 +40,7 @@ class Graph:  # mirrors solidify.py field names
                                  "meta": None, "is_nested": 0}}
     methods = [{"id": "Method_CounterVtable_increment", "num_registers": 4, "num_arguments": 0,
                 "constants": ["SMI:1"],
-                "instructions": [0x0000010C, 0x00000200, 0x02010306, 0x0000030D, 0x00000304],
-                "access_modifier": 0}]
+                "instructions": [0x0000010C, 0x00000200, 0x02010306, 0x0000030D, 0x00000304]}]
 
 
 def test_header_and_root():
@@ -116,14 +115,12 @@ class GraphWithConstRefs:
              "SMI:7",                       # branch: SMI: -> smi ref-word
              "increment",                   # branch: plain symbol -> sym: ref
          ],
-         "instructions": [0x0000010C],
-         "access_modifier": 0},
+         "instructions": [0x0000010C]},
         # block method referenced by METHOD:BlkA:at:put:
         # _method_block_id("METHOD:BlkA:at:put:") = "Method_Block_BlkA_at_put_"
         {"id": "Method_Block_BlkA_at_put_", "num_registers": 2, "num_arguments": 2,
          "constants": [],
-         "instructions": [0x00000304],
-         "access_modifier": 0},
+         "instructions": [0x00000304]},
     ]
 
 
@@ -201,8 +198,7 @@ class GraphWithGapBandSmi:
     methods = [
         {"id": "Method_GapVtable_run", "num_registers": 2, "num_arguments": 0,
          "constants": [f"SMI:{GAP_VALUE}", f"LARGEINT:{GAP_VALUE}"],
-         "instructions": [0x0000010C],
-         "access_modifier": 0},
+         "instructions": [0x0000010C]},
     ]
 
 
@@ -246,8 +242,7 @@ class GraphWithGapBandRawInt:
     methods = [
         {"id": "Method_GapVtable2_run", "num_registers": 2, "num_arguments": 0,
          "constants": [GAP_VALUE],
-         "instructions": [0x0000010C],
-         "access_modifier": 0},
+         "instructions": [0x0000010C]},
     ]
 
 

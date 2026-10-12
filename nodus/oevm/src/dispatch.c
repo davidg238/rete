@@ -31,7 +31,6 @@ oop VtableVtable = NULL;
 oop PrimitiveClosureVtable = NULL;
 oop BytecodeClosureVtable = NULL;
 oop BoxedBindingVtable = NULL;
-oop Symbol_accessViolation = NULL;
 oop debugger_hook = NULL;
 oop Symbol_debug_ = NULL;
 
@@ -580,42 +579,6 @@ static oop does_not_understand(oop receiver, oop selector, int argc, oop *args) 
     fprintf(stderr, "\n");
     abort();
     return NULL;
-}
-
-static oop trigger_access_violation(oop receiver, oop selector, int argc, oop *args) {
-    (void)argc; (void)args;
-    struct Symbol *sym = (struct Symbol *)selector;
-    fprintf(stderr, "VM Access Violation: Cannot access method '%s'\n",
-            sym ? symbol_name(sym) : "?");
-
-    oop target_selector = NULL;
-    oop curr = IS_SMI(receiver) ? IntegerVtable : (receiver ? obj_vtable(receiver) : NULL);
-    while (curr != NULL && !IS_SMI(curr)) {
-        struct Vtable *vt = (struct Vtable *)curr;
-        struct Binding *bs = vtable_bindings((oop)vt);
-        for (size_t i = 0; i < vt->size; i++) {
-            struct Symbol *s = (struct Symbol *)binding_symbol(&bs[i]);
-            if (s != NULL && obj_vtable((oop)s) == SymbolVtable && strcmp(symbol_name(s), "accessViolation:") == 0) {
-                target_selector = (oop)s;
-                break;
-            }
-        }
-        if (target_selector != NULL) break;
-        curr = vtable_delegate((oop)vt);
-    }
-    
-    if (target_selector == NULL) {
-        if (Symbol_accessViolation == NULL) {
-            extern oop gc_allocate(oop vtable, size_t size);
-            static const char avName[] = "accessViolation:";
-            oop sym_av = symbol_new(avName, sizeof avName - 1);   /* rete#226 */
-            Symbol_accessViolation = sym_av;
-        }
-        target_selector = Symbol_accessViolation;
-    }
-    
-    oop send_args[1] = { selector };
-    return send(receiver, target_selector, 1, send_args);
 }
 
 /* BoundClass: a runtime "nested class bound to its enclosing instance".
@@ -2111,13 +2074,6 @@ OEVM_HOT oop send_resolve(oop receiver, oop selector, int argc, oop *args,
     }
 
     struct Closure *cl = (struct Closure *)method;
-    if (obj_vtable((oop)cl) == BytecodeClosureVtable) {
-        struct CompiledMethod *cm = (struct CompiledMethod *)closure_entry(cl);
-        if (!check_access_allowed(receiver, selector, cm, defining_vt)) {
-            return trigger_access_violation(receiver, selector, argc, args);
-        }
-    }
-
     if (obj_vtable((oop)cl) == PrimitiveClosureVtable) {
         // Primitive closure: call native C function pointer directly
         oop (*func)(oop, int, oop*) = (oop (*)(oop, int, oop*))closure_entry(cl);
@@ -2135,7 +2091,7 @@ OEVM_HOT oop send_resolve(oop receiver, oop selector, int argc, oop *args,
 /* Re-entrant single-shot send: resolves then, for a bytecode target, runs it via
    a nested run_interpreter (behavior-identical to the pre-Task-4 send()). Kept for
    the cold C callers — does_not_understand's bytecode handler, run_method_on's
-   nested-class init, trigger_access_violation, the debugger hook, and any capability
+   nested-class init, the debugger hook, and any capability
    / primitive C code that sends. The hot method/block-send path in the flat
    interpreter calls send_resolve directly and pushes a frame instead. */
 oop send(oop receiver, oop selector, int argc, oop *args) {
