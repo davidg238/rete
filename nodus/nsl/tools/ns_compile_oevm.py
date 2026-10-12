@@ -298,6 +298,16 @@ class MethodCompiler:
     def finalize_jumps(self):
         self._finalize_jumps_inner()
 
+    def end_with_return(self):
+        """Close a method body with `^self` (R0) unless control already cannot run past its end.
+        rete#37: the VM trusts that (oevm_method_check refuses a method otherwise), so the
+        return is also emitted when the body ends in a return but a jump targets the end —
+        an ifTrue:ifFalse: whose arms both return leaves its then-arm's jump over the else."""
+        ins = self.instructions
+        if (not ins or (ins[-1] & 0xFF) != OP_RET
+                or any(self._peep_jump_target(i, x) == len(ins) for i, x in enumerate(ins))):
+            self.emit_ABC(OP_RET, 0, 0, 0)
+
     def finalize_contexts(self):
         self._finalize_contexts_inner()
         mode = os.environ.get("NSL_PEEPHOLE", "1")   # 1 = both, A = copy-prop only, B = dead stores only, 0 = off
@@ -2412,10 +2422,7 @@ class OevmCompiler:
                 compiler.compile_statement(m["body"][-1])
 
             compiler.finalize_jumps()
-
-            # If method doesn't end with a return, emit return self (R0)
-            if not compiler.instructions or (compiler.instructions[-1] & 0xFF) != OP_RET:
-                compiler.emit_ABC(OP_RET, 0, 0, 0)
+            compiler.end_with_return()
 
             compiler.finalize_contexts()  # deferred lift Phase 1: patch + prologue
             self.solidify.add_method(
@@ -2442,8 +2449,7 @@ class OevmCompiler:
                 compiler.compile_statement(m["body"][-1])
 
             compiler.finalize_jumps()
-            if not compiler.instructions or (compiler.instructions[-1] & 0xFF) != OP_RET:
-                compiler.emit_ABC(OP_RET, 0, 0, 0)
+            compiler.end_with_return()
 
             compiler.finalize_contexts()  # deferred lift Phase 1: patch + prologue
             self.solidify.add_method(

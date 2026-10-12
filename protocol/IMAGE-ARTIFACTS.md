@@ -1,8 +1,8 @@
 # Image artifacts — what the compiler writes and custos reads
 
 > **In force (rete#337, decided by David 2026-10-04)** — except the word width in
-> `flags` (§2, decision 3), which waits for #330's `format_version` 11 to merge and then
-> lands as version 12. Design: `docs/design/2026-10-04-custos-peer-design.md` §6a step 1.
+> `flags` (§2, decision 3), which lands as `format_version` 12 (#344). Version 11 is rete#37's
+> method-cluster descriptor (a VM-side field past the prefix; #330 closed without a format change). Design: `docs/design/2026-10-04-custos-peer-design.md` §6a step 1.
 
 The nsl compiler (`nodus/nsl/tools/ns_compile_oevm.py`, Python) writes an image and a
 map that describes it. custos (Go) reads them to load a program (#310), to debug by
@@ -212,8 +212,8 @@ width in `flags` (fixes 4).
    `custos debug` refuses a host image whose hash or size differs. Since #310 the node reports the
    hash of its program region, the way it reports `buildId` today.
 3. **log2(oop_size) goes in `flags` bits 0–1, and the VM refuses an image of another
-   width.** `format_version` 12 (#344), after #330's 11 merges (the merge queue is
-   `329-c6-speed` → `198-custos-views` → #330). The fixture is regenerated then.
+   width.** `format_version` 12 (#344); 11 went to rete#37's method-cluster descriptor
+   (2026-10-11). The fixture is regenerated then.
 4. **The fixture is checked in, built for the C6 only.**
 5. **Order:** the map, the fixture and this document merge first; the header change
-   follows #330.
+   follows (#344).

@@ -48,9 +48,16 @@ const uint32_t BUILTIN_REGISTRY_VERSION = 5;
  * classnames_count (u16) at A+14W. Read only by oimg_vtable_name() on the
  * DNU abort path, to name an app-class receiver.
  *
+ * format_version 11 (rete#37): the METHOD cluster's descriptor follows —
+ * methods_ref (app ref-word to the first CompiledMethod) at A+15W and
+ * methods_count (u32) at A+16W. The cluster is dense (one record per
+ * ALIGN_UP(sizeof(struct CompiledMethod), 8)), and the loader verifies every
+ * method in it before the image runs (vm.c oevm_method_check): the dispatch
+ * loop trusts its operands, so this is where they are checked.
+ *
  *   off       width  field
  *   0         4      magic "OIMG"
- *   4         2      format_version (u16, = 10)
+ *   4         2      format_version (u16, = 11)
  *   6         2      flags (u16)
  *   8         4      registry_version (u32)
  *   12        4      blob_size (u32, = total file size)
@@ -80,6 +87,9 @@ const uint32_t BUILTIN_REGISTRY_VERSION = 5;
  *   A+13W     W      classnames_ref   (app ref-word to the classnames table,
  *                                      0 when the image has no blob vtables)
  *   A+14W     2      classnames_count (u16)
+ *   (header padded to 8 again)
+ *   A+15W     W      methods_ref      (app ref-word to the first CompiledMethod)
+ *   A+16W     4      methods_count    (u32)
  *   (header padded to 8 again)
  * For W==8: A=24, init@32, main@40, init_argc@48, entry_nslots@50,
  *           kernel_vtable_ref@56, kernel_init_sel_ref@64, kernel_nslots@72,
@@ -114,6 +124,9 @@ static uintptr_t img_net_on_sel_ref          = 0;
 /* rete#247: classnames section — names app-class receivers on the DNU line. */
 static uintptr_t img_classnames_ref          = 0;
 static uint16_t  img_classnames_count        = 0;
+/* rete#37: the METHOD cluster, verified at load. */
+static uintptr_t img_methods_ref             = 0;
+static uint32_t  img_methods_count           = 0;
 
 static uintptr_t read_word(const uint8_t *p) {
     uintptr_t w = 0;
@@ -138,8 +151,8 @@ int oimg_load_blob(const uint8_t *base, size_t size) {
     uint16_t format_version   = read_u16(base + 4);
     uint32_t registry_version = read_u32(base + 8);
     uint32_t blob_size        = read_u32(base + 12);
-    if (format_version != 10) {
-        fprintf(stderr, "oimg_load_blob: unsupported format_version %u (expected 10)\n", format_version);
+    if (format_version != 11) {
+        fprintf(stderr, "oimg_load_blob: unsupported format_version %u (expected 11)\n", format_version);
         return 1;
     }
     if (registry_version != BUILTIN_REGISTRY_VERSION) {
@@ -172,6 +185,8 @@ int oimg_load_blob(const uint8_t *base, size_t size) {
     img_net_on_sel_ref          = read_word(base + a + 12 * W);
     img_classnames_ref          = read_word(base + a + 13 * W);
     img_classnames_count        = read_u16 (base + a + 14 * W);
+    img_methods_ref             = read_word(base + a + 15 * W);
+    img_methods_count           = read_u32 (base + a + 16 * W);
     /* Closed decoding: a classnames table that points outside the blob is a
        malformed image, not a degraded diagnostic. */
     if (img_classnames_count != 0) {
@@ -185,8 +200,39 @@ int oimg_load_blob(const uint8_t *base, size_t size) {
 
     oimg_blob_base = base;
     oimg_blob_end  = base + blob_size;
+
+    /* rete#37: verify every method before anything runs. Closed decoding again: a
+       method whose instructions or constants leave the blob, or that the dispatch
+       loop could not run as written, is a malformed image. */
+    size_t stride = ALIGN_UP(sizeof(struct CompiledMethod), 8u);
+    size_t moff = (size_t)(img_methods_ref >> 2);
+    if (img_methods_count != 0 &&
+        (OIMG_TAG(img_methods_ref) != OIMG_TAG_APP || moff == 0 ||
+         moff + (size_t)img_methods_count * stride > blob_size)) {
+        fprintf(stderr, "oimg_load_blob: method cluster out of bounds\n");
+        goto refuse;
+    }
+    for (uint32_t i = 0; i < img_methods_count; i++) {
+        struct CompiledMethod *m = (struct CompiledMethod *)(base + moff + (size_t)i * stride);
+        size_t ioff = (size_t)((uintptr_t)m->instructions >> 2);
+        size_t coff = (size_t)((uintptr_t)m->constants >> 2);
+        const char *why = NULL;
+        if (m->instruction_count > blob_size / 4 || ioff + m->instruction_count * 4 > blob_size ||
+            m->constant_count > blob_size / W || (m->constant_count && coff + m->constant_count * W > blob_size))
+            why = "instructions or constants outside the image";
+        else
+            why = oevm_method_check(m);
+        if (why) {
+            fprintf(stderr, "oimg_load_blob: method @%zu: %s\n", moff + (size_t)i * stride, why);
+            goto refuse;
+        }
+    }
     return 0;
+refuse:
+    oimg_blob_base = oimg_blob_end = NULL;
+    return 1;
 }
+
 
 /* rete#247: name an app-class vtable from the image's classnames section.
    NULL when `vt` is not a blob vtable or the table has no row for it — the
