@@ -22,7 +22,8 @@ Cumulative, against master. R3 is the large step. Every compiled send's selector
 **One behaviour change (R2).** A prim selector sent to a capability (`serial isNil`, `udp == x`) is now answered by the
 prim; before, the capability's own dispatch aborted with its "doesNotUnderstand". A selector that is not a prim still
 reaches the same abort. The one sharp edge: `basicAt:`, `basicAt:put:`, `basicSize` or `basicReplace…` sent to a
-capability would read its (absent) slot 0 instead of aborting — a program error either way, no longer a loud one.
+capability would read its (absent) slot 0 instead of aborting — a program error either way, no longer a loud one. The hole is older (any slotless
+receiver, `platform` included, already reached it): #424.
 
 **The footprint.** Per revision (`FOOTPRINT_CONFIG=mcu`, msi): master 45,918, R1 46,858, R2 46,474, R3 46,808. All of
 R1's growth is `send_resolve` (5,622 → 6,562 B), the function where Opt #16 found `-Os` copying the primitive block for a
