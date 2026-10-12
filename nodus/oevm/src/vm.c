@@ -824,8 +824,9 @@ static OEVM_HOT oop arith_slow(uint8_t op, oop op1, oop op2) {
 
 /* Push the frame for `closure` and make it current_frame; answer its method, so a send site
    does not compute it again (rete#37 L2). The one frame push: run_interpreter's entry frame
-   goes through here too. */
-static inline OEVM_HOT struct CompiledMethod *push_frame(oop closure, oop receiver, int argc, oop *args) {
+   goes through here too. Inlined at every site: on x86-64 -O2, gcc stopped inlining it at four of seven
+   when left to choose, and the AWFY rows lost 5 % (docs/results/2026-10-12-37-send-frame/). */
+static inline __attribute__((always_inline)) OEVM_HOT struct CompiledMethod *push_frame(oop closure, oop receiver, int argc, oop *args) {
     struct Closure *cl = (struct Closure *)closure;
     struct CompiledMethod *m = (struct CompiledMethod *)closure_entry(cl);
 #ifdef OEVM_METHOD_PROFILE
