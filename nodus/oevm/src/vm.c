@@ -926,7 +926,12 @@ OEVM_HOT oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
     const uint32_t *pc = cm_instructions(method);
     const uint32_t *pc_end = pc + method->instruction_count;
     oop return_val = NULL;
+#ifdef OEVM_LEAN_DISPATCH
+    (void)pc_end;
+    for (;;) {   /* rete#37 spike: every method ends in OP_RET (the compiler appends one) */
+#else
     while (pc < pc_end) {
+#endif
         /* C-assisted breakpoint match (Task 7). Gated: when no breakpoints are set
            this is a single predicted-not-taken branch per instruction. On a match
            fire debugger_hook exactly like the OP_BREAK path, but pause BEFORE pc
@@ -1014,6 +1019,17 @@ OEVM_HOT oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
         uint8_t src2 = (inst >> 24) & 0xFF;
 
         switch (op) {
+#ifdef OEVM_LEAN_DISPATCH
+            /* rete#37 spike: operands trusted (a load-time verifier's job); the SMI case inline. */
+            case OP_LD_CONST: {
+                oop c = cm_const_at(method, src1);
+                ctx->regs[dest] = IS_SMI(c) ? c : oevm_int_demote(c);
+                break;
+            }
+            case OP_LD_REG:
+                ctx->regs[dest] = ctx->regs[src1];
+                break;
+#else
             case OP_LD_CONST:
                 if (src1 < method->constant_count && dest < method->num_registers) {
                     ctx->regs[dest] = oevm_int_demote(cm_const_at(method, src1)); /* canonicalize boxed int constants (https://github.com/davidg238/nsl-tuvm/issues/4) */
@@ -1025,6 +1041,7 @@ OEVM_HOT oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
                     ctx->regs[dest] = ctx->regs[src1];
                 }
                 break;
+#endif
 
             case OP_LD_SELF:
                 /* self-migration: enclosing self, snapshotted on the running block's
@@ -1533,8 +1550,12 @@ OEVM_HOT oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
             }
 
             default:
+#ifdef OEVM_LEAN_DISPATCH
+                __builtin_unreachable();   /* rete#37 spike: opcodes trusted (a load-time verifier's job) */
+#else
                 fprintf(stderr, "VM Error: Unknown opcode %d\n", op);
                 abort();
+#endif
         }
 
         /* Normal instruction completion falls through to the step hook. The

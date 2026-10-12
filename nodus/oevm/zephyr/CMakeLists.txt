@@ -353,6 +353,9 @@ endif()
 # (accepted 2026-07-17); export OEVM_IRAM_HOT=0 to opt out. Env, not -D,
 # for the same NCS-sysbuild reason as the defines above.
 # rete#37 spike: the C6 perf counter around each blockcost row (src/vm.c oevm_perfmon_tick).
+if("$ENV{OEVM_LEAN_DISPATCH}" STREQUAL "1")
+  target_compile_definitions(app PRIVATE OEVM_LEAN_DISPATCH=1)
+endif()
 if("$ENV{OEVM_PERFMON}" STREQUAL "1")
   target_compile_definitions(app PRIVATE OEVM_PERFMON=1)
 endif()
