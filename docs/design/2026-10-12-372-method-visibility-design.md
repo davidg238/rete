@@ -143,3 +143,8 @@ What building it changed:
 - **Found and fixed:** the image writer's method ids were not injective (`:` and `_` both became `_`, so the method
   `taskHolding:` and a slot `taskHolding_`'s getter were one id). One mapping, shared by the C and `.oimg` writers,
   now escapes `_` as `__`.
+- **The board earned the private send's cache (Q3).** On c6spare, uncached private sends cost AWFY 1.034 against
+  master (Permute +8.5 %). Super and private sends now go through the method cache, the rule ORed into the key
+  (self and super `| 1`, private `| 2`), and answer frameless shapes: AWFY 1.018, STIC 1.010. David: merge and
+  record the cost (`nodus/oevm/docs/optimizations.md`, "A cost, not a lever"; record
+  `docs/results/2026-10-12-372-visibility-board/`). Step 3's "uncached at first" is superseded by this.
