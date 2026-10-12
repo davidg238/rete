@@ -764,8 +764,9 @@ const char *oevm_method_check(struct CompiledMethod *m) {
 
 /* rete#37: the arithmetic the dispatch loop's SMI fast paths leave: SMI overflow, LargeInteger
    and Float operands, and `/` (exact on SMIs, so never a fast path). One body for the four
-   opcodes, out of the loop. */
-static OEVM_HOT oop arith_slow(uint8_t op, oop op1, oop op2) {
+   opcodes, inlined at the loop's one arith_generic label: as a call it cost floatMath 10 %
+   on the WeAct. */
+static inline __attribute__((always_inline)) oop arith_generic(uint8_t op, oop op1, oop op2) {
     if (op == OP_DIV && IS_SMI(op1) && IS_SMI(op2)) {
         intptr_t v1 = UNTAG_SMI(op1);
         intptr_t v2 = UNTAG_SMI(op2);
@@ -1333,33 +1334,38 @@ OEVM_HOT oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
             /* rete#37: SMI +, -, * on the tagged words. An SMI is the word 2v+1 and its payload is
                the whole word less the tag, so the word's own overflow is exactly "no longer an SMI":
                a + (b-1) = 2(x+y)+1, a - (b-1) = 2(x-y)+1, (a-1)*y = 2xy. Everything else (an
-               overflow, a LargeInteger, a Float, and every `/`) is arith_slow's. */
+               overflow, a LargeInteger, a Float, and every `/`) goes to arith_generic, the way a
+               fast-path miss above goes to do_send. */
             case OP_ADD: {
                 oop a = ctx->regs[SRC1], b = ctx->regs[SRC2];
                 intptr_t r;
-                ctx->regs[DEST] = ((uintptr_t)a & (uintptr_t)b & 1)
-                                  && !__builtin_add_overflow((intptr_t)a, (intptr_t)b - 1, &r)
-                                ? (oop)r : arith_slow(OP_ADD, a, b);
-                break;
+                if (((uintptr_t)a & (uintptr_t)b & 1) && !__builtin_add_overflow((intptr_t)a, (intptr_t)b - 1, &r)) {
+                    ctx->regs[DEST] = (oop)r;
+                    break;
+                }
+                goto arith_generic;
             }
             case OP_SUB: {
                 oop a = ctx->regs[SRC1], b = ctx->regs[SRC2];
                 intptr_t r;
-                ctx->regs[DEST] = ((uintptr_t)a & (uintptr_t)b & 1)
-                                  && !__builtin_sub_overflow((intptr_t)a, (intptr_t)b - 1, &r)
-                                ? (oop)r : arith_slow(OP_SUB, a, b);
-                break;
+                if (((uintptr_t)a & (uintptr_t)b & 1) && !__builtin_sub_overflow((intptr_t)a, (intptr_t)b - 1, &r)) {
+                    ctx->regs[DEST] = (oop)r;
+                    break;
+                }
+                goto arith_generic;
             }
             case OP_MUL: {
                 oop a = ctx->regs[SRC1], b = ctx->regs[SRC2];
                 intptr_t r;
-                ctx->regs[DEST] = ((uintptr_t)a & (uintptr_t)b & 1)
-                                  && !__builtin_mul_overflow((intptr_t)a - 1, UNTAG_SMI(b), &r)
-                                ? (oop)(r | 1) : arith_slow(OP_MUL, a, b);
-                break;
+                if (((uintptr_t)a & (uintptr_t)b & 1) && !__builtin_mul_overflow((intptr_t)a - 1, UNTAG_SMI(b), &r)) {
+                    ctx->regs[DEST] = (oop)(r | 1);
+                    break;
+                }
+                goto arith_generic;
             }
             case OP_DIV:
-                ctx->regs[DEST] = arith_slow(OP_DIV, ctx->regs[SRC1], ctx->regs[SRC2]);
+            arith_generic:
+                ctx->regs[DEST] = arith_generic(op, ctx->regs[SRC1], ctx->regs[SRC2]);
                 break;
 
             case OP_JMP: {
