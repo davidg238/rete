@@ -1,0 +1,461 @@
+(* Havlak, ported from AWFY SOMns for rete#37 (2026-10-12): the classes, ready to paste into awfy.nsl's Awfy module
+   before the helpers section. Not merged: host-only (David), needs a larger host heap (AWFY.md). Departures: AWFY.md. *)
+  (* Havlak: loop recognition (Havlak 1997), from Google's 2011 multi-language benchmark.
+     Copyright 2011 Google Inc., Apache License 2.0 (the SOMns source's notice). *)
+  class HavlakBenchmark = Benchmark ()(
+    public innerBenchmarkLoop: innerIterations = (
+      ^ verifyResult:
+         (LoopTesterApp new main: innerIterations loop: 50 p: 10 p: 10 p: 5)
+        iterations: innerIterations
+    )
+
+    private verifyResult: result iterations: innerIterations = (
+      innerIterations = 15000 ifTrue: [ ^ (result at: 1) = 46602 and: [(result at: 2) = 5213] ].
+      innerIterations =  1500 ifTrue: [ ^ (result at: 1) =  6102 and: [(result at: 2) = 5213] ].
+      innerIterations =   150 ifTrue: [ ^ (result at: 1) =  2052 and: [(result at: 2) = 5213] ].
+      innerIterations =    15 ifTrue: [ ^ (result at: 1) =  1647 and: [(result at: 2) = 5213] ].
+      innerIterations =     1 ifTrue: [ ^ (result at: 1) =  1605 and: [(result at: 2) = 5213] ].
+
+      ('No verification result for ' , innerIterations printString , ' found') out.
+      ('Result is ' , (result at: 1) printString , ', ' , (result at: 2) printString) out.
+      ^ false
+    )
+  )
+
+  class BasicBlock new: name = (
+  | public inEdges  = Vector new: 2.
+    public outEdges = Vector new: 2.
+    private name = name.
+  |
+  )(
+    public numPred = ( ^ inEdges size )
+
+    public addOutEdge: to = (
+      outEdges append: to
+    )
+
+    public addInEdge: from = (
+      inEdges append: from
+    )
+
+    public customHash = (
+      ^ name
+    )
+  )
+
+  class BasicBlockEdge for: cfg from: fromName to: toName = (
+  | private from = cfg createNode: fromName.
+    private to   = cfg createNode: toName.
+  |
+    from addOutEdge: to.
+    to   addInEdge:  from.
+    cfg  addEdge:    self
+  )()
+
+  class ControlFlowGraph = (
+  | private basicBlockMap = Vector new.
+    private startNode ::= nil.
+    private edgeList = Vector new.
+  |)(
+    public createNode: name = (
+      | node |
+
+      (basicBlockMap at: name) isNil
+        ifFalse: [ node:: basicBlockMap at: name ]
+        ifTrue: [
+          node:: BasicBlock new: name.
+          basicBlockMap at: name put: node ].
+
+      numNodes = 1 ifTrue: [startNode:: node].
+      ^ node
+    )
+
+    public addEdge: edge = (
+      edgeList append: edge
+    )
+
+    public numNodes = (
+      ^ basicBlockMap size
+    )
+
+    public startBasicBlock = (
+      ^ startNode
+    )
+
+    public basicBlocks = (
+      ^ basicBlockMap
+    )
+  )
+
+  class LoopStructureGraph = (
+  | private root  = SimpleLoop basicBlock: nil reducible: false.
+    private loops = Vector new.
+    private loopCounter ::= 0.
+  |
+    root nestingLevel: 0.
+    root counter: loopCounter.
+    loopCounter:: loopCounter + 1.
+    loops append: root
+  )(
+    public createNewLoop: bb reducible: isReducible = (
+      | loop |
+      loop:: SimpleLoop basicBlock: bb reducible: isReducible.
+      loop counter: loopCounter.
+      loopCounter:: loopCounter + 1.
+      loops append: loop.
+      ^ loop
+    )
+
+    public calculateNestingLevel = (
+      loops forEach: [:liter |
+        liter isRoot ifFalse: [
+          liter parent isNil ifTrue: [
+            liter parent: root ] ] ].
+
+      calculateNestingLevelRec: root depth: 0
+    )
+
+    private calculateNestingLevelRec: loop depth: depth = (
+      loop depthLevel: depth.
+      loop children forEach: [:liter |
+        calculateNestingLevelRec: liter depth: depth + 1.
+        loop nestingLevel: (max: loop nestingLevel with: 1 + liter nestingLevel) ]
+    )
+
+    public numLoops = (
+      ^ loops size
+    )
+  )
+
+  class SimpleLoop basicBlock: bb reducible: isReducible = (
+  | public counter    ::= 0.
+    public depthLevel ::= 0.
+
+    private parent_ ::= nil.
+    private isRoot_ ::= false.
+    private nestingLevel_ ::= 0.
+    private header = bb.
+    private isReducible = isReducible.
+    private basicBlocks = IdentitySet new.
+    public  children    = IdentitySet new.
+  |
+    bb isNil ifFalse: [ basicBlocks add: bb ]
+  )(
+    public addNode: bb = (
+      basicBlocks add: bb
+    )
+
+    public addChildLoop: loop = (
+      children add: loop
+    )
+
+    public parent = ( ^ parent_ )
+    public parent: val = (
+      parent_:: val.
+      parent_ addChildLoop: self
+    )
+
+    public isRoot    = ( ^ isRoot_ )
+    public setIsRoot = ( isRoot_:: true )
+
+    public nestingLevel = ( ^ nestingLevel_ )
+    public nestingLevel: level = (
+      nestingLevel_:: level.
+      level = 0 ifTrue: [ setIsRoot ]
+    )
+  )
+
+  class UnionFindNode = (
+  | private parent_ ::= nil.
+    private bb_     ::= nil.
+    private dfsNumber_ ::= 0.
+    public loop ::= nil.
+  |)(
+    public initNode: bb dfs: dfsNumber = (
+      parent_:: self.
+      bb_:: bb.
+      dfsNumber_:: dfsNumber.
+      loop:: nil.
+    )
+
+    public findSet = (
+      | nodeList node |
+      nodeList:: Vector new.
+
+      node:: self.
+
+      [(node = node parent) not] whileTrue: [
+        ((node parent) = (node parent parent)) not ifTrue: [
+          nodeList append: node ].
+        node:: node parent ].
+
+      nodeList forEach: [:iter | iter union: parent_ ].
+      ^ node
+    )
+
+    public union: basicBlock = (
+      parent_:: basicBlock
+    )
+
+    public parent    = ( ^ parent_ )
+    public bb        = ( ^ bb_ )
+    public dfsNumber = ( ^ dfsNumber_ )
+  )
+
+  class LoopTesterApp = (
+  | private cfg = ControlFlowGraph new.
+    private lsg = LoopStructureGraph new.
+  |
+    cfg createNode: 1.
+  )(
+    private buildDiamond: start = (
+      | bb0 |
+      bb0:: start.
+      BasicBlockEdge for: cfg from: bb0 to: bb0 + 1.
+      BasicBlockEdge for: cfg from: bb0 to: bb0 + 2.
+      BasicBlockEdge for: cfg from: bb0 + 1 to: bb0 + 3.
+      BasicBlockEdge for: cfg from: bb0 + 2 to: bb0 + 3.
+      ^ bb0 + 3
+    )
+
+    private buildConnect: start end: end = (
+      BasicBlockEdge for: cfg from: start to: end
+    )
+
+    private buildStraight: start n: n = (
+      0 to: n - 1 do: [:i |
+        buildConnect: start + i end: start + i + 1 ].
+      ^ start + n
+    )
+
+    private buildBaseLoop: from = (
+      | header diamond1 d11 diamond2 footer |
+      header::   buildStraight: from n: 1.
+      diamond1:: buildDiamond: header.
+      d11::      buildStraight: diamond1 n: 1.
+      diamond2:: buildDiamond: d11.
+      footer::   buildStraight: diamond2 n: 1.
+
+      buildConnect: diamond2 end: d11.
+      buildConnect: diamond1 end: header.
+      buildConnect: footer   end: from.
+      footer:: buildStraight: footer n: 1.
+      ^ footer
+    )
+
+    public main: numDummyLoops loop: findLoopIterations p: parLoop p: pparLoops p: ppparLoops = (
+      constructSimpleCFG.
+      addDummyLoops: numDummyLoops.
+      constructCFG: parLoop p: pparLoops p: ppparLoops.
+
+      findLoops: lsg.
+      findLoopIterations timesRepeat: [
+        findLoops: LoopStructureGraph new ].
+
+      lsg calculateNestingLevel.
+      ^ { lsg numLoops. cfg numNodes }
+    )
+
+    private constructCFG: parLoops p: pparLoops p: ppparLoops = (
+      | n |
+      n:: 3.
+
+      parLoops timesRepeat: [
+        cfg createNode: n + 1.
+        buildConnect: 2 end: n + 1.
+        n:: n + 1.
+
+        pparLoops timesRepeat: [
+          | top bottom |
+          top:: n.
+          n:: buildStraight: n n:1.
+          ppparLoops timesRepeat: [ n:: buildBaseLoop: n ].
+          bottom:: buildStraight: n n: 1.
+          buildConnect: n end: top.
+          n:: bottom ].
+
+        buildConnect: n end: 1 ]
+    )
+
+    private addDummyLoops: numDummyLoops = (
+      numDummyLoops timesRepeat: [
+        findLoops: lsg ]
+    )
+
+    private findLoops: loopStructure = (
+      | finder |
+      finder:: HavlakLoopFinder new: cfg lsg: loopStructure.
+      finder findLoops
+    )
+
+    private constructSimpleCFG = (
+      cfg createNode: 1.
+      buildBaseLoop: 1.
+      cfg createNode: 2.
+      BasicBlockEdge for: cfg from: 1 to:  3
+    )
+  )
+
+  class HavlakLoopFinder new: cfg lsg: lsg = (
+  | private cfg = cfg.
+    private lsg = lsg.
+    private Unvisited = 2147483647.
+    private MaxNonBackPreds = 32 * 1024.
+    private nonBackPreds = Vector new.
+    private backPreds    = Vector new.
+    private number = IdentityDictionary new.
+
+    private maxSize ::= 0.
+    private header  ::= nil.
+    private type    ::= nil.
+    private last    ::= nil.
+    private nodes   ::= nil.
+  |)(
+    (* BasicBlockClass enum #BBTop #BBNonHeader #BBReducible #BBSelf
+                            #BBIrreducible #BBDead #BBLast *)
+
+    private isAncestor: w v: v = (
+      ^ (w <= v) and: [ v <= (last at: w) ]
+    )
+
+    private doDFS: currentNode current: current = (
+      | lastId outerBlocks |
+
+      (nodes at: current) initNode: currentNode dfs: current.
+      number at: currentNode put: current.
+
+      lastId:: current.
+      outerBlocks:: currentNode outEdges.
+
+      1 to: outerBlocks size do: [:i |
+        | target |
+        target:: outerBlocks at: i.
+        (number at: target) = Unvisited ifTrue: [
+          lastId:: doDFS: target current: lastId + 1 ] ].
+
+      last at: current put: lastId.
+      ^ lastId
+    )
+
+    private initAllNodes = (
+      cfg basicBlocks forEach: [:bb |
+        number at: bb put: Unvisited ].
+
+      doDFS: cfg startBasicBlock current: 1
+    )
+
+    private identifyEdges: size = (
+      1 to: size do: [:w |
+        | nodeW |
+        header at: w put: 1.
+        type   at: w put: #BBNonHeader.
+
+        nodeW:: (nodes at: w) bb.
+        nodeW isNil
+          ifTrue:  [ type at: w put: #BBDead ]
+          ifFalse: [ processEdges: nodeW w: w ] ]
+    )
+
+    private processEdges: nodeW w: w = (
+      nodeW numPred > 0 ifTrue: [
+        nodeW inEdges forEach: [:nodeV |
+          | v |
+          v:: number at: nodeV.
+          (v = Unvisited) not ifTrue: [
+            (isAncestor: w v: v)
+              ifTrue:  [ (backPreds at: w) append: v ]
+              ifFalse: [ (nonBackPreds at: w) add: v ] ] ] ]
+    )
+
+    public findLoops = (
+      | size |
+      cfg startBasicBlock isNil ifTrue: [ ^ self ].
+
+      size:: cfg numNodes.
+
+      nonBackPreds removeAll.
+      backPreds removeAll.
+      number removeAll.
+
+      size > maxSize ifTrue: [
+        header:: Array new: size.
+        type::   Array new: size.
+        last::   Array new: size.
+        nodes::  Array new: size.
+        maxSize:: size ].
+
+      1 to: size do: [:i |
+        nonBackPreds append: Set new.
+        backPreds append: Vector new.
+        nodes at: i put: UnionFindNode new ].
+
+      initAllNodes.
+      identifyEdges: size.
+      header at: 1 put: 1.
+
+      size to: 1 by: -1 do: [:w |
+        | nodePool nodeW |
+        nodePool:: Vector new.
+        nodeW:: (nodes at: w) bb.
+
+        nodeW isNil ifFalse: [
+          | workList |
+          stepD: w nodePool: nodePool.
+
+          workList:: Vector new.
+          nodePool forEach: [:niter | workList append: niter ].
+
+          (nodePool size = 0) not ifTrue: [
+            type at: w put: #BBReducible.
+          ].
+
+          [ workList isEmpty ] whileFalse: [
+            | x nonBackSize |
+            x:: workList removeFirst.
+
+            nonBackSize:: (nonBackPreds at: x dfsNumber) size.
+            nonBackSize > MaxNonBackPreds ifTrue: [ ^ self ].
+            stepEProcessNonBackPreds: w nodePool: nodePool workList: workList x: x ].
+
+          (nodePool size > 0 or: [(type at: w) = #BBSelf]) ifTrue: [
+            | loop |
+            loop:: lsg createNewLoop: nodeW reducible: ((type at: w) = #BBIrreducible) not.
+            setLoopAttribute: w nodePool: nodePool loop: loop ] ] ]
+    )
+
+    private stepEProcessNonBackPreds: w nodePool: nodePool workList: workList x: x = (
+      (nonBackPreds at: x dfsNumber) forEach: [:iter |
+        | y ydash |
+        y:: nodes at: iter.
+        ydash:: y findSet.
+
+        (isAncestor: w v: ydash dfsNumber) not
+          ifTrue: [
+            type at: w put: #BBIrreducible.
+            (nonBackPreds at: w) add: ydash dfsNumber ]
+          ifFalse: [
+            (ydash dfsNumber = w) not ifTrue: [
+              (nodePool hasSome: [:e | e == ydash]) ifFalse: [
+                workList append: ydash.
+                nodePool append: ydash ] ] ] ]
+    )
+
+    private setLoopAttribute: w nodePool: nodePool loop: loop = (
+      (nodes at: w) loop: loop.
+
+      nodePool forEach: [:node |
+        header at: node dfsNumber put: w.
+        node union: (nodes at: w).
+
+        node loop isNil
+          ifFalse: [ node loop parent: loop ]
+          ifTrue: [ loop addNode: node bb ] ]
+    )
+
+    private stepD: w nodePool: nodePool = (
+      (backPreds at: w) forEach: [:v |
+        (v = w) not ifTrue: [ nodePool append: (nodes at: v) findSet ]
+                    ifFalse: [ type at: w put: #BBSelf ] ]
+    )
+  )
+

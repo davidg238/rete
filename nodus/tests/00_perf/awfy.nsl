@@ -1,0 +1,3552 @@
+(*
+Are We Fast Yet (Marr, Daloze, Mössenböck, DLS 2016), ported to nsl for rete#37.
+Source: github.com/smarr/are-we-fast-yet, benchmarks/SOMns (MIT; notice below). One program
+holds AWFY's Core library, its harness and every benchmark, because an nsl program is one file
+and a board runs one image: every row runs in one boot. Each benchmark keeps AWFY's rule that it
+uses only Core, never the kernel's collections. Departures from the SOMns source are the ones
+nsl's dialect forces, listed in nodus/tests/00_perf/AWFY.md.
+
+Prints one "<name>: <ms>" line per row and "verified: <bool>" at the end. No expect: block —
+timings vary (perf bucket, like richards.nsl).
+
+Copyright (c) 2001-2016 see AUTHORS.md file (are-we-fast-yet)
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the 'Software'), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED 'AS IS', WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+*)
+class AwfyBench packageUsing: manifest = () (
+class Awfy usingPlatform: platform = (
+| private initialSize = 10.
+  private initialCapacity = 16.
+  (* CD's constants (CDSuite's module slots) *)
+  private MinX = 0.0.
+  private MinY = 0.0.
+  private MaxX = 1000.0.
+  private MaxY = 1000.0.
+  private MinZ = 0.0.
+  private MaxZ = 10.0.
+  private ProximityRadius = 1.0.
+  private GoodVoxelSize   = ProximityRadius * 2.0.
+  private horizontal = Vector2D x: GoodVoxelSize y: 0.0.
+  private vertical   = Vector2D x: 0.0 y: GoodVoxelSize.
+|
+)(
+  (* ---- Harness ---- *)
+
+  public class Benchmark = ()(
+    public innerBenchmarkLoop: innerIterations = (
+      innerIterations timesRepeat: [
+        (self verifyResult: self benchmark) ifFalse: [ ^ false ] ].
+      ^ true
+    )
+    public benchmark = ( ^ self error: 'subclassResponsibility' )
+    public verifyResult: result = ( ^ self error: 'subclassResponsibility' )
+  )
+
+  public class Random = (
+  | seed ::= 74755. |
+  )(
+    public next = (
+      seed:: ((seed * 1309) + 13849) & 65535.
+      ^ seed
+    )
+  )
+
+  (* ---- Core ---- *)
+
+  public class Pair withKey: aKey andValue: aValue = (
+  | public key   ::= aKey.
+    public value ::= aValue.
+  |)()
+
+  public class Vector new: size = (
+  | private firstIdx ::= 1.
+    private lastIdx  ::= 1.
+    private storage  ::= size = 0 ifTrue: [ nil ] ifFalse: [ Array new: size ].
+  |) (
+    public at: index = (
+      (storage == nil or: [ index > storage size ]) ifTrue: [ ^ nil ].
+      ^ storage at: index
+    )
+
+    public at: index put: val = (
+      storage == nil ifTrue: [
+        storage:: Array new: (max: index with: 10).
+      ] ifFalse: [
+        index > storage size ifTrue: [
+          | newLength newStorage |
+          newLength:: storage size.
+          [ newLength < index ] whileTrue: [
+            newLength:: newLength * 2 ].
+          newStorage:: Array new: newLength.
+          1 to: storage size do: [ :i | newStorage at: i put: (storage at: i) ].
+          storage:: newStorage ] ].
+
+      storage at: index put: val.
+      lastIdx < (index + 1) ifTrue: [
+        lastIdx:: index + 1 ]
+    )
+
+    public append: element = (
+      storage == nil ifTrue: [
+        storage:: Array new: 10
+      ] ifFalse: [
+        (lastIdx > storage size) ifTrue: [
+          | newStorage |
+          newStorage:: Array new: 2 * storage size.
+          1 to: storage size do: [ :i | newStorage at: i put: (storage at: i) ].
+          storage:: newStorage ] ].
+
+      storage at: lastIdx put: element.
+      lastIdx:: lastIdx + 1.
+      ^ self
+    )
+
+    public isEmpty  = ( ^ lastIdx = firstIdx )
+
+    public forEach: block = (
+      firstIdx to: lastIdx - 1 do: [ :i | block value: (storage at: i) ]
+    )
+
+    public hasSome: block = (
+      firstIdx to: lastIdx - 1 do: [ :i |
+        (block value: (storage at: i))
+          ifTrue: [ ^ true ] ].
+      ^ false
+    )
+
+    public getOne: block = (
+      firstIdx to: lastIdx - 1 do: [ :i |
+        | e |
+        e:: storage at: i.
+        (block value: e)
+          ifTrue: [ ^ e ] ].
+      ^ nil
+    )
+
+    public removeFirst = (
+      self isEmpty ifTrue:  [ ^ nil ].
+
+      firstIdx:: firstIdx + 1.
+      ^ storage at: firstIdx - 1
+    )
+
+    public removeAll = (
+      firstIdx:: 1.
+      lastIdx::  1.
+
+      storage == nil ifFalse: [
+        storage:: Array new: storage size ]
+    )
+
+    public remove: object = (
+      | newArray newLast found |
+      (storage == nil or: [ self isEmpty ]) ifTrue: [ ^ false ].
+
+      newArray:: Array new: self capacity.
+      newLast:: 1.
+      found:: false.
+
+      self forEach: [ :it |
+        it == object
+          ifTrue:  [ found:: true ]
+          ifFalse: [
+            newArray at: newLast put: it.
+            newLast:: newLast + 1 ] ].
+
+      storage:: newArray.
+      lastIdx:: newLast.
+      firstIdx:: 1.
+      ^ found
+    )
+
+    public size     = ( ^ lastIdx - firstIdx )
+    public capacity = ( storage == nil ifTrue: [ ^ 0 ] ifFalse: [ ^ storage size ] )
+
+    public sort: aBlock = (
+      self size > 0 ifTrue: [
+        self sort: firstIdx
+               to: lastIdx - 1
+             with: aBlock ]
+    )
+
+    private sort: i to: j with: sortBlock = (
+      (* Sort elements i through j of self to be non-descending according to
+         sortBlock. AWFY's nil-block default sort is never used by a benchmark. *)
+      | di dij dj tt ij k l n |
+      (* The prefix d means the data at that index. *)
+      (n:: j + 1  - i) <= 1 ifTrue: [ ^ self ]. (* Nothing to sort. *)
+      (* Sort di,dj. *)
+      di:: storage at: i.
+      dj:: storage at: j.
+
+      (* i.e., should di precede dj? *)
+      (sortBlock value: di value: dj) ifFalse: [
+        swap: storage at: i with: j.
+        tt:: di.
+        di:: dj.
+        dj:: tt
+      ].
+
+      n > 2 ifTrue: [ (* More than two elements. *)
+        ij:: (i + j) // 2.  (* ij is the midpoint of i and j. *)
+        dij:: storage at: ij.  (* Sort di,dij,dj.  Make dij be their median. *)
+        (sortBlock value: di value: dij)
+          ifTrue: [ (* i.e. should di precede dij? *)
+            (sortBlock value: dij value: dj) ifFalse: [ (* i.e., should dij precede dj? *)
+              swap: storage at: j with: ij.
+              dij:: dj]]
+          ifFalse: [ (* i.e. di should come after dij *)
+            swap: storage at: i with: ij.
+            dij:: di].
+
+        n > 3 ifTrue: [
+          (* More than three elements.
+             Find k>i and l<j such that dk,dij,dl are in reverse order.
+             Swap k and l.  Repeat this procedure until k and l pass each other. *)
+          k:: i.
+          l:: j.
+          [ [l:: l - 1.  k <= l and: [sortBlock value: dij value: (storage at: l)]]
+              whileTrue.  (* i.e. while dl succeeds dij *)
+            [k:: k + 1.  k <= l and: [sortBlock value: (storage at: k) value: dij]]
+              whileTrue.  (* i.e. while dij succeeds dk *)
+            k <= l]
+              whileTrue:
+                [ swap: storage at: k with: l ].
+
+          (* Now l<k (either 1 or 2 less), and di through dl are all less than or equal to dk
+             through dj.  Sort those two segments. *)
+          self sort: i to: l with: sortBlock.
+          self sort: k to: j with: sortBlock
+        ]
+      ]
+    )
+  ) : (
+    public new = ( ^ self new: 0 )
+
+    public with: elem = (
+      | newVector |
+      newVector:: self new: 1.
+      newVector append: elem.
+      ^ newVector
+    )
+  )
+
+  public class Set new: size = (
+  | private items ::= Vector new: size. |
+  )(
+    public forEach: block = ( items forEach: block )
+
+    public hasSome: block = ( ^ items hasSome: block )
+
+    public getOne: block = ( ^ items getOne: block )
+
+    public add: anObject = (
+      (self contains: anObject)
+        ifFalse: [ items append: anObject ]
+    )
+
+    public collect: block = ( | coll |
+      coll:: Vector new.
+      self forEach: [ :e | coll append: (block value: e) ].
+      ^ coll
+    )
+
+    public contains: anObject = (
+      ^ self hasSome: [ :it | it = anObject ]
+    )
+
+    public size = ( ^ items size )
+    public removeAll = ( ^ items removeAll )
+  ) : (
+    public new = ( ^ self new: initialSize )
+  )
+
+  public class IdentitySet new: size = Set new: size ()(
+    public contains: anObject = (
+      ^ self hasSome: [ :it | it == anObject ]
+    )
+  ) : (
+    public new = ( ^ self new: initialSize )
+  )
+
+  (* AWFY nests Entry in Dictionary and IdEntry in IdentityDictionary; nsl's classes are
+     statically bound (dialect row 1), so a subclass cannot name its superclass's nested class.
+     Both live here instead. *)
+  class DictEntry new: hash key: key value: val next: next = (
+  | public hash  = hash.
+    public key   = key.
+    public value ::= val.
+    public next  ::= next.
+  |)(
+    public match: aHash key: aKey = (
+      ^ hash = aHash and: [ key = aKey ]
+    )
+  )
+
+  class DictIdEntry new: hash key: key value: val next: next = DictEntry new: hash key: key value: val next: next ()(
+    public match: aHash key: aKey = (
+      ^ hash = aHash and: [ key == aKey ]
+    )
+  )
+
+  public class Dictionary new: size = (
+  | protected buckets ::= Array new: size.
+    protected size_   ::= 0.
+  |)(
+    private hash: key = (
+      | hash |
+      key isNil ifTrue: [ ^ 0 ].
+      hash:: key customHash.
+      ^ hash bitXor: (hash >> 16)
+    )
+
+    private bucketIdx: hash = (
+      ^ 1 + ((buckets size - 1) & hash)
+    )
+
+    private bucket: hash = (
+      ^ buckets at: (bucketIdx: hash)
+    )
+
+    (* AWFY names this temp `hash`. In Newspeak `hash: aKey` beside a local `hash` is that local's
+       setter (Primordial Soup reads it so); `h` keeps the send a send on every VM. *)
+    public at: aKey = (
+      | h e |
+      h:: hash: aKey.
+      e:: bucket: h.
+
+      [ e notNil ] whileTrue: [
+        (e match: h key: aKey)
+          ifTrue: [ ^ e value ].
+        e:: e next ].
+      ^ nil
+    )
+
+    public containsKey: aKey = (
+      | h e |
+      h:: hash: aKey.
+      e:: bucket: h.
+
+      [ e notNil ] whileTrue: [
+        (e match: h key: aKey)
+          ifTrue: [ ^ true ].
+        e:: e next ].
+      ^ false
+    )
+
+    public at: aKey put: aVal = (
+      | h i current |
+      h:: hash: aKey.
+      i:: bucketIdx: h.
+      current:: buckets at: i.
+
+      current isNil
+        ifTrue: [
+          buckets at: i put: (newEntry: aKey value: aVal hash: h).
+          size_:: size_ + 1 ]
+        ifFalse: [
+          insertBucketEntry: aKey value: aVal hash: h head: current ].
+
+      size_ > buckets size ifTrue: [ resize ]
+    )
+
+    protected newEntry: aKey value: value hash: hash = (
+      ^ DictEntry new: hash key: aKey value: value next: nil
+    )
+
+    private insertBucketEntry: key value: value hash: hash head: head = (
+      | current |
+      current:: head.
+
+      [ true ] whileTrue: [
+        (current match: hash key: key) ifTrue: [
+          current value: value.
+          ^ self ].
+        current next isNil ifTrue: [
+          size_:: size_ + 1.
+          current next: (newEntry: key value: value hash: hash).
+          ^ self ].
+        current:: current next ]
+    )
+
+    private resize = (
+      | oldStorage |
+      oldStorage:: buckets.
+      buckets:: Array new: oldStorage size * 2.
+      transferEntries: oldStorage
+    )
+
+    private transferEntries: oldStorage = (
+      1 to: oldStorage size do: [ :i |
+        | current |
+        current:: oldStorage at: i.
+        current notNil ifTrue: [
+          oldStorage at: i put: nil.
+          current next isNil
+            ifTrue: [
+              buckets at: 1 + (current hash & (buckets size - 1)) put: current ]
+            ifFalse: [
+              splitBucket: oldStorage bucket: i head: current ] ] ]
+    )
+
+    private splitBucket: oldStorage bucket: i head: head = (
+      | loHead loTail hiHead hiTail current |
+      loHead:: nil. loTail:: nil.
+      hiHead:: nil. hiTail:: nil.
+      current:: head.
+
+      [ current notNil ] whileTrue: [
+        (current hash & oldStorage size) = 0
+          ifTrue: [
+            loTail isNil
+              ifTrue:  [ loHead:: current ]
+              ifFalse: [ loTail next: current ].
+            loTail:: current ]
+          ifFalse: [
+            hiTail isNil
+              ifTrue:  [ hiHead:: current ]
+              ifFalse: [ hiTail next: current ].
+            hiTail:: current ].
+        current:: current next ].
+
+      loTail notNil ifTrue: [
+        loTail next: nil.
+        buckets at: i put: loHead ].
+      hiTail notNil ifTrue: [
+        hiTail next: nil.
+        buckets at: i + oldStorage size put: hiHead ]
+    )
+
+    public size      = ( ^ size_ )
+    public isEmpty   = ( ^ size_ = 0 )
+    public removeAll = (
+      buckets:: Array new: buckets size.
+      size_:: 0
+    )
+
+    public keys = (
+      | keys |
+      keys:: Vector new: size_.
+      buckets do: [ :b |
+        | current |
+        current:: b.
+        [ current notNil ] whileTrue: [
+          keys append: current key.
+          current:: current next ] ].
+      ^ keys
+    )
+
+    public values = (
+      | values |
+      values:: Vector new: size_.
+      buckets do: [ :b |
+        | current |
+        current:: b.
+        [ current notNil ] whileTrue: [
+          values append: current value.
+          current:: current next ] ].
+      ^ values
+    )
+  ) : (
+    public new = ( ^ self new: initialCapacity )
+  )
+
+  public class IdentityDictionary new: size = Dictionary new: size ()(
+    protected newEntry: aKey value: value hash: hash = (
+      ^ DictIdEntry new: hash key: aKey value: value next: nil
+    )
+  ) : (
+    public new = ( ^ self new: initialCapacity )
+  )
+
+  (* ---- Benchmarks ---- *)
+
+  class Bounce = Benchmark ()(
+    public benchmark = (
+      | ballCount balls bounces random |
+
+      random:: Random new.
+
+      ballCount:: 100.
+      bounces::   0.
+      balls::     newArray: ballCount withAll: [ Ball new: random ].
+
+      1 to: 50 do: [ :i |
+        balls do: [ :ball |
+          ball bounce ifTrue: [ bounces:: bounces + 1 ] ] ].
+
+      ^ bounces
+    )
+
+    public verifyResult: result = (
+      ^ 1331 = result
+    )
+  )
+
+  class Ball new: random = (
+  | x    ::= random next \\ 500.
+    y    ::= random next \\ 500.
+    xVel ::= (random next \\ 300) - 150.
+    yVel ::= (random next \\ 300) - 150.
+  |)(
+    public bounce = (
+      | xLimit yLimit bounced |
+      xLimit::  500.
+      yLimit::  500.
+      bounced:: false.
+
+      x:: x + xVel.
+      y:: y + yVel.
+      x > xLimit ifTrue: [
+        x:: xLimit. xVel:: 0 - (abs: xVel). bounced:: true ].
+      x < 0 ifTrue: [
+        x:: 0.      xVel:: abs: xVel.       bounced:: true ].
+      y > yLimit ifTrue: [
+        y:: yLimit. yVel:: 0 - (abs: yVel). bounced:: true ].
+      y < 0 ifTrue: [
+        y:: 0.      yVel:: abs: yVel.       bounced:: true ].
+      ^ bounced
+    )
+  )
+
+  class List = Benchmark ()(
+    public benchmark = ( | result |
+      result:: self
+                  tailWithX: (self makeList: 15)
+                  withY:     (self makeList: 10)
+                  withZ:     (self makeList: 6).
+      ^ result length
+    )
+
+    public verifyResult: result = (
+      ^ 10 = result
+    )
+
+    private makeList: length = (
+      (length = 0)
+        ifTrue: [ ^ nil ]
+        ifFalse: [
+          | e |
+          e:: ListElement new: length.
+          e next: (self makeList: (length - 1)).
+          ^ e ]
+    )
+
+    private isShorter: x than: y = (
+      | xTail yTail |
+
+      xTail:: x. yTail:: y.
+      [ yTail isNil ]
+        whileFalse: [
+          xTail isNil ifTrue: [ ^ true ].
+          xTail:: xTail next.
+          yTail:: yTail next ].
+
+      ^ false
+    )
+
+    private tailWithX: x withY: y withZ: z = (
+      (self isShorter: y than: x)
+        ifTrue: [
+          ^ (self
+              tailWithX: (self tailWithX: x next withY: y withZ: z)
+              withY: (self tailWithX: y next withY: z withZ: x)
+              withZ: (self tailWithX: z next withY: x withZ: y)) ]
+        ifFalse: [ ^ z ]
+    )
+  )
+
+  class ListElement new: n = (
+  | public val  ::= n.
+    public next ::= nil.
+  |)(
+    public length = ( next isNil ifTrue: [ ^ 1 ] ifFalse: [ ^ 1 + next length ] )
+  )
+
+  class Permute = Benchmark (
+  | private count ::= 0.
+    private v     ::= nil.
+  |)(
+    public benchmark = (
+      count:: 0.
+      v::     newArray: 6 withValue: 0.
+      self permute: 6.
+      ^ count
+    )
+
+    public verifyResult: result = (
+      ^ 8660 = result
+    )
+
+    private permute: n = (
+      count:: count + 1.
+      (n = 0) ifFalse: [
+        self permute: n - 1.
+        n to: 1 by: -1 do: [ :i |
+          self swap: n with: i.
+          self permute: n - 1.
+          self swap: n with: i ] ]
+    )
+
+    private swap: i with: j = (
+      | tmp |
+      tmp:: v at: i.
+      v at: i put: (v at: j).
+      v at: j put: tmp
+    )
+  )
+
+  class Storage = Benchmark (
+  | private count ::= 0. |
+  )(
+    public benchmark = (
+      | random |
+      random:: Random new.
+      count:: 0.
+      self buildTreeDepth: 7 with: random.
+      ^ count
+    )
+
+    public verifyResult: result = (
+      ^ 5461 = result
+    )
+
+    private buildTreeDepth: depth with: random = (
+      count:: count + 1.
+      ^ (depth = 1)
+          ifTrue:  [ Array new: (random next \\ 10) + 1 ]
+          ifFalse: [
+            newArray: 4 withAll: [ self buildTreeDepth: depth - 1 with: random ] ]
+    )
+  )
+
+  (* Richards, derived from richards.st (Mario Wolczko's DeltaBlue and Richards collection).
+     AWFY's module slots (NoTask .. tracing) are Richards' slots here, and its helper classes are
+     nested in Richards, so they reach the constants lexically as they reach the module's in SOMns. *)
+  class Richards = Benchmark (
+  | private NoTask           = nil.
+    private Idler            = 1.
+    private NoWork           = nil.
+    private Worker           = 2.
+    private WorkPacketKind   = 2.
+    private HandlerA         = 3.
+    private HandlerB         = 4.
+    private DeviceA          = 5.
+    private DeviceB          = 6.
+    private DevicePacketKind = 1.
+    private tracing = false.
+  |)(
+    class RBObject = Object ()(
+      public append: packet head: queueHead = (
+        | mouse link |
+        packet link: NoWork.
+        NoWork == queueHead ifTrue: [ ^ packet ].
+        mouse:: queueHead.
+
+        [NoWork == (link:: mouse link)]
+          whileFalse: [ mouse:: link ].
+
+        mouse link: packet.
+        ^ queueHead
+      )
+    )
+
+    class Scheduler = RBObject (
+    | private taskList    ::= NoTask.
+      private currentTask ::= NoTask.
+      private currentTaskIdentity ::= 0.
+      private taskTable = newArray: 6 withValue: NoTask.
+      private layout    ::= 0.
+      private queuePacketCount ::= 0.
+      private holdCount ::= 0.
+    |)(
+      createDevice: identity priority: priority work: work state: state = (
+        | data |
+        data:: DeviceTaskDataRecord create.
+        self
+          createTask: identity
+          priority: priority
+          work: work
+          state: state
+          function: [:work :word |
+            | data functionWork |
+            data:: word.
+            functionWork:: work.
+            NoWork == functionWork ifTrue: [
+              NoWork == (functionWork:: data pending)
+                ifTrue:  [ self wait ]
+                ifFalse: [
+                  data pending: NoWork.
+                  self queuePacket: functionWork ]]
+              ifFalse: [
+                data pending: functionWork.
+                tracing ifTrue: [
+                  self trace: functionWork datum].
+                self holdSelf ]]
+          data: data
+      )
+
+      createHandler: identity priority: priority work: work state: state = (
+        | data |
+        data:: HandlerTaskDataRecord create.
+        self createTask: identity
+             priority:   priority
+             work:       work
+             state:      state
+             function:   [:work :word |
+               | data workPacket |
+               data:: word.
+               NoWork == work ifFalse: [
+                 WorkPacketKind = work kind
+                   ifTrue:  [ data workInAdd: work ]
+                   ifFalse: [ data deviceInAdd: work ]].
+
+               NoWork == (workPacket:: data workIn)
+                 ifTrue:  [ self wait ]
+                 ifFalse: [
+                   |count|
+                   count:: workPacket datum.
+                   count > 4
+                     ifTrue: [
+                       data workIn: workPacket link.
+                       self queuePacket: workPacket ]
+                     ifFalse: [
+                       | devicePacket |
+                       NoWork == (devicePacket:: data deviceIn)
+                         ifTrue:  [ self wait ]
+                         ifFalse: [
+                           data deviceIn: devicePacket link.
+                           devicePacket datum: (workPacket data at: count).
+                           workPacket datum: count + 1.
+                           self queuePacket: devicePacket]]]]
+             data:       data
+      )
+
+      createIdler: identity priority: priority work: work state: state = (
+        | data |
+        data:: IdleTaskDataRecord create.
+        self createTask: identity
+             priority:   priority
+             work:       work
+             state:      state
+             function:   [:work :word |
+               | data |
+               data:: word.
+               data count: data count - 1.
+               0 = data count
+                 ifTrue:  [ self holdSelf ]
+                 ifFalse: [
+                   0 = (data control & 1)
+                     ifTrue: [
+                       data control: data control // 2.
+                       self release: DeviceA ]
+                     ifFalse: [
+                       data control: (data control // 2 bitXor: 53256).
+                       self release: DeviceB ]]]
+             data:       data
+      )
+
+      createPacket: link identity: identity kind: kind = (
+        ^ Packet create:   link
+                 identity: identity
+                 kind:     kind
+      )
+
+      createTask: identity priority: priority work: work state: state function: aBlock data: data = (
+        | t |
+        t:: TaskControlBlock link:             taskList
+                              create:           identity
+                              priority:         priority
+                              initialWorkQueue: work
+                              initialState:     state
+                              function:         aBlock
+                              privateData:      data.
+        taskList:: t.
+        taskTable at: identity put: t
+      )
+
+      createWorker: identity priority: priority work: work state: state = (
+        | data |
+        data:: WorkerTaskDataRecord create.
+        self createTask: identity
+             priority:   priority
+             work:       work
+             state:      state
+             function:   [:work :word |
+               | data |
+               data:: word.
+               NoWork == work
+                 ifTrue:  [ self wait ]
+                 ifFalse: [
+                   data destination: (HandlerA = data destination
+                                        ifTrue:  [HandlerB]
+                                        ifFalse: [HandlerA]).
+                   work identity: data destination.
+                   work datum: 1.
+                   1 to: 4 do: [:i |
+                     data count: data count + 1.
+                     data count > 26 ifTrue: [data count: 1].
+                     (* 65 == $A asInteger *)
+                     work data at: i put: 65 + data count - 1].
+               self queuePacket: work ]]
+             data:       data
+      )
+
+      public start = (
+        | workQ |
+        self createIdler: Idler
+             priority:    0
+             work:        NoWork
+             state:       TaskState running.
+        workQ:: self createPacket: NoWork
+                      identity:     Worker
+                      kind:         WorkPacketKind.
+        workQ:: self createPacket: workQ
+                      identity:     Worker
+                      kind:         WorkPacketKind.
+        self createWorker: Worker
+             priority:     1000
+             work:         workQ
+             state:        TaskState waitingWithPacket.
+
+        workQ:: self createPacket: NoWork
+                      identity:     DeviceA
+                      kind:         DevicePacketKind.
+        workQ:: self createPacket: workQ
+                      identity:     DeviceA
+                      kind:         DevicePacketKind.
+        workQ:: self createPacket: workQ
+                      identity:     DeviceA
+                      kind:         DevicePacketKind.
+
+        self createHandler: HandlerA
+             priority:      2000
+             work:          workQ
+             state:         TaskState waitingWithPacket.
+        workQ:: self createPacket: NoWork
+                      identity:     DeviceB
+                      kind:         DevicePacketKind.
+        workQ:: self createPacket: workQ
+                      identity:     DeviceB
+                      kind:         DevicePacketKind.
+        workQ:: self createPacket: workQ
+                      identity:     DeviceB
+                      kind:         DevicePacketKind.
+        self createHandler: HandlerB
+             priority:      3000
+             work:          workQ
+             state:         TaskState waitingWithPacket.
+        self createDevice: DeviceA
+             priority:     4000
+             work:         NoWork
+             state:        TaskState waiting.
+        self createDevice: DeviceB
+             priority:     5000
+             work:         NoWork
+             state:        TaskState waiting.
+
+        self schedule.
+
+        ^ queuePacketCount = 23246 and: [ holdCount = 9297 ]
+      )
+
+      findTask: identity = (
+        | t |
+        t:: taskTable at: identity.
+        NoTask == t ifTrue: [self error: 'findTask failed'].
+        ^ t
+      )
+
+      holdSelf = (
+        holdCount:: holdCount + 1.
+        currentTask taskHolding: true.
+        ^ currentTask link
+      )
+
+      queuePacket: packet = (
+        | t |
+        t:: self findTask: packet identity.
+        NoTask == t ifTrue: [ ^ NoTask ].
+        queuePacketCount:: queuePacketCount + 1.
+        packet link: NoWork.
+        packet identity: currentTaskIdentity.
+        ^ t addInput: packet checkPriority: currentTask
+      )
+
+      release: identity = (
+        | t |
+        t:: self findTask: identity.
+        NoTask == t ifTrue: [ ^ NoTask ].
+        t taskHolding: false.
+        t priority > currentTask priority
+          ifTrue:  [ ^ t ]
+          ifFalse: [ ^ currentTask ]
+      )
+
+      trace: id = (
+        (* AWFY prints id without a newline and breaks the line every 50; nsl prints whole lines. *)
+        layout:: layout - 1.
+        0 >= layout ifTrue: [
+          '' out.
+          layout:: 50
+        ].
+        id printString out
+      )
+
+      wait = (
+        currentTask taskWaiting: true.
+        ^ currentTask
+      )
+
+      schedule = (
+        currentTask:: taskList.
+        [ NoTask == currentTask ] whileFalse: [
+          currentTask isTaskHoldingOrWaiting
+            ifTrue:  [ currentTask:: currentTask link ]
+            ifFalse: [
+              currentTaskIdentity:: currentTask identity.
+              tracing ifTrue: [ self trace: currentTaskIdentity ].
+              currentTask:: currentTask runTask ]]
+      )
+    )
+
+    class DeviceTaskDataRecord create = RBObject (
+      | public pending ::= NoWork. |
+    )()
+
+    class HandlerTaskDataRecord create = RBObject (
+      | public workIn   ::= NoWork.
+        public deviceIn ::= NoWork. |
+    )(
+      public deviceInAdd: packet = (
+        deviceIn:: self append: packet head: deviceIn
+      )
+
+      public workInAdd: packet = (
+        workIn:: self append: packet head: workIn
+      )
+
+      public asString = (
+        ^ 'HandlerTaskDataRecord(' , workIn printString , ', ' , deviceIn printString , ')'
+      )
+    )
+
+    class IdleTaskDataRecord create = RBObject (
+      | public control ::= 1.
+        public count   ::= 10000. |
+    )()
+
+    class Packet create: link identity: identity kind: kind = RBObject (
+      | public link      ::= link.
+        public kind      ::= kind.
+        public identity  ::= identity.
+        public datum     ::= 1.
+        public data      ::= newArray: 4 withValue: 0.
+      |
+    )(
+      public asString = (
+        ^ 'Packet(' ,
+            link printString , ', ' ,
+            identity printString , ', ' ,
+            kind printString , ', ' ,
+            datum printString , ', ' ,
+            data printString ,
+          ')'
+      )
+    )
+
+    class TaskState = RBObject (
+    | private packetPending_ ::= false.
+      private taskWaiting_   ::= false.
+      private taskHolding_   ::= false.
+    |)(
+      public isPacketPending = ( ^ packetPending_ )
+      public isTaskHolding   = ( ^ taskHolding_ )
+      public isTaskWaiting   = ( ^ taskWaiting_ )
+
+      public taskHolding: aBoolean   = ( taskHolding_::   aBoolean)
+      public taskWaiting: aBoolean   = ( taskWaiting_::   aBoolean)
+      public packetPending: aBoolean = ( packetPending_:: aBoolean)
+
+      public packetPending = (
+        packetPending_:: true.
+        taskWaiting_::   false.
+        taskHolding_::   false
+      )
+
+      public running = (
+        packetPending_:: taskWaiting_:: taskHolding_:: false
+      )
+
+      public waiting = (
+        packetPending_:: taskHolding_:: false.
+        taskWaiting_::   true
+      )
+
+      public waitingWithPacket = (
+        taskHolding_:: false.
+        taskWaiting_:: packetPending_:: true
+      )
+
+      public isTaskHoldingOrWaiting = ( ^ taskHolding_ or: [packetPending_ not and: [taskWaiting_]])
+      public isWaitingWithPacket = ( ^ packetPending_ and: [taskWaiting_ and: [taskHolding_ not]])
+    ) : (
+      public running       = ( ^ self new running )
+      public waiting       = ( ^ self new waiting )
+      public waitingWithPacket = ( ^ self new waitingWithPacket )
+    )
+
+    public class TaskControlBlock link: link create: identity priority: priority initialWorkQueue: initialWorkQueue initialState: initialState function: aBlock privateData: privateData = TaskState (
+    | public link     = link.
+      public identity = identity.
+
+      public function = aBlock.
+      public priority = priority.
+
+      protected input ::= initialWorkQueue.
+      protected handle = privateData.
+    |
+      self packetPending: initialState isPacketPending.
+      self taskWaiting:   initialState isTaskWaiting.
+      self taskHolding:   initialState isTaskHolding.
+    )(
+      public addInput: packet checkPriority: oldTask = (
+        NoWork == input
+          ifTrue: [
+            input:: packet.
+            self packetPending: true.
+            priority > oldTask priority ifTrue: [^self]]
+          ifFalse: [
+            input:: self append: packet head: input].
+        ^ oldTask
+      )
+
+      public runTask = (
+        | message |
+        self isWaitingWithPacket
+          ifTrue: [
+            message:: input.
+            input:: message link.
+            NoWork == input
+              ifTrue:  [ self running ]
+              ifFalse: [ self packetPending ]]
+          ifFalse: [
+            message:: NoWork ].
+
+        ^ function value: message value: handle
+      )
+    )
+
+    class WorkerTaskDataRecord create = RBObject (
+    | public destination ::= HandlerA.
+      public count       ::= 0. |
+    )()
+
+    public benchmark = (
+      ^ Scheduler new start
+    )
+    public verifyResult: result = (
+      ^ result
+    )
+  )
+
+  class Queens = Benchmark (
+  | private freeMaxs  ::= nil.
+    private freeRows  ::= nil.
+    private freeMins  ::= nil.
+    private queenRows ::= nil.
+  |)(
+    public benchmark = (
+      | result |
+      result:: true.
+      1 to: 10 do: [ :i | result:: result & self queens ].
+      ^ result
+    )
+
+    public verifyResult: result = (
+      ^ result
+    )
+
+    private queens = (
+      freeRows::  newArray:  8 withValue: true.
+      freeMaxs::  newArray: 16 withValue: true.
+      freeMins::  newArray: 16 withValue: true.
+      queenRows:: newArray:  8 withValue: -1.
+      ^ self placeQueen: 1
+    )
+
+    private placeQueen: c = (
+      1 to: 8 do: [ :r |
+        (self row: r column: c)
+          ifTrue: [
+            queenRows at: r put: c.
+            self row: r column: c put: false.
+            (c = 8) ifTrue: [ ^ true ].
+            (self placeQueen: c + 1) ifTrue: [ ^ true ].
+            self row: r column: c put: true ] ].
+      ^ false
+    )
+
+    private row: r column: c = (
+      ^ (freeRows at: r) & (freeMaxs at: c + r) & (freeMins at: c - r + 8)
+    )
+
+    private row: r column: c put: v = (
+      freeRows at: r         put: v.
+      freeMaxs at: c + r     put: v.
+      freeMins at: c - r + 8 put: v.
+    )
+  )
+
+  class Sieve = Benchmark ()(
+    public benchmark = (
+      | flags |
+      flags:: newArray: 5000 withValue: true.
+      ^ self sieve: flags size: 5000.
+    )
+
+    public verifyResult: result = (
+      ^ 669 = result
+    )
+
+    private sieve: flags size: size = (
+      | primeCount |
+      primeCount:: 0.
+
+      2 to: size do: [ :i |
+        (flags at: i - 1)
+          ifTrue: [
+            | k |
+            primeCount:: primeCount + 1.
+            k:: i + i.
+            [ k <= size ]
+              whileTrue: [
+                flags at: k - 1 put: false.
+                k:: k + i ]. ] ].
+      ^ primeCount
+    )
+  )
+
+  class Towers = Benchmark (
+  | private piles     ::= nil.
+    private movesdone ::= 0.
+  |)(
+    private pushDisk: disk onPile: pile = (
+      | top |
+
+      top:: piles at: pile.
+      (top notNil and: [ disk size >= top size ])
+        ifTrue: [ self error: 'Cannot put a big disk on a smaller one' ].
+
+      disk next: top.
+      piles at: pile put: disk.
+    )
+
+    private popDiskFrom: pile = (
+      | top |
+
+      top:: piles at: pile.
+      top isNil ifTrue: [
+          self error: 'Attempting to remove a disk from an empty pile' ].
+
+      piles at: pile put: top next.
+      top next: nil.
+      ^ top
+    )
+
+    private moveTopDiskFrom: fromPile to: toPile = (
+      self pushDisk: (self popDiskFrom: fromPile) onPile: toPile.
+      movesdone:: movesdone + 1.
+    )
+
+    private buildTowerAt: pile disks: disks = (
+      disks to: 0 by: -1 do: [ :i |
+        self pushDisk: (TowersDisk new: i) onPile: pile ]
+    )
+
+    private move: disks disksFrom: fromPile to: toPile = (
+      disks = 1
+        ifTrue: [ self moveTopDiskFrom: fromPile to: toPile ]
+        ifFalse: [ | otherPile |
+          otherPile:: 6 - fromPile - toPile.
+          self move: disks - 1 disksFrom: fromPile to: otherPile.
+          self moveTopDiskFrom: fromPile to: toPile.
+          self move: disks - 1 disksFrom: otherPile to: toPile. ]
+    )
+
+    public benchmark = (
+      piles:: Array new: 3.
+      self buildTowerAt: 1 disks: 13.
+      movesdone:: 0.
+      self move: 13 disksFrom: 1 to: 2.
+      ^ movesdone
+    )
+
+    public verifyResult: result = (
+      ^ 8191 = result
+    )
+  )
+
+  class TowersDisk new: size = (
+  | public size = size.
+    public next ::= nil.
+  |)()
+
+  class Mandelbrot = Benchmark ()(
+    public innerBenchmarkLoop: innerIterations = (
+      ^ self verify: (self mandelbrot: innerIterations) inner: innerIterations
+    )
+
+    private verify: result inner: innerIterations = (
+      innerIterations = 500 ifTrue: [ ^ result = 191 ].
+      innerIterations = 750 ifTrue: [ ^ result = 50  ].
+      innerIterations = 1   ifTrue: [ ^ result = 128 ].
+
+      ('No verification result for ' , innerIterations printString , ' found') out.
+      ('Result is: ' , result printString) out.
+      ^ false
+    )
+
+    private mandelbrot: size = (
+      | sum byteAcc bitNum y |
+      sum::     0.
+      byteAcc:: 0.
+      bitNum::  0.
+
+      y:: 0.
+
+      [ y < size ] whileTrue: [
+          | ci x |
+          ci:: (2.0 * y / size) - 1.0.
+          x::  0.
+
+          [ x < size ] whileTrue: [
+              | zrzr zi zizi cr escape z notDone |
+              zrzr:: 0.0.
+              zizi:: zi:: 0.0.
+              cr::   (2.0 * x / size) - 1.5.
+
+              z:: 0.
+              notDone:: true.
+              escape:: 0.
+              [ notDone and: [ z < 50 ] ] whileTrue: [
+                  | zr |
+                  zr:: zrzr - zizi + cr.
+                  zi:: 2.0 * zr * zi + ci.
+
+                  (* preserve recalculation *)
+                  zrzr:: zr * zr.
+                  zizi:: zi * zi.
+
+                  (zrzr + zizi > 4.0) ifTrue: [
+                      notDone:: false.
+                      escape::  1.
+                  ].
+                  z:: z + 1.
+              ].
+
+              byteAcc:: (byteAcc << 1) + escape.
+              bitNum::  bitNum + 1.
+
+              (* Code is very similar for these cases, but using separate blocks
+                 ensures we skip the shifting when it is unnecessary,
+                 which is in most cases. *)
+              bitNum = 8
+                  ifTrue: [
+                    sum:: sum bitXor: byteAcc.
+                    byteAcc:: 0.
+                    bitNum::  0. ]
+                  ifFalse: [
+                    (x = (size - 1)) ifTrue: [
+                        byteAcc:: byteAcc << (8 - bitNum).
+                        sum:: sum bitXor: byteAcc.
+                        byteAcc:: 0.
+                        bitNum::  0. ]].
+              x:: x + 1.
+          ].
+          y:: y + 1.
+      ].
+
+      ^ sum
+    )
+  )
+
+  class NBody = Benchmark ()(
+    public innerBenchmarkLoop: innerIterations = (
+        | system |
+        system:: NBodySystem new.
+
+        1 to: innerIterations do: [ :i |
+            system advance: 0.01.
+        ].
+        ^ verify: system energy for: innerIterations
+    )
+
+    private verify: result for: innerIterations = (
+      innerIterations = 250000 ifTrue: [ ^ result = -0.1690859889909308  ].
+      innerIterations =      1 ifTrue: [ ^ result = -0.16907495402506745 ].
+
+      ('No verification result for ' , innerIterations printString , ' found') out.
+      ('Result is: ' , result printString) out.
+      ^ false
+    )
+  )
+
+  class NBodySystem = (
+  | private bodies = self createBodies. |
+  )(
+    public createBodies = (
+      | px py pz bodies |
+
+      bodies:: Array new: 5.
+      bodies at: 1 put: Body sun.
+      bodies at: 2 put: Body jupiter.
+      bodies at: 3 put: Body saturn.
+      bodies at: 4 put: Body uranus.
+      bodies at: 5 put: Body neptune.
+
+      px:: py:: pz:: 0.0.
+
+      bodies do: [ :b |
+        px:: px + (b vx * b mass).
+        py:: py + (b vy * b mass).
+        pz:: pz + (b vz * b mass).
+      ].
+
+      (bodies at: 1) offsetMomentumX: px y: py z: pz.
+
+      ^ bodies
+    )
+
+    public advance: dt = (
+      1 to: bodies size do: [ :i |
+        | iBody |
+        iBody:: bodies at: i.
+
+        i + 1 to: bodies size do: [ :j |
+          | dx dy dz jBody dSquared distance mag |
+          jBody:: bodies at: j.
+          dx:: iBody x - jBody x.
+          dy:: iBody y - jBody y.
+          dz:: iBody z - jBody z.
+
+          dSquared:: (dx * dx) + (dy * dy) + (dz * dz).
+          distance:: dSquared sqrt.
+          mag::      dt / (dSquared * distance).
+
+          iBody vx: iBody vx - (dx * jBody mass * mag).
+          iBody vy: iBody vy - (dy * jBody mass * mag).
+          iBody vz: iBody vz - (dz * jBody mass * mag).
+
+          jBody vx: jBody vx + (dx * iBody mass * mag).
+          jBody vy: jBody vy + (dy * iBody mass * mag).
+          jBody vz: jBody vz + (dz * iBody mass * mag).
+        ].
+      ].
+
+      bodies do: [ :body |
+        body x: body x + (dt * body vx).
+        body y: body y + (dt * body vy).
+        body z: body z + (dt * body vz).
+      ].
+    )
+
+    public energy = (
+      | e |
+      e:: 0.0.
+
+      1 to: bodies size do: [ :i |
+        | iBody |
+        iBody:: bodies at: i.
+
+        e:: e + (0.5 * iBody mass *
+             ((iBody vx * iBody vx) +
+              (iBody vy * iBody vy) +
+              (iBody vz * iBody vz))).
+
+        i + 1 to: bodies size do: [ :j |
+          | jBody dx dy dz distance |
+          jBody:: bodies at: j.
+
+          dx:: iBody x - jBody x.
+          dy:: iBody y - jBody y.
+          dz:: iBody z - jBody z.
+
+          distance:: ((dx * dx) + (dy * dy) + (dz * dz)) sqrt.
+          e:: e - ((iBody mass * jBody mass) / distance).
+        ].
+      ].
+      ^ e
+    )
+  )
+
+  class Body x: x y: y z: z vx: vx vy: vy vz: vz mass: mass = (
+  | public x  ::= x.
+    public y  ::= y.
+    public z  ::= z.
+    public vx ::= vx * daysPerYear.
+    public vy ::= vy * daysPerYear.
+    public vz ::= vz * daysPerYear.
+    public mass = mass * solarMass.
+  |)(
+    public offsetMomentumX: px y: py z: pz = (
+      vx:: 0.0 - (px / solarMass).
+      vy:: 0.0 - (py / solarMass).
+      vz:: 0.0 - (pz / solarMass).
+    )
+  ) : (
+    public jupiter = (
+      ^ self x:    4.8414314424647209
+             y:   -1.16032004402742839
+             z:   -0.103622044471123109
+             vx:   0.00166007664274403694
+             vy:   0.00769901118419740425
+             vz:  -0.0000690460016972063023
+             mass: 0.000954791938424326609
+    )
+
+    public saturn = (
+      ^ self x:    8.34336671824457987
+             y:    4.12479856412430479
+             z:   -0.403523417114321381
+             vx:  -0.00276742510726862411
+             vy:   0.00499852801234917238
+             vz:   0.0000230417297573763929
+             mass: 0.000285885980666130812
+    )
+
+    public uranus = (
+      ^ self x:   12.894369562139131
+             y:  -15.1111514016986312
+             z:   -0.223307578892655734
+             vx:   0.00296460137564761618
+             vy:   0.0023784717395948095
+             vz:  -0.0000296589568540237556
+             mass: 0.0000436624404335156298
+    )
+
+    public neptune = (
+      ^ self x:   15.3796971148509165
+             y:  -25.9193146099879641
+             z:    0.179258772950371181
+             vx:   0.00268067772490389322
+             vy:   0.00162824170038242295
+             vz:  -0.000095159225451971587
+             mass: 0.0000515138902046611451
+    )
+
+    public sun = (
+      ^ self x: 0.0 y: 0.0 z: 0.0 vx: 0.0 vy: 0.0 vz: 0.0 mass: 1.0
+    )
+  )
+
+  (* ---- CD ---- *)
+
+  class CD = Benchmark ()(
+    private benchmark: numAircrafts = (
+      | numFrames simulator detector actualCollisions |
+      numFrames:: 200.
+
+      simulator:: Simulator new: numAircrafts.
+      detector::  CollisionDetector new.
+
+      actualCollisions:: 0.
+
+      0 to: numFrames - 1 do: [:i |
+        | time collisions |
+        time:: i / 10.0.
+        collisions:: detector handleNewFrame: (simulator simulate: time).
+        actualCollisions:: actualCollisions + collisions size ].
+
+      ^ actualCollisions
+    )
+
+    public innerBenchmarkLoop: innerIterations = (
+      ^ verify: (benchmark: innerIterations) resultFor: innerIterations
+    )
+
+    private verify: actualCollisions resultFor: numAircrafts = (
+      numAircrafts = 1000 ifTrue: [ ^ actualCollisions = 14484 ].
+      numAircrafts =  500 ifTrue: [ ^ actualCollisions = 14484 ].
+      numAircrafts =  250 ifTrue: [ ^ actualCollisions = 10830 ].
+      numAircrafts =  200 ifTrue: [ ^ actualCollisions =  8655 ].
+      numAircrafts =  100 ifTrue: [ ^ actualCollisions =  4305 ].
+      numAircrafts =   10 ifTrue: [ ^ actualCollisions =   390 ].
+      numAircrafts =    2 ifTrue: [ ^ actualCollisions =    42 ].
+
+      ('No verification result for ' , numAircrafts printString , ' found.') out.
+      ('Result is: ' , actualCollisions printString) out.
+      ^ false
+    )
+  )
+
+  class Vector2D x: x y: y = (
+  | public x = x.
+    public y = y.
+  |)(
+    public plus: other = (
+      ^ Vector2D x: x + other x
+                 y: y + other y
+    )
+
+    public minus: other = (
+      ^ Vector2D x: x - other x
+                 y: y - other y
+    )
+
+    public compareTo: other = (
+      | result |
+      result:: compare: x and: other x.
+      (result = 0) not ifTrue: [ ^ result ].
+      ^ compare: y and: other y
+    )
+
+    private compare: a and: b = (
+      a = b ifTrue: [ ^  0 ].
+      a < b ifTrue: [ ^ -1 ].
+      a > b ifTrue: [ ^  1 ].
+
+      (* We say that NaN is smaller than non-NaN. *)
+      a = a ifTrue: [ ^ 1 ].
+      ^ -1
+    )
+  )
+
+  class Vector3D x: x y: y z: z = (
+  | public x = x.
+    public y = y.
+    public z = z.
+  |)(
+    public plus: other = (
+      ^ Vector3D x: x + other x
+                 y: y + other y
+                 z: z + other z
+    )
+
+    public minus: other = (
+      ^ Vector3D x: x - other x
+                 y: y - other y
+                 z: z - other z
+    )
+
+    public dot: other = (
+      ^ (x * other x) + (y * other y) + (z * other z)
+    )
+
+    public squaredMagnitude = (
+      ^ self dot: self
+    )
+
+    public magnitude = (
+      ^ squaredMagnitude sqrt
+    )
+
+    public times: amount = (
+      ^ Vector3D x: x * amount
+                 y: y * amount
+                 z: z * amount
+    )
+  )
+
+  class CDNode key: key value: value = (
+  | public key    = key.
+    public value  ::= value.
+    public left   ::= nil.
+    public right  ::= nil.
+    public parent ::= nil.
+    public color  ::= #red.
+  |)(
+    public successor = (
+      | x y |
+      x:: self.
+      x right notNil ifTrue: [
+        ^ treeMinimum: x right ].
+
+      y:: x parent.
+      [ y notNil and: [ x == y right ]] whileTrue: [
+        x:: y.
+        y:: y parent ].
+      ^ y
+    )
+  )
+
+  class CDEntry key: key value: value = (
+  | public key = key.
+    public value = value.
+  |)()
+
+  class InsertResult new: isNewEntry node: newNode value: oldValue = (
+  | public isNewEntry = isNewEntry.
+    public newNode    = newNode.
+    public oldValue   = oldValue.
+  |)()
+
+  class RedBlackTree = (
+  | private root ::= nil.
+  |)(
+    public at: key put: value = (
+      | insertionResult x |
+      insertionResult:: treeAt: key insert: value.
+      insertionResult isNewEntry ifFalse: [
+        ^ insertionResult oldValue ].
+
+      x:: insertionResult newNode.
+
+      [ (x = root) not and: [ x parent color = #red ]] whileTrue: [
+        x parent == x parent parent left
+          ifTrue: [
+            | y |
+            y:: x parent parent right.
+            (y notNil and: [ y color = #red ])
+              ifTrue: [
+                (* Case 1 *)
+                x parent color: #black.
+                y color: #black.
+                x parent parent color: #red.
+                x:: x parent parent ]
+              ifFalse: [
+                x == x parent right ifTrue: [
+                  (* Case 2 *)
+                  x:: x parent.
+                  leftRotate: x ].
+
+                (* Case 3 *)
+                x parent color: #black.
+                x parent parent color: #red.
+                rightRotate: x parent parent ] ]
+          ifFalse: [
+            (* Same as "then" clause with "right" and "left" exchanged *)
+            | y |
+            y:: x parent parent left.
+            (y notNil and: [ y color = #red ])
+              ifTrue: [
+                (* Case 1 *)
+                x parent color: #black.
+                y color: #black.
+                x parent parent color: #red.
+                x:: x parent parent ]
+              ifFalse: [
+                x == x parent left ifTrue: [
+                  (* Case 2 *)
+                  x:: x parent.
+                  rightRotate: x ].
+
+                (* Case 3 *)
+                x parent color: #black.
+                x parent parent color: #red.
+                leftRotate: x parent parent ] ] ].
+
+      root color: #black.
+      ^ nil
+    )
+
+    public remove: key = (
+      | x y z xParent |
+      z:: findNode: key.
+      z isNil ifTrue: [ ^ nil ].
+
+      (* Y is the node to be unlinked from the tree. *)
+      (z left isNil or: [ z right isNil ])
+        ifTrue:  [ y:: z ]
+        ifFalse: [ y:: z successor ].
+
+      (* Y is guaranteed to be non-null at this point. *)
+      y left notNil
+        ifTrue:  [ x:: y left ]
+        ifFalse: [ x:: y right ].
+
+      (* X is the child of y which might potentially replace y in the tree.
+         X might be null at this point. *)
+      x notNil
+        ifTrue: [
+          x parent: y parent.
+          xParent:: x parent ]
+        ifFalse: [
+          xParent:: y parent ].
+
+      y parent isNil
+        ifTrue: [ root:: x ]
+        ifFalse: [
+          y == y parent left
+            ifTrue:  [ y parent left: x ]
+            ifFalse: [ y parent right: x ] ].
+
+      (y = z) not
+        ifTrue: [
+          y color = #black ifTrue: [
+            remove: x andFixup: xParent ].
+
+          y parent: z parent.
+          y color:  z color.
+          y left:   z left.
+          y right:  z right.
+
+          z left notNil ifTrue: [
+            z left parent: y ].
+          x right notNil ifTrue: [
+            z right parent: y ].
+
+          z parent notNil
+            ifTrue: [
+              z parent left == z
+                ifTrue:  [ z parent left: y ]
+                ifFalse: [ z parent right: y ] ]
+            ifFalse: [ root:: y ] ]
+        ifFalse: [
+          y color = #black ifTrue: [
+            remove: x andFixup: xParent ] ].
+
+      ^ z value
+    )
+
+    public at: key = (
+      | node |
+      node:: findNode: key.
+      node isNil ifTrue: [ ^ nil ].
+      ^ node value
+    )
+
+    public forEach: block = (
+      | current |
+      root isNil ifTrue: [ ^ self ].
+      current:: treeMinimum: root.
+      [ current notNil ] whileTrue: [
+        block value: (CDEntry key: current key value: current value).
+        current:: current successor ].
+    )
+
+    private findNode: key = (
+      | current |
+      current:: root.
+      [ current notNil ] whileTrue: [
+        | comparisonResult |
+        comparisonResult:: key compareTo: current key.
+        comparisonResult = 0 ifTrue: [ ^ current ].
+        comparisonResult < 0
+          ifTrue:  [ current:: current left ]
+          ifFalse: [ current:: current right ] ].
+      ^ nil
+    )
+
+    private treeAt: key insert: value = (
+      | x y z |
+      y:: nil.
+      x:: root.
+
+      [ x notNil ] whileTrue: [
+        | comparisonResult |
+        y:: x.
+        comparisonResult:: key compareTo: x key.
+        comparisonResult < 0
+          ifTrue:  [ x:: x left ]
+          ifFalse: [
+            comparisonResult > 0
+              ifTrue: [ x:: x right ]
+              ifFalse: [
+                | oldValue |
+                oldValue:: x value.
+                x value: value.
+                ^ InsertResult new: false node: nil value: oldValue ] ] ].
+
+      z:: CDNode key: key value: value.
+      z parent: y.
+      y isNil
+        ifTrue: [ root:: z ]
+        ifFalse: [
+          (key compareTo: y key) < 0
+            ifTrue:  [ y left: z ]
+            ifFalse: [ y right: z ] ].
+
+      ^ InsertResult new: true node: z value: nil
+    )
+
+    private leftRotate: x = (
+      | y |
+      y:: x right.
+
+      (* Turn y's left subtree into x's right subtree *)
+      x right: y left.
+      y left notNil ifTrue: [
+        y left parent: x ].
+
+      (* Link x's parent to y *)
+      y parent: x parent.
+      x parent isNil
+        ifTrue: [ root:: y ]
+        ifFalse: [
+          x == x parent left ifTrue:  [ x parent left: y ]
+                             ifFalse: [ x parent right: y ] ].
+
+      (* Put x on y's left *)
+      y left: x.
+      x parent: y.
+      ^ y
+    )
+
+    private rightRotate: y = (
+      | x |
+      x:: y left.
+
+      (* Turn x's right subtree into y's left subtree *)
+      y left: x right.
+      x right notNil ifTrue: [ x right parent: y ].
+
+      (* Link y's parent to x *)
+      x parent: y parent.
+      y parent isNil
+        ifTrue: [ root:: x ]
+        ifFalse: [
+          y == y parent left
+            ifTrue: [ y parent left: x ]
+            ifFalse: [ y parent right: x ] ].
+
+      x right: y.
+      y parent: x.
+      ^ x
+    )
+
+    private remove: anX andFixup: anXParent = (
+      | x xParent |
+      x:: anX.
+      xParent:: anXParent.
+
+      [ (x = root) not and: [ x isNil or: [ x color = #black ]]] whileTrue: [
+        x == xParent left
+          ifTrue: [
+            | w |
+            (* Note: the text points out that w cannot be null. The reason is not obvious from
+               simply looking at the code; it comes about from the properties of the red-black
+               tree. *)
+            w:: xParent right.
+            w color = #red ifTrue: [
+              (* Case 1 *)
+              w color: #black.
+              xParent color: #red.
+              leftRotate: xParent.
+              w:: xParent right ].
+
+            ((w left isNil or: [ w left color = #black ]) and: [
+              w right isNil or: [ w right color = #black ]])
+              ifTrue:  [
+                (* Case 2 *)
+                w color: #red.
+                x:: xParent.
+                xParent:: x parent ]
+              ifFalse: [
+                (w right isNil or: [ w right color = #black ]) ifTrue: [
+                  (* Case 3 *)
+                  w left color: #black.
+                  w color: #red.
+                  rightRotate: w.
+                  w:: xParent right ].
+
+                (* Case 4 *)
+                w color: xParent color.
+                xParent color: #black.
+                w right notNil ifTrue: [
+                  w right color: #black ].
+
+                leftRotate: xParent.
+                x:: root.
+                xParent:: x parent ] ]
+          ifFalse: [
+            | w |
+            (* Same as "then" clause with "right" and "left" exchanged *)
+            w:: xParent left.
+            w color = #red ifTrue: [
+              (* Case 1 *)
+              w color: #black.
+              xParent color: #red.
+              rightRotate: xParent.
+              w:: xParent left ].
+
+            ((w right isNil or: [ w right color = #black ]) and: [
+             (w left isNil or: [ w left color = #black ])])
+              ifTrue: [
+                (* Case 2 *)
+                w color: #red.
+                x:: xParent.
+                xParent:: x parent ]
+              ifFalse: [
+                (w left isNil or: [ w left color = #black ]) ifTrue: [
+                  (* Case 3 *)
+                  w right color: #black.
+                  w color: #red.
+                  leftRotate: w.
+                  w:: xParent left ].
+
+                (* Case 4 *)
+                w color: xParent color.
+                xParent color: #black.
+                w left notNil ifTrue: [
+                  w left color: #black ].
+
+                rightRotate: xParent.
+                x:: root.
+                xParent = x parent ] ] ].
+
+      x notNil ifTrue: [ x color: #black ]
+    )
+  )
+
+  class CallSign new: val = (
+  | public value = val.
+  |)(
+    public compareTo: other = (
+      ^ value = other value
+          ifTrue:  [ 0 ]
+          ifFalse: [
+            value < other value ifTrue: [ -1 ] ifFalse: [ 1 ]]
+    )
+  )
+
+  class Collision a: aircraftA b: aircraftB pos: position = (
+  | public aircraftA = aircraftA.
+    public aircraftB = aircraftB.
+    public position  = position.
+  |)()
+
+  class CollisionDetector = (
+  | private state = RedBlackTree new.
+  |)(
+    public handleNewFrame: frame = (
+      | motions seen toRemove allReduced collisions |
+      motions:: Vector new.
+      seen:: RedBlackTree new.
+
+      frame forEach: [:aircraft |
+        | oldPosition newPosition |
+        oldPosition:: state at: aircraft callsign put: aircraft position.
+        newPosition:: aircraft position.
+        seen at: aircraft callsign put: true.
+
+        oldPosition isNil ifTrue: [
+          (* Treat newly introduced aircraft as if they were stationary *)
+          oldPosition:: newPosition ].
+
+        motions append: (Motion new: aircraft callsign old: oldPosition new: newPosition) ].
+
+      (* Remove aircraft that are no longer present *)
+      toRemove:: Vector new.
+      state forEach: [:e |
+        (seen at: e key) ifFalse: [ toRemove append: e key ] ].
+
+      toRemove forEach: [:e | state remove: e ].
+
+      allReduced:: reduceCollisionSet: motions.
+      collisions:: Vector new.
+      allReduced forEach: [:reduced |
+        1 to: reduced size do: [:i |
+          | motion1 |
+          motion1:: reduced at: i.
+          i + 1 to: reduced size do: [:j |
+            | motion2 collision |
+            motion2:: reduced at: j.
+            collision:: motion1 findIntersection: motion2.
+            collision notNil ifTrue: [
+              collisions append: (Collision a: motion1 callsign b: motion2 callsign pos: collision) ] ] ] ].
+
+      ^ collisions
+    )
+
+    private isInVoxel: voxel motion: motion = (
+      | init fin v_s r v_x x0 xv v_y y0 yv low_x high_x low_y high_y |
+      (voxel x > MaxX or: [
+       voxel x < MinX or: [
+       voxel y > MaxY or: [
+       voxel y < MinY ]]]) ifTrue: [ ^ false ].
+
+      init:: motion posOne.
+      fin::  motion posTwo.
+
+      v_s:: GoodVoxelSize.
+      r::   ProximityRadius / 2.0.
+
+      v_x:: voxel x.
+      x0::  init x.
+      xv::  fin x - init x.
+
+      v_y:: voxel y.
+      y0::  init y.
+      yv::  fin y - init y.
+
+      low_x::  fdiv: (v_x - r - x0) by: xv.
+      high_x:: fdiv: (v_x + v_s + r - x0) by: xv.
+
+      xv < 0.0 ifTrue: [
+        | tmp |
+        tmp::    low_x.
+        low_x::  high_x.
+        high_x:: tmp ].
+
+      low_y::  fdiv: (v_y - r - y0) by: yv.
+      high_y:: fdiv: (v_y + v_s + r - y0) by: yv.
+
+      yv < 0.0 ifTrue: [
+        | tmp |
+        tmp::    low_y.
+        low_y::  high_y.
+        high_y:: tmp ].
+
+      ^ (((xv = 0.0 and: [v_x <= (x0 + r) and: [(x0 - r) <= (v_x + v_s)]]) or: [ (* no motion in x *)
+          (low_x <= 1.0 and: [1.0 <= high_x]) or: [
+          (low_x <= 0.0 and: [0.0 <= high_x]) or: [
+          (0.0 <= low_x and: [high_x <= 1.0])]]]) and: [
+
+          (yv = 0.0 and: [v_y <= (y0 + r) and: [(y0 - r) <= (v_y + v_s)]]) or: [ (* no motion in y *)
+            (low_y <= 1.0 and: [1.0 <= high_y]) or: [
+            (low_y <= 0.0 and: [0.0 <= high_y]) or: [
+            (0.0   <= low_y and: [high_y <= 1.0])]]]]) and: [
+
+           xv = 0.0 or: [
+           yv = 0.0 or: [ (* no motion in x or y or both *)
+           (low_y <= high_x and: [high_x <= high_y]) or: [
+           (low_y <= low_x  and: [low_x <= high_y]) or: [
+           (low_x <= low_y  and: [high_y <= high_x]) ]]]]]
+    )
+
+    private put: motion and: voxel into: voxelMap = (
+      | array |
+      array:: voxelMap at: voxel.
+      array isNil ifTrue: [
+        array:: Vector new.
+        voxelMap at: voxel put: array ].
+      array append: motion
+    )
+
+    private recurse: voxelMap seen: seen voxel: nextVoxel motion: motion = (
+      (isInVoxel: nextVoxel motion: motion) ifFalse: [ ^ self ].
+      (seen at: nextVoxel put: true) = true ifTrue: [ ^ self ].
+
+      put: motion and: nextVoxel into: voxelMap.
+
+      recurse: voxelMap seen: seen voxel: (nextVoxel minus: horizontal) motion: motion.
+      recurse: voxelMap seen: seen voxel: (nextVoxel plus:  horizontal) motion: motion.
+      recurse: voxelMap seen: seen voxel: (nextVoxel minus: vertical)   motion: motion.
+      recurse: voxelMap seen: seen voxel: (nextVoxel plus:  vertical)   motion: motion.
+      recurse: voxelMap seen: seen voxel: ((nextVoxel minus: horizontal) minus: vertical) motion: motion.
+      recurse: voxelMap seen: seen voxel: ((nextVoxel minus: horizontal) plus:  vertical) motion: motion.
+      recurse: voxelMap seen: seen voxel: ((nextVoxel plus:  horizontal) minus: vertical) motion: motion.
+      recurse: voxelMap seen: seen voxel: ((nextVoxel plus:  horizontal) plus:  vertical) motion: motion.
+    )
+
+    private reduceCollisionSet: motions = (
+      | voxelMap result |
+      voxelMap:: RedBlackTree new.
+      motions forEach: [:motion | draw: motion on: voxelMap ].
+
+      result:: Vector new.
+      voxelMap forEach: [:e |
+        e value size > 1 ifTrue: [ result append: e value ] ].
+      ^ result
+    )
+
+    private voxelHash: position = (
+      | xDiv yDiv x y |
+      xDiv:: asInteger: position x / GoodVoxelSize.
+      yDiv:: asInteger: position y / GoodVoxelSize.
+
+      x:: GoodVoxelSize * xDiv.
+      y:: GoodVoxelSize * yDiv.
+
+      position x < 0 ifTrue: [ x:: x - GoodVoxelSize ].
+      position y < 0 ifTrue: [ y:: y - GoodVoxelSize ].
+
+      ^ Vector2D x: x y: y
+    )
+
+    private draw: motion on: voxelMap = (
+      | seen |
+      seen:: RedBlackTree new.
+      recurse: voxelMap seen: seen voxel: (voxelHash: motion posOne) motion: motion
+    )
+  )
+
+  class Motion new: callsign old: posOne new: posTwo = (
+  | public callsign = callsign.
+    public posOne = posOne.
+    public posTwo = posTwo.
+  |)(
+    public delta = (
+      ^ posTwo minus: posOne
+    )
+
+    public findIntersection: other = (
+      | init1 init2 vec1 vec2 radius a dist |
+      init1:: posOne.
+      init2:: other posOne.
+      vec1::  delta.
+      vec2::  other delta.
+      radius:: ProximityRadius.
+
+      (* Not a geometric 3-d intersection test: it takes the motion into account, so it is more
+         like a 4-d test (it assumes both aircraft keep a constant speed over the interval).
+         a = (V2 - V1)^T * (V2 - V1) *)
+      a:: (vec2 minus: vec1) squaredMagnitude.
+
+      (a = 0.0) not ifTrue: [
+        | b c discr v1 v2 |
+        (* Solve 0 = c + bv + av^2 for the times the planes are exactly r apart.
+           b = 2 * <I1-I2, V1-V2> *)
+        b:: 2.0 * ((init1 minus: init2) dot: (vec1 minus: vec2)).
+
+        (* c = -r^2 + (I2 - I1)^T * (I2 - I1) *)
+        c:: ((0.0 - radius) * radius) + ((init2 minus: init1) squaredMagnitude).
+
+        discr:: (b * b) - (4.0 * a * c).
+        discr < 0.0 ifTrue: [ ^ nil ].
+
+        v1:: ((0.0 - b) - discr sqrt) / (2.0 * a).
+        v2:: ((0.0 - b) + discr sqrt) / (2.0 * a).
+
+        (v1 <= v2 and: [((v1  <= 1.0 and: [1.0 <= v2]) or: [
+                         (v1  <= 0.0 and: [0.0 <= v2]) or: [
+                         (0.0 <= v1  and: [v2  <= 1.0])]])]) ifTrue: [
+          (* Pick a good "time" at which to report the collision *)
+          | v result1 result2 result |
+          v1 <= 0.0
+            ifTrue: [
+              (* The collision started before this frame. Report it at the start of the frame *)
+              v:: 0.0 ]
+            ifFalse: [
+              (* The collision started during this frame. Report it at that moment *)
+              v:: v1 ].
+
+          result1:: init1 plus: (vec1 times: v).
+          result2:: init2 plus: (vec2 times: v).
+
+          result:: (result1 plus: result2) times: 0.5.
+
+          (result x >= MinX and: [
+           result x <= MaxX and: [
+           result y >= MinY and: [
+           result y <= MaxY and: [
+           result z >= MinZ and: [
+           result z <= MaxZ ]]]]]) ifTrue: [ ^ result ] ].
+
+        ^ nil ].
+
+      (* Same speeds, moving in parallel (or not at all): the distance is constant; take it from
+         the initial points. dist = || i2 - i1 || *)
+      dist:: (init2 minus: init1) magnitude.
+      dist <= radius ifTrue: [
+        ^ (init1 plus: init2) times: 0.5 ].
+
+      ^ nil
+    )
+  )
+
+  class Aircraft new: callsign pos: position = (
+  | public callsign = callsign.
+    public position = position.
+  |)()
+
+  class Simulator new: numAircrafts = (
+  | private aircrafts = Vector new.
+  |
+    0 to: numAircrafts - 1 do: [:i |
+      aircrafts append: (CallSign new: i)]
+  )(
+    public simulate: time = (
+      | frame |
+      frame:: Vector new.
+      0 to: aircrafts size - 2 by: 2 do: [:i |
+        frame append: (Aircraft new: (aircrafts at: i + 1)
+                                pos: (Vector3D x: time
+                                               y: ((cos: time) * 2.0) + (i * 3.0)
+                                               z: 10.0)).
+        frame append: (Aircraft new: (aircrafts at: i + 2)
+                                pos: (Vector3D x: time
+                                               y: ((sin: time) * 2.0) + (i * 3.0)
+                                               z: 10.0)) ].
+      ^ frame
+    )
+  )
+
+  (* DeltaBlue: Mario Wolczko's Smalltalk version of John Maloney's DeltaBlue constraint solver
+     (Freeman-Benson and Maloney, CACM January 1990), as AWFY's SOMns has it. AWFY's module slots
+     (the Sym constants, the strength table and constants) and its helper classes live inside
+     the benchmark class, which stands in for AWFY's DeltaBlue module: nsl's module class here is
+     the shared Awfy one. *)
+
+  (* AWFY nests Plan in its DeltaBlue module as `Plan = Vector new: 15`. Here it is at module
+     level, because a class nested in DeltaBlue cannot take Vector as superclass (nsl: the
+     inherited slots are left uninitialised and the first slot read crashes the VM), and its
+     factory is `new: size` with a class-side `new` answering `new: 15`, because a bare
+     `Plan new` dispatches to Vector's class-side `new` (= new: 0) instead of Plan's own factory. *)
+  class Plan new: size = Vector new: size (
+    (* A Plan is an ordered list of constraints to be executed in sequence to
+    resatisfy all currently satisfiable constraints in the face of one or more
+    changing inputs. *)
+  )(
+    public execute = (
+      (* Execute my constraints in order. *)
+      self forEach: [:c | c execute ]
+    )
+  ) : (
+    public new = ( ^ self new: 15 )
+  )
+
+  class DeltaBlue = Benchmark (
+  | private SymAbsoluteStrongest = Sym new: 0.
+    private SymRequired          = Sym new: 1.
+    private SymStrongPreferred   = Sym new: 2.
+    private SymPreferred         = Sym new: 3.
+    private SymStrongDefault     = Sym new: 4.
+    private SymDefault           = Sym new: 5.
+    private SymWeakDefault       = Sym new: 6.
+    private SymAbsoluteWeakest   = Sym new: 7.
+
+    private strengthTable     = Strength createStrengthTable.
+    private strengthConstants = Strength createStrengthConstants.
+
+    private AbsoluteStrongest = Strength of: SymAbsoluteStrongest.
+    private AbsoluteWeakest   = Strength of: SymAbsoluteWeakest.
+    private Required          = Strength of: SymRequired.
+  |)(
+    class Planner = (
+      (* The DeltaBlue planner. To run the benchmark: chainTest: and projectionTest:. *)
+      | currentMark ::= 1. |
+    )(
+      public incrementalAdd: c = (
+        (* Attempt to satisfy the given constraint and, if successful,
+           incrementally update the dataflow graph. *)
+        | mark overridden |
+        mark:: self newMark.
+        overridden:: c satisfy: mark propagate: self.
+        [overridden == nil] whileFalse:
+            [overridden:: overridden satisfy: mark propagate: self]
+      )
+
+      public incrementalRemove: c = (
+        (* Entry point for retracting a constraint. Remove the given constraint,
+           which should be satisfied, and incrementally update the dataflow
+           graph. *)
+        | out unsatisfied |
+        out:: c output.
+        c markUnsatisfied.
+        c removeFromGraph.
+        unsatisfied:: self removePropagateFrom: out.
+        unsatisfied forEach: [:u | self incrementalAdd: u]
+      )
+
+      public extractPlanFromConstraints: constraints = (
+        (* Extract a plan for resatisfaction starting from the outputs of the
+           given constraints, usually a set of input constraints. *)
+        | sources |
+        sources:: Vector new.
+        constraints forEach: [:c |
+          (c isInput and: [c isSatisfied]) ifTrue: [sources append: c]].
+        ^ self makePlan: sources
+      )
+
+      makePlan: sources = (
+        (* Extract a plan for resatisfaction starting from the given satisfied
+           source constraints, usually a set of input constraints. *)
+        | mark plan todo c |
+        mark:: self newMark.
+        plan:: Plan new.
+        todo:: sources.
+        [todo isEmpty] whileFalse:
+          [c:: todo removeFirst.
+            ((c output mark = mark) not and: [     (* not in plan already and... *)
+              c inputsKnown: mark]) ifTrue: [ (* eligible for inclusion *)
+                plan append: c.
+                c output mark: mark.
+                self addConstraintsConsuming: c output to: todo]].
+        ^ plan
+      )
+
+      propagateFrom: v = (
+        (* The given variable has changed. Propagate new values downstream. *)
+        | todo c |
+        todo:: Vector new.
+        self addConstraintsConsuming: v to: todo.
+        [todo isEmpty] whileFalse: [
+          c:: todo removeFirst.
+          c execute.
+          self addConstraintsConsuming: c output to: todo].
+      )
+
+      private addConstraintsConsuming: v to: aCollection = (
+        | determiningC |
+        determiningC:: v determinedBy.
+        v constraints forEach: [:c |
+          (c == determiningC or: [c isSatisfied not]) ifFalse:
+            [aCollection append: c]].
+      )
+
+      public addPropagate: c mark: mark = (
+        (* Recompute the walkabout strengths and stay flags of all variables
+           downstream of the given constraint and recompute the actual values
+           of all variables whose stay flag is true. If a cycle is detected,
+           remove the given constraint and answer false. Otherwise, answer true. *)
+        | todo d |
+        todo:: Vector with: c.
+        [todo isEmpty] whileFalse: [
+          d:: todo removeFirst.
+          d output mark = mark ifTrue: [
+            self incrementalRemove: c.
+            ^ false ].
+          d recalculate.
+          self addConstraintsConsuming: d output to: todo].
+        ^ true
+      )
+
+      public changeVar: aVariable newValue: newValue = (
+        | editConstraint plan |
+        editConstraint:: EditConstraint var: aVariable strength: SymPreferred addTo: self.
+        plan:: self extractPlanFromConstraints: (Vector with: editConstraint).
+        10 timesRepeat: [
+          aVariable value: newValue.
+          plan execute ].
+        editConstraint destroyConstraint: self.
+      )
+
+      constraintsConsuming: v do: aBlock = (
+        | determiningC |
+        determiningC:: v determinedBy.
+        v constraints forEach: [:c |
+          (c == determiningC or: [c isSatisfied not]) ifFalse:
+            [aBlock value: c]].
+      )
+
+      newMark = (
+        (* Select a previously unused mark value. We reserve the value '0' to mean
+           'unmarked'. Thus, this generator starts at '1' and will never produce '0'. *)
+        ^ currentMark:: currentMark + 1
+      )
+
+      removePropagateFrom: out = (
+        (* Update the walkabout strengths and stay flags of all variables
+           downstream of the given constraint. Answer a collection of unsatisfied
+           constraints sorted in order of decreasing strength. *)
+        | unsatisfied todo v |
+        unsatisfied:: Vector new.
+
+        out determinedBy: nil.
+        out walkStrength: AbsoluteWeakest.
+        out stay: true.
+        todo:: Vector with: out.
+        [todo isEmpty] whileFalse: [
+          v:: todo removeFirst.
+          v constraints forEach: [:c |
+            c isSatisfied ifFalse: [unsatisfied append: c]].
+          self constraintsConsuming: v do: [:c |
+            c recalculate.
+            todo append: c output]].
+
+        unsatisfied sort: [:c1 :c2 | c1 strength stronger: c2 strength].
+        ^ unsatisfied
+      )
+    )
+
+    class Sym new: hash = (| public customHash = hash. |)()
+
+    class Strength new: symVal = (
+    (* Strengths are used to measure the relative importance of constraints.
+       Because Strengths are invariant, references to Strength instances are shared
+       (i.e. all references to `Strength of: SymRequired` point to a single, shared
+       instance).
+
+       Instance variables:
+           symbolicValue      symbolic strength name (e.g. SymRequired) <Symbol>
+           arithmeticValue    index of the constraint in the hierarchy, used for comparisons <Number> *)
+      | private symbolicValue   = symVal.
+        public  arithmeticValue = strengthTable at: symVal. |
+    ) (
+      public sameAs: aStrength = (
+        (* Answer true if I am the same strength as the given Strength. *)
+        ^ arithmeticValue = aStrength arithmeticValue
+      )
+
+      public stronger: aStrength = (
+        (* Answer true if I am stronger than the given Strength. *)
+        ^ arithmeticValue < aStrength arithmeticValue
+      )
+
+      public weaker: aStrength = (
+        (* Answer true if I am weaker than the given Strength. *)
+        ^ arithmeticValue > aStrength arithmeticValue
+      )
+
+      public strongest: aStrength = (
+        (* Answer the stronger of myself and aStrength. *)
+        (aStrength stronger: self)
+          ifTrue:  [ ^ aStrength ]
+          ifFalse: [ ^ self ].
+      )
+
+      public weakest: aStrength = (
+        (* Answer the weaker of myself and aStrength. *)
+        (aStrength weaker: self)
+          ifTrue:  [ ^ aStrength ]
+          ifFalse: [ ^ self ].
+      )
+    ) : (
+      public createStrengthTable = (
+        | table |
+        (* Initialize the symbolic strength table. *)
+        table:: IdentityDictionary new.
+        table at: SymAbsoluteStrongest put: -10000.
+        table at: SymRequired put: -800.
+        table at: SymStrongPreferred put: -600.
+        table at: SymPreferred put: -400.
+        table at: SymStrongDefault put: -200.
+        table at: SymDefault put: 0.
+        table at: SymWeakDefault put: 500.
+        table at: SymAbsoluteWeakest put: 10000.
+        ^ table
+      )
+
+      public createStrengthConstants = (
+        | constants |
+        constants:: IdentityDictionary new.
+        strengthTable keys forEach: [:strengthSymbol |
+          constants
+            at: strengthSymbol
+            put: (self new: strengthSymbol)].
+        ^ constants
+      )
+
+      public of: aSymbol = (
+        (* Answer an instance with the specified strength. *)
+        ^ strengthConstants at: aSymbol
+      )
+    )
+
+    class AbstractConstraint new: strengthSymbol = (
+      (* I am an abstract class representing a system-maintainable relationship
+         (or 'constraint') between a set of variables.
+
+        Instance variables:
+            strength            the strength of this constraint <Strength> *)
+      | public strength = Strength of: strengthSymbol. |
+    ) (
+      public isInput = (
+        (* Normal constraints are not input constraints. *)
+        ^ false
+      )
+
+      public isSatisfied = (
+        (* Answer true if this constraint is satisfied in the current solution. *)
+        self error: 'subclassResponsibility'
+      )
+
+      addConstraint: planner = (
+        (* Activate this constraint and attempt to satisfy it. *)
+        self addToGraph.
+        planner incrementalAdd: self.
+      )
+
+      addToGraph = (
+        (* Add myself to the constraint graph. *)
+        self error: 'subclassResponsibility'
+      )
+
+      public destroyConstraint: planner = (
+        (* Deactivate this constraint, remove it from the constraint graph,
+           possibly causing other constraints to be satisfied, and destroy it. *)
+        self isSatisfied ifTrue: [planner incrementalRemove: self].
+        self removeFromGraph.
+      )
+
+      public removeFromGraph = (
+        (* Remove myself from the constraint graph. *)
+        self error: 'subclassResponsibility'
+      )
+
+      public chooseMethod: mark = (
+        (* Decide if I can be satisfied and record that decision. *)
+        self error: 'subclassResponsibility'
+      )
+
+      public execute = (
+        (* Enforce this constraint. Assume that it is satisfied. *)
+        self error: 'subclassResponsibility'
+      )
+
+      public inputsDo: aBlock = (
+        (* Assume that I am satisfied. Evaluate the given block on all my current
+           input variables. *)
+        self error: 'subclassResponsibility'
+      )
+
+      public inputsKnown: mark = (
+        (* Assume that I am satisfied. Answer true if all my current inputs are
+           known. *)
+        ^ (self inputsHasOne: [:v |
+            (v mark = mark or: [v stay or: [v determinedBy == nil]]) not ]) not
+      )
+
+      public markUnsatisfied = (
+        (* Record the fact that I am unsatisfied. *)
+        self error: 'subclassResponsibility'
+      )
+
+      public output = (
+        (* Answer my current output variable. *)
+        self error: 'subclassResponsibility'
+      )
+
+      public recalculate = (
+        (* Calculate the walkabout strength, the stay flag, and, if it is 'stay',
+           the value for the current output of this constraint. *)
+        self error: 'subclassResponsibility'
+      )
+
+      public satisfy: mark propagate: planner = (
+        (* Attempt to find a way to enforce this (still unsatisfied) constraint.
+           If successful, record the solution, perhaps modifying the current
+           dataflow graph.  Answer the constraint that this constraint overrides,
+           if there is one, or nil, if there isn't. *)
+        | overridden |
+        self chooseMethod: mark.
+        self isSatisfied
+          ifTrue: [
+            | out |
+            (* constraint can be satisfied
+               mark inputs to allow cycle detection in addPropagate *)
+            self inputsDo: [:in | in mark: mark].
+            out:: self output.
+            overridden:: out determinedBy.
+            overridden == nil ifFalse: [overridden markUnsatisfied].
+            out determinedBy: self.
+            (planner addPropagate: self mark: mark) ifFalse:
+              [self error: 'Cycle encountered adding:\tConstraint removed.'.
+              ^ nil].
+            out mark: mark]
+          ifFalse: [ (* constraint cannot be satisfied *)
+            overridden:: nil.
+            (strength sameAs: Required) ifTrue:
+              [self error: 'Failed to satisfy a required constraint']].
+        ^ overridden
+      )
+    )
+
+    class BinaryConstraint var: var1 var: var2 strength: strengthSymbol addTo: planner = AbstractConstraint new: strengthSymbol (
+      (* I am an abstract superclass for constraints having two possible output
+         variables.
+
+        Instance variables:
+            v1, v2      possible output variables <Variable>
+            direction       one of:
+                            #forward (v2 is output)
+                            #backward ( v1 is output)
+                            nil (not satisfied) *)
+      | v1 = var1.
+        v2 = var2.
+        direction ::= nil. |
+    ) (
+      public isSatisfied = (
+        (* Answer true if this constraint is satisfied in the current solution. *)
+        ^ direction notNil
+      )
+
+      addToGraph = (
+        (* Add myself to the constraint graph. *)
+        v1 addConstraint: self.
+        v2 addConstraint: self.
+        direction:: nil
+      )
+
+      public removeFromGraph = (
+        (* Remove myself from the constraint graph. *)
+        v1 == nil ifFalse: [ v1 removeConstraint: self ].
+        v2 == nil ifFalse: [ v2 removeConstraint: self ].
+        direction:: nil.
+      )
+
+      chooseMethod: mark = (
+        (* Decide if I can be satisfied and which way I should flow based on
+         the relative strength of the variables I relate, and record that
+         decision. *)
+
+        v1 mark = mark ifTrue: [ (* forward or nothing *)
+          (((v2 mark = mark) not) and: [ strength stronger: v2 walkStrength ])
+            ifTrue:  [ ^ direction:: #forward ]
+            ifFalse: [ ^ direction:: nil ]].
+
+        v2 mark = mark ifTrue: [ (* backward or nothing *)
+          (((v1 mark = mark) not) and: [ strength stronger: v1 walkStrength ])
+              ifTrue:  [ ^ direction:: #backward ]
+              ifFalse: [ ^ direction:: nil ]].
+
+        (* if we get here, neither variable is marked, so we have choice *)
+        (v1 walkStrength weaker: v2 walkStrength)
+          ifTrue:
+            [(strength stronger: v1 walkStrength)
+              ifTrue:  [ ^ direction:: #backward ]
+              ifFalse: [ ^ direction:: nil ]]
+          ifFalse:
+            [(strength stronger: v2 walkStrength)
+              ifTrue:  [ ^ direction:: #forward ]
+              ifFalse: [ ^ direction:: nil ]].
+      )
+
+      public execute = (
+        (* Enforce this constraint. Assume that it is satisfied. *)
+        self error: 'subclassResponsibility'
+      )
+
+      public inputsDo: aBlock = (
+        (* Evaluate the given block on my current input variable. *)
+        direction = #forward
+          ifTrue:  [ aBlock value: v1 ]
+          ifFalse: [ aBlock value: v2 ]
+      )
+
+      public inputsHasOne: aBlock = (
+        ^ direction = #forward
+            ifTrue:  [ aBlock value: v1 ]
+            ifFalse: [ aBlock value: v2 ]
+      )
+
+      public markUnsatisfied = (
+        (* Record the fact that I am unsatisfied. *)
+        direction:: nil
+      )
+
+      public output = (
+        (* Answer my current output variable. *)
+        direction = #forward
+          ifTrue:  [ ^ v2 ]
+          ifFalse: [ ^ v1 ]
+      )
+
+      public recalculate = (
+        (* Calculate the walkabout strength, the stay flag, and, if it is 'stay',
+           the value for the current output of this constraint. Assume this
+           constraint is satisfied. *)
+        | in out |
+        direction = #forward
+          ifTrue:  [ in:: v1. out:: v2 ]
+          ifFalse: [ in:: v2. out:: v1 ].
+        out walkStrength: (strength weakest: in walkStrength).
+        out stay: in stay.
+        out stay ifTrue: [self execute].      (* stay optimization *)
+      )
+    )
+
+    class UnaryConstraint var: aVariable strength: strengthSymbol addTo: planner = AbstractConstraint new: strengthSymbol (
+      (* I am an abstract superclass for constraints having a single possible
+         output variable.
+
+      Instance variables:
+          output      possible output variable <Variable>
+          satisfied       true if I am currently satisfied <Boolean> *)
+      | public output = aVariable.
+        satisfied     ::= false. |
+      (* AWFY runs `self addConstraint: planner` here; nsl does not run a superclass's
+         initializer body for a subclass instance, so Edit- and StayConstraint run it. *)
+    )(
+      public isSatisfied = (
+        (* Answer true if this constraint is satisfied in the current solution. *)
+        ^ satisfied
+      )
+
+      addToGraph = (
+        (* Add myself to the constraint graph. *)
+        output addConstraint: self.
+        satisfied:: false.
+      )
+
+      public removeFromGraph = (
+        (* Remove myself from the constraint graph. *)
+        output == nil ifFalse: [output removeConstraint: self].
+        satisfied:: false.
+      )
+
+      chooseMethod: mark = (
+        (* Decide if I can be satisfied and record that decision. *)
+        satisfied::
+          (output mark = mark) not and: [
+            strength stronger: output walkStrength].
+        ^ nil
+      )
+
+      public execute = (
+        (* Enforce this constraint. Assume that it is satisfied. *)
+        self error: 'subclassResponsibility'
+      )
+
+      public inputsDo: aBlock = (
+        (* I have no input variables. *)
+      )
+
+      public inputsHasOne: aBlock = (
+        ^ false
+      )
+
+      public markUnsatisfied = (
+        (* Record the fact that I am unsatisfied. *)
+        satisfied:: false.
+      )
+
+      public recalculate = (
+        (* Calculate the walkabout strength, the stay flag, and, if it is 'stay',
+           the value for the current output of this constraint. Assume this
+           constraint is satisfied. *)
+        output walkStrength: strength.
+        output stay: self isInput not.
+        output stay ifTrue: [self execute].   (* stay optimization *)
+      )
+    )
+
+    class EditConstraint var: aVariable strength: strengthSymbol addTo: planner = UnaryConstraint var: aVariable strength: strengthSymbol addTo: planner (
+      (* I am a unary input constraint used to mark a variable that the client
+         wishes to change. *)
+      self addConstraint: planner.
+    )(
+      public isInput = (
+        (* I indicate that a variable is to be changed by imperative code. *)
+        ^ true
+      )
+
+      public execute = (
+        (* Edit constraints do nothing. *)
+      )
+    )
+
+    class EqualityConstraint var: var1 var: var2 strength: strengthSymbol addTo: planner = BinaryConstraint var: var1 var: var2 strength: strengthSymbol addTo: planner (
+      (* I constrain two variables to have the same value: `v1 = v2`. *)
+      self addConstraint: planner.
+    )(
+      public execute = (
+        (* Enforce this constraint. Assume that it is satisfied. *)
+        direction = #forward
+          ifTrue:  [ v2 value: v1 value ]
+          ifFalse: [ v1 value: v2 value ]
+      )
+    )
+
+    class ScaleConstraint src: srcVar scale: scaleVar offset: offsetVar dst: dstVar strength: strengthSymbol addTo: planner = BinaryConstraint var: srcVar var: dstVar strength: strengthSymbol addTo: planner (
+      (* I relate two variables by the linear scaling relationship:
+         `v2 = (v1 * scale) + offset`. Either v1 or v2 may be changed to maintain
+         this relationship but the scale factor and offset are considered read-only.
+
+      Instance variables:
+          scale       scale factor input variable <Variable>
+          offset      offset input variable <Variable> *)
+      | scale  = scaleVar.
+        offset = offsetVar. |
+      self addConstraint: planner.
+    )(
+      addToGraph = (
+        (* Add myself to the constraint graph. *)
+        v1 addConstraint: self.
+        v2 addConstraint: self.
+        scale  addConstraint: self.
+        offset addConstraint: self.
+        direction:: nil.
+      )
+
+      public removeFromGraph = (
+        (* Remove myself from the constraint graph. *)
+        v1 == nil ifFalse: [ v1 removeConstraint: self ].
+        v2 == nil ifFalse: [ v2 removeConstraint: self ].
+        scale  == nil ifFalse: [ scale removeConstraint: self ].
+        offset == nil ifFalse: [ offset removeConstraint: self ].
+        direction:: nil.
+      )
+
+      public execute = (
+        (* Enforce this constraint. Assume that it is satisfied. *)
+        direction = #forward
+          ifTrue:  [ v2 value: (v1 value * scale value) + offset value ]
+          ifFalse: [ v1 value: (v2 value - offset value) // scale value ]
+      )
+
+      public inputsDo: aBlock = (
+        (* Evaluate the given block on my current input variable. *)
+        direction = #forward
+          ifTrue: [aBlock value: v1.
+                   aBlock value: scale.
+                   aBlock value: offset]
+          ifFalse: [aBlock value: v2.
+                    aBlock value: scale.
+                    aBlock value: offset].
+      )
+
+      public recalculate = (
+        (* Calculate the walkabout strength, the stay flag, and, if it is 'stay',
+           the value for the current output of this constraint. Assume this
+           constraint is satisfied. *)
+        | in out |
+        direction = #forward
+          ifTrue:  [ in::  v1. out:: v2 ]
+          ifFalse: [ out:: v1. in::  v2 ].
+        out walkStrength: (strength weakest: in walkStrength).
+        out stay: (in stay and: [scale stay and: [offset stay]]).
+        out stay ifTrue: [self execute].      (* stay optimization *)
+      )
+    )
+
+    class StayConstraint var: aVariable strength: strengthSymbol addTo: planner = UnaryConstraint var: aVariable strength: strengthSymbol addTo: planner (
+      (* I mark variables that should, with some level of preference, stay the
+         same. This is called 'stay optimization.' *)
+      self addConstraint: planner.
+    ) (
+      public execute = (
+        (* Stay constraints do nothing. *)
+      )
+    )
+
+    class Variable = (
+      (* I represent a constrained variable. In addition to my value, I maintain the
+         structure of the constraint graph, the current dataflow graph, and various
+         parameters of interest to the DeltaBlue incremental constraint solver. *)
+      | public value        ::= 0.
+        public constraints  = Vector new: 2.
+        public determinedBy ::= nil.
+        public walkStrength ::= AbsoluteWeakest.
+        public stay         ::= true.
+        public mark         ::= 0.
+      |
+    )(
+      public addConstraint: aConstraint = (
+        (* Add the given constraint to the set of all constraints that refer to me. *)
+        constraints append: aConstraint.
+      )
+
+      public removeConstraint: c = (
+        (* Remove all traces of c from this variable. *)
+        constraints remove: c.
+        determinedBy == c ifTrue: [ determinedBy:: nil ].
+      )
+    ) : (
+      public value: aValue = (
+        | o |
+        o:: self new.
+        o value: aValue.
+        ^ o
+      )
+    )
+
+    public innerBenchmarkLoop: innerIterations = (
+      self chainTest: innerIterations.
+      self projectionTest: innerIterations.
+      ^ true
+    )
+
+    (* AWFY has chainTest: and projectionTest: on Planner's class side; here they are the
+       benchmark's own methods (nsl: a class-side method that instantiates a class whose slots
+       read an enclosing slot crashes the VM). *)
+    public chainTest: n = (
+      (* Do chain-of-equality-constraints performance tests. *)
+      | vars editConstraint plan planner |
+
+      planner:: Planner new.
+      vars:: newArray: n + 1 withAll: [ Variable new ].
+
+      (* thread a chain of equality constraints through the variables *)
+      1 to: n do: [ :i |
+        | v1 v2 |
+        v1:: vars at: i.
+        v2:: vars at: i + 1.
+        EqualityConstraint var: v1 var: v2 strength: SymRequired addTo: planner
+      ].
+
+      StayConstraint var: (vars at: n + 1) strength: SymStrongDefault addTo: planner.
+      editConstraint:: EditConstraint var: (vars at: 1) strength: SymPreferred addTo: planner.
+      plan:: planner extractPlanFromConstraints: (Vector with: editConstraint).
+
+      1 to: 100 do: [:v |
+        (vars at: 1) value: v.
+        plan execute.
+        ((vars at: n + 1) value = v) not ifTrue: [self error: 'Chain test failed!!']
+      ].
+
+      editConstraint destroyConstraint: planner
+    )
+
+    public projectionTest: n = (
+      (* This test constructs a two sets of variables related to each other by
+         a simple linear transformation (scale and offset). *)
+      | scale offset src dst planner dests |
+      planner:: Planner new.
+      dests::   Vector new.
+      scale::   Variable value: 10.
+      offset::  Variable value: 1000.
+
+      1 to: n do: [:i |
+        src:: Variable value: i.
+        dst:: Variable value: i.
+        dests append: dst.
+        StayConstraint var: src strength: SymDefault addTo: planner.
+        ScaleConstraint src: src scale: scale offset: offset dst: dst strength: SymRequired addTo: planner
+      ].
+
+      planner changeVar: src newValue: 17.
+      (dst value = 1170) not ifTrue: [ self error: 'Projection test 1 failed!!' ].
+
+      planner changeVar: dst newValue: 1050.
+      (src value = 5) not ifTrue: [ self error: 'Projection test 2 failed!!' ].
+
+      planner changeVar: scale newValue: 5.
+      1 to: n - 1 do: [:i |
+        ((dests at: i) value = (i*5 + 1000)) not
+          ifTrue: [ self error: 'Projection test 3 failed!!' ]].
+
+      planner changeVar: offset newValue: 2000.
+      1 to: n - 1 do: [:i |
+        ((dests at: i) value = (i*5 + 2000)) not
+          ifTrue: [ self error: 'Projection test 4 failed!!']]
+    )
+  )
+
+  (* Json: AWFY's minimal-json parser. nsl Strings answer a byte SMI from at:, so `current` is
+     a byte and every one-character String literal of the SOMns source is its byte value here
+     (named in the comment beside it). Substrings come from one kernel ReadStream over the input
+     (`platform string:` is the only bytes->String path and it is kernel-only). *)
+  class Json = Benchmark ()(
+    public benchmark = (
+      ^ (JsonParser with: Json RapBenchmarkMinified) parse
+    )
+
+    public verifyResult: result = (
+      result isObject ifFalse: [ ^ false ].
+      (result asObject at: 'head') isObject ifFalse: [ ^ false ].
+      (result asObject at: 'operations') isArray ifFalse: [ ^ false ].
+      ^ (result asObject at: 'operations') asArray size = 156
+    )
+  ) : (
+    public RapBenchmarkMinified = (
+      ^ '{"head":{"requestCounter":4},"operations":[["destroy","w54"],["set","w2",{"activeControl":"w99"}],["set","w21",{"customVariant":"variant_navigation"}],["set","w28",{"customVariant":"variant_selected"}],["set","w53",{"children":["w95"]}],["create","w95","rwt.widgets.Composite",{"parent":"w53","style":["NONE"],"bounds":[0,0,1008,586],"children":["w96","w97"],"tabIndex":-1,"clientArea":[0,0,1008,586]}],["create","w96","rwt.widgets.Label",{"parent":"w95","style":["NONE"],"bounds":[10,30,112,26],"tabIndex":-1,"customVariant":"variant_pageHeadline","text":"TableViewer"}],["create","w97","rwt.widgets.Composite",{"parent":"w95","style":["NONE"],"bounds":[0,61,1008,525],"children":["w98","w99","w226","w228"],"tabIndex":-1,"clientArea":[0,0,1008,525]}],["create","w98","rwt.widgets.Text",{"parent":"w97","style":["LEFT","SINGLE","BORDER"],"bounds":[10,10,988,32],"tabIndex":22,"activeKeys":["#13","#27","#40"]}],["listen","w98",{"KeyDown":true,"Modify":true}],["create","w99","rwt.widgets.Grid",{"parent":"w97","style":["SINGLE","BORDER"],"appearance":"table","indentionWidth":0,"treeColumn":-1,"markupEnabled":false}],["create","w100","rwt.widgets.ScrollBar",{"parent":"w99","style":["HORIZONTAL"]}],["create","w101","rwt.widgets.ScrollBar",{"parent":"w99","style":["VERTICAL"]}],["set","w99",{"bounds":[10,52,988,402],"children":[],"tabIndex":23,"activeKeys":["CTRL+#70","CTRL+#78","CTRL+#82","CTRL+#89","CTRL+#83","CTRL+#71","CTRL+#69"],"cancelKeys":["CTRL+#70","CTRL+#78","CTRL+#82","CTRL+#89","CTRL+#83","CTRL+#71","CTRL+#69"]}],["listen","w99",{"MouseDown":true,"MouseUp":true,"MouseDoubleClick":true,"KeyDown":true}],["set","w99",{"itemCount":118,"itemHeight":28,"itemMetrics":[[0,0,50,3,0,3,44],[1,50,50,53,0,53,44],[2,100,140,103,0,103,134],[3,240,180,243,0,243,174],[4,420,50,423,0,423,44],[5,470,50,473,0,473,44]],"columnCount":6,"headerHeight":35,"headerVisible":true,"linesVisible":true,"focusItem":"w108","selection":["w108"]}],["listen","w99",{"Selection":true,"DefaultSelection":true}],["set","w99",{"enableCellToolTip":true}],["listen","w100",{"Selection":true}],["set","w101",{"visibility":true}],["listen","w101",{"Selection":true}],["create","w102","rwt.widgets.GridColumn",{"parent":"w99","text":"Nr.","width":50,"moveable":true}],["listen","w102",{"Selection":true}],["create","w103","rwt.widgets.GridColumn",{"parent":"w99","text":"Sym.","index":1,"left":50,"width":50,"moveable":true}],["listen","w103",{"Selection":true}],["create","w104","rwt.widgets.GridColumn",{"parent":"w99","text":"Name","index":2,"left":100,"width":140,"moveable":true}],["listen","w104",{"Selection":true}],["create","w105","rwt.widgets.GridColumn",{"parent":"w99","text":"Series","index":3,"left":240,"width":180,"moveable":true}],["listen","w105",{"Selection":true}],["create","w106","rwt.widgets.GridColumn",{"parent":"w99","text":"Group","index":4,"left":420,"width":50,"moveable":true}],["listen","w106",{"Selection":true}],["create","w107","rwt.widgets.GridColumn",{"parent":"w99","text":"Period","index":5,"left":470,"width":50,"moveable":true}],["listen","w107",{"Selection":true}],["create","w108","rwt.widgets.GridItem",{"parent":"w99","index":0,"texts":["1","H","Hydrogen","Nonmetal","1","1"],"cellBackgrounds":[null,null,null,[138,226,52,255],null,null]}],["create","w109","rwt.widgets.GridItem",{"parent":"w99","index":1,"texts":["2","He","Helium","Noble gas","18","1"],"cellBackgrounds":[null,null,null,[114,159,207,255],null,null]}],["create","w110","rwt.widgets.GridItem",{"parent":"w99","index":2,"texts":["3","Li","Lithium","Alkali metal","1","2"],"cellBackgrounds":[null,null,null,[239,41,41,255],null,null]}],["create","w111","rwt.widgets.GridItem",{"parent":"w99","index":3,"texts":["4","Be","Beryllium","Alkaline earth metal","2","2"],"cellBackgrounds":[null,null,null,[233,185,110,255],null,null]}],["create","w112","rwt.widgets.GridItem",{"parent":"w99","index":4,"texts":["5","B","Boron","Metalloid","13","2"],"cellBackgrounds":[null,null,null,[156,159,153,255],null,null]}],["create","w113","rwt.widgets.GridItem",{"parent":"w99","index":5,"texts":["6","C","Carbon","Nonmetal","14","2"],"cellBackgrounds":[null,null,null,[138,226,52,255],null,null]}],["create","w114","rwt.widgets.GridItem",{"parent":"w99","index":6,"texts":["7","N","Nitrogen","Nonmetal","15","2"],"cellBackgrounds":[null,null,null,[138,226,52,255],null,null]}],["create","w115","rwt.widgets.GridItem",{"parent":"w99","index":7,"texts":["8","O","Oxygen","Nonmetal","16","2"],"cellBackgrounds":[null,null,null,[138,226,52,255],null,null]}],["create","w116","rwt.widgets.GridItem",{"parent":"w99","index":8,"texts":["9","F","Fluorine","Halogen","17","2"],"cellBackgrounds":[null,null,null,[252,233,79,255],null,null]}],["create","w117","rwt.widgets.GridItem",{"parent":"w99","index":9,"texts":["10","Ne","Neon","Noble gas","18","2"],"cellBackgrounds":[null,null,null,[114,159,207,255],null,null]}],["create","w118","rwt.widgets.GridItem",{"parent":"w99","index":10,"texts":["11","Na","Sodium","Alkali metal","1","3"],"cellBackgrounds":[null,null,null,[239,41,41,255],null,null]}],["create","w119","rwt.widgets.GridItem",{"parent":"w99","index":11,"texts":["12","Mg","Magnesium","Alkaline earth metal","2","3"],"cellBackgrounds":[null,null,null,[233,185,110,255],null,null]}],["create","w120","rwt.widgets.GridItem",{"parent":"w99","index":12,"texts":["13","Al","Aluminium","Poor metal","13","3"],"cellBackgrounds":[null,null,null,[238,238,236,255],null,null]}],["create","w121","rwt.widgets.GridItem",{"parent":"w99","index":13,"texts":["14","Si","Silicon","Metalloid","14","3"],"cellBackgrounds":[null,null,null,[156,159,153,255],null,null]}],["create","w122","rwt.widgets.GridItem",{"parent":"w99","index":14,"texts":["15","P","Phosphorus","Nonmetal","15","3"],"cellBackgrounds":[null,null,null,[138,226,52,255],null,null]}],["create","w123","rwt.widgets.GridItem",{"parent":"w99","index":15,"texts":["16","S","Sulfur","Nonmetal","16","3"],"cellBackgrounds":[null,null,null,[138,226,52,255],null,null]}],["create","w124","rwt.widgets.GridItem",{"parent":"w99","index":16,"texts":["17","Cl","Chlorine","Halogen","17","3"],"cellBackgrounds":[null,null,null,[252,233,79,255],null,null]}],["create","w125","rwt.widgets.GridItem",{"parent":"w99","index":17,"texts":["18","Ar","Argon","Noble gas","18","3"],"cellBackgrounds":[null,null,null,[114,159,207,255],null,null]}],["create","w126","rwt.widgets.GridItem",{"parent":"w99","index":18,"texts":["19","K","Potassium","Alkali metal","1","4"],"cellBackgrounds":[null,null,null,[239,41,41,255],null,null]}],["create","w127","rwt.widgets.GridItem",{"parent":"w99","index":19,"texts":["20","Ca","Calcium","Alkaline earth metal","2","4"],"cellBackgrounds":[null,null,null,[233,185,110,255],null,null]}],["create","w128","rwt.widgets.GridItem",{"parent":"w99","index":20,"texts":["21","Sc","Scandium","Transition metal","3","4"],"cellBackgrounds":[null,null,null,[252,175,62,255],null,null]}],["create","w129","rwt.widgets.GridItem",{"parent":"w99","index":21,"texts":["22","Ti","Titanium","Transition metal","4","4"],"cellBackgrounds":[null,null,null,[252,175,62,255],null,null]}],["create","w130","rwt.widgets.GridItem",{"parent":"w99","index":22,"texts":["23","V","Vanadium","Transition metal","5","4"],"cellBackgrounds":[null,null,null,[252,175,62,255],null,null]}],["create","w131","rwt.widgets.GridItem",{"parent":"w99","index":23,"texts":["24","Cr","Chromium","Transition metal","6","4"],"cellBackgrounds":[null,null,null,[252,175,62,255],null,null]}],["create","w132","rwt.widgets.GridItem",{"parent":"w99","index":24,"texts":["25","Mn","Manganese","Transition metal","7","4"],"cellBackgrounds":[null,null,null,[252,175,62,255],null,null]}],["create","w133","rwt.widgets.GridItem",{"parent":"w99","index":25,"texts":["26","Fe","Iron","Transition metal","8","4"],"cellBackgrounds":[null,null,null,[252,175,62,255],null,null]}],["create","w134","rwt.widgets.GridItem",{"parent":"w99","index":26,"texts":["27","Co","Cobalt","Transition metal","9","4"],"cellBackgrounds":[null,null,null,[252,175,62,255],null,null]}],["create","w135","rwt.widgets.GridItem",{"parent":"w99","index":27,"texts":["28","Ni","Nickel","Transition metal","10","4"],"cellBackgrounds":[null,null,null,[252,175,62,255],null,null]}],["create","w136","rwt.widgets.GridItem",{"parent":"w99","index":28,"texts":["29","Cu","Copper","Transition metal","11","4"],"cellBackgrounds":[null,null,null,[252,175,62,255],null,null]}],["create","w137","rwt.widgets.GridItem",{"parent":"w99","index":29,"texts":["30","Zn","Zinc","Transition metal","12","4"],"cellBackgrounds":[null,null,null,[252,175,62,255],null,null]}],["create","w138","rwt.widgets.GridItem",{"parent":"w99","index":30,"texts":["31","Ga","Gallium","Poor metal","13","4"],"cellBackgrounds":[null,null,null,[238,238,236,255],null,null]}],["create","w139","rwt.widgets.GridItem",{"parent":"w99","index":31,"texts":["32","Ge","Germanium","Metalloid","14","4"],"cellBackgrounds":[null,null,null,[156,159,153,255],null,null]}],["create","w140","rwt.widgets.GridItem",{"parent":"w99","index":32,"texts":["33","As","Arsenic","Metalloid","15","4"],"cellBackgrounds":[null,null,null,[156,159,153,255],null,null]}],["create","w141","rwt.widgets.GridItem",{"parent":"w99","index":33,"texts":["34","Se","Selenium","Nonmetal","16","4"],"cellBackgrounds":[null,null,null,[138,226,52,255],null,null]}],["create","w142","rwt.widgets.GridItem",{"parent":"w99","index":34,"texts":["35","Br","Bromine","Halogen","17","4"],"cellBackgrounds":[null,null,null,[252,233,79,255],null,null]}],["create","w143","rwt.widgets.GridItem",{"parent":"w99","index":35,"texts":["36","Kr","Krypton","Noble gas","18","4"],"cellBackgrounds":[null,null,null,[114,159,207,255],null,null]}],["create","w144","rwt.widgets.GridItem",{"parent":"w99","index":36,"texts":["37","Rb","Rubidium","Alkali metal","1","5"],"cellBackgrounds":[null,null,null,[239,41,41,255],null,null]}],["create","w145","rwt.widgets.GridItem",{"parent":"w99","index":37,"texts":["38","Sr","Strontium","Alkaline earth metal","2","5"],"cellBackgrounds":[null,null,null,[233,185,110,255],null,null]}],["create","w146","rwt.widgets.GridItem",{"parent":"w99","index":38,"texts":["39","Y","Yttrium","Transition metal","3","5"],"cellBackgrounds":[null,null,null,[252,175,62,255],null,null]}],["create","w147","rwt.widgets.GridItem",{"parent":"w99","index":39,"texts":["40","Zr","Zirconium","Transition metal","4","5"],"cellBackgrounds":[null,null,null,[252,175,62,255],null,null]}],["create","w148","rwt.widgets.GridItem",{"parent":"w99","index":40,"texts":["41","Nb","Niobium","Transition metal","5","5"],"cellBackgrounds":[null,null,null,[252,175,62,255],null,null]}],["create","w149","rwt.widgets.GridItem",{"parent":"w99","index":41,"texts":["42","Mo","Molybdenum","Transition metal","6","5"],"cellBackgrounds":[null,null,null,[252,175,62,255],null,null]}],["create","w150","rwt.widgets.GridItem",{"parent":"w99","index":42,"texts":["43","Tc","Technetium","Transition metal","7","5"],"cellBackgrounds":[null,null,null,[252,175,62,255],null,null]}],["create","w151","rwt.widgets.GridItem",{"parent":"w99","index":43,"texts":["44","Ru","Ruthenium","Transition metal","8","5"],"cellBackgrounds":[null,null,null,[252,175,62,255],null,null]}],["create","w152","rwt.widgets.GridItem",{"parent":"w99","index":44,"texts":["45","Rh","Rhodium","Transition metal","9","5"],"cellBackgrounds":[null,null,null,[252,175,62,255],null,null]}],["create","w153","rwt.widgets.GridItem",{"parent":"w99","index":45,"texts":["46","Pd","Palladium","Transition metal","10","5"],"cellBackgrounds":[null,null,null,[252,175,62,255],null,null]}],["create","w154","rwt.widgets.GridItem",{"parent":"w99","index":46,"texts":["47","Ag","Silver","Transition metal","11","5"],"cellBackgrounds":[null,null,null,[252,175,62,255],null,null]}],["create","w155","rwt.widgets.GridItem",{"parent":"w99","index":47,"texts":["48","Cd","Cadmium","Transition metal","12","5"],"cellBackgrounds":[null,null,null,[252,175,62,255],null,null]}],["create","w156","rwt.widgets.GridItem",{"parent":"w99","index":48,"texts":["49","In","Indium","Poor metal","13","5"],"cellBackgrounds":[null,null,null,[238,238,236,255],null,null]}],["create","w157","rwt.widgets.GridItem",{"parent":"w99","index":49,"texts":["50","Sn","Tin","Poor metal","14","5"],"cellBackgrounds":[null,null,null,[238,238,236,255],null,null]}],["create","w158","rwt.widgets.GridItem",{"parent":"w99","index":50,"texts":["51","Sb","Antimony","Metalloid","15","5"],"cellBackgrounds":[null,null,null,[156,159,153,255],null,null]}],["create","w159","rwt.widgets.GridItem",{"parent":"w99","index":51,"texts":["52","Te","Tellurium","Metalloid","16","5"],"cellBackgrounds":[null,null,null,[156,159,153,255],null,null]}],["create","w160","rwt.widgets.GridItem",{"parent":"w99","index":52,"texts":["53","I","Iodine","Halogen","17","5"],"cellBackgrounds":[null,null,null,[252,233,79,255],null,null]}],["create","w161","rwt.widgets.GridItem",{"parent":"w99","index":53,"texts":["54","Xe","Xenon","Noble gas","18","5"],"cellBackgrounds":[null,null,null,[114,159,207,255],null,null]}],["create","w162","rwt.widgets.GridItem",{"parent":"w99","index":54,"texts":["55","Cs","Caesium","Alkali metal","1","6"],"cellBackgrounds":[null,null,null,[239,41,41,255],null,null]}],["create","w163","rwt.widgets.GridItem",{"parent":"w99","index":55,"texts":["56","Ba","Barium","Alkaline earth metal","2","6"],"cellBackgrounds":[null,null,null,[233,185,110,255],null,null]}],["create","w164","rwt.widgets.GridItem",{"parent":"w99","index":56,"texts":["57","La","Lanthanum","Lanthanide","3","6"],"cellBackgrounds":[null,null,null,[173,127,168,255],null,null]}],["create","w165","rwt.widgets.GridItem",{"parent":"w99","index":57,"texts":["58","Ce","Cerium","Lanthanide","3","6"],"cellBackgrounds":[null,null,null,[173,127,168,255],null,null]}],["create","w166","rwt.widgets.GridItem",{"parent":"w99","index":58,"texts":["59","Pr","Praseodymium","Lanthanide","3","6"],"cellBackgrounds":[null,null,null,[173,127,168,255],null,null]}],["create","w167","rwt.widgets.GridItem",{"parent":"w99","index":59,"texts":["60","Nd","Neodymium","Lanthanide","3","6"],"cellBackgrounds":[null,null,null,[173,127,168,255],null,null]}],["create","w168","rwt.widgets.GridItem",{"parent":"w99","index":60,"texts":["61","Pm","Promethium","Lanthanide","3","6"],"cellBackgrounds":[null,null,null,[173,127,168,255],null,null]}],["create","w169","rwt.widgets.GridItem",{"parent":"w99","index":61,"texts":["62","Sm","Samarium","Lanthanide","3","6"],"cellBackgrounds":[null,null,null,[173,127,168,255],null,null]}],["create","w170","rwt.widgets.GridItem",{"parent":"w99","index":62,"texts":["63","Eu","Europium","Lanthanide","3","6"],"cellBackgrounds":[null,null,null,[173,127,168,255],null,null]}],["create","w171","rwt.widgets.GridItem",{"parent":"w99","index":63,"texts":["64","Gd","Gadolinium","Lanthanide","3","6"],"cellBackgrounds":[null,null,null,[173,127,168,255],null,null]}],["create","w172","rwt.widgets.GridItem",{"parent":"w99","index":64,"texts":["65","Tb","Terbium","Lanthanide","3","6"],"cellBackgrounds":[null,null,null,[173,127,168,255],null,null]}],["create","w173","rwt.widgets.GridItem",{"parent":"w99","index":65,"texts":["66","Dy","Dysprosium","Lanthanide","3","6"],"cellBackgrounds":[null,null,null,[173,127,168,255],null,null]}],["create","w174","rwt.widgets.GridItem",{"parent":"w99","index":66,"texts":["67","Ho","Holmium","Lanthanide","3","6"],"cellBackgrounds":[null,null,null,[173,127,168,255],null,null]}],["create","w175","rwt.widgets.GridItem",{"parent":"w99","index":67,"texts":["68","Er","Erbium","Lanthanide","3","6"],"cellBackgrounds":[null,null,null,[173,127,168,255],null,null]}],["create","w176","rwt.widgets.GridItem",{"parent":"w99","index":68,"texts":["69","Tm","Thulium","Lanthanide","3","6"],"cellBackgrounds":[null,null,null,[173,127,168,255],null,null]}],["create","w177","rwt.widgets.GridItem",{"parent":"w99","index":69,"texts":["70","Yb","Ytterbium","Lanthanide","3","6"],"cellBackgrounds":[null,null,null,[173,127,168,255],null,null]}],["create","w178","rwt.widgets.GridItem",{"parent":"w99","index":70,"texts":["71","Lu","Lutetium","Lanthanide","3","6"],"cellBackgrounds":[null,null,null,[173,127,168,255],null,null]}],["create","w179","rwt.widgets.GridItem",{"parent":"w99","index":71,"texts":["72","Hf","Hafnium","Transition metal","4","6"],"cellBackgrounds":[null,null,null,[252,175,62,255],null,null]}],["create","w180","rwt.widgets.GridItem",{"parent":"w99","index":72,"texts":["73","Ta","Tantalum","Transition metal","5","6"],"cellBackgrounds":[null,null,null,[252,175,62,255],null,null]}],["create","w181","rwt.widgets.GridItem",{"parent":"w99","index":73,"texts":["74","W","Tungsten","Transition metal","6","6"],"cellBackgrounds":[null,null,null,[252,175,62,255],null,null]}],["create","w182","rwt.widgets.GridItem",{"parent":"w99","index":74,"texts":["75","Re","Rhenium","Transition metal","7","6"],"cellBackgrounds":[null,null,null,[252,175,62,255],null,null]}],["create","w183","rwt.widgets.GridItem",{"parent":"w99","index":75,"texts":["76","Os","Osmium","Transition metal","8","6"],"cellBackgrounds":[null,null,null,[252,175,62,255],null,null]}],["create","w184","rwt.widgets.GridItem",{"parent":"w99","index":76,"texts":["77","Ir","Iridium","Transition metal","9","6"],"cellBackgrounds":[null,null,null,[252,175,62,255],null,null]}],["create","w185","rwt.widgets.GridItem",{"parent":"w99","index":77,"texts":["78","Pt","Platinum","Transition metal","10","6"],"cellBackgrounds":[null,null,null,[252,175,62,255],null,null]}],["create","w186","rwt.widgets.GridItem",{"parent":"w99","index":78,"texts":["79","Au","Gold","Transition metal","11","6"],"cellBackgrounds":[null,null,null,[252,175,62,255],null,null]}],["create","w187","rwt.widgets.GridItem",{"parent":"w99","index":79,"texts":["80","Hg","Mercury","Transition metal","12","6"],"cellBackgrounds":[null,null,null,[252,175,62,255],null,null]}],["create","w188","rwt.widgets.GridItem",{"parent":"w99","index":80,"texts":["81","Tl","Thallium","Poor metal","13","6"],"cellBackgrounds":[null,null,null,[238,238,236,255],null,null]}],["create","w189","rwt.widgets.GridItem",{"parent":"w99","index":81,"texts":["82","Pb","Lead","Poor metal","14","6"],"cellBackgrounds":[null,null,null,[238,238,236,255],null,null]}],["create","w190","rwt.widgets.GridItem",{"parent":"w99","index":82,"texts":["83","Bi","Bismuth","Poor metal","15","6"],"cellBackgrounds":[null,null,null,[238,238,236,255],null,null]}],["create","w191","rwt.widgets.GridItem",{"parent":"w99","index":83,"texts":["84","Po","Polonium","Metalloid","16","6"],"cellBackgrounds":[null,null,null,[156,159,153,255],null,null]}],["create","w192","rwt.widgets.GridItem",{"parent":"w99","index":84,"texts":["85","At","Astatine","Halogen","17","6"],"cellBackgrounds":[null,null,null,[252,233,79,255],null,null]}],["create","w193","rwt.widgets.GridItem",{"parent":"w99","index":85,"texts":["86","Rn","Radon","Noble gas","18","6"],"cellBackgrounds":[null,null,null,[114,159,207,255],null,null]}],["create","w194","rwt.widgets.GridItem",{"parent":"w99","index":86,"texts":["87","Fr","Francium","Alkali metal","1","7"],"cellBackgrounds":[null,null,null,[239,41,41,255],null,null]}],["create","w195","rwt.widgets.GridItem",{"parent":"w99","index":87,"texts":["88","Ra","Radium","Alkaline earth metal","2","7"],"cellBackgrounds":[null,null,null,[233,185,110,255],null,null]}],["create","w196","rwt.widgets.GridItem",{"parent":"w99","index":88,"texts":["89","Ac","Actinium","Actinide","3","7"],"cellBackgrounds":[null,null,null,[173,127,168,255],null,null]}],["create","w197","rwt.widgets.GridItem",{"parent":"w99","index":89,"texts":["90","Th","Thorium","Actinide","3","7"],"cellBackgrounds":[null,null,null,[173,127,168,255],null,null]}],["create","w198","rwt.widgets.GridItem",{"parent":"w99","index":90,"texts":["91","Pa","Protactinium","Actinide","3","7"],"cellBackgrounds":[null,null,null,[173,127,168,255],null,null]}],["create","w199","rwt.widgets.GridItem",{"parent":"w99","index":91,"texts":["92","U","Uranium","Actinide","3","7"],"cellBackgrounds":[null,null,null,[173,127,168,255],null,null]}],["create","w200","rwt.widgets.GridItem",{"parent":"w99","index":92,"texts":["93","Np","Neptunium","Actinide","3","7"],"cellBackgrounds":[null,null,null,[173,127,168,255],null,null]}],["create","w201","rwt.widgets.GridItem",{"parent":"w99","index":93,"texts":["94","Pu","Plutonium","Actinide","3","7"],"cellBackgrounds":[null,null,null,[173,127,168,255],null,null]}],["create","w202","rwt.widgets.GridItem",{"parent":"w99","index":94,"texts":["95","Am","Americium","Actinide","3","7"],"cellBackgrounds":[null,null,null,[173,127,168,255],null,null]}],["create","w203","rwt.widgets.GridItem",{"parent":"w99","index":95,"texts":["96","Cm","Curium","Actinide","3","7"],"cellBackgrounds":[null,null,null,[173,127,168,255],null,null]}],["create","w204","rwt.widgets.GridItem",{"parent":"w99","index":96,"texts":["97","Bk","Berkelium","Actinide","3","7"],"cellBackgrounds":[null,null,null,[173,127,168,255],null,null]}],["create","w205","rwt.widgets.GridItem",{"parent":"w99","index":97,"texts":["98","Cf","Californium","Actinide","3","7"],"cellBackgrounds":[null,null,null,[173,127,168,255],null,null]}],["create","w206","rwt.widgets.GridItem",{"parent":"w99","index":98,"texts":["99","Es","Einsteinium","Actinide","3","7"],"cellBackgrounds":[null,null,null,[173,127,168,255],null,null]}],["create","w207","rwt.widgets.GridItem",{"parent":"w99","index":99,"texts":["100","Fm","Fermium","Actinide","3","7"],"cellBackgrounds":[null,null,null,[173,127,168,255],null,null]}],["create","w208","rwt.widgets.GridItem",{"parent":"w99","index":100,"texts":["101","Md","Mendelevium","Actinide","3","7"],"cellBackgrounds":[null,null,null,[173,127,168,255],null,null]}],["create","w209","rwt.widgets.GridItem",{"parent":"w99","index":101,"texts":["102","No","Nobelium","Actinide","3","7"],"cellBackgrounds":[null,null,null,[173,127,168,255],null,null]}],["create","w210","rwt.widgets.GridItem",{"parent":"w99","index":102,"texts":["103","Lr","Lawrencium","Actinide","3","7"],"cellBackgrounds":[null,null,null,[173,127,168,255],null,null]}],["create","w211","rwt.widgets.GridItem",{"parent":"w99","index":103,"texts":["104","Rf","Rutherfordium","Transition metal","4","7"],"cellBackgrounds":[null,null,null,[252,175,62,255],null,null]}],["create","w212","rwt.widgets.GridItem",{"parent":"w99","index":104,"texts":["105","Db","Dubnium","Transition metal","5","7"],"cellBackgrounds":[null,null,null,[252,175,62,255],null,null]}],["create","w213","rwt.widgets.GridItem",{"parent":"w99","index":105,"texts":["106","Sg","Seaborgium","Transition metal","6","7"],"cellBackgrounds":[null,null,null,[252,175,62,255],null,null]}],["create","w214","rwt.widgets.GridItem",{"parent":"w99","index":106,"texts":["107","Bh","Bohrium","Transition metal","7","7"],"cellBackgrounds":[null,null,null,[252,175,62,255],null,null]}],["create","w215","rwt.widgets.GridItem",{"parent":"w99","index":107,"texts":["108","Hs","Hassium","Transition metal","8","7"],"cellBackgrounds":[null,null,null,[252,175,62,255],null,null]}],["create","w216","rwt.widgets.GridItem",{"parent":"w99","index":108,"texts":["109","Mt","Meitnerium","Transition metal","9","7"],"cellBackgrounds":[null,null,null,[252,175,62,255],null,null]}],["create","w217","rwt.widgets.GridItem",{"parent":"w99","index":109,"texts":["110","Ds","Darmstadtium","Transition metal","10","7"],"cellBackgrounds":[null,null,null,[252,175,62,255],null,null]}],["create","w218","rwt.widgets.GridItem",{"parent":"w99","index":110,"texts":["111","Rg","Roentgenium","Transition metal","11","7"],"cellBackgrounds":[null,null,null,[252,175,62,255],null,null]}],["create","w219","rwt.widgets.GridItem",{"parent":"w99","index":111,"texts":["112","Uub","Ununbium","Transition metal","12","7"],"cellBackgrounds":[null,null,null,[252,175,62,255],null,null]}],["create","w220","rwt.widgets.GridItem",{"parent":"w99","index":112,"texts":["113","Uut","Ununtrium","Poor metal","13","7"],"cellBackgrounds":[null,null,null,[238,238,236,255],null,null]}],["create","w221","rwt.widgets.GridItem",{"parent":"w99","index":113,"texts":["114","Uuq","Ununquadium","Poor metal","14","7"],"cellBackgrounds":[null,null,null,[238,238,236,255],null,null]}],["create","w222","rwt.widgets.GridItem",{"parent":"w99","index":114,"texts":["115","Uup","Ununpentium","Poor metal","15","7"],"cellBackgrounds":[null,null,null,[238,238,236,255],null,null]}],["create","w223","rwt.widgets.GridItem",{"parent":"w99","index":115,"texts":["116","Uuh","Ununhexium","Poor metal","16","7"],"cellBackgrounds":[null,null,null,[238,238,236,255],null,null]}],["create","w224","rwt.widgets.GridItem",{"parent":"w99","index":116,"texts":["117","Uus","Ununseptium","Halogen","17","7"],"cellBackgrounds":[null,null,null,[252,233,79,255],null,null]}],["create","w225","rwt.widgets.GridItem",{"parent":"w99","index":117,"texts":["118","Uuo","Ununoctium","Noble gas","18","7"],"cellBackgrounds":[null,null,null,[114,159,207,255],null,null]}],["create","w226","rwt.widgets.Composite",{"parent":"w97","style":["BORDER"],"bounds":[10,464,988,25],"children":["w227"],"tabIndex":-1,"clientArea":[0,0,986,23]}],["create","w227","rwt.widgets.Label",{"parent":"w226","style":["NONE"],"bounds":[10,10,966,3],"tabIndex":-1,"text":"Hydrogen (H)"}],["create","w228","rwt.widgets.Label",{"parent":"w97","style":["WRAP"],"bounds":[10,499,988,16],"tabIndex":-1,"foreground":[150,150,150,255],"font":[["Verdana","Lucida Sans","Arial","Helvetica","sans-serif"],10,false,false],"text":"Shortcuts: [CTRL+F] - Filter | Sort by: [CTRL+R] - Number, [CTRL+Y] - Symbol, [CTRL+N] - Name, [CTRL+S] - Series, [CTRL+G] - Group, [CTRL+E] - Period"}],["set","w1",{"focusControl":"w99"}],["call","rwt.client.BrowserNavigation","addToHistory",{"entries":[["tableviewer","TableViewer"]]}]]}'
+    )
+  )
+
+  class JsonParser with: string = (
+  | private input = string.
+    private index ::= 0.
+    private line  ::= 1.
+    private column ::= 0.
+    private current ::= nil.
+    private captureBuffer ::= ''.
+    private captureStart ::= -1.
+    private captureStream = platform ReadStream on: string.
+    (* AWFY's NULL/TRUE/FALSE are module slots; an nsl fragment cannot add one, so the parser
+       holds them: three objects per parse. *)
+    private NULL  = JsonLiteral new: 'null'.
+    private TRUE  = JsonLiteral new: 'true'.
+    private FALSE = JsonLiteral new: 'false'.
+  |)(
+    public parse = (
+      | result |
+      self read.
+      self skipWhiteSpace.
+      result:: self readValue.
+      self skipWhiteSpace.
+      self isEndOfText ifFalse: [ self error: 'Unexpected character' ].
+      ^ result
+    )
+
+    private readValue = (
+      current = 110 ifTrue: [ ^ self readNull   ].  (* n *)
+      current = 116 ifTrue: [ ^ self readTrue   ].  (* t *)
+      current = 102 ifTrue: [ ^ self readFalse  ].  (* f *)
+      current = 34  ifTrue: [ ^ self readString ].  (* " *)
+      current = 91  ifTrue: [ ^ self readArray  ].  (* [ *)
+      current = 123 ifTrue: [ ^ self readObject ].  (* { *)
+
+      current = 45 ifTrue: [ ^ self readNumber ].   (* - *)
+      current = 48 ifTrue: [ ^ self readNumber ].   (* 0 *)
+      current = 49 ifTrue: [ ^ self readNumber ].
+      current = 50 ifTrue: [ ^ self readNumber ].
+      current = 51 ifTrue: [ ^ self readNumber ].
+      current = 52 ifTrue: [ ^ self readNumber ].
+      current = 53 ifTrue: [ ^ self readNumber ].
+      current = 54 ifTrue: [ ^ self readNumber ].
+      current = 55 ifTrue: [ ^ self readNumber ].
+      current = 56 ifTrue: [ ^ self readNumber ].
+      current = 57 ifTrue: [ ^ self readNumber ].   (* 9 *)
+
+      (* else *)
+      self expected: 'value'
+    )
+
+    private readArrayElement: array = (
+      self skipWhiteSpace.
+      array add: self readValue.
+      self skipWhiteSpace
+    )
+
+    private readArray = (
+      | array |
+      self read.
+      array:: JsonArray new.
+
+      (* Array might be empty *)
+      self skipWhiteSpace.
+      (self readChar: 93) ifTrue: [ ^ array ].         (* ] *)
+
+      self readArrayElement: array.
+      [ self readChar: 44 ] whileTrue: [               (* , *)
+        self readArrayElement: array ].
+
+      (self readChar: 93) ifFalse: [                   (* ] *)
+        self expected: '"," or "]"' ].
+      ^ array
+    )
+
+    private readObjectKeyValuePair: object = (
+      | name |
+      self skipWhiteSpace.
+      name:: self readName.
+      self skipWhiteSpace.
+
+      (self readChar: 58) ifFalse: [ self expected: ':' ].   (* : *)
+
+      self skipWhiteSpace.
+
+      object add: name with: self readValue.
+
+      self skipWhiteSpace
+    )
+
+    private readObject = (
+      | object |
+      self read.
+      object:: JsonObject new.
+      self skipWhiteSpace.
+
+      (self readChar: 125) ifTrue: [ ^ object ].       (* } *)
+
+      self readObjectKeyValuePair: object.
+      [ self readChar: 44 ] whileTrue: [               (* , *)
+        self readObjectKeyValuePair: object ].
+
+      (self readChar: 125) ifFalse: [                  (* } *)
+        self expected: '"," or "}"' ].
+
+      ^ object
+    )
+
+    private readName = (
+      current = 34 ifFalse: [ self expected: 'name' ].  (* " *)
+      ^ self readStringInternal
+    )
+
+    private readNull = (
+      self read.
+      self readRequiredChar: 117.  (* u *)
+      self readRequiredChar: 108.  (* l *)
+      self readRequiredChar: 108.  (* l *)
+      ^ NULL
+    )
+
+    private readTrue = (
+      self read.
+      self readRequiredChar: 114.  (* r *)
+      self readRequiredChar: 117.  (* u *)
+      self readRequiredChar: 101.  (* e *)
+      ^ TRUE
+    )
+
+    private readFalse = (
+      self read.
+      self readRequiredChar: 97.   (* a *)
+      self readRequiredChar: 108.  (* l *)
+      self readRequiredChar: 115.  (* s *)
+      self readRequiredChar: 101.  (* e *)
+      ^ FALSE
+    )
+
+    private readRequiredChar: ch = (
+      (self readChar: ch) ifFalse: [
+        self expected: 'character: ' , ch printString ]
+    )
+
+    private readString = (
+      ^ JsonString new: self readStringInternal
+    )
+
+    private readStringInternal = (
+      | string |
+      self read.
+      self startCapture.
+
+      [ current = 34 ] whileFalse: [                   (* " *)
+        current = 92 ifTrue: [                         (* \ *)
+          self pauseCapture.
+          self readEscape.
+          self startCapture
+        ] ifFalse: [
+          (* if (current < 0x20) { throw expected('valid string character'); }
+             -- AWFY skips this check too. *)
+          self read ] ].
+      string:: self endCapture.
+      self read.
+      ^ string
+    )
+
+    (* Answers the escaped byte; readEscape makes it a String (never reached by the benchmark:
+       its input has no escapes). *)
+    private readEscapeChar = (
+      current = 34  ifTrue: [ ^ 34 ].   (* " *)
+      current = 47  ifTrue: [ ^ 47 ].   (* / *)
+      current = 92  ifTrue: [ ^ 92 ].   (* \ *)
+
+      current = 98  ifTrue: [ ^ 8  ].   (* b *)
+      current = 102 ifTrue: [ ^ 12 ].   (* f *)
+      current = 110 ifTrue: [ ^ 10 ].   (* n *)
+      current = 114 ifTrue: [ ^ 13 ].   (* r *)
+      current = 116 ifTrue: [ ^ 9  ].   (* t *)
+
+      self expected: 'valid escape sequence. note, some are not supported'
+    )
+
+    private readEscape = (
+      | ws |
+      self read.
+      ws:: platform WriteStream new.
+      ws nextPut: self readEscapeChar.
+      captureBuffer:: captureBuffer , ws contents.
+      self read
+    )
+
+    private readNumber = (
+      | firstDigit |
+      self startCapture.
+      self readChar: 45.                               (* - *)
+      firstDigit:: current.
+
+      self readDigit ifFalse: [ self expected: 'digit' ].
+      (firstDigit = 48) not ifTrue: [ [ self readDigit ] whileTrue ].   (* 0 *)
+
+      self readFraction.
+      self readExponent.
+      ^ JsonNumber new: self endCapture
+    )
+
+    private readFraction = (
+      (self readChar: 46) ifFalse: [ ^ false ].        (* . *)
+
+      self readDigit ifFalse: [ self expected: 'digit' ].
+
+      [ self readDigit ] whileTrue.
+
+      ^ true
+    )
+
+    private readExponent = (
+      ((self readChar: 101) not and: [                 (* e *)
+        (self readChar: 69) not ]) ifTrue: [ ^ false ].   (* E *)
+
+      (self readChar: 43) ifFalse: [ self readChar: 45 ].  (* + - *)
+
+      self readDigit ifFalse: [ self expected: 'digit' ].
+
+      [ self readDigit ] whileTrue.
+
+      ^ true
+    )
+
+    private readChar: ch = (
+      current = ch ifFalse: [ ^ false ].
+      self read.
+      ^ true
+    )
+
+    private readDigit = (
+      self isDigit ifFalse: [ ^ false ].
+      self read.
+      ^ true
+    )
+
+    private skipWhiteSpace = (
+      [ self isWhiteSpace ]
+        whileTrue:
+          [ self read ]
+    )
+
+    private read = (
+      current = 10 ifTrue: [                           (* \n *)
+        line:: line + 1.
+        column:: 0 ].
+
+      index:: index + 1.
+      column:: column + 1.
+
+      input isNil ifTrue: [ self error: 'input nil' ].
+      index <= input size
+        ifTrue:  [ current:: input at: index ]
+        ifFalse: [ current:: nil ]
+    )
+
+    private startCapture = (
+      captureStart:: index
+    )
+
+    private pauseCapture = (
+      captureBuffer:: captureBuffer , (
+        self substringFrom: captureStart to: index - 1).
+      captureStart:: -1
+    )
+
+    private endCapture = (
+      | captured |
+      '' = captureBuffer
+        ifTrue:  [ captured:: self substringFrom: captureStart to: index - 1 ]
+        ifFalse: [
+          self pauseCapture.
+          captured:: captureBuffer.
+          captureBuffer:: '' ].
+      captureStart:: -1.
+
+      ^ captured
+    )
+
+    (* SOMns `input substringFrom: start to: stop`. *)
+    private substringFrom: start to: stop = (
+      captureStream reset.
+      captureStream skip: start - 1.
+      ^ captureStream next: stop - start + 1
+    )
+
+    private expected: expected = (
+      self isEndOfText ifTrue: [
+        self error: 'Unexpected end of input, expected ' , expected asString ].
+      self error: 'Expected ' , expected
+    )
+
+    private isWhiteSpace = (
+      current = 32 ifTrue: [ ^ true ].   (* space *)
+      current = 9  ifTrue: [ ^ true ].   (* \t *)
+      current = 10 ifTrue: [ ^ true ].   (* \n *)
+      current = 13 ifTrue: [ ^ true ].   (* \r *)
+      ^ false
+    )
+
+    private isDigit = (
+      current = 48 ifTrue: [ ^ true ].   (* 0 *)
+      current = 49 ifTrue: [ ^ true ].
+      current = 50 ifTrue: [ ^ true ].
+      current = 51 ifTrue: [ ^ true ].
+      current = 52 ifTrue: [ ^ true ].
+      current = 53 ifTrue: [ ^ true ].
+      current = 54 ifTrue: [ ^ true ].
+      current = 55 ifTrue: [ ^ true ].
+      current = 56 ifTrue: [ ^ true ].
+      current = 57 ifTrue: [ ^ true ].   (* 9 *)
+      ^ false
+    )
+
+    private isEndOfText = (
+      ^ current isNil
+    )
+  )
+
+  class HashIndexTable = (
+  | private hashTable = newArray: 32 withValue: 0. |
+  )(
+    public at: name put: index = (
+      | slot |
+      slot:: self hashSlotFor: name.
+
+      index < 255
+        ifTrue:  [ hashTable at: slot put: index + 1 ]
+        ifFalse: [ hashTable at: slot put: 0 ]
+    )
+
+    public at: name = (
+      | slot |
+      slot:: self hashSlotFor: name.
+
+      (* subtract 1, 0 stands for empty *)
+      ^ ((hashTable at: slot) & 255) - 1
+    )
+
+    private stringHash: s = (
+      (* this is not a proper hash, but sufficient for the benchmark,
+         and very portable! *)
+      ^ s size * 1402589
+    )
+
+    private hashSlotFor: element = (
+      ^ ((stringHash: element) & (hashTable size - 1)) + 1
+    )
+  )
+
+  class JsonValue = ()(
+    public isObject  = ( ^ false )
+    public isArray   = ( ^ false )
+    public isNumber  = ( ^ false )
+    public isString  = ( ^ false )
+    public isBoolean = ( ^ false )
+
+    public isTrue  = ( ^ false )
+    public isFalse = ( ^ false )
+    public isNull  = ( ^ false )
+
+    public asObject = (
+      ^ self error: 'Unsupported operation, not an object: ' , self asString
+    )
+
+    public asArray = (
+      ^ self error: 'Unsupported operation, not an array: ' , self asString
+    )
+  )
+
+  class JsonArray = JsonValue (
+  | private values = Vector new. |
+  )(
+    public add: value = (
+      value isNil ifTrue: [ self error: 'value is null' ].
+      values append: value
+    )
+
+    public size = (
+      ^ values size
+    )
+
+    public at: index = (
+      ^ values at: index
+    )
+
+    public isArray = (
+      ^ true
+    )
+
+    public asArray = (
+      ^ self
+    )
+  )
+
+  class JsonLiteral new: val = JsonValue (
+  | private value  = val.
+    public isNull  = 'null'  = val.
+    public isTrue  = 'true'  = val.
+    public isFalse = 'false' = val.
+  |)(
+    public asString  = ( ^ value )
+    public isBoolean = ( ^ isTrue or: [ isFalse ] )
+  )
+
+  class JsonNumber new: aString = JsonValue (
+  | private string = aString. |
+    aString isNil ifTrue: [ self error: 'string is null' ].
+  )(
+    public asString = ( ^ string )
+    public isNumber = ( ^ true )
+  )
+
+  class JsonObject = JsonValue (
+  | private names  = Vector new.
+    private values = Vector new.
+    private table  = HashIndexTable new. |
+  )(
+    public add: name with: aJsonValue = (
+      name isNil ifTrue: [ self error: 'name is null' ].
+      aJsonValue isNil ifTrue: [ self error: 'aJsonValue is null' ].
+
+      table at: name put: names size + 1. (* + 1 for 1-based indexing *)
+      names  append: name.
+      values append: aJsonValue
+    )
+
+    public at: name = (
+      | idx |
+      name isNil ifTrue: [ self error: 'name is null' ].
+      idx:: self indexOf: name.
+      idx = 0
+        ifTrue:  [ ^ nil ]
+        ifFalse: [ ^ values at: idx ]
+    )
+
+    public size = (
+      ^ names size
+    )
+
+    public isEmpty = (
+      ^ names isEmpty
+    )
+
+    public isObject = ( ^ true )
+    public asObject = ( ^ self )
+
+    private indexOf: name = (
+      | idx |
+      idx:: table at: name.
+      ((idx = 0) not and: [ name = (names at: idx) ]) ifTrue: [ ^ idx ].
+      ^ self error: 'not implement'
+    )
+  )
+
+  class JsonString new: str = JsonValue (
+  | private string = str. |
+  )(
+    public isString = ( ^ true )
+  )
+
+  (* ---- What nsl's Integer and Array lack (AWFY.md §Dialect) ---- *)
+
+  abs: x = ( ^ x < 0 ifTrue: [ 0 - x ] ifFalse: [ x ] )
+  max: a with: b = ( ^ a > b ifTrue: [ a ] ifFalse: [ b ] )
+  min: a with: b = ( ^ a < b ifTrue: [ a ] ifFalse: [ b ] )
+
+  (* NBody's module constants Pi, DaysPerYear and SolarMass, as methods: a capitalised implicit
+     send resolves as a global in nsl, so the names are lower-cased. *)
+  pi          = ( ^ 3.141592653589793 )
+  daysPerYear = ( ^ 365.24 )
+  solarMass   = ( ^ 4.0 * pi * pi )
+
+  (* Array new: n withAll: aBlock — the block is evaluated once per element. *)
+  newArray: n withAll: aBlock = (
+    | a |
+    a:: Array new: n.
+    1 to: n do: [ :i | a at: i put: aBlock value ].
+    ^ a
+  )
+  (* Array new: n withAll: aValue — one value in every element. *)
+  newArray: n withValue: v = (
+    | a |
+    a:: Array new: n.
+    1 to: n do: [ :i | a at: i put: v ].
+    ^ a
+  )
+  swap: anArray at: i with: j = (
+    | t |
+    t:: anArray at: i.
+    anArray at: i put: (anArray at: j).
+    anArray at: j put: t
+  )
+
+  (* ---- CD's module helpers: what nsl's Float lacks (sin, cos, asInteger, IEEE x / 0.0) ---- *)
+
+  (* Float>>asInteger: truncation toward zero, built by binary descent (no Float-to-Integer prim). *)
+  asInteger: f = (
+    | m p n |
+    m:: f < 0 ifTrue: [ 0.0 - f ] ifFalse: [ f ].
+    p:: 1.
+    [ (p * 2) <= m ] whileTrue: [ p:: p * 2 ].
+    n:: 0.
+    [ p >= 1 ] whileTrue: [
+      (n + p) <= m ifTrue: [ n:: n + p ].
+      p:: p // 2 ].
+    ^ f < 0 ifTrue: [ 0 - n ] ifFalse: [ n ]
+  )
+
+  (* Float / Float with IEEE's answer for a zero divisor (nsl traps it): CD divides by an
+     aircraft's motion, which is zero in the frame it appears. x / 0.0 answers +-infinity, and
+     0.0 / 0.0 a NaN (inf - inf); nsl's ordered compares do not honour NaN, but CD's inputs never
+     reach 0.0 / 0.0 (a voxel edge minus 0.5 never equals an aircraft's start coordinate). *)
+  fdiv: a by: b = (
+    | inf |
+    (b = 0.0) ifFalse: [ ^ a / b ].
+    inf:: 2.0.
+    1 to: 11 do: [ :i | inf:: inf * inf ].
+    a > 0.0 ifTrue: [ ^ inf ].
+    a < 0.0 ifTrue: [ ^ 0.0 - inf ].
+    ^ inf - inf
+  )
+
+  (* Float>>sin and Float>>cos: fdlibm's kernel polynomials after a Cody-Waite reduction by pi/2;
+     within an ulp of libm over CD's range (0..20). *)
+  sin: x = (
+    x < 0.0 ifTrue: [ ^ 0.0 - (sin: 0.0 - x) ].
+    ^ trig: x quadrantOffset: 0
+  )
+  cos: x = (
+    x < 0.0 ifTrue: [ ^ cos: 0.0 - x ].
+    ^ trig: x quadrantOffset: 1
+  )
+  private trig: x quadrantOffset: k = (
+    | n r q |
+    n:: asInteger: (x * 0.636619772367581382433) + 0.5.
+    r:: (x - (n * 1.57079632673412561417)) - (n * 0.0000000000607710050650619224932).
+    q:: (n + k) & 3.
+    q = 0 ifTrue: [ ^ kernelSin: r ].
+    q = 1 ifTrue: [ ^ kernelCos: r ].
+    q = 2 ifTrue: [ ^ 0.0 - (kernelSin: r) ].
+    ^ 0.0 - (kernelCos: r)
+  )
+  private kernelSin: x = (
+    | z p |
+    z:: x * x.
+    p:: 0.00833333333332248946124 + (z * (-0.000198412698298579493134 + (z * (0.00000275573137070700676789
+          + (z * (-0.0000000250507602534068634195 + (z * 0.000000000158969099521155010221))))))).
+    ^ x + ((z * x) * (-0.166666666666666324348 + (z * p)))
+  )
+  private kernelCos: x = (
+    | z r qx |
+    z:: x * x.
+    r:: z * (0.0416666666666666019037 + (z * (-0.00138888888888741095749 + (z * (0.0000248015872894767294178
+          + (z * (-0.000000275573143513906633035 + (z * (0.0000000020875723212981748279
+          + (z * -0.0000000000113596475577881948265)))))))))).
+    z < 0.09 ifTrue: [ ^ 1.0 - ((0.5 * z) - (z * r)) ].
+    (* 1 - qx exact, as fdlibm arranges it *)
+    qx:: z > 0.6103515625
+      ifTrue: [ 0.28125 ]
+      ifFalse: [ (asInteger: z * 256.0) / 1024.0 ].
+    ^ (1.0 - qx) - (((0.5 * z) - qx) - (z * r))
+  )
+
+  treeMinimum: x = (
+    | current |
+    current:: x.
+    [ current left notNil ] whileTrue: [
+      current:: current left ].
+    ^ current
+  )
+
+  (* ---- The run: one row per benchmark, innerIterations sized for a board ---- *)
+
+  (* The one clock read. awfy-soup.py replaces this method for Primordial Soup. *)
+  millisecondsToRun: aBlock = (
+    | t0 |
+    t0:: 0 millis.
+    aBlock value.
+    ^ 0 millis - t0
+  )
+
+  public run: name bench: bench inner: n = (
+    | ok ms |
+    ms:: millisecondsToRun: [ ok:: bench innerBenchmarkLoop: n ].
+    (name , ': ' , ms printString) out.
+    ^ ok
+  )
+
+  public runAll = (
+    | ok |
+    ok:: true.
+    (run: 'Bounce'  bench: Bounce new  inner: 1) ifFalse: [ ok:: false ].
+    (run: 'List'    bench: List new    inner: 1) ifFalse: [ ok:: false ].
+    (run: 'Permute' bench: Permute new inner: 1) ifFalse: [ ok:: false ].
+    (run: 'Storage' bench: Storage new inner: 1) ifFalse: [ ok:: false ].
+    (run: 'Richards' bench: Richards new inner: 1) ifFalse: [ ok:: false ].
+    (run: 'Queens'     bench: Queens new     inner: 1)   ifFalse: [ ok:: false ].
+    (run: 'Sieve'      bench: Sieve new      inner: 1)   ifFalse: [ ok:: false ].
+    (run: 'Towers'     bench: Towers new     inner: 1)   ifFalse: [ ok:: false ].
+    (run: 'Mandelbrot' bench: Mandelbrot new inner: 500) ifFalse: [ ok:: false ].
+    (run: 'NBody'      bench: NBody new      inner: 1)   ifFalse: [ ok:: false ].
+    (run: 'CD'         bench: CD new         inner: 10)  ifFalse: [ ok:: false ].
+    (run: 'DeltaBlue'  bench: DeltaBlue new  inner: 100) ifFalse: [ ok:: false ].
+    (run: 'Json'       bench: Json new       inner: 1)   ifFalse: [ ok:: false ].
+    ^ ok
+  )
+)
+public main: platform args: args = (
+	| ok |
+	ok:: (Awfy usingPlatform: platform) runAll.
+	('verified: ' , ok printString) out.
+	('done') out.
+)
+) : (
+)

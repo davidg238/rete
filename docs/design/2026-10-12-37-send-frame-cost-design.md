@@ -1,0 +1,109 @@
+# The cost of a send and its frame: measure first, then cut (rete#37)
+
+> Status: **DRAFT, answered by David 2026-10-12:** Q1 take L1 and L2 now (M follows with them, not
+> before); Q2 visibility deferred today, but it is ultimately a mandatory language feature (so L1 is
+> scoped below); Q3 not understood, no decision (explained below, still open); Q4 port Are We Fast
+> Yet first, for the widest pool of data (`nodus/tests/00_perf/awfy.nsl`, `AWFY.md`), and compare
+> against Primordial Soup on the host (`awfy-soup.py`). Queued on #37 (2026-10-12 comment) as a design step. Follows the
+> 10-11 send-cost spike (`docs/spikes/2026-10-11-37-c6-send-cost/` on branch `37-c6-send-cost-spike`), Opt #10
+> (`docs/results/2026-10-11-37-lean-dispatch/`) and Opt #11 (`docs/results/2026-10-11-37-dispatch-head/`).
+> Questions for David are numbered at the end.
+
+## Why
+
+On c6spare after Opt #11 (`docs/results/2026-10-12-37-c6-cross-vm/`), nsl beats Toit on 5 of 8 STIC rows, but
+**Toit is 5.9× faster on Richards (7.0 s against 1.18 s a run) and 7.1× faster on DeltaBlue.** Both benchmarks
+are send-heavy and object-heavy. The 10-11 spike priced a monomorphic send on the C6 at **~707 cycles**: ~85 for
+the lookup (`send_resolve`) and ~620 for the frame push, the callee's instructions and the return. That
+reading predates Opt #10 and Opt #11, which took 12–24 % off every blockcost row, so **today's send cost is
+unknown.** So is the share of Richards it accounts for.
+
+## What a send does today (code read, master `f82ba961`)
+
+`OP_SEND` → `send_resolve` → `push_frame` → the callee → `OP_RET` → `do_ret_deliver`. On Zephyr the debug hooks
+are compiled out (`OEVM_NO_DEBUG_HOOKS`), so neither the loop head nor `step_hook` costs anything there.
+
+| step | where | what it costs per send |
+|---|---|---|
+| send setup | `vm.c` `OP_SEND` | selector from the constant pool, `saved_pc` store, 7-argument out-of-line call with three out-pointers (forced to memory) |
+| `send_resolve` preamble | `dispatch.c:1282` | before the cache: the `main:args:` guard, the BoundClass test, the `Symbol =` test, three capability pointer compares, `prim_id` (a call), the BytecodeClosure `value` test |
+| lookup | `lookup_method_cached` | hash, one probe, two compares (cheap: the spike's ~85 cycles covers the whole of `send_resolve`) |
+| access check | `check_access_allowed`, every bytecode target | a call and a load. **Vestigial:** the compiler emits every method as `ACCESS_PUBLIC` (dialect row 25). It is never refused. |
+| frame push | `vm.c:825` `push_frame` | `closure_entry` (an `is_in_blob` branch), stack bound check through `g_active_stack`, six header stores, `++current_generation_tag` (a global load and store), arguments copied, **every other register stored NULL**, `current_frame` stored |
+| after the push | `OP_SEND` | `ctx = current_frame` reloaded, `closure_entry` **again**, `cm_instructions` |
+| return | `do_ret_deliver` | decode the caller link, store `vm_stack_ptr` and `current_frame`, `closure_entry` a third time, reload `saved_pc`, re-decode the caller's send instruction for its destination register |
+
+`vm_stack`, `vm_stack_ptr` and `current_frame` are globals, so on RV32 every touch is an address load plus the
+access. A send reads or writes them about ten times. No single row above explains 620 cycles. The spike's own
+conclusion stands: **count before cutting.**
+
+## Plan
+
+**M — the measurement (one build, one c6spare session, before any lever).**
+
+1. **A counting build** (`OEVM_COUNT=1`, never shipped): three counters (instructions dispatched, sends that
+   pushed a frame, block invokes) printed by the bench. Run blockcost, Richards and DeltaBlue on the host and on
+   c6spare at master. This gives **cycles per instruction** and **instructions per send**, both measured, and
+   **sends per Richards run**. With the per-send cost, that last number says what share of Richards' 7 s is the
+   send. If it is under about a third, the send is not Toit's lead, and this design stops and points elsewhere
+   (slot access through `instance_slot`'s `is_in_blob` test, `ifTrue:`, allocation).
+2. **A cycle split** (`rdcycle`, a throwaway build): around `send_resolve`, `push_frame` and `do_ret_deliver`
+   on the `methodSend` row. This apportions the per-send cycles to the steps in the table above.
+
+**L — the levers, ranked by what they remove for what they cost.** The data from M picks the order; each lever
+is one ledger row, measured alone on c6spare (blockcost + Richards + DeltaBlue) and on the WeAct STIC.
+
+- **L1 — delete the per-send access check.** It never refuses (dialect row 25), so this removes a
+  half-mechanism, not an optimization trade. Visibility itself stays: David (Q2) wants it eventually as a
+  mandatory language feature, so the grammar keyword stays. When visibility is built, it gets its own design,
+  and that design should look for a check that costs nothing per send: at compile time where the receiver is
+  `self` or implicit, and at cache fill otherwise (a private method fills the cache only for a self-send).
+  Removes a call per send.
+- **L2 — one `push_frame`, inlined into the loop, the method computed once.** `push_frame` returns the method
+  it already resolved, so the send site and the return site stop calling `closure_entry` again.
+  `run_interpreter`'s copy of the frame push is folded into the same helper (it duplicates `push_frame` today).
+- **L3 — the frame state lives in locals.** `vm_stack`, `vm_stack_ptr` and `current_frame` are kept in the
+  loop's registers and written back to the globals only before a call that can read them (a primitive, GC, a
+  nested interpreter). The risk is a missed write-back. The rule is one macro at every call-out, and
+  `GC_STRESS` is the test.
+- **L4 — a smaller frame.** Three header words have cheaper forms. (a) `vtable` is NULL until the frame is
+  reified, which the debugger and `thisContext` do. (b) A method frame's `home_ctx` encodes itself; NULL could
+  mean "self" at the `home_ctx_frame` decode point. (c) `gen_tag` costs a global increment per frame and exists
+  to catch stale homes (Contexts, `make_closure`). Only (c) needs a design decision (Q3). The registers past the
+  arguments are stored NULL because the GC scans them precisely. That store stays. It is a cost per register, so
+  M should also record `num_registers` per frame.
+- **L5 — the `send_resolve` preamble moved behind the cache.** The special cases (`main:args:`, BoundClass,
+  `Symbol =`, capabilities, prims) are tested on every send before the probe. Most of them could become
+  vtable or selector entries the cache returns. This is bounded by the ~85 cycles the lookup costs in total, so
+  it ranks last unless M says otherwise.
+- **Not now: a Lua-style overlapping frame** (the callee's registers alias the caller's argument registers, so
+  arguments are never copied). It needs a compiler convention and a new frame layout. It earns a spike only if M
+  shows the argument copy and the NULL fill are a large share.
+
+**Gates per lever:** the nsl suite (every aux gate), the Go tests, PORTA SYNC OK, `GC_STRESS` on the host, and
+the MCU footprint (a lever that grows it says so in its row).
+
+## Questions for David
+
+1. **M before L?** One counting build and one c6spare session, then this doc is revised with the numbers and the
+   lever order. Or skip M and take L1 + L2 now, since both are cheap, and measure those?
+2. **Access modifiers (dialect row 25):** delete the VM check only (L1), or also the grammar's `public`/
+   `protected`/`private` on methods? The keyword still decides slot accessors (private slots get none).
+3. **`gen_tag` (still open; David: not understood).** In plain terms: every frame gets a fresh serial number
+   when it is pushed. A closure or captured-variable box made in that frame copies the number. The stack slot a
+   frame used is reused by the next call, so a closure that outlives its frame could find a *different* frame at
+   its home's address; comparing serial numbers is how the VM would notice. The cost is a global load, add and
+   store on every call. The question is whether anything still reads the number to refuse a stale home (nsl has
+   no non-local return since Milestone A, which was the main reader). If nothing does, it is dead weight. This
+   is a code question for me to answer, not a decision for David; I will check before L4.
+4. **Bench (answered: AWFY first).** The per-lever gate becomes AWFY on c6spare and on the host against Soup,
+   with blockcost for the per-mechanism split.
+
+## Addendum, 2026-10-12 (end of session): the AWFY baseline
+
+AWFY is ported (`nodus/tests/00_perf/awfy.nsl`, 13 of 14 rows; Havlak host-only, not yet merged) and
+runs on Primordial Soup through `awfy-soup.py`. Host, nsl ÷ Soup: geomean ~1.31×; the worst rows are
+the call- and allocation-bound ones (List 4.95×, Storage 2.38×, Permute/Towers ~1.65×); nsl leads on
+Mandelbrot, CD, Bounce and Sieve and ties Richards (`AWFY.md`, #37 comment). This is the baseline L1
+and L2 are measured against. David (2026-10-12): Havlak host-only; next session commits the results
+record and takes L1 + L2; String `copyFrom:to:`, `sin`/`cos` and Float→Integer become VM prims.
