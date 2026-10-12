@@ -34,6 +34,9 @@ measured, whether or not it lands. The numbers and the reasoning live in the rec
 | 10-12 | L2 with `push_frame` always inlined | host 0.983 against L1; boards: C6 AWFY 0.981, STIC 1.022; WeAct AWFY 1.024, STIC 1.035 | **dead end** on the boards; reverted (Opt #12) | same |
 | 10-12 | L4(c): `gen_tag` dropped (the frame word, both `home_generation` fields, the global increment per frame) | AWFY: C6 0.988, WeAct 0.981; STIC: C6 0.995, WeAct 0.978; MCU text −28 B | kept, Opt #15 | `docs/results/2026-10-12-37-l4/` |
 | 10-12 | L3-lite: `push_frame` and the return read the frame globals once into locals; `ctx` from `push_frame` | against L4(c): C6 AWFY 1.000, STIC 0.999; WeAct AWFY 1.024, STIC 1.037 | **dead end** on the WeAct (the L2 pattern) | same |
+| 10-12 | L5: `send_resolve`'s head — the kernel instance set at launch, the receiver's vtable read once | AWFY: C6 0.985, WeAct 0.963; STIC: C6 0.987, WeAct 0.978; MCU text −11 B | kept, Opt #16 | `docs/results/2026-10-12-37-l5/` |
+| 10-12 | L5 with the SMI arm at the top, where `-Os` copies the primitive block | AWFY: C6 0.978, WeAct 0.949; STIC: C6 0.980, WeAct 0.969; MCU text +849 B (ratchet) | **not taken**: ~1.5 % for 844 B; re-banking is the open alternative | same |
+| 10-12 | the arena header in one word (size + mark bit; a free block's link in its payload) | level on every board (1.000 ± 0.002); −8 B per object on the boards | open: a memory lever, branch `37-alloc-hdr` | same |
 | — | the jump table's bound check (`cmp`/`bhi`) | GCC 12 keeps it despite `__builtin_unreachable()` | open: only computed goto removes it; untried | Opt #11 |
 
 Open levers, not yet tried: the frame and send cost (next), GC performance (pause, throughput, heap high-water),
@@ -792,6 +795,15 @@ both `home_generation` fields. The frame header is five words. **AWFY C6 0.988, 
 0.978** (`docs/results/2026-10-12-37-l4/`): DeltaBlue −2.4 %, Richards −1.2 %, integerMath −4 to −5 %. The same
 session's L3-lite (frame globals read once into locals) was level on the C6 and lost 2–4 % on the WeAct: a third
 loop-shape change that each target's gcc prices differently.
+
+## Opt #16 — the `send_resolve` head (rete#37 L5, 2026-10-12)
+
+Every send tested for the first `main:args:` (a one-shot capture of the Kernel instance for the raise prims) and
+read the receiver's vtable in three places before the cache probe. The launch sites now set the Kernel instance, and
+the vtable is read once. **AWFY C6 0.985, WeAct 0.963; STIC C6 0.987, WeAct 0.978**
+(`docs/results/2026-10-12-37-l5/`). A first cut that also folded the SMI case into the top read was 1.5 % faster
+still, because `-Os` copied the primitive block with the vtable known, and 844 B larger: footprint was the price,
+and it was not paid.
 
 ## Known weaknesses / tracked gaps (snapshot 2026-06-18)
 
