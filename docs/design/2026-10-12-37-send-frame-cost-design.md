@@ -189,3 +189,13 @@ empty); the selector's Symbol-ness proved at load, leaving one `prim_id` load ah
 0.926 against Opt #16; the selector check was the large part, because `obj_vtable` on an image literal is a blob test
 and an `oimg_resolve`, not a load. The ~85-cycle bound this design put on L5 was the lookup's; the preamble ahead of
 it was not inside that bound.
+
+## Addendum, 2026-10-12 (night): L4(b) lands, L4(a) does not; the ladder closes for 0.1
+
+`docs/results/2026-10-12-37-l4b/`. **L4(b)** (Opt #19): a method frame stores its closure's NULL home and `homeOf:`
+answers the frame itself; speed level (the geomean's 0.992 on the C6 is placement: Richards 1.007, arrayWrite 0.928),
+kept for one encode site fewer. **L4(a)** is not built: a frame `vtable` left unset can carry a stale
+`MethodContextVtable`, which `primitive_restart_frame` reads as "stopped". The destination register stored at send
+time stays untried. With L1, L4(c), L5 and L6 kept and L2, L3 dropped, the ladder is done; David closed #37 for 0.1 as
+"good enough", no hacks for benchmarks. The fronts left (dispatch, the allocator, per-site caches) are listed with
+their evidence at the foot of the ledger in `nodus/oevm/docs/optimizations.md`.
