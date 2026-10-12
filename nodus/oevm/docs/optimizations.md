@@ -655,6 +655,30 @@ Size: `performance.nsl` +680 B, DeltaBlue +696 B (.oimg, host); MCU text +295 B 
 gprof puts ~19 % of a monomorphic send in `send_resolve` and ~8 % in `push_frame`, and the board's ~1,050 cycles a
 send (host ~300) point at XIP latency, which needs a board-side measurement before any design.
 
+## Opt #10 — the dispatch loop trusts its methods; a load-time verifier proves them once (rete#37, 2026-10-11)
+
+The C6's performance counter (`docs/spikes/2026-10-11-37-c6-insn-count/`) put a simple bytecode at ~36 RV32
+instructions, ~16 of them the dispatch head: the `pc < pc_end` test, the jump table's bound check, the
+LD_CONST/LD_REG operand checks, an out-of-line `oevm_int_demote` on every constant. The loop now checks none of
+it per instruction. `oevm_method_check` / `oevm_inst_check` (vm.c) refuse an unknown opcode, an out-of-range
+LD_CONST/LD_REG operand, a jump outside the method, and a last instruction that is not OP_RET or OP_JMP — once,
+at load for every method in the image (format 11's `methods_ref`/`methods_count`, `oimg_loader.c`), in the patch
+primitive, and in `method:instructionAt:put:`. Model A methods are compiled into the firmware and are as trusted
+as its C. LD_CONST tests `IS_SMI` inline; the demotion cannot move to image build, because an image ref-word
+holds a 30-bit SMI and the VM's is 31.
+
+The verifier's first run found `release:` in Richards: an `ifTrue:ifFalse:` whose arms both return, after which
+the compiler omitted `^self` but kept the then-arm's jump to one past the end. `end_with_return` (compiler) now
+emits the return whenever a jump targets the end.
+
+**STIC on the WeAct** (three boots each, `docs/results/2026-10-11-37-lean-dispatch/`; seconds): integerMath
+4.80 → **4.07**, arrayWrite 22.9 → **18.8**, collectionIterate 15.8 → 14.2, dictionaryWrite 7.39 → 6.71,
+collectionWrite 17.4 → 15.9, alloc 16.8 → 15.9, stringCompare 3.13 → 2.91, floatMath 25.9 → 25.3.
+Every row, 2.4–17.8 %.
+
+Size: host text +864 B (vm.o +411, oimg_loader.o +453; re-banked 77127, `tools/footprint-baseline.txt`);
+the WeAct image +812 B FLASH, the blob +8 B.
+
 ## Known weaknesses / tracked gaps (snapshot 2026-06-18)
 
 Captured after the sober-reference benchmark exercise (see

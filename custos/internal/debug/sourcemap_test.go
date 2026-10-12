@@ -261,10 +261,10 @@ func TestTheFixtureMapReadsAsItsSourceSays(t *testing.T) {
 		t.Errorf("21 -> %+v", got)
 	}
 	// Line 11 is the nested class's bump; line 14 the class side's from:, a Meta_ vtable.
-	if got := mustResolve(t, sm, "11"); got != (Breakpoint{4184, 0, 11, "Fixture_Counter>>bump"}) {
+	if got := mustResolve(t, sm, "11"); got != (Breakpoint{4192, 0, 11, "Fixture_Counter>>bump"}) {
 		t.Errorf("11 -> %+v", got)
 	}
-	if got := mustResolve(t, sm, "14"); got != (Breakpoint{4248, 0, 14, "Meta_Fixture_Counter>>from:"}) {
+	if got := mustResolve(t, sm, "14"); got != (Breakpoint{4256, 0, 14, "Meta_Fixture_Counter>>from:"}) {
 		t.Errorf("14 -> %+v", got)
 	}
 	if where, text, _ := sm.Where(4096, 28); where != "at Fixture.nsl:24  Fixture>>main:args:" || !strings.Contains(text, "^ 0 )") {
