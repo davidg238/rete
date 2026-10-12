@@ -63,7 +63,7 @@ OP_SEND_SELF = 0x21    # `self foo`: OP_SEND's layout; a protected method answer
 OP_SEND_PRIVATE = 0x22 # a private send, settled here: OP_SEND_SUPER's layout, [c] = the defining vtable (rete#372)
 # rete#372: who may send to a member (oevm.h enum MethodAccess). An unmarked member takes the default.
 ACCESS_LEVEL = {"public": 0, "protected": 1, "private": 2}
-DEFAULT_VISIBILITY = "public"
+DEFAULT_VISIBILITY = "protected"   # as in Newspeak: one default for every member
 # rete#37 (docs/design/2026-10-11-37-do-inline-design.md): a literal block passed to a kernel iterator is
 # inlined at the call site behind a class guard. Off in a debug build (Q3): a board's debug build is chosen
 # with OEVM_DEBUG_HOOKS=1, which run.sh's caller also hands this compiler.
@@ -1885,7 +1885,8 @@ class MethodCompiler:
                     self.compile_expr(arg, areg)
                     self.next_free_reg = areg + 1
                 cidx = self.add_constant(selector)
-                self.emit_ABC(OP_SEND, len(args), cidx, rcvr_reg)
+                # rete#372: a class-side `self foo` is a send to self, so it reaches a protected class method
+                self.emit_ABC(OP_SEND_SELF if self_is_class else OP_SEND, len(args), cidx, rcvr_reg)
                 self.emit_ABC(OP_LD_REG, target_reg, rcvr_reg, 0)
                 self.next_free_reg = old_free
                 return
@@ -1963,7 +1964,7 @@ class MethodCompiler:
                 self.next_free_reg = old_free
                 return
             
-            # rete#372: a send to self (`self foo`, or `outer C foo` — C's enclosing instance) may reach a
+            # rete#372: a send to self (`self foo`; `outer foo` and `outer C foo`, an enclosing instance) may reach a
             # protected method, and a private one is settled here, in the class that defines it.
             self_ish = False
             if self.class_side_qname is None and receiver["type"] == "varRef" and receiver.get("name") == "self":
@@ -1978,6 +1979,14 @@ class MethodCompiler:
                 c_qname, c_hops, _ = self.parent.resolve_class_ref(receiver["selector"])
                 if self.parent.member_visibility(c_qname, selector) == "private":
                     self.emit_vtable_send(OP_SEND_PRIVATE, c_qname, max(c_hops - 1, 0), selector, args, target_reg)
+                    return
+                self_ish = True
+            elif (self.class_side_qname is None and receiver["type"] == "varRef" and receiver.get("name") == "outer"
+                    and self.resolve_name("outer") == ("slot", 0, 0) and len(self.parent.class_stack) > 1):
+                # bare `outer`: the outer link (slot 0), the enclosing instance one hop out
+                enclosing = self.parent.class_stack[-2]
+                if self.parent.member_visibility(enclosing, selector) == "private":
+                    self.emit_vtable_send(OP_SEND_PRIVATE, enclosing, 1, selector, args, target_reg)
                     return
                 self_ish = True
 
@@ -2136,6 +2145,7 @@ class OevmCompiler:
         self.class_side_methods = {}
         self.class_stack = []
         self._member_vis = {}        # rete#372: qname -> {selector: visibility} (member_visibility)
+        self._sent = None            # rete#372: sent_selectors()
         self.block_count = 0
         self.block_methods = []
         self.all_classes = {}
@@ -2306,10 +2316,26 @@ class OevmCompiler:
                     return (child_qname, hops, container_qname)
         return None
 
+    def sent_selectors(self):
+        """rete#372: every selector some send in the image names (any receiver, any kind)."""
+        if self._sent is None:
+            sent = set()
+            stack = [self.ast]
+            while stack:
+                o = stack.pop()
+                if isinstance(o, dict):
+                    if o.get("type") == "send":
+                        sent.add(o["selector"])
+                    stack.extend(o.values())
+                elif isinstance(o, list):
+                    stack.extend(o)
+            self._sent = sent
+        return self._sent
+
     def member_visibility(self, cls_qname, selector):
         """rete#372: the visibility of the instance-side member `selector` that class `cls_qname` itself
-        defines (a method, a slot's accessor or a nested class's accessor; inherited members are not
-        counted), with the default applied. None when the class defines no such member."""
+        defines (a method, a non-private slot's accessor or a nested class's accessor; inherited members
+        are not counted), with the default applied. None when the class defines no such member."""
         table = self._member_vis.get(cls_qname)
         if table is None:
             node = self.all_classes.get(cls_qname) or {}
@@ -2318,6 +2344,8 @@ class OevmCompiler:
                 table[c["name"]] = c.get("visibility") or DEFAULT_VISIBILITY
             for sl in node.get("slots", []):
                 v = sl.get("visibility") or DEFAULT_VISIBILITY
+                if v == "private":
+                    continue                # no accessor: the name is no member a send can reach
                 table[sl["name"]] = v
                 if sl.get("mutable"):
                     table[sl["name"] + ":"] = v
@@ -2572,21 +2600,26 @@ class OevmCompiler:
             self.register_method_compiler(f"{meta_vt}>>{selector}", compiler)
 
         # Synthesise accessor methods for public and protected slots: a getter
-        # `name`, plus a setter `name:` for mutable slots. Internal slot access
-        # goes straight through OP_LD/ST_SLOT; these accessors back explicit
-        # sends — `public` for any caller, `protected` for self/subclass sends
-        # (e.g. deltablue's `protected satisfied ::= false.` set via
-        # `satisfied: false`). The VM does not enforce send-visibility; `private`
-        # slots get no accessor (direct slot ops only).
+        # `name`, plus a setter `name:` for mutable slots, at the slot's level
+        # (rete#372). Internal slot access goes straight through OP_LD/ST_SLOT;
+        # these accessors back sends — `public` for any caller, `protected` for
+        # self/subclass sends (e.g. deltablue's `protected satisfied ::= false.`
+        # set via `satisfied: false`). `private` slots get no accessor.
         defined = {m["selector"] for m in node.get("methods", [])}
         slots = self.class_slots[qname]
         for s in node.get("slots", []):
-            if s.get("visibility") not in ("public", "protected"):
+            vis = s.get("visibility") or DEFAULT_VISIBILITY
+            if vis == "private":
                 continue
-            access = ACCESS_LEVEL[s["visibility"]]
+            access = ACCESS_LEVEL[vis]
             slot_idx = slots.index(s["name"])
             getter = s["name"]
-            if getter not in defined:
+            # A protected accessor is reached only by a send inside the image (kernel and program compile
+            # together), so one that no send names is never built (rete#372, David: +4.5 KB on the bell's
+            # C6 image instead of +25.8 KB). Code here reads and writes a slot with OP_LD/ST_SLOT, not the
+            # accessor. A debug-build hot patch cannot be the first to send one.
+            elide = vis == "protected"
+            if getter not in defined and not (elide and getter not in self.sent_selectors()):
                 mc = MethodCompiler(vt, getter, [], [], self)
                 r = mc.alloc_reg()
                 mc.emit_ABC(OP_LD_SLOT, r, slot_idx, 0)
@@ -2596,7 +2629,7 @@ class OevmCompiler:
                 defined.add(getter)
             if s.get("mutable"):
                 setter = f"{getter}:"
-                if setter not in defined:
+                if setter not in defined and not (elide and setter not in self.sent_selectors()):
                     mc = MethodCompiler(vt, setter, ["value"], [], self)
                     mc.emit_ABC(OP_ST_SLOT, 1, slot_idx, 0)  # self.slots[idx] = arg
                     mc.emit_ABC(OP_RET, 0, 0, 0)             # return self
@@ -3016,6 +3049,7 @@ def parse_program(src_ns):
                     "methods": [
                         {
                             "type": "method",
+                            "visibility": "public",     # the VM's entry send comes from outside (rete#372)
                             "selector": "main:args:",
                             "params": ["platform", "args"],
                             "temps": script_temps,

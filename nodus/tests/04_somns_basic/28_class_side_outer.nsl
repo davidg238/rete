@@ -3,7 +3,7 @@ expect:
 42
 *)
 class ClassSideOuter packageUsing: manifest = (
-  | secret ::= 42. |
+  | private secret ::= 42. |
 )(
   class Probe = () (
   ) : (

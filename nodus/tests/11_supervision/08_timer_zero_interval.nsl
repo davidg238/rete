@@ -22,7 +22,7 @@ done
    The test's real assertion is that `space drain` returns at all: if the
    defect regresses (the floor is removed or bypassed), this test hangs the
    process instead of failing an expectation. *)
-class TimerZeroInterval packageUsing: manifest = ( | fired ::= 0. | ) (
+class TimerZeroInterval packageUsing: manifest = ( | private fired ::= 0. | ) (
   public main: platform args: args = (
     | space timers ping repeater |
     space:: platform space.

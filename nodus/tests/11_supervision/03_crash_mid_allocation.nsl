@@ -11,7 +11,7 @@ done
    Proves the setjmp boundary and the precise GC agree: the half-built graph of each
    crashed firing is unreachable and swept, roots survive. Runs under the suite's
    boot-gc-asan gate. *)
-class CrashMidAllocation packageUsing: manifest = ( | crashes ::= 0. | ) (
+class CrashMidAllocation packageUsing: manifest = ( | private crashes ::= 0. | ) (
   public main: platform args: args = (
     | space boom sys big |
     space:: platform space.

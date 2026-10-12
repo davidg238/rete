@@ -51,7 +51,7 @@ class ReplyTagMatch packageUsing: manifest = () (
 
   (* Duck-typed stand-ins: PortaBridge only ever sends `sendTo:port:data:` and
      `receive` to its socket, and `data` to what receive answers. *)
-  public class FakeDatagram = ( | data | ) (
+  public class FakeDatagram = ( | private data | ) (
     public setData: d = ( data:: d. ^ self )
     public data = ( ^ data )
   ) : (
@@ -62,7 +62,7 @@ class ReplyTagMatch packageUsing: manifest = () (
      (and everything past the fourth) answers nil, which is what a quiet socket
      looks like to `awaitReply`. Four explicit slots rather than a collection:
      the kernel instance an app is handed vends no OrderedCollection. *)
-  public class FakeSocket = ( | a b c d n | ) (
+  public class FakeSocket = ( | private a private b private c private d private n | ) (
     public setA: w b: x c: y d: z = ( a:: w. b:: x. c:: y. d:: z. n:: 0. ^ self )
     public sendTo: host port: p data: bytes = ( ^ self )
     public receive = ( | slot |

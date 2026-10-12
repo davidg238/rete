@@ -20,7 +20,7 @@ done
    empties the ring; counters PERSIST (cumulative, not reset by drain). A
    post-drain post to `b` is delivered — the ring recovered; overflow was a
    contained episode, not a latched state. *)
-class OverrunCounter packageUsing: manifest = ( | bHits ::= 0. | ) (
+class OverrunCounter packageUsing: manifest = ( | private bHits ::= 0. | ) (
   public main: platform args: args = (
     | space a b |
     space:: platform space.

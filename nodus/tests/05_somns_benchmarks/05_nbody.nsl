@@ -14,7 +14,7 @@ class Benchmark = () (
 )
 class NBody usingPlatform: platform = () (
   public class NBody = Benchmark (
-    | expectedEnergy |
+    | private expectedEnergy |
   )(
     public innerBenchmarkLoop: innerIterations numThreads: threads = (
         | bodies |
@@ -37,7 +37,7 @@ class NBody usingPlatform: platform = () (
   )
 
   class NBodySystem = (
-  | bodies = self createBodies. |
+  | private bodies = self createBodies. |
   )(
     public createBodies = (
       | px py pz bodies |

@@ -11,7 +11,7 @@ done
    observer on sys/crash sees one crash record per contained crash. The node never
    exits. Observation is a reaction on sys/crash (not take:) because drain dispatches
    — and would drop — the transient crash records otherwise. *)
-class Containment packageUsing: manifest = ( | goodHits ::= 0. badHits ::= 0. crashes ::= 0. | ) (
+class Containment packageUsing: manifest = ( | private goodHits ::= 0. private badHits ::= 0. private crashes ::= 0. | ) (
   public main: platform args: args = (
     | space good bad sys |
     space:: platform space.

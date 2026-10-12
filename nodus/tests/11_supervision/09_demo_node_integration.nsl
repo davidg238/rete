@@ -60,7 +60,7 @@ done
 class DemoNodeIntegration packageUsing: manifest = () (
 
   (* ---- TempNode, reduced: real FSM + real timer + test-driven mock sensor ---- *)
-  class TempNode = ( | chan timers plat machine timeout ::= nil. | ) (
+  class TempNode = ( | private chan private timers private plat private machine private timeout ::= nil. | ) (
 
     (* No i2c: arm the watchdog only. The real TMP117 write is gone (Task 7 brief) —
        the test itself plays the sensor, posting #done or letting the timer win. *)
@@ -112,7 +112,7 @@ class DemoNodeIntegration packageUsing: manifest = () (
       machine restore: (snapshot == nil ifTrue: [ #idle ] ifFalse: [ snapshot ]).
     )
 
-    setChan: c timers: t platform: p = ( chan:: c. timers:: t. plat:: p. ^ self )
+    public setChan: c timers: t platform: p = ( chan:: c. timers:: t. plat:: p. ^ self )
   ) : (
     public chan: c timers: t platform: p = ( ^ self new setChan: c timers: t platform: p )
   )

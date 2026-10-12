@@ -19,7 +19,7 @@ class FieldAccessTest packageUsing: manifest = () (
 
     (* There was an issue, because A always got a new ClassFactory
        because Base was always a different object. *)
-    class A new: iterations = Base new: iterations ()()
+    public class A new: iterations = Base new: iterations ()()
   
     public run = (
       | e |

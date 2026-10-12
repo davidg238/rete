@@ -9,7 +9,8 @@ Reference encoding (low 2 bits = tag):
 """
 import struct
 
-from prim_ids import PRIM_IDS   # rete#226: oevm/src/prim_names.def, the single source
+from prim_ids import PRIM_IDS
+from solidify import sanitize_symbol_name   # rete#226: oevm/src/prim_names.def, the single source
 
 TAG_APP, TAG_BUILTIN, TAG_SMI, TAG_SINGLETON = 0b00, 0b01, 0b10, 0b11
 
@@ -385,20 +386,7 @@ class OimgSerializer:
 
     @staticmethod
     def _sanitize(name):
-        # Mirror solidify.SolidifyCompiler.sanitize_symbol_name exactly so the
-        # METHOD: block-method id matches the C path's Method_Block_* id.
-        m = {':': '_', '=': '_eq', '+': '_add', '-': '_sub', '*': '_mul',
-             '/': '_div', '<': '_lt', '>': '_gt', '&': '_and', '|': '_or',
-             '!': '_not', '?': '_q', '@': '_at', '%': '_mod'}
-        out = []
-        for ch in name:
-            if ch.isalnum() or ch == '_':
-                out.append(ch)
-            elif ch in m:
-                out.append(m[ch])
-            else:
-                out.append(f"_u{ord(ch)}")
-        return "".join(out)
+        return sanitize_symbol_name(name)   # the C path's Method_Block_* id, from the one mapping
 
     @classmethod
     def _method_block_id(cls, name):

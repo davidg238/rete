@@ -27,10 +27,10 @@ Dialect: `[ ... ] whileTrue:`, never `repeat`. Modulo is `\\` (rete#246).
 expect (C6 console, after boot + attach):
 NTP OK
 *)
-class ThreadNtpNode packageUsing: manifest = ( | rtc ::= nil. ntp ::= nil. date ::= nil. rc ::= nil. back ::= nil. | ) (
+class ThreadNtpNode packageUsing: manifest = ( | private rtc ::= nil. private ntp ::= nil. private date ::= nil. private rc ::= nil. private back ::= nil. | ) (
   (* US/Arizona: UTC-7 and no DST, so a constant is honest here in a way it would
      not be anywhere that observes summer time. *)
-  tzOffset = ( ^ -25200 )
+  public tzOffset = ( ^ -25200 )
 
   public main: platform args: args = (
     rtc:: platform wallClock.
@@ -85,7 +85,7 @@ class ThreadNtpNode packageUsing: manifest = ( | rtc ::= nil. ntp ::= nil. date 
 
   (* seconds-since-midnight -> 'HH:MM:SS', zero-padded so the columns line up in a
      serial log. *)
-  hms: secs = (
+  public hms: secs = (
     | h rem m s |
     h::   secs // 3600.
     rem:: secs \\ 3600.

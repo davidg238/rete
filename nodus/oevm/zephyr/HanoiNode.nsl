@@ -28,7 +28,7 @@ class HanoiNode packageUsing: manifest = () (
     ('hanoi ' , n printString , ': ' , (t1 - t0) printString) out.
     ^ n
   )
-  hanoiMove: n from: src to: dst temp: tmp = (
+  public hanoiMove: n from: src to: dst temp: tmp = (
     n > 1 ifTrue: [
       self hanoiMove: n - 1 from: src to: tmp temp: dst.
       self hanoiMove: n - 1 from: tmp to: dst temp: src.

@@ -17,7 +17,7 @@ TAP runonce done
    and correctly so. The vacuous outcome on today's build is TIMEOUT: no deadline
    is ever formed, so nothing reboots and no TAP arrives. *)
 class RunOnceProbeC6 packageUsing: manifest = (
-  | plat space tapPass ::= 0. tapFail ::= 0. |
+  | private plat private space private tapPass ::= 0. private tapFail ::= 0. |
 ) (
 
   public main: platform args: args = (

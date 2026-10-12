@@ -23,7 +23,7 @@ done
    the overload point — David's call, 2026-07-14: the crash that STARTED a
    storm must not be the record lost), and the counter surfaces the 7 drops
    per channel and in the node total. *)
-class StreamFlood packageUsing: manifest = ( | quietHits ::= 0. floodHits ::= 0. last ::= 0. | ) (
+class StreamFlood packageUsing: manifest = ( | private quietHits ::= 0. private floodHits ::= 0. private last ::= 0. | ) (
   public main: platform args: args = (
     | space flood quiet |
     space:: platform space.

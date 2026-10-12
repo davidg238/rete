@@ -25,7 +25,7 @@ done
    Explicit construction (`Timers usingSpace:seam:`) still mints fresh
    instances for tests that need a private registry — the class-side door is
    unchanged; only the accessor stopped lying about being one. *)
-class TimersInstanceIdentity packageUsing: manifest = ( | ticks ::= 0. | ) (
+class TimersInstanceIdentity packageUsing: manifest = ( | private ticks ::= 0. | ) (
   public main: platform args: args = (
     | space a b ping |
     space:: platform space.

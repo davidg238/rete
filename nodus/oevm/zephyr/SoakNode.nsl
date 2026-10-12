@@ -23,7 +23,7 @@ expect (console, every ~15s once attached):
 SOAK OK 1/1
 *)
 class SoakNode usingPlatform: platform net: net = (
-  | space bridge cur sent ::= 0. ok ::= 0. awaiting ::= false. |
+  | private space private bridge private cur private sent ::= 0. private ok ::= 0. private awaiting ::= false. |
 ) (
   (* gateway ML-EID, not its OMR — an MTD child has no OMR source address (rung-7) *)
   gwAddr     = ( ^ 'fdc5:9109:9afe:97ea:9541:d963:f8d9:8567' )

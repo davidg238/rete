@@ -45,9 +45,9 @@ done
    cycle repeats this 0->1->reset dance, so `crashes` never reaches 3 and
    `isQuarantined:` stays false for all 5,000 cycles — a real, repeated
    exercise of the restart path (sweep + re-register), not a one-shot. *)
-class SoakLeak packageUsing: manifest = ( | h1Hits ::= 0. h2Hits ::= 0. h3Hits ::= 0.
-                                            crashCycles ::= 0. restarts ::= 0. finalHits ::= 0.
-                                            cycleCounter ::= 0. liveWarm ::= 0. | ) (
+class SoakLeak packageUsing: manifest = ( | private h1Hits ::= 0. private h2Hits ::= 0. private h3Hits ::= 0.
+                                            private crashCycles ::= 0. private restarts ::= 0. private finalHits ::= 0.
+                                            private cycleCounter ::= 0. private liveWarm ::= 0. | ) (
   (* Force a sweep, then read liveBytes. GC fires only on arena exhaustion
      (tuvm#35 tracks an on-demand collect prim), so spin allocating droppable
      garbage until the cycle counter ticks; the reading is then live data at

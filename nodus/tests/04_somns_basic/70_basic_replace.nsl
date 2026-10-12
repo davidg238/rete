@@ -16,7 +16,7 @@ expect-runtime-fail: basicReplaceFrom:to:with:startingAt: out of bounds
    the array, OrderedCollection's grow (which uses it) across two grows and a removeFirst,
    then an out-of-bounds copy, which stops the VM as basicAt:put: does. *)
 class BasicReplaceTest packageUsing: manifest = () (
-  show: a = ( | line | line:: ''. 1 to: a size do: [ :i | line:: line , (a at: i) printString , (i < a size ifTrue: [ ' ' ] ifFalse: [ '' ]) ]. line println )
+  public show: a = ( | line | line:: ''. 1 to: a size do: [ :i | line:: line , (a at: i) printString , (i < a size ifTrue: [ ' ' ] ifFalse: [ '' ]) ]. line println )
 public main: platform args: args = (
   | a b oc ok |
   a:: Array new: 5. 1 to: 5 do: [ :i | a at: i put: 0 ].

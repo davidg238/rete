@@ -73,7 +73,7 @@ class Supervisor usingMirror: mirror = () (
      reachable from a top-level class. Names every method by its BLOB OFFSET, the
      image map's key (rete#323): custos turns a line into an offset and a stop back
      into a line, so the node keeps no registry. Runs the interactive command loop. *)
-  public class Debugger usingMirror: m channel: io = ( | entry bpBlobs bpOffs stepMode stepDepth curCtx ready link | ) (
+  public class Debugger usingMirror: m channel: io = ( | private entry private bpBlobs private bpOffs private stepMode private stepDepth private curCtx private ready private link | ) (
     public registerEntry: anEntry = ( entry:: anEntry. ^ self )
 
     (* Where the command lines come from and the replies go (#342 spike, rete#376).
@@ -85,7 +85,7 @@ class Supervisor usingMirror: mirror = () (
        the cable read blocks, as before. Every reply is echoed to the console as
        well, so a board's log still shows the session. *)
     public useLink: aLink = ( link:: aLink. ^ self )
-    readLine = (
+    public readLine = (
       | l |
       link == nil ifTrue: [ ^ io readLine ].
       [ true ] whileTrue: [
@@ -93,7 +93,7 @@ class Supervisor usingMirror: mirror = () (
         l:: io consoleLine.
         (l == nil or: [ l == false ]) ifFalse: [ ^ l ].
         link heldExchange ifFalse: [ ^ nil ] ] )
-    say: s = (
+    public say: s = (
       s println.
       link == nil ifFalse: [ link say: s ].
       ^ self )
@@ -109,11 +109,11 @@ class Supervisor usingMirror: mirror = () (
        exchanges between lines and never blocks in the read) counted as a wedge and
        the node rebooted at appCad. The hold brackets the whole command loop: set
        here, cleared on the continue; a step pauses again before anything clears it. *)
-    held: blob at: off = (
+    public held: blob at: off = (
       io debugHeld: true.
       link == nil ifFalse: [ link held: blob at: off ].
       ^ self )
-    resumed = (
+    public resumed = (
       io debugHeld: false.
       link == nil ifFalse: [ link resumed ].
       ^ self )

@@ -12,9 +12,9 @@ expect (console):
 SLEEPY NODE READY
 *)
 class SleepyDebugNode usingPlatform: platform net: net = (
-  | space bridge timers ticks ::= 0. total ::= 0. |
+  | private space private bridge private timers private ticks ::= 0. private total ::= 0. |
 ) (
-  nodeId    = ( ^ platform nodeId )
+  public nodeId    = ( ^ platform nodeId )
   gwAddr    = ( ^ '127.0.0.1' )
   gwPort    = ( ^ 16969 )
   localPort = ( ^ 16979 )   (* clear of porta's exchange..exchange+1 band *)

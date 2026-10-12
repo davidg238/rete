@@ -31,9 +31,9 @@ expect (console):
 SLEEPY NODE READY
 *)
 class MagTagSleepyDebugNode usingPlatform: platform net: net = (
-  | space bridge wakes ::= 0. total ::= 0. |
+  | private space private bridge private wakes ::= 0. private total ::= 0. |
 ) (
-  nodeId    = ( ^ platform nodeId )
+  public nodeId    = ( ^ platform nodeId )
   (* gw85224-01 on the LAN the MagTag's WiFi joins: the real gateway, not an injector —
      by its stable (EUI-64) ULA, not 192.168.0.176. The bridge awaits porta's reply on
      the socket it bound (udpBindPort:, AF_INET6), but udp_zephyr.c sends to an IPv4

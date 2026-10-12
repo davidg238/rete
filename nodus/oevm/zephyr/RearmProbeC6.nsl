@@ -26,10 +26,10 @@ TAP cad-rearm done
    here wedges, latches or reboots. Host twin: 22_spacesync/23_liveness_cad_rearm.
    Holds ONE Timers instance, for the reason every node in this directory does. *)
 class RearmProbeC6 packageUsing: manifest = (
-  | plat space timers bridge tickCh
-    ticks ::= 0. lastMs ::= 0. rearmMs ::= 0.
-    oldGapsOk ::= 0. newGapsOk ::= 0. badGap ::= -1.
-    tapPass ::= 0. tapFail ::= 0. reported ::= false. |
+  | private plat private space private timers private bridge private tickCh
+    private ticks ::= 0. private lastMs ::= 0. private rearmMs ::= 0.
+    private oldGapsOk ::= 0. private newGapsOk ::= 0. private badGap ::= -1.
+    private tapPass ::= 0. private tapFail ::= 0. private reported ::= false. |
 ) (
 
   public main: platform args: args = (

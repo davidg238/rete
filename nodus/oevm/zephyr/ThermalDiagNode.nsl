@@ -20,9 +20,9 @@ class ThermalDiagNode usingPlatform: platform net: net = () (
 
   (* ---- the sensor service: samples the Grid-EYE, publishes frames + banks spans.
      Copied verbatim from ThermalHttpNode — knows nothing about transport. *)
-  class ThermalNode = ( | space seam timers sample ctl event tick timer rate
-                          spans sJob sAcquire sCompute sPublish | ) (
-    onSpace: sp seam: s timers: t spans: sn = (
+  class ThermalNode = ( | private space private seam private timers private sample private ctl private event private tick private timer private rate
+                          private spans private sJob private sAcquire private sCompute private sPublish | ) (
+    public onSpace: sp seam: s timers: t spans: sn = (
       space::  sp.  seam:: s.  timers:: t.  rate:: 2.
       sample:: sp channel: 'dev/thermal0/sample'.
       ctl::    sp channel: 'dev/thermal0/ctl'.

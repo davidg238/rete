@@ -59,7 +59,7 @@ class Awfy usingPlatform: platform = (
   )
 
   public class Random = (
-  | seed ::= 74755. |
+  | private seed ::= 74755. |
   )(
     public next = (
       seed:: ((seed * 1309) + 13849) & 65535.
@@ -500,10 +500,10 @@ class Awfy usingPlatform: platform = (
   )
 
   class Ball new: random = (
-  | x    ::= random next \\ 500.
-    y    ::= random next \\ 500.
-    xVel ::= (random next \\ 300) - 150.
-    yVel ::= (random next \\ 300) - 150.
+  | private x    ::= random next \\ 500.
+    private y    ::= random next \\ 500.
+    private xVel ::= (random next \\ 300) - 150.
+    private yVel ::= (random next \\ 300) - 150.
   |)(
     public bounce = (
       | xLimit yLimit bounced |
@@ -525,7 +525,7 @@ class Awfy usingPlatform: platform = (
     )
   )
 
-  class List = Benchmark ()(
+  public class List = Benchmark ()(
     public benchmark = ( | result |
       result:: self
                   tailWithX: (self makeList: 15)
@@ -2222,7 +2222,7 @@ class Awfy usingPlatform: platform = (
   |)(
     class Planner = (
       (* The DeltaBlue planner. To run the benchmark: chainTest: and projectionTest:. *)
-      | currentMark ::= 1. |
+      | private currentMark ::= 1. |
     )(
       public incrementalAdd: c = (
         (* Attempt to satisfy the given constraint and, if successful,
@@ -2449,7 +2449,7 @@ class Awfy usingPlatform: platform = (
         self error: 'subclassResponsibility'
       )
 
-      addConstraint: planner = (
+      public addConstraint: planner = (
         (* Activate this constraint and attempt to satisfy it. *)
         self addToGraph.
         planner incrementalAdd: self.
@@ -2550,9 +2550,9 @@ class Awfy usingPlatform: platform = (
                             #forward (v2 is output)
                             #backward ( v1 is output)
                             nil (not satisfied) *)
-      | v1 = var1.
-        v2 = var2.
-        direction ::= nil. |
+      | private v1 = var1.
+        private v2 = var2.
+        private direction ::= nil. |
     ) (
       public isSatisfied = (
         (* Answer true if this constraint is satisfied in the current solution. *)
@@ -2652,7 +2652,7 @@ class Awfy usingPlatform: platform = (
           output      possible output variable <Variable>
           satisfied       true if I am currently satisfied <Boolean> *)
       | public output = aVariable.
-        satisfied     ::= false. |
+        private satisfied     ::= false. |
       (* AWFY runs `self addConstraint: planner` here; nsl does not run a superclass's
          initializer body for a subclass instance, so Edit- and StayConstraint run it. *)
     )(
@@ -2744,8 +2744,8 @@ class Awfy usingPlatform: platform = (
       Instance variables:
           scale       scale factor input variable <Variable>
           offset      offset input variable <Variable> *)
-      | scale  = scaleVar.
-        offset = offsetVar. |
+      | private scale  = scaleVar.
+        private offset = offsetVar. |
       self addConstraint: planner.
     )(
       addToGraph = (

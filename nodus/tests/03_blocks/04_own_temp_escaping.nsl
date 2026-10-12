@@ -8,7 +8,7 @@ same
    block. This is the exact Milestone-C staged fsm.ns:48 shape that once crashed the VM
    (OP_LD_SLOT / Invalid receiver); fixed incidentally in B/C/D work. Milestone E's prim-send
    handler/cleanup bodies are real closures with own temps, so this path must stay sound. *)
-class OwnTempEscaping packageUsing: manifest = ( | states plat | ) (
+class OwnTempEscaping packageUsing: manifest = ( | private states private plat | ) (
   seedFor: s = (
     | table |
     table:: states at: s ifAbsent: [ | t | t:: plat Dictionary new. states at: s put: t. t ].

@@ -30,10 +30,10 @@
    (timer_posix.c), so the loop advances it in 30 s steps — small enough that the
    30 s boot-retry timer is exercised at its real cadence rather than coalesced. *)
 class MagTagClockHostRam packageUsing: manifest = (
-  | plat timers halfHours ::= 0. bootTicks ::= 0. lastBells ::= 8. hasDisplay ::= false.
-    tick phaseCh ntpCh strikeTok phaseTok ntpTok.
-    synced ::= false. lastCorr ::= 0. corrMin ::= 0. corrMax ::= 0. haveCorr ::= false.
-    syncCount ::= 0. steps ::= 0. | ) (
+  | private plat private timers private halfHours ::= 0. private bootTicks ::= 0. private lastBells ::= 8. private hasDisplay ::= false.
+    private tick private phaseCh private ntpCh private strikeTok private phaseTok private ntpTok.
+    private synced ::= false. private lastCorr ::= 0. private corrMin ::= 0. private corrMax ::= 0. private haveCorr ::= false.
+    private syncCount ::= 0. private steps ::= 0. | ) (
 
   public main: platform args: args = (
     | space |
@@ -75,7 +75,7 @@ class MagTagClockHostRam packageUsing: manifest = (
     ^ 0
   )
 
-  report: tag = (
+  public report: tag = (
     | hs |
     hs:: plat heapStats.
     (tag , ' live=' , hs liveBytes printString ,
@@ -85,7 +85,7 @@ class MagTagClockHostRam packageUsing: manifest = (
 
   (* --- everything below is copied from MagTagClockNode.nsl ----------------- *)
 
-  trySync = (
+  public trySync = (
     | secs |
     secs:: plat ntpSyncTz: self tzOffset.
     secs == nil ifTrue: [ 'ntp miss' out. ^ self ].
@@ -218,7 +218,7 @@ class MagTagClockHostRam packageUsing: manifest = (
   pad: n = ( (n < 10) ifTrue: [ ^ '0' , n printString ]. ^ n printString )
 
   tickMillis = ( ^ 1800000 )
-  tzOffset = ( ^ -25200 )
+  public tzOffset = ( ^ -25200 )
   bootRetryMillis = ( ^ 30000 )
 ) : (
 )

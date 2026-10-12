@@ -69,7 +69,7 @@ class BridgeSpanBrackets packageUsing: manifest = () (
   (* Duck-typed stand-ins, as in 06_reply_tag_match: PortaBridge only ever sends
      `sendTo:port:data:` and `receive` to its socket, and `data` to what receive
      answers. *)
-  public class FakeDatagram = ( | data | ) (
+  public class FakeDatagram = ( | private data | ) (
     public setData: d = ( data:: d. ^ self )
     public data = ( ^ data )
   ) : (
@@ -79,7 +79,7 @@ class BridgeSpanBrackets packageUsing: manifest = () (
   (* Alternates the two replies rather than stepping a fixed list of slots: the
      legs ask in a strict batch/ack order, so a toggle serves any number of
      check-ins and no wait ever times out. A flag, not `n \\ 2`. *)
-  public class FakeSocket = ( | batch ack wantAck | ) (
+  public class FakeSocket = ( | private batch private ack private wantAck | ) (
     public setBatch: b ack: a = ( batch:: b. ack:: a. wantAck:: false. ^ self )
     public sendTo: host port: p data: bytes = ( ^ self )
     public receive = (

@@ -28,8 +28,8 @@ wend exit
 TAP profile-restart ok 1 survived
 *)
 class ProfileRestartProbeC6 packageUsing: manifest = (
-  | plat space timers profChan hbChan profTok ::= nil.
-    beats ::= 0. ends ::= 0. reported ::= false. |
+  | private plat private space private timers private profChan private hbChan private profTok ::= nil.
+    private beats ::= 0. private ends ::= 0. private reported ::= false. |
 ) (
   (* the cancelled deadline is 20 s, the surviving one 6 s; 25 beats watches
      past BOTH before scoring (#216: score inside the window and a node that

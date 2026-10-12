@@ -1,6 +1,6 @@
 # Method visibility at no cost per send (rete#372)
 
-> Status: **DRAFT, answered by David 2026-10-12:** visibility is ultimately mandatory (#37 Q2) and is built now, ahead
+> Status: **Answered by David and built 2026-10-12 (addendum at the foot):** visibility is ultimately mandatory (#37 Q2) and is built now, ahead
 > of the network reflash; three levels with `protected` the default, which follows Newspeak's intent (Q1–Q2); the
 > private send uncached until the board says otherwise (Q3); no compile-time rule, because a `doesNotUnderstand:`
 > handler can make any send legal (Q4); an ordinary send that finds `protected` answers DNU at once, as Soup does (Q5).
@@ -88,7 +88,7 @@ unmarked slots private), which is the worse trade.
 What this costs per send: **nothing on the cached path.** Two opcodes (`OP_SEND_SELF`, `OP_SEND_PRIVATE`) and one
 header field (`access`), hand-edited into the five board layouts the way L6's `shape` was. The VM never checks access, so there is nothing to bypass.
 
-## Found during this (to be filed P3 `found-during #372`)
+## Found during this (filed P3 #425)
 
 - `OP_SEND_IMPLICIT`'s lexical walk starts at the **receiver's** class (`vm.c:1563`). Soup starts at the **sending
   method's** class (`FindApplicationOf`). They differ when an inherited method makes an implicit send and the
@@ -116,3 +116,30 @@ header field (`access`), hand-edited into the five board layouts the way L6's `s
 3. Answered: the private send ships uncached and is measured on the board.
 4. Answered: no compile-time rule (a `doesNotUnderstand:` handler makes any send legal); the run-time lookup is the guarantee.
 5. Answered: an ordinary send that finds `protected` answers DNU at once, as Soup does (closer to the intent).
+
+## Addendum, 2026-10-12: built (branch `372-visibility`)
+
+Suite 299 passed, 0 failed; the Go modules green bar #414 (red on master too); PORTA SYNC OK. portability-32 and the
+footprint ratchet cannot run on opti7040 (no 32-bit libc headers, no arm toolchain): both are owed on msi, and the
+c6spare A/B of step 5 is owed with them.
+
+What building it changed:
+
+- **Accessors (David):** a protected slot accessor that no send in the image names is not built. Newspeak always
+  synthesises a getter and setter per slot (`newspeak/Intermediates.ns:213`), because there a slot is reached only by
+  messages; nsl compiles a read inside the class to `OP_LD_SLOT`, so an accessor exists only for senders. Building
+  them all cost +25.8 KB (+14.6 %) on the bell's C6 image; eliding the unsent ones cost +4.5 KB.
+- **Migration (David: conservative, behaviour-preserving).** The first cut marked slots `public` where an explicit
+  send named their accessor, and that was wrong: `OrderedCollection`'s slot `count` then grew a setter `count:` that
+  shadowed `Collection>>count:`. On master an unmarked slot had no accessor, so every unmarked slot became `private`,
+  and every unmarked method and class that some explicit send names became `public` (765 markings, 93 files). With
+  that, the bell's image is the size it was on master.
+- **Sends to self the compiler must recognise:** bare `outer foo` (the outer link, slot 0) as well as `outer C foo`,
+  and a class-side `self foo`. A class-side miss falls through to construction, so a refused class-side send did
+  not fail: `fromHex:` got an instance back from `hexDigit:` and wrote garbage bytes.
+- **Entry points are public:** the image loader's sends from C (`serialOn:`, `netOn:`, the supervisor's
+  `run:platform:args:debug:`, `main:args:`, the `init_` initialisers) are ordinary sends. A wrapped script's
+  `main:args:` is marked `public` by the compiler.
+- **Found and fixed:** the image writer's method ids were not injective (`:` and `_` both became `_`, so the method
+  `taskHolding:` and a slot `taskHolding_`'s getter were one id). One mapping, shared by the C and `.oimg` writers,
+  now escapes `_` as `__`.

@@ -20,9 +20,9 @@ Run: OEVM_DEBUG_HOOKS=1 run.sh --node DebugHoldProbeC6.nsl \
        --conf-extra "prj_esp32c6_thread.conf;prj_esp32c6_thread_ftd.conf" --flash
 *)
 class DebugHoldProbeC6 usingPlatform: platform net: net = (
-  | space bridge timers ticks ::= 0. total ::= 0. |
+  | private space private bridge private timers private ticks ::= 0. private total ::= 0. |
 ) (
-  nodeId    = ( ^ platform nodeId )
+  public nodeId    = ( ^ platform nodeId )
   (* gw85224-01's mesh-local EID, as every bridged C6 image addresses it. *)
   gwAddr    = ( ^ 'fdc5:9109:9afe:97ea:9541:d963:f8d9:8567' )
   gwPort    = ( ^ 16977 )   (* the #377 injector; 6969 is the real gateway *)

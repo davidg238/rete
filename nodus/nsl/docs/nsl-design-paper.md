@@ -436,7 +436,7 @@ We will run that comparison and publish the result: shown, not told (rete issue 
 | No resumable exceptions | a handler cannot supply a value and continue at the raise | `on:do:` answering the default | 24 |
 | Per-byte work is interpreted | the CBOR codec is nsl, and every value it walks costs method activations | move the hot methods to C by native substitution (§2); the encode walk is designed on a branch for C (rete #297), not built | — |
 | `platform` is all-powerful | any app holds every device | narrowed platforms, or `serial:`/`net:`-style header grants for devices | 32 |
-| Access modifiers unenforced | `private` documents intent and nothing more | emit them and check, or delete the check (#372) | 25 |
+| ~~Access modifiers unenforced~~ | closed by #372 (2026-10-12): enforced as Newspeak defines them, unmarked = `protected`, nothing per cache hit | — | 25 |
 | Hot patch limited to known constants | a fix that names a new selector or string cannot be patched | intern in RAM; carry offsets in the image map | 30, 31 |
 | No `Character`, byte strings | text is bytes | a rune-aware protocol | 10, 12 |
 

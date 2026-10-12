@@ -21,7 +21,7 @@ class PatchRestartTarget usingPlatform: platform = () (
     ('value ' , v printString) println.
     ^ v )
 
-  value = ( ^ 1 )
+  public value = ( ^ 1 )
 
   spare = ( ^ 'patched ' )
 ) : (

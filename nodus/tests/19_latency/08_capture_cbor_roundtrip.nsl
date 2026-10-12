@@ -11,7 +11,7 @@ done
    must (a) fire a `whenever: ''` reaction on diag/spans/result — the same path
    NetBridge>>start uses — and (b) CBOR round-trip back to an equal Record, which
    is what the gw depends on. No socket: the reaction encodes into a temp. *)
-class CaptureCborRoundtrip packageUsing: manifest = ( | seen ::= nil. enc ::= nil. | ) (
+class CaptureCborRoundtrip packageUsing: manifest = ( | private seen ::= nil. private enc ::= nil. | ) (
   public main: platform args: args = (
     | space spans a cap ctl res dec row |
     space:: platform space.
