@@ -83,6 +83,33 @@ def pack_abc(opcode, a, b, c):
     return ((c & 0xFF) << 24) | ((b & 0xFF) << 16) | ((a & 0xFF) << 8) | (opcode & 0xFF)
 
 
+# rete#37 L6: a method the send may answer without a frame (oevm.h enum MethodShape). The writer
+# states the shape, the VM's load-time check proves it against the instructions, and a send to a
+# getter, a setter or `^ self` then runs in the send, as Toit's INVOKE_VIRTUAL_GET/SET do. The slot
+# index rides above the kind: shape = kind | slot << 8.
+SHAPE_ORDINARY, SHAPE_GETTER, SHAPE_SETTER, SHAPE_SELF = 0, 1, 2, 3
+
+
+def method_shape(instructions, num_arguments):
+    def f(w):
+        return w & 0xFF, (w >> 8) & 0xFF, (w >> 16) & 0xFF, (w >> 24) & 0xFF
+    if not instructions:
+        return SHAPE_ORDINARY
+    op0, d0, s1, s2 = f(instructions[0])
+    if op0 == OP_RET:
+        return SHAPE_SELF if d0 == 0 else SHAPE_ORDINARY
+    if len(instructions) < 2:
+        return SHAPE_ORDINARY
+    op1, d1, _, _ = f(instructions[1])
+    if op1 != OP_RET:
+        return SHAPE_ORDINARY
+    if op0 == OP_LD_SLOT and s2 == 0 and d1 == d0:
+        return SHAPE_GETTER | s1 << 8
+    if op0 == OP_ST_SLOT and s2 == 0 and d0 == 1 and d1 == 0 and num_arguments == 1:
+        return SHAPE_SETTER | s1 << 8
+    return SHAPE_ORDINARY
+
+
 class Scope:
     """A lexical scope: name -> register bindings, plus the frame that owns
     those registers. Resolution walks enclosing scopes and counts how many real
@@ -2356,6 +2383,10 @@ class OevmCompiler:
             )
             self.register_source_map(f"{blk.name}>>{blk.selector}", blk.source_map)
             self.register_method_compiler(f"{blk.name}>>{blk.selector}", blk)
+
+        # rete#37 L6: every method is now final, so its shape is too (method_shape).
+        for m in self.solidify.methods:
+            m["shape"] = method_shape(m["instructions"], m["num_arguments"])
 
     def compile_class(self, node):
         qname = node["qname"]

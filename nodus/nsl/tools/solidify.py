@@ -216,7 +216,7 @@ class SolidifyCompiler:
                 
             c_code.append(f"static const struct CompiledMethod {mid}_compiled = {{")
             c_code.append(f"    {mid}_insts, {len(method['instructions'])},")
-            c_code.append(f"    {method['num_registers']}, {method['num_arguments']},")
+            c_code.append(f"    {method['num_registers']}, {method['num_arguments']}, {method.get('shape', 0)},")
             c_code.append(f"    {const_ptr}, {len(method['constants'])}")
             c_code.append("};")
             

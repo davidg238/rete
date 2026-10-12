@@ -232,7 +232,7 @@ KIND_STRUCT = {
     "INSTANCE": "ObjectInstance", "BOXEDBINDING": "BoxedBinding",
 }
 # C int / uint32_t fields (4 bytes on every target ABI we support: x86-32/64, ESP32).
-WIDTH4 = {"is_nested", "num_registers", "num_arguments", "home_generation"}
+WIDTH4 = {"is_nested", "num_registers", "home_generation"}
 # Fixed 64-bit fields, independent of oop width (LargeInteger sign/magnitude).
 WIDTH8_SIGNED = {"sign"}
 WIDTH8_UNSIGNED = {"mag"}
@@ -718,7 +718,8 @@ class OimgSerializer:
             self._put(buf, base, "CompiledMethod", "instructions", self.w.word(self._aref(f"insts:{m['id']}")))
             self._put(buf, base, "CompiledMethod", "instruction_count", self._scalar_bytes("instruction_count", len(m["instructions"])))
             self._put(buf, base, "CompiledMethod", "num_registers", self._scalar_bytes("num_registers", m["num_registers"]))
-            self._put(buf, base, "CompiledMethod", "num_arguments", self._scalar_bytes("num_arguments", m["num_arguments"]))
+            self._put_scalar(buf, base, "CompiledMethod", "num_arguments", m["num_arguments"])
+            self._put_scalar(buf, base, "CompiledMethod", "shape", m.get("shape", 0))
             nc = len(m["constants"])
             cptr = self._aref(f"consts:{m['id']}") if nc else 0
             self._put(buf, base, "CompiledMethod", "constants", self.w.word(cptr))

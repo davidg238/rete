@@ -2081,6 +2081,10 @@ OEVM_HOT oop send_resolve(oop receiver, oop selector, int argc, oop *args,
         oop (*func)(oop, int, oop*) = (oop (*)(oop, int, oop*))closure_entry(cl);
         return func(receiver, argc, args);
     } else {
+        /* rete#37 L6: a getter, setter or `^ self` is answered here, with no frame. */
+        const struct CompiledMethod *cm = (const struct CompiledMethod *)closure_entry(cl);
+        oop r;
+        if (cm->shape != SHAPE_ORDINARY && frameless_send(cm, receiver, argc, args, &r)) return r;
         // Bytecode closure: hand it back for a frame push (flat loop) or a
         // re-entrant run_interpreter (the send() wrapper).
         *out_method = method;

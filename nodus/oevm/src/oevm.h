@@ -370,10 +370,26 @@ struct CompiledMethod {
     const uint32_t *instructions;
     size_t instruction_count;
     int num_registers;
-    int num_arguments;
+    uint16_t num_arguments;
+    /* rete#37 L6: what the send may do instead of pushing a frame. METHOD_SHAPE_KIND(shape) is a
+       MethodShape; METHOD_SHAPE_SLOT(shape) is the getter's or setter's slot index. The image
+       writer computes it (ns_compile_oevm.py method_shape); oevm_method_check proves the claim
+       against the instructions, so the send trusts it. Half of what num_arguments was: every
+       other offset is unchanged, and an image written before L6 reads as all-ordinary. */
+    uint16_t shape;
     const oop *constants;
     size_t constant_count;
 };
+enum MethodShape {
+    SHAPE_ORDINARY = 0,   /* push a frame */
+    SHAPE_GETTER   = 1,   /* LD_SLOT r <- self.slot; RET r      : answer self.slot */
+    SHAPE_SETTER   = 2,   /* ST_SLOT self.slot <- arg1; RET self : store, answer self */
+    SHAPE_SELF     = 3,   /* RET self                           : answer self */
+};
+#define METHOD_SHAPE_KIND(s) ((s) & 0xFFu)
+#define METHOD_SHAPE_SLOT(s) ((s) >> 8)
+/* Answer a shaped method's send without a frame (vm.c); 0 when the frame must be pushed after all. */
+int frameless_send(const struct CompiledMethod *m, oop rcvr, int argc, oop *args, oop *out);
 
 /*
  * BoxedBinding: A heap-allocated first-class association wrapper for a Vtable Binding.
