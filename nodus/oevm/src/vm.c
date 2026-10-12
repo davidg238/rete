@@ -762,6 +762,58 @@ const char *oevm_method_check(struct CompiledMethod *m) {
     return (last == OP_RET || last == OP_JMP) ? NULL : "the last instruction is not OP_RET or OP_JMP";
 }
 
+/* rete#37: the arithmetic the dispatch loop's SMI fast paths leave: SMI overflow, LargeInteger
+   and Float operands, and `/` (exact on SMIs, so never a fast path). One body for the four
+   opcodes, out of the loop. */
+static OEVM_HOT oop arith_slow(uint8_t op, oop op1, oop op2) {
+    if (op == OP_DIV && IS_SMI(op1) && IS_SMI(op2)) {
+        intptr_t v1 = UNTAG_SMI(op1);
+        intptr_t v2 = UNTAG_SMI(op2);
+        if (v2 == 0) {
+            fprintf(stderr, "VM Error: Division by zero\n");
+            abort();
+        }
+        /* Smalltalk `/` is EXACT division: an Integer when it divides evenly, otherwise a
+           rational. With no Fraction type we yield a Float for the inexact case (e.g.
+           mandelbrot's `2 * y / size`). Flooring integer division is the separate `//` prim. */
+        if (v1 % v2 == 0) return TAG_SMI(v1 / v2);
+        struct Float *f_obj = (struct Float *)float_alloc(FloatVtable);
+        f_obj->value = (double)v1 / (double)v2;
+        return (oop)f_obj;
+    }
+    if (oevm_is_integer(op1) && oevm_is_integer(op2)) {
+        /* An SMI result that overflowed, or a LargeInteger operand: the int_* ops normalise. */
+        if (op == OP_ADD) return oevm_int_add(op1, op2);
+        if (op == OP_SUB) return oevm_int_sub(op1, op2);
+        if (op == OP_MUL) return oevm_int_mul(op1, op2);
+        /* Exact `/` on large integers isn't exercised; yield a Float of the ratio (lossy)
+           rather than a Fraction. */
+        double d2 = oevm_int_to_double(op2);
+        if (d2 == 0.0) { fprintf(stderr, "VM Error: Division by zero\n"); abort(); }
+        struct Float *f_obj = (struct Float *)float_alloc(FloatVtable);
+        f_obj->value = oevm_int_to_double(op1) / d2;
+        return (oop)f_obj;
+    }
+    double v1 = IS_SMI(op1) ? (double)UNTAG_SMI(op1)
+        : (obj_vtable(op1) == LargeIntegerVtable ? oevm_int_to_double(op1) : ((struct Float *)op1)->value);
+    double v2 = IS_SMI(op2) ? (double)UNTAG_SMI(op2)
+        : (obj_vtable(op2) == LargeIntegerVtable ? oevm_int_to_double(op2) : ((struct Float *)op2)->value);
+    double res = 0.0;
+    if (op == OP_ADD) res = v1 + v2;
+    else if (op == OP_SUB) res = v1 - v2;
+    else if (op == OP_MUL) res = v1 * v2;
+    else {
+        if (v2 == 0.0) {
+            fprintf(stderr, "VM Error: Division by zero\n");
+            abort();
+        }
+        res = v1 / v2;
+    }
+    struct Float *f_obj = (struct Float *)float_alloc(FloatVtable);
+    f_obj->value = res;
+    return (oop)f_obj;
+}
+
 static OEVM_HOT struct MethodContext *push_frame(oop closure, oop receiver, int argc, oop *args) {
     struct Closure *cl = (struct Closure *)closure;
     struct CompiledMethod *m = (struct CompiledMethod *)closure_entry(cl);
@@ -1276,86 +1328,37 @@ OEVM_HOT oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
                 return_val = (dest < method->num_registers) ? ctx->regs[dest] : NULL;
                 goto do_ret_deliver;
 
-            case OP_ADD:
-            case OP_SUB:
-            case OP_MUL:
-            case OP_DIV: {
-                oop op1 = ctx->regs[src1];
-                oop op2 = ctx->regs[src2];
-                if (IS_SMI(op1) && IS_SMI(op2)) {
-                    intptr_t v1 = UNTAG_SMI(op1);
-                    intptr_t v2 = UNTAG_SMI(op2);
-                    if (op == OP_DIV) {
-                        if (v2 == 0) {
-                            fprintf(stderr, "VM Error: Division by zero\n");
-                            abort();
-                        }
-                        // Smalltalk `/` is EXACT division: an Integer when it
-                        // divides evenly, otherwise a rational. With no Fraction
-                        // type we yield a Float for the inexact case (e.g.
-                        // mandelbrot's `2 * y / size`). Flooring integer
-                        // division is the separate `//` primitive.
-                        if (v1 % v2 == 0) {
-                            ctx->regs[dest] = TAG_SMI(v1 / v2);
-                        } else {
-                            struct Float *f_obj = (struct Float *)float_alloc(FloatVtable);
-                            f_obj->value = (double)v1 / (double)v2;
-                            ctx->regs[dest] = (oop)f_obj;
-                        }
-                    } else {
-                        // SMI +/-/*: detect overflow and promote to LargeInteger.
-                        // Even without C-level overflow the result can exceed the
-                        // tagged SMI range, so normalise via int_from_intptr.
-                        intptr_t res = 0;
-                        int of = (op == OP_ADD) ? __builtin_add_overflow(v1, v2, &res)
-                               : (op == OP_SUB) ? __builtin_sub_overflow(v1, v2, &res)
-                               : __builtin_mul_overflow(v1, v2, &res);
-                        if (of) {
-                            ctx->regs[dest] = (op == OP_ADD) ? oevm_int_add(op1, op2)
-                                            : (op == OP_SUB) ? oevm_int_sub(op1, op2)
-                                            : oevm_int_mul(op1, op2);
-                        } else {
-                            oop tagged = TAG_SMI(res);
-                            ctx->regs[dest] = (UNTAG_SMI(tagged) == res)
-                                            ? tagged : int_from_intptr(res);
-                        }
-                    }
-                } else if (oevm_is_integer(op1) && oevm_is_integer(op2)) {
-                    // At least one operand is a LargeInteger; both are integral.
-                    if (op == OP_ADD) ctx->regs[dest] = oevm_int_add(op1, op2);
-                    else if (op == OP_SUB) ctx->regs[dest] = oevm_int_sub(op1, op2);
-                    else if (op == OP_MUL) ctx->regs[dest] = oevm_int_mul(op1, op2);
-                    else {
-                        // Exact `/` on large integers isn't exercised; yield a
-                        // Float of the ratio (lossy) rather than a Fraction.
-                        double d2 = oevm_int_to_double(op2);
-                        if (d2 == 0.0) { fprintf(stderr, "VM Error: Division by zero\n"); abort(); }
-                        struct Float *f_obj = (struct Float *)float_alloc(FloatVtable);
-                        f_obj->value = oevm_int_to_double(op1) / d2;
-                        ctx->regs[dest] = (oop)f_obj;
-                    }
-                } else {
-                    double v1 = IS_SMI(op1) ? (double)UNTAG_SMI(op1)
-                        : (obj_vtable(op1) == LargeIntegerVtable ? oevm_int_to_double(op1) : ((struct Float *)op1)->value);
-                    double v2 = IS_SMI(op2) ? (double)UNTAG_SMI(op2)
-                        : (obj_vtable(op2) == LargeIntegerVtable ? oevm_int_to_double(op2) : ((struct Float *)op2)->value);
-                    double res = 0.0;
-                    if (op == OP_ADD) res = v1 + v2;
-                    else if (op == OP_SUB) res = v1 - v2;
-                    else if (op == OP_MUL) res = v1 * v2;
-                    else if (op == OP_DIV) {
-                        if (v2 == 0.0) {
-                            fprintf(stderr, "VM Error: Division by zero\n");
-                            abort();
-                        }
-                        res = v1 / v2;
-                    }
-                    struct Float *f_obj = (struct Float *)float_alloc(FloatVtable);
-                    f_obj->value = res;
-                    ctx->regs[dest] = (oop)f_obj;
-                }
+            /* rete#37: SMI +, -, * on the tagged words. An SMI is the word 2v+1 and its payload is
+               the whole word less the tag, so the word's own overflow is exactly "no longer an SMI":
+               a + (b-1) = 2(x+y)+1, a - (b-1) = 2(x-y)+1, (a-1)*y = 2xy. Everything else (an
+               overflow, a LargeInteger, a Float, and every `/`) is arith_slow's. */
+            case OP_ADD: {
+                oop a = ctx->regs[src1], b = ctx->regs[src2];
+                intptr_t r;
+                ctx->regs[dest] = ((uintptr_t)a & (uintptr_t)b & 1)
+                                  && !__builtin_add_overflow((intptr_t)a, (intptr_t)b - 1, &r)
+                                ? (oop)r : arith_slow(OP_ADD, a, b);
                 break;
             }
+            case OP_SUB: {
+                oop a = ctx->regs[src1], b = ctx->regs[src2];
+                intptr_t r;
+                ctx->regs[dest] = ((uintptr_t)a & (uintptr_t)b & 1)
+                                  && !__builtin_sub_overflow((intptr_t)a, (intptr_t)b - 1, &r)
+                                ? (oop)r : arith_slow(OP_SUB, a, b);
+                break;
+            }
+            case OP_MUL: {
+                oop a = ctx->regs[src1], b = ctx->regs[src2];
+                intptr_t r;
+                ctx->regs[dest] = ((uintptr_t)a & (uintptr_t)b & 1)
+                                  && !__builtin_mul_overflow((intptr_t)a - 1, UNTAG_SMI(b), &r)
+                                ? (oop)(r | 1) : arith_slow(OP_MUL, a, b);
+                break;
+            }
+            case OP_DIV:
+                ctx->regs[dest] = arith_slow(OP_DIV, ctx->regs[src1], ctx->regs[src2]);
+                break;
 
             case OP_JMP: {
                 int16_t offset = (int16_t)(inst >> 8);
@@ -1368,7 +1371,10 @@ OEVM_HOT oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
                 // compiler) is fed by ==, whose primitive returns the true_sym_obj/false_sym_obj
                 // boolean symbols; is_truthy matches them by name. Conformance gate holds.
                 oop cond = ctx->regs[dest];
-                if (!is_truthy(cond)) {
+                /* The comparison fast paths and prims yield exactly these two statics, so the
+                   identity tests decide nearly every branch without the call. */
+                if (cond == (oop)&false_sym_obj
+                    || (cond != (oop)&true_sym_obj && !is_truthy(cond))) {
                     int16_t offset = (int16_t)(inst >> 16);
                     pc += offset;
                 }
