@@ -1,0 +1,54 @@
+15:58:34 < ESP-ROM:esp32c6-20220919
+15:58:34 < Build:Sep 19 2022
+15:58:34 < rst:0x1 (POWERON),boot:0xc (SPI_FAST_FLASH_BOOT)
+15:58:34 < SPIWP:0xee
+15:58:34 < mode:DIO, clock div:2
+15:58:34 < load:0x40800000,len:0x12a70
+15:58:34 < load:0x40812a80,len:0x23b8
+15:58:34 < SHA-256 comparison failed:
+15:58:34 < Calculated: b1276e4eb67288a39f6f4c8b2b6b2782e6b9706f8a87618a98b9071157b5d5ca
+15:58:34 < Expected: 0000000090b10000000000000000000000000000000000000000000000000000
+15:58:34 < Attempting to boot anyway...
+15:58:34 < entry 0x4080927c
+15:58:34 < I (67) soc_init: ESP Simple boot
+15:58:34 < I (67) soc_init: compile time Oct 12 2026 15:54:41
+15:58:34 < I (67) soc_init: chip revision: v0.0
+15:58:34 < I (68) flash_init: SPI Speed      : 80MHz
+15:58:34 < I (70) flash_init: SPI Mode       : DIO
+15:58:34 < I (73) flash_init: SPI Flash Size : 8MB
+15:58:34 < I (77) boot: DRAM: lma 0x00000020 vma 0x40800000 len 0x12a70  (76400)
+15:58:34 < I (83) boot: DRAM: lma 0x00012a98 vma 0x40812a80 len 0x23b8   (9144)
+15:58:34 < I (89) boot: IRAM: lma 0x00014e68 vma 0x00000000 len 0xb190   (45456)
+15:58:34 < I (95) boot: IMAP: lma 0x00020000 vma 0x42800000 len 0x6228   (25128)
+15:58:34 < I (101) boot: IRAM: lma 0x00026230 vma 0x00000000 len 0x9dc8   (40392)
+15:58:34 < I (108) boot: IMAP: lma 0x00030000 vma 0x42000000 len 0x247ec  (149484)
+15:58:34 < I (114) boot: Image with 6 segments
+15:58:34 < I (117) boot: IROM segment: paddr=00030000h, vaddr=42000000h, size=247ECh (149484) map
+15:58:34 < I (125) boot: DROM segment: paddr=00020000h, vaddr=42800000h, size=06230h ( 25136) map
+15:58:34 < I (144) boot: libc heap size 74 kB.
+15:58:34 < I (144) spi_flash: detected chip: gd
+15:58:34 < I (144) spi_flash: flash io: dio
+15:58:34 < E: Couldn't set control register.
+15:58:34 < E: Failed to init settings.
+15:58:34 < *** Booting Zephyr OS build v4.2.0-12-gbc47c6fab9cc ***
+15:58:34 < oevm: build-id porta-v1-final-1676-g8a3ffe4-20261012T155439
+15:58:34 < logudp: not built in (no OEVM_LOG_UDP6) — console is UART only
+15:58:34 < oevm: observer armed (slack=8 tick=1000ms backstop=30000ms hw=yes)
+15:58:34 < I: 8 Sectors of 4096 bytes
+15:58:34 < I: alloc wra: 0, d50
+15:58:34 < I: data wra: 0, 890
+15:58:34 < runner: slot a was written by the cable (hash=9f716472e1f46938…) — active, unsigned, no trial
+15:58:34 < runner: exec a hash=9f716472e1f46938… cable
+15:58:34 < oevm: image loaded and verified (16823 us)
+15:58:34 < oevm: program sha256 9f716472e1f469382dcd115c89e222c3ace3ab5f0885dfd9c41ff901483a1733 (169 ms)
+15:58:34 < Bounce: 72
+15:58:35 < List: 282
+15:58:35 < Permute: 165
+15:58:40 < Richards: 5069
+15:58:40 < Queens: 156
+15:58:40 < Sieve: 70
+15:58:41 < Towers: 382
+15:58:54 < CD: 13185
+15:58:54 < DeltaBlue: 560
+15:58:54 < verified: true
+15:58:54 < done
