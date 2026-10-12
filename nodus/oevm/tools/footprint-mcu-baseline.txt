@@ -1,4 +1,18 @@
 # T0.3 footprint baseline — MCU config (arm-zephyr-eabi, cortex-m4).
+# Re-banked 2026-10-11 (late) for rete#37 (Opt #11 put the ratchet over its 2 %: 45356 vs 44252).
+#
+#  +1104 B  text, 44252 -> 45356, measured per commit on msi-7d43 (FOOTPRINT_CONFIG=mcu):
+#           +860  master dca8ad1d, Opt #10 (the load-time verifier, oimg format 11), never re-banked
+#                 for the MCU because it stayed inside the 2 %;
+#             +0  c2c3d7af, ADD/SUB/MUL fast paths on the tagged words + one out-of-line arith_slow;
+#           +156  f9e26472, each case decodes its own operand fields (DEST/SRC1/SRC2);
+#            +88  532a2391, arith_slow takes Float with Float first.
+#           Bought: STIC on the WeAct, integerMath 4073 -> 3095 ms, arrayWrite 18806 -> 17272,
+#           collectionIterate 14157 -> 13069, floatMath 25302 -> 24234, every row better
+#           (docs/results/2026-10-11-37-dispatch-head/, optimizations.md Opt #11).
+#    +4 B  data+bss, 73600 -> 73604, from master; not attributed.
+#
+# Superseded header (2026-10-11, rete#37 Opt #9):
 # Re-banked 2026-10-11 for rete#37 (Opt #9 put the ratchet over its 2 %: 44252 vs 43321).
 #
 #   +931 B  text, 43321 -> 44252, measured per merge on msi-7d43 (FOOTPRINT_CONFIG=mcu):
@@ -68,5 +82,5 @@
 #  what was broken was footprint.sh's un-SKIP instruction, which named a deleted
 #  path. That bank split 34488 -> 38872 into +3108 B of enrolment (ota.c + span.c)
 #  and +1276 B of real drift.
-text 44252
-data_bss 73600
+text 45356
+data_bss 73604

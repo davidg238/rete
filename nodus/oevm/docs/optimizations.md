@@ -679,6 +679,39 @@ Every row, 2.4–17.8 %.
 Size: host text +864 B (vm.o +411, oimg_loader.o +453; re-banked 77127, `tools/footprint-baseline.txt`);
 the WeAct image +812 B FLASH, the blob +8 B.
 
+## Opt #11 — the dispatch head: operands decoded per case, SMI arithmetic on the tagged words (rete#37, 2026-10-11)
+
+What Opt #10 left in the dispatch head. **Operands:** the loop decoded all three operand fields of every
+instruction before the switch. Now each case decodes the fields it reads (`DEST`/`SRC1`/`SRC2`, macros over
+`inst`). On ARM the head went from nine instructions to five: `ldr`, `uxtb`, the jump table's `cmp`/`bhi`, `tbh`.
+GCC 12 keeps the bound check even with `default: __builtin_unreachable()`, and only computed goto would remove it.
+**Arithmetic:** ADD, SUB and MUL have their own cases and compute on the tagged words. An SMI is the word 2v+1,
+and its payload is the whole word less the tag, so the word's own overflow flag means exactly "no longer an SMI":
+`a + (b-1)`, `a - (b-1)`, `(a-1) * v(b)`. Anything else goes to one out-of-line `arith_slow`: an overflow, a
+LargeInteger, a Float, and every `/`. `arith_slow` tests Float with Float first.
+`JMP_IF_FALSE` tests the two boolean statics before it calls `is_truthy`. `tests/06_limit_tests/08_smi_arith_edges`
+crosses both SMI ranges (63-bit host, 31-bit MCU and `-m32`) in each direction.
+
+**STIC on the WeAct** (three boots each, `docs/results/2026-10-11-37-dispatch-head/`; seconds): integerMath
+4.07 → **3.10**, arrayWrite 18.8 → **17.3**, collectionIterate 14.2 → 13.1, floatMath 25.3 → 24.2,
+dictionaryWrite 6.71 → 6.50, collectionWrite 15.9 → 15.6, stringCompare 2.91 → 2.86, alloc 15.9 → 15.8. Every row
+improves, by 0.7–24 %.
+
+Measured and not kept (same record):
+- **The slow path inlined in the loop.** Floats paid a `long_call` into SRAM, and the first split cost floatMath
+  +10.5 %. Inlining the slow path at one label gave that back, but cost every other row 2–3 %, from register
+  pressure in a bigger loop function. Testing Float with Float first inside the called function recovered more.
+- **Peephole (C), result forwarding** (`op t …; LD_REG v, t` → `op v …`). integerMath −2.3 %, alloc and
+  dictionaryWrite +2 %. It changes compiled output, so the checked-in fixture and custos's pinned offsets would
+  have to be re-pinned. Not worth 2 %.
+
+**The verifier's boot cost** is now printed at every Model B boot: `oevm: image loaded and verified (N us)`. For
+the 164 KB STIC image it is 11.2 ms on the WeAct and 7.4 ms on the C6, where `program sha256` of the same image
+takes 97 ms on the same boot.
+
+Size: MCU text +244 B (decode +156, Float-first +88) on top of Opt #10's unbanked +860; re-banked 45356
+(`tools/footprint-mcu-baseline.txt`). Host text 77801, inside its 2 %.
+
 ## Known weaknesses / tracked gaps (snapshot 2026-06-18)
 
 Captured after the sober-reference benchmark exercise (see
