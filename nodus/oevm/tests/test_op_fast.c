@@ -70,7 +70,6 @@ static oop run_binop(uint8_t op, int argc, oop a, oop b, oop c) {
 
     struct Closure *cl = (struct Closure *)gc_allocate(BytecodeClosureVtable, sizeof(struct Closure));
     cl->home_ctx = NULL;
-    cl->home_generation = 0;
     cl->entry_point = method;
     cl->captured_env = NULL;
     oop result = run_interpreter((oop)cl, NULL, 0, NULL);
@@ -101,7 +100,6 @@ static oop run_iter_sum(oop ix, intptr_t limit) {
 
     struct Closure *cl = (struct Closure *)gc_allocate(BytecodeClosureVtable, sizeof(struct Closure));
     cl->home_ctx = NULL;
-    cl->home_generation = 0;
     cl->entry_point = method;
     cl->captured_env = NULL;
     oop result = run_interpreter((oop)cl, NULL, 0, NULL);
@@ -127,7 +125,6 @@ static oop run_is_vt(oop obj, oop vt) {
 
     struct Closure *cl = (struct Closure *)gc_allocate(BytecodeClosureVtable, sizeof(struct Closure));
     cl->home_ctx = NULL;
-    cl->home_generation = 0;
     cl->entry_point = method;
     cl->captured_env = NULL;
     oop result = run_interpreter((oop)cl, NULL, 0, NULL);

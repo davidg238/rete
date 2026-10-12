@@ -222,7 +222,7 @@ class SolidifyCompiler:
             
             # Closure
             c_code.append(f"static const struct Closure {mid}_closure = {{")
-            c_code.append("    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,")
+            c_code.append("    { (oop)&Vtable_BytecodeClosureVtable }, NULL,")
             c_code.append(f"    (void *)&{mid}_compiled")
             c_code.append("};\n")
 

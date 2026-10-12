@@ -266,7 +266,6 @@ int main(void) {
     // Create a Debugger Hook closure
     oop dbg_cl = gc_allocate(PrimitiveClosureVtable, sizeof(struct Closure));
     ((struct Closure *)dbg_cl)->home_ctx = NULL;
-    ((struct Closure *)dbg_cl)->home_generation = 0;
     ((struct Closure *)dbg_cl)->entry_point = (void *)debug_hook_c;
 
     // Register the debugger hook via mirror (onBreak:)
@@ -297,7 +296,6 @@ int main(void) {
 
     oop cl_brk = gc_allocate(BytecodeClosureVtable, sizeof(struct Closure));
     ((struct Closure *)cl_brk)->home_ctx = NULL;
-    ((struct Closure *)cl_brk)->home_generation = 0;
     ((struct Closure *)cl_brk)->entry_point = cm_brk;
 
     add_test_method(TestVtable, Symbol_run, cl_brk);
@@ -332,7 +330,6 @@ int main(void) {
 
     oop cl_step = gc_allocate(BytecodeClosureVtable, sizeof(struct Closure));
     ((struct Closure *)cl_step)->home_ctx = NULL;
-    ((struct Closure *)cl_step)->home_generation = 0;
     ((struct Closure *)cl_step)->entry_point = cm_step;
 
     // Rebind `run` -> cl_step via the mirror so the method cache is flushed
@@ -414,7 +411,6 @@ int main(void) {
     // Register the arm_step_hook_c as the debugger hook
     oop arm_hook_cl = gc_allocate(PrimitiveClosureVtable, sizeof(struct Closure));
     ((struct Closure *)arm_hook_cl)->home_ctx = NULL;
-    ((struct Closure *)arm_hook_cl)->home_generation = 0;
     ((struct Closure *)arm_hook_cl)->entry_point = (void *)arm_step_hook_c;
     oop arm_reg_args[] = { arm_hook_cl };
     send(mirror_object(), create_symbol("onBreak:"), 1, arm_reg_args);
@@ -439,7 +435,6 @@ int main(void) {
 
     oop cl_arm = gc_allocate(BytecodeClosureVtable, sizeof(struct Closure));
     ((struct Closure *)cl_arm)->home_ctx = NULL;
-    ((struct Closure *)cl_arm)->home_generation = 0;
     ((struct Closure *)cl_arm)->entry_point = cm_arm;
 
     oop arm_bind_args[] = { TestVtable, Symbol_run, cl_arm };
@@ -500,13 +495,11 @@ int main(void) {
 
         oop cl_off = gc_allocate(BytecodeClosureVtable, sizeof(struct Closure));
         ((struct Closure *)cl_off)->home_ctx = NULL;
-        ((struct Closure *)cl_off)->home_generation = 0;
         ((struct Closure *)cl_off)->entry_point = cm_off;
 
         /* Install the offset-capture hook */
         oop off_hook_cl = gc_allocate(PrimitiveClosureVtable, sizeof(struct Closure));
         ((struct Closure *)off_hook_cl)->home_ctx = NULL;
-        ((struct Closure *)off_hook_cl)->home_generation = 0;
         ((struct Closure *)off_hook_cl)->entry_point = (void *)offset_capture_hook_c;
         oop oreg[] = { off_hook_cl };
         send(mirror_object(), create_symbol("onBreak:"), 1, oreg);
@@ -574,7 +567,6 @@ int main(void) {
     {
         oop rs_cl = gc_allocate(PrimitiveClosureVtable, sizeof(struct Closure));
         ((struct Closure *)rs_cl)->home_ctx = NULL;
-        ((struct Closure *)rs_cl)->home_generation = 0;
         ((struct Closure *)rs_cl)->entry_point = (void *)rs_hook_c;
         oop rs_reg[] = { rs_cl };
         send(mirror_object(), create_symbol("onBreak:"), 1, rs_reg);
@@ -599,7 +591,6 @@ int main(void) {
 
         oop cl_rs = gc_allocate(BytecodeClosureVtable, sizeof(struct Closure));
         ((struct Closure *)cl_rs)->home_ctx = NULL;
-        ((struct Closure *)cl_rs)->home_generation = 0;
         ((struct Closure *)cl_rs)->entry_point = cm_rs;
 
         oop rs_bind[] = { TestVtable, Symbol_run, cl_rs };
@@ -686,7 +677,6 @@ int main(void) {
 
         oop cl_bp = gc_allocate(BytecodeClosureVtable, sizeof(struct Closure));
         ((struct Closure *)cl_bp)->home_ctx = NULL;
-        ((struct Closure *)cl_bp)->home_generation = 0;
         ((struct Closure *)cl_bp)->entry_point = cm_bp;
 
         /* rete#323: the break prims take a BLOB OFFSET; cm_bp sits at 64 in the fake blob. */
@@ -698,7 +688,6 @@ int main(void) {
         /* Install the bp-match hook */
         oop bp_hook_cl = gc_allocate(PrimitiveClosureVtable, sizeof(struct Closure));
         ((struct Closure *)bp_hook_cl)->home_ctx = NULL;
-        ((struct Closure *)bp_hook_cl)->home_generation = 0;
         ((struct Closure *)bp_hook_cl)->entry_point = (void *)bp_match_hook_c;
         oop bp_reg[] = { bp_hook_cl };
         send(mirror_object(), create_symbol("onBreak:"), 1, bp_reg);
@@ -786,13 +775,11 @@ int main(void) {
 
         oop cl_nr = gc_allocate(BytecodeClosureVtable, sizeof(struct Closure));
         ((struct Closure *)cl_nr)->home_ctx = NULL;
-        ((struct Closure *)cl_nr)->home_generation = 0;
         ((struct Closure *)cl_nr)->entry_point = cm_nr;
 
         nr_hit = 0; nr_reported = -1; nr_top_reg = -2;
         oop nr_hook_cl = gc_allocate(PrimitiveClosureVtable, sizeof(struct Closure));
         ((struct Closure *)nr_hook_cl)->home_ctx = NULL;
-        ((struct Closure *)nr_hook_cl)->home_generation = 0;
         ((struct Closure *)nr_hook_cl)->entry_point = (void *)nr_hook_c;
         oop nr_reg[] = { nr_hook_cl };
         send(mirror_object(), create_symbol("onBreak:"), 1, nr_reg);

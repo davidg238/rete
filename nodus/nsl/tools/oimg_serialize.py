@@ -232,7 +232,7 @@ KIND_STRUCT = {
     "INSTANCE": "ObjectInstance", "BOXEDBINDING": "BoxedBinding",
 }
 # C int / uint32_t fields (4 bytes on every target ABI we support: x86-32/64, ESP32).
-WIDTH4 = {"is_nested", "num_registers", "home_generation"}
+WIDTH4 = {"is_nested", "num_registers"}
 # Fixed 64-bit fields, independent of oop width (LargeInteger sign/magnitude).
 WIDTH8_SIGNED = {"sign"}
 WIDTH8_UNSIGNED = {"mag"}
@@ -736,7 +736,6 @@ class OimgSerializer:
             cl = self.offset[f"cl:{m['id']}"]
             self._put(buf, cl, "Closure", "base.vtable", self.w.word(RefWord.builtin(self.reg["BytecodeClosureVtable"])))
             self._put(buf, cl, "Closure", "home_ctx", self.w.word(0))           # NULL
-            self._put(buf, cl, "Closure", "home_generation", self._scalar_bytes("home_generation", 0))
             self._put(buf, cl, "Closure", "entry_point", self.w.word(self._aref(f"cm:{m['id']}")))
 
         for r, v in floats.items():
