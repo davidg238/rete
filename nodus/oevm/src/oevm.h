@@ -383,7 +383,8 @@ enum MethodAccess {
     ACCESS_PROTECTED = 1,   /* a send to self, implicit, outer or super; an ordinary send answers DNU */
     ACCESS_PRIVATE   = 2,   /* only OP_SEND_PRIVATE, which the compiler emits from the defining class */
 };
-/* What a lookup is for (rete#372), and so which levels it may answer. */
+/* What a lookup is for (rete#372), and so which levels it may answer. The value is also the tag the
+   method cache ORs into the selector of its key (lookup_method_cached), so it stays below 4. */
 enum LookupRule {
     LOOKUP_ORDINARY = 0,    /* an explicit receiver: public only; protected stops the walk with DNU */
     LOOKUP_SELF     = 1,    /* self, implicit, outer, super: public and protected */

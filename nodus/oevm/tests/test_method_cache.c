@@ -120,6 +120,13 @@ int main(void) {
     assert(lookup_method_cached((oop)lvt, (oop)&selQ, &m, &dv, LOOKUP_SELF) == NULL);
     assert(lookup_method_cached((oop)lvt, (oop)&selQ, &m, &dv, LOOKUP_ORDINARY) == NULL);
     assert(lookup_defining_vtable((oop)lvt, (oop)&selQ, &m, LOOKUP_ANY) == (oop)lvt && m == (oop)&clQ);
+    /* A private send (LOOKUP_ANY) is cached under its own key, never handed to the other two. */
+    m = NULL;
+    assert(lookup_method_cached((oop)lvt, (oop)&selQ, &m, &dv, LOOKUP_ANY) == (oop)lvt && m == (oop)&clQ);
+    struct MethodCacheStats sp0 = method_cache_stats();
+    assert(lookup_method_cached((oop)lvt, (oop)&selQ, &m, &dv, LOOKUP_ANY) == (oop)lvt);
+    assert(method_cache_stats().hits == sp0.hits + 1);
+    assert(lookup_method_cached((oop)lvt, (oop)&selQ, &m, &dv, LOOKUP_SELF) == NULL);
 
     printf("test_method_cache: OK\n");
     return 0;

@@ -407,12 +407,14 @@ oop lookup(oop receiver_vtable, oop selector, int rule) {
 }
 
 /* Cached front-end to lookup_defining_vtable. Caller guarantees
-   receiver_vtable != NULL. Misses (does-not-understand) are never cached. rete#372: a send to self
-   keys its entry on selector | 1 (a Symbol is aligned, so the bit is free, and the hash drops it),
-   so a protected method it found is never handed to an ordinary send of the same selector. */
+   receiver_vtable != NULL. Misses (does-not-understand) are never cached. rete#372: the rule tags the
+   key's selector (a Symbol is aligned, so the low two bits are free, and the hash drops them): a send
+   to self or super keys on selector | 1, so a protected method it found is never handed to an
+   ordinary send; a private send (from the defining class's vtable) on selector | 2. A super send
+   and a send to self from the same vtable answer alike, so they share their entries. */
 OEVM_HOT oop lookup_method_cached(oop receiver_vtable, oop selector,
                          oop *out_method, oop *out_defining_vt, int rule) {
-    oop key = (oop)((uintptr_t)selector | (uintptr_t)(rule == LOOKUP_SELF));
+    oop key = (oop)((uintptr_t)selector | (uintptr_t)rule);   /* LOOKUP_ORDINARY 0, _SELF 1, _ANY 2 */
 #ifdef OEVM_CACHE_STATS
     method_cache_register_report();
 #endif
@@ -2099,8 +2101,10 @@ oop send_super_resolve(oop start_vtable, oop receiver, oop selector, int argc, o
     if (start_vtable == NULL || IS_SMI(start_vtable)) {
         return does_not_understand(receiver, selector, argc, args);
     }
-    oop method = NULL;
-    oop defining_vt = lookup_defining_vtable(start_vtable, selector, &method, rule);
+    /* rete#372: cached, as an ordinary send is: on c6spare the uncached private send cost AWFY 3.4 %
+       (Permute's recursive private permute:, +8.5 %). */
+    oop method = NULL, defining_vt = NULL;
+    lookup_method_cached(start_vtable, selector, &method, &defining_vt, rule);
     if (defining_vt == NULL || method == NULL) {
         return does_not_understand(receiver, selector, argc, args);
     }
@@ -2109,6 +2113,10 @@ oop send_super_resolve(oop start_vtable, oop receiver, oop selector, int argc, o
         oop (*func)(oop, int, oop *) = (oop (*)(oop, int, oop *))closure_entry(cl);
         return func(receiver, argc, args);
     }
+    /* rete#37 L6, as in send_resolve: a getter, setter or `^ self` is answered here, with no frame. */
+    const struct CompiledMethod *cm = (const struct CompiledMethod *)closure_entry(cl);
+    oop r;
+    if (cm->shape != SHAPE_ORDINARY && frameless_send(cm, receiver, argc, args, &r)) return r;
     *out_method = method;
     *out_recv = receiver;
     *out_argc = argc;
