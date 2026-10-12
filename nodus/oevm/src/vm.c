@@ -926,10 +926,9 @@ static OEVM_HOT struct MethodContext *push_frame(oop closure, oop receiver, int 
     ctx->prev_frame = frame_link_encode(vm_stack, prev_ctx);   /* L0 relative dynamic link */
     ctx->saved_pc = NULL;
     ctx->closure = closure;
-    /* method closure homes to itself (encoded relative); a block closure's
-       inherited home_ctx is already a relative SMI — pass it through. */
-    ctx->home_ctx = cl->home_ctx ? cl->home_ctx
-                                 : home_link_encode_relative(vm_stack, ctx);
+    /* rete#37 L4(b): the closure's home, passed through — a block's relative SMI, or NULL for a
+       method, whose frame is its own home (primitive_closure_home answers the frame itself). */
+    ctx->home_ctx = cl->home_ctx;
     ctx->regs[0] = receiver;
     /* Clamp once instead of bounds-checking every arg; excess args (a caller
        bug the old per-arg check tolerated silently) are still dropped. */
@@ -1061,10 +1060,9 @@ OEVM_HOT oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
     ctx->saved_pc = NULL; // Updated dynamically if calling nested sends
     ctx->closure = closure;
     
-    // Lexical Link: nested closure -> inherited relative SMI; method closure -> self,
-    // encoded relative (growth-ready).
-    ctx->home_ctx = cl->home_ctx ? cl->home_ctx
-                                 : home_link_encode_relative(vm_stack, ctx);
+    // Lexical Link: nested closure -> inherited relative SMI; method closure -> NULL,
+    // the frame being its own home (rete#37 L4(b), as push_frame).
+    ctx->home_ctx = cl->home_ctx;
 
     // Initialize registers (R0 = receiver, R1.. = args)
     ctx->regs[0] = receiver;
@@ -1847,6 +1845,7 @@ oop primitive_closure_home(oop receiver, int argc, oop *args) {
     oop vt = obj_vtable(receiver);
     if (vt != BytecodeClosureVtable && vt != PrimitiveClosureVtable) {
         home = ((struct MethodContext *)receiver)->home_ctx;   /* a frame's lexical link */
+        if (home == NULL) return receiver;   /* a method frame is its own home (L4(b)) */
     } else {
         home = ((struct Closure *)receiver)->home_ctx;          /* a closure's lexical link */
     }

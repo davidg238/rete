@@ -41,10 +41,26 @@ measured, whether or not it lands. The numbers and the reasoning live in the rec
 | 10-12 | L5 rest R2: the capability receivers tested on the lookup miss (empty vtables) | cumulative AWFY C6 0.970, WeAct 0.966; STIC C6 0.982, WeAct 0.974; MCU text −384 B | kept, part of Opt #18 | same |
 | 10-12 | L5 rest R3: a send's selector proved a Symbol at load, the prim test one `prim_id` load | cumulative AWFY C6 0.918, WeAct 0.926; STIC C6 0.941, WeAct 0.939; MCU text +890 B over master, inside the 2 % | kept, Opt #18 | same |
 | 10-12 | Symbol `=` out of line (`noinline`), to shrink R1's copy | MCU text +44 B worse | **dead end** | same |
+| 10-12 | L4(b): a method frame's `home_ctx` NULL (the closure's, passed through), `homeOf:` answers the frame | geomean AWFY C6 0.992, WeAct 0.998–1.000; STIC C6 0.986, WeAct 0.994 — placement: Richards 1.007, arrayWrite 0.928; MCU text −28 B | kept, Opt #19, for simplicity; speed level | `docs/results/2026-10-12-37-l4b/` |
+| 10-12 | L4(a): the frame's `vtable` left unset | not built: a stale `MethodContextVtable` would make a running frame restartable; the safe form is the same store | **dead end** | same |
 | — | the jump table's bound check (`cmp`/`bhi`) | GCC 12 keeps it despite `__builtin_unreachable()` | open: only computed goto removes it; untried | Opt #11 |
 
-Open levers, not yet tried: the frame and send cost (next), GC performance (pause, throughput, heap high-water),
-compiler bytecodes (fused compare-branch, add-immediate), Dictionary as a prim, unboxed floats (W2b).
+**#37 closed for 0.1 (David, 2026-10-12): "good enough", and no hacks for benchmarks.** Where it stands on the C6
+(c6spare, stic sources, `docs/results/2026-10-12-37-c6-cross-vm/` update): Richards 5,080 ms (Toit 1,178, MicroPython
+7,471), DeltaBlue 336 ms (Toit 77, MicroPython 326–359); on the host, AWFY geomean nsl ÷ Primordial Soup 1.01 (morning
+1.26; `docs/results/2026-10-12-37-awfy-soup-opt18/`). Every lever kept removes work any program pays; the rows that do
+not send stayed level through the send levers.
+
+Deferred past 0.1 — design work, not levers, each with the evidence that would earn it:
+- **Instruction dispatch and bytecode density.** The base instruction is ~36 C6 cycles, and Richards' instructions
+  alone cost twice Toit's whole run (`docs/results/2026-10-12-37-M-counts/`). Fewer, denser instructions
+  (superinstructions, fused compare-branch, add-immediate) or a different interpreter shape; computed goto for the
+  jump table's bound check (row above). Most of Toit's remaining lead (~4.3× on Richards and DeltaBlue).
+- **The allocator** (List 2.67×, Storage 1.65× Soup's time on the host; Soup has a bump nursery and generational GC).
+  First a measurement: the time in `gc_allocate` per row on the C6. Opt #17 took the header.
+- **Per-send-site inline caches** (W3): the image is read-only in flash, so a RAM side table; the cache probe is
+  ~85 cycles a send. The L2 lesson applies: a test at the loop's send sites has lost on the boards.
+- **Unboxed floats** (W2b); GC pause and throughput (#421); Dictionary as a prim.
 
 ## Method
 
@@ -826,6 +842,13 @@ loader now proves every send instruction's selector constant is a Symbol (`oevm_
 load of `prim_id`; `send()` checks its C callers. **AWFY C6 0.918, WeAct 0.926; STIC C6 0.941, WeAct 0.939**
 (`docs/results/2026-10-12-37-l5-rest/`); the sending rows gain 8–19 %, the rest are level. MCU text +890 B, inside the
 ratchet's 2 % (40 B left). A prim selector sent to a capability is now answered by the prim instead of aborting.
+
+## Opt #19 — a method frame's home is NULL (rete#37 L4(b), 2026-10-12)
+
+A frame stores its closure's `home_ctx` as-is (NULL for a method) instead of encoding itself, and the mirror's
+`homeOf:` — the field's only reader — answers the frame itself for NULL. One encode site fewer, MCU text −28 B. Speed
+level: the geomean moved 0.992 (C6 AWFY) on placement, while the frame-heavy rows were level
+(`docs/results/2026-10-12-37-l4b/`). Kept for simplicity.
 
 ## Known weaknesses / tracked gaps (snapshot 2026-06-18)
 

@@ -1,0 +1,138 @@
+[flash] BOOTSEL volume /dev/sdb1
+[flash] mounted at /run/media/david/RP2350; copying weact-m-awfy.uf2 (950272 B)
+[flash] copied; waiting for the volume to go away
+[flash] done
+[412] m-awfy run 1 then=bootsel
+13:57:59 open /dev/serial/by-path/pci-0000:00:14.0-usb-0:7:1.0
+13:57:59 > flash
+13:58:00 > flash
+13:58:00 > flash
+13:58:01 < *** Booting Zephyr OS build v4.2.0-12-gbc47c6fab9cc ***
+13:58:01 < oevm: build-id porta-v1-final-1669-gd9c4fda-dirty-20261012T135645
+13:58:01 < spike296: no retained death note
+13:58:01 < logudp: not built in (no OEVM_LOG_UDP6) — console is UART only
+13:58:01 < oevm: observer armed (slack=8 tick=1000ms backstop=30000ms hw=yes)
+13:58:01 < spike296: arm? sram|flash|bootsel|reboot (default flash, 6000 ms) boot#1
+13:58:01 > flash
+13:58:01 < spike296: arm=flash
+13:58:01 < spike296: blob base 0x100239b0 (flash), hot path sram
+13:58:01 < oevm: image loaded and verified (26882 us)
+13:58:02 < Bounce: 72
+13:58:02 < List: 288
+13:58:02 < Permute: 166
+13:58:07 < Richards: 5183
+13:58:07 < Queens: 153
+13:58:07 < Sieve: 65
+13:58:08 < Towers: 395
+13:58:23 < CD: 15534
+13:58:24 < DeltaBlue: 620
+13:58:24 < verified: true
+13:58:24 < done
+13:58:24 < spike296: parked; bootsel|reboot
+13:58:24 > bootsel
+[412] run 1 exit 0
+[412] m-awfy done
+[weact-1-7] m awfy rc 0
+[flash] BOOTSEL volume /dev/sdc1
+[flash] mounted at /run/media/david/RP23501; copying weact-m-performance.uf2 (692736 B)
+[flash] copied; waiting for the volume to go away
+[flash] done
+[412] m-performance run 1 then=bootsel
+13:58:31 open /dev/serial/by-path/pci-0000:00:14.0-usb-0:7:1.0
+13:58:32 > flash
+13:58:32 > flash
+13:58:33 > flash
+13:58:34 < *** Booting Zephyr OS build v4.2.0-12-gbc47c6fab9cc ***
+13:58:34 < oevm: build-id porta-v1-final-1669-gd9c4fda-dirty-20261012T135655
+13:58:34 < spike296: no retained death note
+13:58:34 < logudp: not built in (no OEVM_LOG_UDP6) — console is UART only
+13:58:34 < oevm: observer armed (slack=8 tick=1000ms backstop=30000ms hw=yes)
+13:58:34 < spike296: arm? sram|flash|bootsel|reboot (default flash, 6000 ms) boot#1
+13:58:34 > flash
+13:58:35 < spike296: arm=flash
+13:58:35 < spike296: blob base 0x100239b0 (flash), hot path sram
+13:58:35 < oevm: image loaded and verified (16263 us)
+13:58:47 < alloc: 12667
+13:59:04 < arrayWrite: 16579
+13:59:09 < dictionaryWrite: 5410
+13:59:33 < floatMath: 24075
+13:59:36 < integerMath: 2883
+13:59:49 < collectionIterate: 12833
+14:00:01 < collectionWrite: 12490
+14:00:04 < stringCompare: 2054
+14:00:04 < hanoi8: 2
+14:00:04 < done
+14:00:04 < spike296: parked; bootsel|reboot
+14:00:04 > bootsel
+[412] run 1 exit 0
+[412] m-performance done
+[weact-1-7] m performance rc 0
+[flash] BOOTSEL volume /dev/sdc1
+[flash] mounted at /run/media/david/RP23501; copying weact-l4b-awfy.uf2 (950272 B)
+[flash] copied; waiting for the volume to go away
+[flash] done
+[412] l4b-awfy run 1 then=bootsel
+14:00:12 open /dev/serial/by-path/pci-0000:00:14.0-usb-0:7:1.0
+14:00:12 > flash
+14:00:13 > flash
+14:00:14 > flash
+14:00:14 < *** Booting Zephyr OS build v4.2.0-12-gbc47c6fab9cc ***
+14:00:14 < oevm: build-id porta-v1-final-1670-gef85573-dirty-20261012T135728
+14:00:14 < spike296: no retained death note
+14:00:14 < logudp: not built in (no OEVM_LOG_UDP6) — console is UART only
+14:00:14 < oevm: observer armed (slack=8 tick=1000ms backstop=30000ms hw=yes)
+14:00:14 < spike296: arm? sram|flash|bootsel|reboot (default flash, 6000 ms) boot#1
+14:00:15 > flash
+14:00:15 < spike296: arm=flash
+14:00:15 < spike296: blob base 0x100239b8 (flash), hot path sram
+14:00:15 < oevm: image loaded and verified (26909 us)
+14:00:15 < Bounce: 72
+14:00:15 < List: 286
+14:00:15 < Permute: 164
+14:00:21 < Richards: 5201
+14:00:21 < Queens: 152
+14:00:21 < Sieve: 66
+14:00:21 < Towers: 402
+14:00:37 < CD: 15484
+14:00:37 < DeltaBlue: 614
+14:00:37 < verified: true
+14:00:37 < done
+14:00:37 < spike296: parked; bootsel|reboot
+14:00:38 > bootsel
+[412] run 1 exit 0
+[412] l4b-awfy done
+[weact-1-7] l4b awfy rc 0
+[flash] BOOTSEL volume /dev/sdc1
+[flash] mounted at /run/media/david/RP23501; copying weact-l4b-performance.uf2 (692736 B)
+[flash] copied; waiting for the volume to go away
+[flash] done
+[412] l4b-performance run 1 then=bootsel
+14:00:45 open /dev/serial/by-path/pci-0000:00:14.0-usb-0:7:1.0
+14:00:45 > flash
+14:00:46 > flash
+14:00:47 > flash
+14:00:47 < *** Booting Zephyr OS build v4.2.0-12-gbc47c6fab9cc ***
+14:00:47 < oevm: build-id porta-v1-final-1670-gef85573-dirty-20261012T135738
+14:00:47 < spike296: no retained death note
+14:00:47 < logudp: not built in (no OEVM_LOG_UDP6) — console is UART only
+14:00:47 < oevm: observer armed (slack=8 tick=1000ms backstop=30000ms hw=yes)
+14:00:47 < spike296: arm? sram|flash|bootsel|reboot (default flash, 6000 ms) boot#1
+14:00:47 > flash
+14:00:48 < spike296: arm=flash
+14:00:48 < spike296: blob base 0x100239b8 (flash), hot path sram
+14:00:48 < oevm: image loaded and verified (16239 us)
+14:01:00 < alloc: 12662
+14:01:17 < arrayWrite: 16439
+14:01:22 < dictionaryWrite: 5370
+14:01:46 < floatMath: 23952
+14:01:49 < integerMath: 2840
+14:02:02 < collectionIterate: 12732
+14:02:14 < collectionWrite: 12475
+14:02:16 < stringCompare: 2046
+14:02:16 < hanoi8: 2
+14:02:16 < done
+14:02:16 < spike296: parked; bootsel|reboot
+14:02:17 > bootsel
+[412] run 1 exit 0
+[412] l4b-performance done
+[weact-1-7] l4b performance rc 0
