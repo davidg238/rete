@@ -8,11 +8,19 @@
 /* Heap Header prepended to every general-object allocation. The `next` field
    links FREE blocks within their size-class bin (Task 2); it is unused while a
    block is live. */
+/* rete#37: one word before every arena object — its payload capacity in bytes (a
+   multiple of OEVM_GRANULE, so bit 0 is free) with the mark in bit 0. A free block
+   keeps its free-list link in its first payload word (every block has one). */
 struct HeapHeader {
-    struct HeapHeader *next;
-    size_t size;            /* payload capacity, rounded up to sizeof(oop)      */
-    int marked;
+    size_t size_mark;
 };
+#define HH_MARK ((size_t)1)
+static inline size_t hh_size(const struct HeapHeader *h) { return h->size_mark & ~HH_MARK; }
+static inline int hh_marked(const struct HeapHeader *h) { return (int)(h->size_mark & HH_MARK); }
+static inline void hh_set_mark(struct HeapHeader *h) { h->size_mark |= HH_MARK; }
+static inline void hh_clear_mark(struct HeapHeader *h) { h->size_mark &= ~HH_MARK; }
+static inline void hh_init(struct HeapHeader *h, size_t size) { h->size_mark = size; }
+static inline struct HeapHeader **hh_next(struct HeapHeader *h) { return (struct HeapHeader **)(h + 1); }
 
 /* ---- Fixed managed arena (W4) ---------------------------------------- */
 #ifndef OEVM_HEAP_SIZE
@@ -61,7 +69,7 @@ static struct HeapHeader *big_free = NULL;
    per Spike296Node run, the whole residual between two otherwise equal images). */
 static uint64_t bins_nonempty = 0;
 static inline void bin_push(struct HeapHeader *h, size_t bi) {
-    h->next = free_bins[bi];
+    *hh_next(h) = free_bins[bi];
     free_bins[bi] = h;
     bins_nonempty |= (uint64_t)1 << bi;
 }
@@ -254,17 +262,16 @@ void gc_collect(void);
    live. The remainder is only split off when it can hold a header + one granule;
    otherwise the slack stays with the allocation (bounded internal slack). */
 static OEVM_HOT oop finish_reuse(struct HeapHeader *h, oop vtable, size_t rounded) {
-    size_t leftover = h->size - rounded;
+    size_t leftover = hh_size(h) - rounded;
     if (leftover >= sizeof(struct HeapHeader) + OEVM_GRANULE) {
         struct HeapHeader *rem =
             (struct HeapHeader *)((uint8_t *)(h + 1) + rounded);
-        rem->size = leftover - sizeof(struct HeapHeader);
-        rem->marked = 0;
-        bin_push(rem, bin_index(rem->size));
-        h->size = rounded;
+        hh_init(rem, leftover - sizeof(struct HeapHeader));
+        bin_push(rem, bin_index(hh_size(rem)));
+        hh_init(h, rounded);
+    } else {
+        hh_clear_mark(h);
     }
-    h->next = NULL;
-    h->marked = 0;
     oop obj = (oop)(h + 1);
     bm_set(bm_granule(obj));
     obj->vtable = vtable;
@@ -278,31 +285,28 @@ static OEVM_HOT oop arena_try_alloc(oop vtable, size_t rounded, size_t need) {
     /* 1. Exact size-class bin — the common reuse path. */
     struct HeapHeader **pp = &free_bins[bi];
     while (*pp != NULL) {
-        if ((*pp)->size >= rounded) {
+        if (hh_size(*pp) >= rounded) {
             struct HeapHeader *h = *pp;
-            *pp = h->next;
+            *pp = *hh_next(h);
             bin_note_pop(bi);
             return finish_reuse(h, vtable, rounded);
         }
-        pp = &(*pp)->next;
+        pp = hh_next(*pp);
     }
     /* 1b. The largest coalesced interior run, carved like bump: O(1), no bin walk,
            and the interior space is reused before the tail so the tail stays whole. */
-    if (big_free != NULL && big_free->size >= rounded) {
+    if (big_free != NULL && hh_size(big_free) >= rounded) {
         struct HeapHeader *h = big_free;
-        size_t leftover = h->size - rounded;
+        size_t leftover = hh_size(h) - rounded;
         if (leftover >= sizeof(struct HeapHeader) + OEVM_GRANULE) {
             struct HeapHeader *rem = (struct HeapHeader *)((uint8_t *)(h + 1) + rounded);
-            rem->size = leftover - sizeof(struct HeapHeader);
-            rem->marked = 0;
-            rem->next = NULL;
+            hh_init(rem, leftover - sizeof(struct HeapHeader));
             big_free = rem;
-            h->size = rounded;
+            hh_init(h, rounded);
         } else {
             big_free = NULL;              /* slack stays with the allocation */
+            hh_clear_mark(h);
         }
-        h->next = NULL;
-        h->marked = 0;
         oop obj = (oop)(h + 1);
         bm_set(bm_granule(obj));
         obj->vtable = vtable;
@@ -313,9 +317,7 @@ static OEVM_HOT oop arena_try_alloc(oop vtable, size_t rounded, size_t need) {
     if (heap_top + need <= heap_end) {
         struct HeapHeader *header = (struct HeapHeader *)heap_top;
         heap_top += need;
-        header->next = NULL;
-        header->size = rounded;
-        header->marked = 0;
+        hh_init(header, rounded);
         oop obj = (oop)(header + 1);
         bm_set(bm_granule(obj));
         obj->vtable = vtable;
@@ -328,13 +330,13 @@ static OEVM_HOT oop arena_try_alloc(oop vtable, size_t rounded, size_t need) {
         size_t b = (size_t)__builtin_ctzll(m);
         pp = &free_bins[b];
         while (*pp != NULL) {
-            if ((*pp)->size >= rounded) {
+            if (hh_size(*pp) >= rounded) {
                 struct HeapHeader *h = *pp;
-                *pp = h->next;
+                *pp = *hh_next(h);
                 bin_note_pop(b);
                 return finish_reuse(h, vtable, rounded);
             }
-            pp = &(*pp)->next;
+            pp = hh_next(*pp);
         }
         m &= ~((uint64_t)1 << b);   /* only the catch-all can hold a block too small; move on */
     }
@@ -617,11 +619,11 @@ static OEVM_HOT void mark(oop ptr) {
     }
 
     struct HeapHeader *header = ((struct HeapHeader *)ptr) - 1;
-    if (header->marked) {
+    if (hh_marked(header)) {
         return; // Already visited
     }
 
-    header->marked = 1;          /* set BEFORE the push: an overflowed object is
+    hh_set_mark(header);         /* set BEFORE the push: an overflowed object is
                                     still marked (never swept); only its edges defer */
     if (mark_sp < OEVM_MARK_STACK_SIZE) {
         mark_stack[mark_sp++] = ptr;
@@ -714,7 +716,7 @@ static OEVM_HOT void trace_one(oop ptr) {
     } else {
         // Trace the object's fields word-by-word (enqueues each pointer).
         struct HeapHeader *header = ((struct HeapHeader *)ptr) - 1;
-        trace_object(ptr, header->size);
+        trace_object(ptr, hh_size(header));
     }
 }
 
@@ -749,8 +751,8 @@ static void mark_drain_with_recovery(void) {
         uint8_t *cur = heap_base;
         while (cur < heap_top) {
             struct HeapHeader *h = (struct HeapHeader *)cur;
-            if (h->marked) trace_one((oop)(h + 1));  /* re-enqueue unmarked children */
-            cur += sizeof(struct HeapHeader) + h->size;
+            if (hh_marked(h)) trace_one((oop)(h + 1));  /* re-enqueue unmarked children */
+            cur += sizeof(struct HeapHeader) + hh_size(h);
         }
         drain_mark_stack();        /* may set mark_overflowed again */
     }
@@ -846,8 +848,8 @@ OEVM_HOT void gc_collect(void) {
         uint8_t *cur = heap_base;
         while (cur < heap_top) {
             struct HeapHeader *h = (struct HeapHeader *)cur;
-            h->marked = 0;
-            cur += sizeof(struct HeapHeader) + h->size;
+            hh_clear_mark(h);
+            cur += sizeof(struct HeapHeader) + hh_size(h);
         }
     }
 
@@ -976,17 +978,17 @@ OEVM_HOT void gc_collect(void) {
         uint8_t *cur = heap_base;
         while (cur < heap_top) {
             struct HeapHeader *h = (struct HeapHeader *)cur;
-            uint8_t *next = cur + sizeof(struct HeapHeader) + h->size;
-            if (h->marked) { swept_live += sizeof(struct HeapHeader) + h->size; cur = next; continue; }
+            uint8_t *next = cur + sizeof(struct HeapHeader) + hh_size(h);
+            if (hh_marked(h)) { swept_live += sizeof(struct HeapHeader) + hh_size(h); cur = next; continue; }
             /* Dead: clear its live bit, then extend the run over every following
                consecutive dead block. */
             bm_clear(bm_granule((oop)(h + 1)));
             uint8_t *run_end = next;
             while (run_end < heap_top) {
                 struct HeapHeader *h2 = (struct HeapHeader *)run_end;
-                if (h2->marked) break;
+                if (hh_marked(h2)) break;
                 bm_clear(bm_granule((oop)(h2 + 1)));
-                run_end += sizeof(struct HeapHeader) + h2->size;
+                run_end += sizeof(struct HeapHeader) + hh_size(h2);
             }
             if (run_end >= heap_top) {
                 /* Trailing dead run: hand it back to the bump allocator so the
@@ -997,11 +999,10 @@ OEVM_HOT void gc_collect(void) {
                 /* Interior dead run: one coalesced free block spanning [cur,run_end).
                    The largest one is kept as big_free (carved O(1), see arena_try_alloc);
                    a run it displaces goes to its bin. */
-                h->size = (size_t)(run_end - cur) - sizeof(struct HeapHeader);
-                h->marked = 0;
+                hh_init(h, (size_t)(run_end - cur) - sizeof(struct HeapHeader));
                 struct HeapHeader *to_bin = h;
-                if (big_free == NULL || h->size > big_free->size) { to_bin = big_free; big_free = h; h->next = NULL; }
-                if (to_bin != NULL) bin_push(to_bin, bin_index(to_bin->size));
+                if (big_free == NULL || hh_size(h) > hh_size(big_free)) { to_bin = big_free; big_free = h; }
+                if (to_bin != NULL) bin_push(to_bin, bin_index(hh_size(to_bin)));
             }
             cur = run_end;
         }
@@ -1026,10 +1027,10 @@ struct OevmHeapStats oevm_heap_stats(void) {
     s.high_water = heap_high_water;
     s.gc_cycles = heap_gc_cycles;
 
-    size_t largest = (big_free != NULL) ? big_free->size : 0;
+    size_t largest = (big_free != NULL) ? hh_size(big_free) : 0;
     for (size_t i = 0; i < FREE_BIN_COUNT; i++) {
-        for (struct HeapHeader *h = free_bins[i]; h != NULL; h = h->next) {
-            if (h->size > largest) largest = h->size;
+        for (struct HeapHeader *h = free_bins[i]; h != NULL; h = *hh_next(h)) {
+            if (hh_size(h) > largest) largest = hh_size(h);
         }
     }
     size_t bump_remaining = (size_t)(heap_end - heap_top);
