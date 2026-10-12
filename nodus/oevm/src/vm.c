@@ -718,7 +718,50 @@ static void stack_overflow_abort(size_t need, size_t cap) {
 static void apply_restart(struct MethodContext *ctx);   /* rete#313 */
 #endif
 
+#ifdef OEVM_PERFMON
+/* rete#37 spike, ESP32-C6 only: the core's one performance counter (custom CSRs mpcer 0x7e0 = event mask,
+   mpcmr 0x7e1 = enable, mpccr 0x7e2 = count). PRIM_millis calls this: an odd call (a row's t0) selects the
+   next event and zeroes the counter, an even call (t1) reads it and prints. Events by bit: 0 cycles,
+   1 instructions, 2 load hazards, 3 jump hazards, 5 loads, 9 taken branches. */
+void oevm_perfmon_tick(void) {
+    static const uint8_t ev[] = { 0, 1, 2, 3, 5, 9 };
+    static uint32_t calls;
+    static uint64_t t0;
+    uint32_t k = calls++;
+    if ((k & 1) == 0) {
+        uint32_t e = ev[(k / 2) % sizeof ev];
+        __asm__ volatile ("csrw 0x7e1, zero");
+        __asm__ volatile ("csrw 0x7e0, %0" :: "r"(1u << e));
+        __asm__ volatile ("csrw 0x7e2, zero");
+        t0 = oevm_millis();
+        __asm__ volatile ("csrw 0x7e1, %0" :: "r"(1u));
+    } else {
+        uint32_t n;
+        __asm__ volatile ("csrr %0, 0x7e2" : "=r"(n));
+        uint64_t t1 = oevm_millis();
+        printf("[pm ev %u n %u ms %u]\n", (unsigned)ev[(k / 2) % sizeof ev], (unsigned)n, (unsigned)(t1 - t0));
+    }
+}
+#endif
+#ifdef OEVM_INSN_COUNT
+/* rete#37 spike: dispatched instructions by opcode, and frames pushed, since the last report.
+   oevm_insn_report() prints the deltas and resets; PRIM_millis calls it. */
+uint32_t g_op_hist[256];
+uint32_t g_frames;
+void oevm_insn_report(void) {
+    uint64_t n = 0;
+    for (int i = 0; i < 256; i++) n += g_op_hist[i];
+    printf("[insn %llu frames %lu", (unsigned long long)n, (unsigned long)g_frames);
+    for (int i = 0; i < 256; i++) if (g_op_hist[i]) printf(" %02x:%lu", i, (unsigned long)g_op_hist[i]);
+    printf("]\n");
+    for (int i = 0; i < 256; i++) g_op_hist[i] = 0;
+    g_frames = 0;
+}
+#endif
 static OEVM_HOT struct MethodContext *push_frame(oop closure, oop receiver, int argc, oop *args) {
+#ifdef OEVM_INSN_COUNT
+    g_frames++;
+#endif
     struct Closure *cl = (struct Closure *)closure;
     struct CompiledMethod *m = (struct CompiledMethod *)closure_entry(cl);
 #ifdef OEVM_METHOD_PROFILE
@@ -924,6 +967,9 @@ OEVM_HOT oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
 
         uint32_t inst = *pc;
         uint8_t op = inst & 0xFF;
+#ifdef OEVM_INSN_COUNT
+        g_op_hist[op]++;
+#endif
 
 #ifndef OEVM_NO_DEBUG_HOOKS
         if (op == OP_BREAK) {

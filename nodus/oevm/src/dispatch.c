@@ -1563,6 +1563,12 @@ OEVM_HOT oop send_resolve(oop receiver, oop selector, int argc, oop *args,
             case PRIM_millis: {
                 /* In-language monotonic clock in ms. Receiver ignored; backed by
                    the overridable oevm_millis hook. Returns a SmallInteger. */
+#ifdef OEVM_INSN_COUNT
+                { extern void oevm_insn_report(void); oevm_insn_report(); }
+#endif
+#ifdef OEVM_PERFMON
+                { extern void oevm_perfmon_tick(void); oevm_perfmon_tick(); }
+#endif
                 return TAG_SMI((long)oevm_millis());
             }
             break;
