@@ -25,9 +25,9 @@ reaches the same abort. The one sharp edge: `basicAt:`, `basicAt:put:`, `basicSi
 capability would read its (absent) slot 0 instead of aborting — a program error either way, no longer a loud one.
 
 **The footprint.** Per revision (`FOOTPRINT_CONFIG=mcu`, msi): master 45,918, R1 46,858, R2 46,474, R3 46,808. All of
-R1's growth is `send_resolve` (5,622 → 6,562 B): with the receiver's vtable known, `-Os` copies the primitive block
-(the Opt #16 finding), and the copies now carry the `=` case's Symbol arm. Putting that arm in a `noinline` helper
-made it worse (46,852: −32 B in `send_resolve`, +76 B of helper). At R3: `send_resolve` +598, `send` +70 (its
+R1's growth is `send_resolve` (5,622 → 6,562 B), the function where Opt #16 found `-Os` copying the primitive block for a
+known receiver vtable. What R1 changed in that copy is not pinned down: it is not the Symbol arm itself, since putting
+the arm in a `noinline` helper saved only 32 B of `send_resolve` and cost 76 B of helper (46,852). At R3: `send_resolve` +598, `send` +70 (its
 check), the verifier the rest. The ratchet has 40 B of its 2 % left.
 
 Gates (msi, `e2fa47e3`): nsl 298/0, every aux gate PASS (footprint, portability-32, boot-gc-asan included), PORTA SYNC
