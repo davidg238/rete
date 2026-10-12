@@ -1,0 +1,9 @@
+09:46:31 < collectionIterate: 13056
+09:46:31 < collectionWrite: 15317
+09:46:31 < stringCompare: 2852
+09:46:31 < hanoi8: 2
+09:46:31 < done
+09:46:31 < spike296: parked; bootsel|reboot
+> bootsel
+09:46:31 < spike296: BOOTSEL
+09:46:34 in BOOTSEL

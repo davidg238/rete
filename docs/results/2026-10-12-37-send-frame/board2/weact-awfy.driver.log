@@ -1,0 +1,31 @@
+[flash] BOOTSEL volume /dev/sdb1
+[flash] mounted at /run/media/david/RP2350; copying weact-awfy-base.uf2 (966656 B)
+[flash] copied; waiting for the volume to go away
+[flash] done
+[412] base run 1 then=reboot
+08:26:34 open /dev/serial/by-id/usb-Zephyr_Project_CDC_ACM_serial_backend_371016190D903B10-if00
+08:26:34 > flash
+08:26:35 > flash
+08:26:36 > flash
+08:26:36 < *** Booting Zephyr OS build v4.2.0-12-gbc47c6fab9cc ***
+08:26:36 < oevm: build-id porta-v1-final-1620-gf6f6e47-dirty-20261012T082540
+08:26:36 < spike296: no retained death note
+08:26:36 < logudp: not built in (no OEVM_LOG_UDP6) — console is UART only
+08:26:36 < oevm: observer armed (slack=8 tick=1000ms backstop=30000ms hw=yes)
+08:26:36 < spike296: arm? sram|flash|bootsel|reboot (default flash, 6000 ms) boot#1
+08:26:37 > flash
+08:26:37 < spike296: arm=flash
+08:26:37 < spike296: blob base 0x10022f20 (flash), hot path sram
+08:26:37 < oevm: image loaded and verified (18211 us)
+08:26:37 < Bounce: 80
+08:26:38 < List: 425
+08:26:38 < Permute: 192
+08:26:45 < Richards: 7764
+08:26:46 < Queens: 185
+08:26:46 < Sieve: 68
+08:26:46 < Towers: 563
+08:30:02 < Mandelbrot: 195825
+08:30:02 < NBody: 4
+08:30:23 < CD: 20918
+08:51:34 timeout (done=False)
+[412] run 1 exit 2

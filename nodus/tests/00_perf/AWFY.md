@@ -23,10 +23,15 @@ SOMns source is allowed only where nsl's dialect forces it, and each one is list
   that AWFY's SOMns sources assume and Soup's Object lacks (`==`, `notNil`). The basics are added
   to a copy of Soup's kernel. Soup is built in `~/workspace/primordialsoup` (`scons -Q
   out/ReleaseHost/primordialsoup out/snapshots/CompilerApp.vfuel`).
-- **Board:** like any perf program (`richards.nsl`): `run.sh --board <b>` with this file.
+- **Board:** not this file as it stands. Storage and Json keep live sets that do not fit even a 256 KB arena
+  (the C6 aborts out of memory). Build the board profile instead, `python3 awfy_counts.py board > awfy-board.nsl`,
+  with `OEVM_HEAP_SIZE=262144`. It drops Storage, Json, Mandelbrot and NBody and runs the other nine rows in about
+  30 s on a C6. The rete#37 board driver is `docs/results/2026-10-12-37-send-frame/board_build.sh` + `board_ab.sh`.
+- **Profiles:** `awfy_counts.py host|board` sets every driver's counts (the host baseline, the host A/B and the
+  boards). This file's own counts are the reference sizes AWFY verifies.
 
-Output: one `<name>: <ms>` line per row, then `verified: <bool>` and `done`. The `inner:` counts in
-`runAll` are sized for a board. A host comparison scales them up.
+Output: one `<name>: <ms>` line per row, then `verified: <bool>` and `done`. The rows share one heap, so a
+row's time can depend on which rows ran before it: compare numbers only within one profile.
 
 ## Structure forced by the dialect
 

@@ -111,3 +111,18 @@ record and takes L1 + L2; String `copyFrom:to:`, `sin`/`cos` and Float→Integer
 The record (2026-10-12, next session): `docs/results/2026-10-12-37-awfy-soup/`, `run_all.sh`, median of
 three at `33cb0e16`. Geomean 1.26×; List 4.14×, Storage 1.95×, Json 1.77×, Towers 1.75×, DeltaBlue
 1.72×. Soup's runs vary up to ±25 % and nsl's ~10 %, so a lever needs more than one run to count.
+
+## Addendum, 2026-10-12 (later): L1 lands, L2 does not
+
+Measured on the host and on three boards (`docs/results/2026-10-12-37-send-frame/`, optimizations.md Opt #12).
+**L1** (the whole access mechanism deleted, David's choice over the run-time path only): AWFY C6 0.936, WeAct 0.961,
+host 0.963; STIC C6 0.986, WeAct 0.997; MCU text −754 B. Kept. **L2** (one frame push that answers its method):
+host 0.983 when forced inline, but on the boards it loses in both forms (STIC +2 to +3.5 %, WeAct AWFY +2.4 %), because
+reshaping `run_interpreter` costs the boards' gcc 12 register allocation across the whole loop. Reverted.
+
+What this changes in the plan: **a lever that touches the loop's body is measured on a board first**. The host
+ranks levers that take work out (L1). It does not rank levers that move code around in the loop (L2, Opt #11's
+inlined slow path). The board A/B now takes about 15 minutes for four revisions (`board_build.sh`, `board_ab.sh`), so
+board-first is cheap. L3 (frame state in locals) is exactly a loop-body change, so it goes to the board first. M (the
+counting build) still decides whether the frame or something else is Toit's lead.
+

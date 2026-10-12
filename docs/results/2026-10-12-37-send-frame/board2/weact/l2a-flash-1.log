@@ -1,0 +1,26 @@
+08:14:45 open /dev/serial/by-id/usb-Zephyr_Project_CDC_ACM_serial_backend_371016190D903B10-if00
+08:14:45 > flash
+08:14:46 > flash
+08:14:47 > flash
+08:14:47 < *** Booting Zephyr OS build v4.2.0-12-gbc47c6fab9cc ***
+08:14:47 < oevm: build-id porta-v1-final-1622-g45bfc75-dirty-20261012T080254
+08:14:47 < spike296: no retained death note
+08:14:47 < logudp: not built in (no OEVM_LOG_UDP6) — console is UART only
+08:14:47 < oevm: observer armed (slack=8 tick=1000ms backstop=30000ms hw=yes)
+08:14:47 < spike296: arm? sram|flash|bootsel|reboot (default flash, 6000 ms) boot#1
+08:14:47 > flash
+08:14:48 < spike296: arm=flash
+08:14:48 < spike296: blob base 0x10022f08 (flash), hot path sram
+08:14:48 < oevm: image loaded and verified (11080 us)
+08:15:04 < alloc: 15912
+08:15:21 < arrayWrite: 17639
+08:15:28 < dictionaryWrite: 6621
+08:15:52 < floatMath: 24286
+08:15:55 < integerMath: 3219
+08:16:09 < collectionIterate: 13685
+08:16:25 < collectionWrite: 15484
+08:16:28 < stringCompare: 2896
+08:16:28 < hanoi8: 1
+08:16:28 < done
+08:16:28 < spike296: parked; bootsel|reboot
+08:16:28 > reboot
