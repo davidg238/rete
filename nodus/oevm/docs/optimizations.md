@@ -760,6 +760,21 @@ Left to gcc it was 1.051 (gcc stopped inlining it at four of seven sites). On th
 STIC +2 %, WeAct STIC +2–3.5 %, WeAct AWFY +2.4 % forced inline, C6 AWFY about level. Changing `run_interpreter`'s
 body moves register allocation for the whole loop, and the boards' gcc 12 pays where host gcc 16 did not. Reverted.
 
+## Opt #13 — frameless accessor sends (rete#37 L6, 2026-10-12)
+
+The counting build (M, `docs/results/2026-10-12-37-M-counts/`) showed that half or more of the frames on Richards, CD,
+Towers and List, and 46 % on DeltaBlue, run a method that is a single slot access. Following Toit's
+`INVOKE_VIRTUAL_GET/SET`, a send to a getter, a setter or `^ self` is now answered in `send_resolve` with no frame. The
+compiler states each method's shape in `CompiledMethod.shape` (16 bits taken from `num_arguments`, so no offset moves),
+`oevm_method_check` proves it at load, and `frameless_send` does the slot access. `run_interpreter` is unchanged: a
+test at its send sites cost 10–20 % on the host rows that have no accessor.
+
+**AWFY** (`docs/results/2026-10-12-37-l6/`, L6 ÷ base): **WeAct 0.941** (Richards −13.4 %, DeltaBlue −12.9 %, CD
+−9.7 %, List −10.6 %, Towers −6.2 %; the other rows level), **C6 0.988** (Richards −13.3 %, but Towers +11 % and the
+untouched rows ±2–4 %), host 0.972. **STIC:** WeAct 0.984, C6 1.016. On the C6 the interpreter runs from flash through
+the cache, so code placement moves rows that L6 does not touch. The WeAct runs its hot path from SRAM and is the
+control. MCU text 45,109 B (+507), host 77,680 (+751).
+
 ## Known weaknesses / tracked gaps (snapshot 2026-06-18)
 
 Captured after the sober-reference benchmark exercise (see

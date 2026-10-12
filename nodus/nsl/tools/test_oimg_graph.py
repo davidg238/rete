@@ -16,7 +16,7 @@ LAYOUT = json.loads('''{"oop_size":8,"structs":{
    "method":{"offset":8,"is_ref":true,"is_ptr":false}}},
  "CompiledMethod":{"size":40,"fields":{"instructions":{"offset":0,"is_ref":false,"is_ptr":true},
    "instruction_count":{"offset":8,"is_ref":false,"is_ptr":false},"num_registers":{"offset":16,"is_ref":false,"is_ptr":false},
-   "num_arguments":{"offset":20,"is_ref":false,"is_ptr":false},"constants":{"offset":24,"is_ref":false,"is_ptr":true},
+   "num_arguments":{"offset":20,"is_ref":false,"is_ptr":false},"shape":{"offset":22,"is_ref":false,"is_ptr":false},"constants":{"offset":24,"is_ref":false,"is_ptr":true},
    "constant_count":{"offset":32,"is_ref":false,"is_ptr":false}}},
  "Closure":{"size":32,"fields":{"base.vtable":{"offset":0,"is_ref":true,"is_ptr":false},
    "home_ctx":{"offset":8,"is_ref":true,"is_ptr":false},"home_generation":{"offset":16,"is_ref":false,"is_ptr":false},

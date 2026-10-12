@@ -144,3 +144,12 @@ frame): **56 % of Richards' frames, 46 % of DeltaBlue's and 64-93 % of CD's, Tow
 single slot access or constant.** That is up to ~2.5 s of Richards' 6.7 s, so a new lever ranks first, ahead of L3:
 **L6, frameless accessor sends**, where a getter, setter or constant method is recognised once (at load or cache fill)
 and run inside the send with no frame. Board-first, like L3.
+
+## Addendum, 2026-10-12: L6 lands (Opt #13)
+
+`docs/results/2026-10-12-37-l6/`. Frameless accessor sends: WeAct AWFY 0.941 (Richards 0.866), C6 0.988. The gain is
+about 40 % of the M upper bound (Richards' accessor frames were priced at the average frame, ~640 cycles; they save
+~230 each on the C6), because the accessor's own frame is the cheapest kind and the `send_resolve` call stays. On the C6, rows
+that L6 does not touch move 2–8 %, which is code placement in flash. **Next:** the C6 hot path in SRAM (the
+`OEVM_HOT_SECTION_IRAM` mechanism the ESP32/S2 use, unset for the C6 in run.sh), which stabilises every later C6
+measurement and tests how much of the 36-cycle base instruction is cache misses. Then L3 and L4.

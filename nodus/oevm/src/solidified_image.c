@@ -1845,7 +1845,7 @@ static const uint32_t Method_MethodCallTest_main_args__insts[] = { 0x00000800, 0
 static const oop Method_MethodCallTest_main_args__consts[] = { (oop)&Vtable_MethodCallTest_MethodCall, (oop)&StaticSymbol_init_new, (oop)&StaticSymbol_test, (oop)&StaticSymbol_printString, (oop)&StaticSymbol_out };
 static const struct CompiledMethod Method_MethodCallTest_main_args__compiled = {
     Method_MethodCallTest_main_args__insts, 11,
-    9, 2,
+    9, 2, 0,
     Method_MethodCallTest_main_args__consts, 5,
     0
 };
@@ -1858,7 +1858,7 @@ static const uint32_t Method_MethodCallTest_MethodCall_insts[] = { 0x00000200, 0
 static const oop Method_MethodCallTest_MethodCall_consts[] = { (oop)&Vtable_MethodCallTest_MethodCall, TAG_SMI(1), (oop)&StaticSymbol___boundOuter_slotCount_ };
 static const struct CompiledMethod Method_MethodCallTest_MethodCall_compiled = {
     Method_MethodCallTest_MethodCall_insts, 5,
-    5, 0,
+    5, 0, 0,
     Method_MethodCallTest_MethodCall_consts, 3,
     0
 };
@@ -1871,7 +1871,7 @@ static const uint32_t Method_MethodCallTest_init_manifest__insts[] = { 0x0000010
 static const oop Method_MethodCallTest_init_manifest__consts[] = { (oop)&Vtable_MethodCallTest_MethodCall, TAG_SMI(1), (oop)&StaticSymbol___boundOuter_slotCount_ };
 static const struct CompiledMethod Method_MethodCallTest_init_manifest__compiled = {
     Method_MethodCallTest_init_manifest__insts, 7,
-    6, 1,
+    6, 1, 0,
     Method_MethodCallTest_init_manifest__consts, 3,
     0
 };
@@ -1884,7 +1884,7 @@ static const uint32_t Method_MethodCallTest_MethodCall_test_insts[] = { 0x000003
 static const oop Method_MethodCallTest_MethodCall_test_consts[] = { (oop)&StaticSymbol_test2 };
 static const struct CompiledMethod Method_MethodCallTest_MethodCall_test_compiled = {
     Method_MethodCallTest_MethodCall_test_insts, 4,
-    4, 0,
+    4, 0, 0,
     Method_MethodCallTest_MethodCall_test_consts, 1,
     0
 };
@@ -1897,7 +1897,7 @@ static const uint32_t Method_MethodCallTest_MethodCall_test2_insts[] = { 0x00000
 static const oop Method_MethodCallTest_MethodCall_test2_consts[] = { TAG_SMI(42) };
 static const struct CompiledMethod Method_MethodCallTest_MethodCall_test2_compiled = {
     Method_MethodCallTest_MethodCall_test2_insts, 2,
-    3, 0,
+    3, 0, 0,
     Method_MethodCallTest_MethodCall_test2_consts, 1,
     0
 };
@@ -1909,7 +1909,7 @@ static const struct Closure Method_MethodCallTest_MethodCall_test2_closure = {
 static const uint32_t Method_MethodCallTest_MethodCall_init_new_insts[] = { 0x00000003 };
 static const struct CompiledMethod Method_MethodCallTest_MethodCall_init_new_compiled = {
     Method_MethodCallTest_MethodCall_init_new_insts, 1,
-    2, 0,
+    2, 0, 0,
     NULL, 0,
     0
 };
@@ -1922,7 +1922,7 @@ static const uint32_t Method_Kernel_serialOn__insts[] = { 0x0018040A, 0x00010501
 static const oop Method_Kernel_serialOn__consts[] = { (oop)&StaticSymbol_onPort_ };
 static const struct CompiledMethod Method_Kernel_serialOn__compiled = {
     Method_Kernel_serialOn__insts, 5,
-    6, 1,
+    6, 1, 0,
     Method_Kernel_serialOn__consts, 1,
     0
 };
@@ -1935,7 +1935,7 @@ static const uint32_t Method_Kernel_netOn__insts[] = { 0x0019040A, 0x00010501, 0
 static const oop Method_Kernel_netOn__consts[] = { (oop)&StaticSymbol_onPort_ };
 static const struct CompiledMethod Method_Kernel_netOn__compiled = {
     Method_Kernel_netOn__insts, 5,
-    6, 1,
+    6, 1, 0,
     Method_Kernel_netOn__consts, 1,
     0
 };
@@ -1948,7 +1948,7 @@ static const uint32_t Method_Kernel_rankOf__insts[] = { 0x0000050A, 0x00010601, 
 static const oop Method_Kernel_rankOf__consts[] = { (oop)&StaticSymbol_valueRank_, TAG_SMI(-1), (oop)&StaticSymbol__eq, (oop)&StaticSymbol_valueRank, (oop)&StaticSymbol_false };
 static const struct CompiledMethod Method_Kernel_rankOf__compiled = {
     Method_Kernel_rankOf__insts, 18,
-    10, 1,
+    10, 1, 0,
     Method_Kernel_rankOf__consts, 5,
     0
 };
@@ -1961,7 +1961,7 @@ static const uint32_t Method_Kernel_isValueObject__insts[] = { 0x00000501, 0x000
 static const oop Method_Kernel_isValueObject__consts[] = { (oop)&StaticSymbol_rankOf_, TAG_SMI(0), (oop)&StaticSymbol__gt_eq };
 static const struct CompiledMethod Method_Kernel_isValueObject__compiled = {
     Method_Kernel_isValueObject__insts, 8,
-    7, 1,
+    7, 1, 0,
     Method_Kernel_isValueObject__consts, 3,
     0
 };
@@ -1974,7 +1974,7 @@ static const uint32_t Method_Kernel_depthOf__insts[] = { 0x00000601, 0x00010701,
 static const oop Method_Kernel_depthOf__consts[] = { (oop)&StaticSymbol_rankOf_, TAG_SMI(7), (oop)&StaticSymbol__gt_eq, (oop)&StaticSymbol_valueDepth, (oop)&StaticSymbol_false, TAG_SMI(0) };
 static const struct CompiledMethod Method_Kernel_depthOf__compiled = {
     Method_Kernel_depthOf__insts, 16,
-    9, 1,
+    9, 1, 0,
     Method_Kernel_depthOf__consts, 6,
     0
 };
@@ -1987,7 +1987,7 @@ static const uint32_t Method_Kernel_checkValue__insts[] = { 0x00000501, 0x000106
 static const oop Method_Kernel_checkValue__consts[] = { (oop)&StaticSymbol_isValueObject_, (oop)&StaticSymbol_false, (oop)&StaticString_not_u32a_u32value_0, (oop)&StaticSymbol_error_ };
 static const struct CompiledMethod Method_Kernel_checkValue__compiled = {
     Method_Kernel_checkValue__insts, 13,
-    8, 1,
+    8, 1, 0,
     Method_Kernel_checkValue__consts, 4,
     0
 };
@@ -2000,7 +2000,7 @@ static const uint32_t Method_Kernel_checkDepth__insts[] = { 0x00010501, 0x000006
 static const oop Method_Kernel_checkDepth__consts[] = { TAG_SMI(32), (oop)&StaticSymbol__gt, (oop)&StaticString_message_u32depth_u32exceeded_1, (oop)&StaticSymbol_error_, (oop)&StaticSymbol_false };
 static const struct CompiledMethod Method_Kernel_checkDepth__compiled = {
     Method_Kernel_checkDepth__insts, 13,
-    8, 1,
+    8, 1, 0,
     Method_Kernel_checkDepth__consts, 5,
     0
 };
@@ -2013,7 +2013,7 @@ static const uint32_t Method_Kernel_checkPath__insts[] = { 0x00010801, 0x0800000
 static const oop Method_Kernel_checkPath__consts[] = { (oop)&StaticSymbol_size, TAG_SMI(0), (oop)&StaticSymbol__eq, (oop)&StaticSymbol_false, TAG_SMI(1), (oop)&StaticSymbol_at_, TAG_SMI(47), (oop)&StaticSymbol_true, (oop)&StaticString_bad_u32channel_u32path_2, (oop)&StaticSymbol_error_, (oop)&StaticSymbol__lt_eq, TAG_SMI(46), NULL };
 static const struct CompiledMethod Method_Kernel_checkPath__compiled = {
     Method_Kernel_checkPath__insts, 123,
-    24, 1,
+    24, 1, 0,
     Method_Kernel_checkPath__consts, 13,
     0
 };
@@ -2026,7 +2026,7 @@ static const uint32_t Method_Kernel_valueCompare_with__insts[] = { 0x00000701, 0
 static const oop Method_Kernel_valueCompare_with__consts[] = { (oop)&StaticSymbol_rankOf_, (oop)&StaticSymbol__eq, (oop)&StaticSymbol_false, (oop)&StaticSymbol__lt, TAG_SMI(-1), TAG_SMI(1), TAG_SMI(0), (oop)&StaticSymbol__eq_eq, TAG_SMI(2), (oop)&StaticSymbol_true, TAG_SMI(3), TAG_SMI(4), (oop)&StaticSymbol_byteCompare_with_, TAG_SMI(5), (oop)&StaticSymbol_bytesCompare_with_, TAG_SMI(6), (oop)&StaticSymbol_printString, TAG_SMI(7), (oop)&StaticSymbol_listCompare_with_, TAG_SMI(8), (oop)&StaticSymbol_mapCompare_with_, TAG_SMI(9), (oop)&StaticSymbol_recordCompare_with_, (oop)&StaticString_not_u32a_u32value_0, (oop)&StaticSymbol_error_ };
 static const struct CompiledMethod Method_Kernel_valueCompare_with__compiled = {
     Method_Kernel_valueCompare_with__insts, 178,
-    24, 2,
+    24, 2, 0,
     Method_Kernel_valueCompare_with__consts, 25,
     0
 };
@@ -2039,7 +2039,7 @@ static const uint32_t Method_Kernel_byteCompare_with__insts[] = { 0x00010801, 0x
 static const oop Method_Kernel_byteCompare_with__consts[] = { (oop)&StaticSymbol_size, (oop)&StaticSymbol__lt, TAG_SMI(1), (oop)&StaticSymbol__lt_eq, NULL, (oop)&StaticSymbol_at_, TAG_SMI(-1), (oop)&StaticSymbol_false, (oop)&StaticSymbol__gt, TAG_SMI(0) };
 static const struct CompiledMethod Method_Kernel_byteCompare_with__compiled = {
     Method_Kernel_byteCompare_with__insts, 77,
-    22, 2,
+    22, 2, 0,
     Method_Kernel_byteCompare_with__consts, 10,
     0
 };
@@ -2052,7 +2052,7 @@ static const uint32_t Method_Kernel_bytesCompare_with__insts[] = { 0x00010801, 0
 static const oop Method_Kernel_bytesCompare_with__consts[] = { (oop)&StaticSymbol_byteSize, (oop)&StaticSymbol__lt, TAG_SMI(1), (oop)&StaticSymbol__lt_eq, NULL, (oop)&StaticSymbol_u8At_, TAG_SMI(-1), (oop)&StaticSymbol_false, (oop)&StaticSymbol__gt, TAG_SMI(0) };
 static const struct CompiledMethod Method_Kernel_bytesCompare_with__compiled = {
     Method_Kernel_bytesCompare_with__insts, 77,
-    22, 2,
+    22, 2, 0,
     Method_Kernel_bytesCompare_with__consts, 10,
     0
 };
@@ -2065,7 +2065,7 @@ static const uint32_t Method_Kernel_listCompare_with__insts[] = { 0x00010801, 0x
 static const oop Method_Kernel_listCompare_with__consts[] = { (oop)&StaticSymbol_size, (oop)&StaticSymbol__lt, TAG_SMI(1), (oop)&StaticSymbol__lt_eq, NULL, (oop)&StaticSymbol_at_, (oop)&StaticSymbol_valueCompare_with_, TAG_SMI(0), (oop)&StaticSymbol__eq, (oop)&StaticSymbol_false, TAG_SMI(-1), (oop)&StaticSymbol__gt };
 static const struct CompiledMethod Method_Kernel_listCompare_with__compiled = {
     Method_Kernel_listCompare_with__insts, 69,
-    21, 2,
+    21, 2, 0,
     Method_Kernel_listCompare_with__consts, 12,
     0
 };
@@ -2078,7 +2078,7 @@ static const uint32_t Method_Kernel_mapCompare_with__insts[] = { 0x00010901, 0x0
 static const oop Method_Kernel_mapCompare_with__consts[] = { (oop)&StaticSymbol_size, (oop)&StaticSymbol__lt, TAG_SMI(1), (oop)&StaticSymbol__lt_eq, (oop)&StaticSymbol_keyAt_, (oop)&StaticSymbol_valueCompare_with_, TAG_SMI(0), (oop)&StaticSymbol__eq, (oop)&StaticSymbol_false, (oop)&StaticSymbol_valueAt_, TAG_SMI(-1), (oop)&StaticSymbol__gt };
 static const struct CompiledMethod Method_Kernel_mapCompare_with__compiled = {
     Method_Kernel_mapCompare_with__insts, 89,
-    23, 2,
+    23, 2, 0,
     Method_Kernel_mapCompare_with__consts, 12,
     0
 };
@@ -2091,7 +2091,7 @@ static const uint32_t Method_Kernel_recordCompare_with__insts[] = { 0x00000601, 
 static const oop Method_Kernel_recordCompare_with__consts[] = { (oop)&StaticSymbol_tag, (oop)&StaticSymbol_valueCompare_with_, TAG_SMI(0), (oop)&StaticSymbol__eq, (oop)&StaticSymbol_false, (oop)&StaticSymbol_fields };
 static const struct CompiledMethod Method_Kernel_recordCompare_with__compiled = {
     Method_Kernel_recordCompare_with__insts, 29,
-    12, 2,
+    12, 2, 0,
     Method_Kernel_recordCompare_with__consts, 6,
     0
 };
@@ -2104,7 +2104,7 @@ static const uint32_t Method_Kernel_value_equals__insts[] = { 0x00000601, 0x0001
 static const oop Method_Kernel_value_equals__consts[] = { (oop)&StaticSymbol_valueCompare_with_, TAG_SMI(0), (oop)&StaticSymbol__eq };
 static const struct CompiledMethod Method_Kernel_value_equals__compiled = {
     Method_Kernel_value_equals__insts, 9,
-    9, 2,
+    9, 2, 0,
     Method_Kernel_value_equals__consts, 3,
     0
 };
@@ -2117,7 +2117,7 @@ static const uint32_t Method_Kernel_valueHashOf__insts[] = { 0x00010215, 0x00000
 static const oop Method_Kernel_valueHashOf__consts[] = { (oop)&StaticSymbol_rankOf_, TAG_SMI(7), (oop)&StaticSymbol__eq, (oop)&Method_Block_Kernel_block1_value__compiled, (oop)&StaticSymbol_do_, (oop)&StaticSymbol_false, TAG_SMI(8), (oop)&Method_Block_Kernel_block2_value___compiled, (oop)&StaticSymbol_keysAndValuesDo_, TAG_SMI(9), (oop)&StaticSymbol_tag, (oop)&StaticSymbol_valueHashOf_, (oop)&StaticSymbol_bitXor_, TAG_SMI(16777619), TAG_SMI(1073741823), (oop)&StaticSymbol_bitAnd_, (oop)&StaticSymbol_fields, TAG_SMI(5), TAG_SMI(1), (oop)&StaticSymbol_byteSize, (oop)&StaticSymbol__lt_eq, (oop)&StaticSymbol_u8At_, (oop)&StaticSymbol_hash };
 static const struct CompiledMethod Method_Kernel_valueHashOf__compiled = {
     Method_Kernel_valueHashOf__insts, 123,
-    23, 1,
+    23, 1, 0,
     Method_Kernel_valueHashOf__consts, 23,
     0
 };
@@ -2130,7 +2130,7 @@ static const uint32_t Method_Kernel_readLine_insts[] = { 0x0000030A, 0x03000002,
 static const oop Method_Kernel_readLine_consts[] = { (oop)&StaticSymbol_readLine };
 static const struct CompiledMethod Method_Kernel_readLine_compiled = {
     Method_Kernel_readLine_insts, 4,
-    4, 0,
+    4, 0, 0,
     Method_Kernel_readLine_consts, 1,
     0
 };
@@ -2143,7 +2143,7 @@ static const uint32_t Method_Kernel_protectedFire_value__insts[] = { 0x0000050A,
 static const oop Method_Kernel_protectedFire_value__consts[] = { (oop)&StaticSymbol_protectedFire_value_ };
 static const struct CompiledMethod Method_Kernel_protectedFire_value__compiled = {
     Method_Kernel_protectedFire_value__insts, 6,
-    8, 2,
+    8, 2, 0,
     Method_Kernel_protectedFire_value__consts, 1,
     0
 };
@@ -2156,7 +2156,7 @@ static const uint32_t Method_Kernel_valueRank__insts[] = { 0x0000040A, 0x0001050
 static const oop Method_Kernel_valueRank__consts[] = { (oop)&StaticSymbol_valueRank_ };
 static const struct CompiledMethod Method_Kernel_valueRank__compiled = {
     Method_Kernel_valueRank__insts, 5,
-    6, 1,
+    6, 1, 0,
     Method_Kernel_valueRank__consts, 1,
     0
 };
@@ -2169,7 +2169,7 @@ static const uint32_t Method_Kernel_spaceDropReactionsOwnedBy__insts[] = { 0x000
 static const oop Method_Kernel_spaceDropReactionsOwnedBy__consts[] = { (oop)&StaticSymbol_spaceDropReactionsOwnedBy_ };
 static const struct CompiledMethod Method_Kernel_spaceDropReactionsOwnedBy__compiled = {
     Method_Kernel_spaceDropReactionsOwnedBy__insts, 5,
-    6, 1,
+    6, 1, 0,
     Method_Kernel_spaceDropReactionsOwnedBy__consts, 1,
     0
 };
@@ -2182,7 +2182,7 @@ static const uint32_t Method_Kernel_spaceOverruns__insts[] = { 0x0000040A, 0x000
 static const oop Method_Kernel_spaceOverruns__consts[] = { (oop)&StaticSymbol_spaceOverruns_ };
 static const struct CompiledMethod Method_Kernel_spaceOverruns__compiled = {
     Method_Kernel_spaceOverruns__insts, 5,
-    6, 1,
+    6, 1, 0,
     Method_Kernel_spaceOverruns__consts, 1,
     0
 };
@@ -2195,7 +2195,7 @@ static const uint32_t Method_Kernel_sysStats_insts[] = { 0x0000030A, 0x03000002,
 static const oop Method_Kernel_sysStats_consts[] = { (oop)&StaticSymbol_sysStats };
 static const struct CompiledMethod Method_Kernel_sysStats_compiled = {
     Method_Kernel_sysStats_insts, 4,
-    4, 0,
+    4, 0, 0,
     Method_Kernel_sysStats_consts, 1,
     0
 };
@@ -2208,7 +2208,7 @@ static const uint32_t Method_Kernel_timerAfter_token__insts[] = { 0x0000050A, 0x
 static const oop Method_Kernel_timerAfter_token__consts[] = { (oop)&StaticSymbol_timerAfter_token_ };
 static const struct CompiledMethod Method_Kernel_timerAfter_token__compiled = {
     Method_Kernel_timerAfter_token__insts, 6,
-    8, 2,
+    8, 2, 0,
     Method_Kernel_timerAfter_token__consts, 1,
     0
 };
@@ -2221,7 +2221,7 @@ static const uint32_t Method_Kernel_timerEvery_token__insts[] = { 0x0000050A, 0x
 static const oop Method_Kernel_timerEvery_token__consts[] = { (oop)&StaticSymbol_timerEvery_token_ };
 static const struct CompiledMethod Method_Kernel_timerEvery_token__compiled = {
     Method_Kernel_timerEvery_token__insts, 6,
-    8, 2,
+    8, 2, 0,
     Method_Kernel_timerEvery_token__consts, 1,
     0
 };
@@ -2234,7 +2234,7 @@ static const uint32_t Method_Kernel_timerCancel__insts[] = { 0x0000040A, 0x00010
 static const oop Method_Kernel_timerCancel__consts[] = { (oop)&StaticSymbol_timerCancel_ };
 static const struct CompiledMethod Method_Kernel_timerCancel__compiled = {
     Method_Kernel_timerCancel__insts, 5,
-    6, 1,
+    6, 1, 0,
     Method_Kernel_timerCancel__consts, 1,
     0
 };
@@ -2247,7 +2247,7 @@ static const uint32_t Method_Kernel_monotonicMillis_insts[] = { 0x0000030A, 0x03
 static const oop Method_Kernel_monotonicMillis_consts[] = { (oop)&StaticSymbol_monotonicMillis };
 static const struct CompiledMethod Method_Kernel_monotonicMillis_compiled = {
     Method_Kernel_monotonicMillis_insts, 4,
-    4, 0,
+    4, 0, 0,
     Method_Kernel_monotonicMillis_consts, 1,
     0
 };
@@ -2260,7 +2260,7 @@ static const uint32_t Method_Kernel_advanceMillis__insts[] = { 0x0000040A, 0x000
 static const oop Method_Kernel_advanceMillis__consts[] = { (oop)&StaticSymbol_advanceMillis_ };
 static const struct CompiledMethod Method_Kernel_advanceMillis__compiled = {
     Method_Kernel_advanceMillis__insts, 5,
-    6, 1,
+    6, 1, 0,
     Method_Kernel_advanceMillis__consts, 1,
     0
 };
@@ -2273,7 +2273,7 @@ static const uint32_t Method_Kernel_gpioPin_edge_post_on__insts[] = { 0x0000070A
 static const oop Method_Kernel_gpioPin_edge_post_on__consts[] = { (oop)&StaticSymbol_gpioPin_edge_post_on_ };
 static const struct CompiledMethod Method_Kernel_gpioPin_edge_post_on__compiled = {
     Method_Kernel_gpioPin_edge_post_on__insts, 8,
-    12, 4,
+    12, 4, 0,
     Method_Kernel_gpioPin_edge_post_on__consts, 1,
     0
 };
@@ -2286,7 +2286,7 @@ static const uint32_t Method_Kernel_gpioFire__insts[] = { 0x0000040A, 0x00010501
 static const oop Method_Kernel_gpioFire__consts[] = { (oop)&StaticSymbol_gpioFire_ };
 static const struct CompiledMethod Method_Kernel_gpioFire__compiled = {
     Method_Kernel_gpioFire__insts, 5,
-    6, 1,
+    6, 1, 0,
     Method_Kernel_gpioFire__consts, 1,
     0
 };
@@ -2299,7 +2299,7 @@ static const uint32_t Method_Kernel_gpioSet_to__insts[] = { 0x0000050A, 0x000106
 static const oop Method_Kernel_gpioSet_to__consts[] = { (oop)&StaticSymbol_gpioSet_to_ };
 static const struct CompiledMethod Method_Kernel_gpioSet_to__compiled = {
     Method_Kernel_gpioSet_to__insts, 6,
-    8, 2,
+    8, 2, 0,
     Method_Kernel_gpioSet_to__consts, 1,
     0
 };
@@ -2312,7 +2312,7 @@ static const uint32_t Method_Kernel_gpioLevel__insts[] = { 0x0000040A, 0x0001050
 static const oop Method_Kernel_gpioLevel__consts[] = { (oop)&StaticSymbol_gpioLevel_ };
 static const struct CompiledMethod Method_Kernel_gpioLevel__compiled = {
     Method_Kernel_gpioLevel__insts, 5,
-    6, 1,
+    6, 1, 0,
     Method_Kernel_gpioLevel__consts, 1,
     0
 };
@@ -2325,7 +2325,7 @@ static const uint32_t Method_Kernel_displayClear_insts[] = { 0x0000030A, 0x03000
 static const oop Method_Kernel_displayClear_consts[] = { (oop)&StaticSymbol_displayClear };
 static const struct CompiledMethod Method_Kernel_displayClear_compiled = {
     Method_Kernel_displayClear_insts, 4,
-    4, 0,
+    4, 0, 0,
     Method_Kernel_displayClear_consts, 1,
     0
 };
@@ -2338,7 +2338,7 @@ static const uint32_t Method_Kernel_displayAt_col_put__insts[] = { 0x0000060A, 0
 static const oop Method_Kernel_displayAt_col_put__consts[] = { (oop)&StaticSymbol_displayAt_col_put_ };
 static const struct CompiledMethod Method_Kernel_displayAt_col_put__compiled = {
     Method_Kernel_displayAt_col_put__insts, 7,
-    10, 3,
+    10, 3, 0,
     Method_Kernel_displayAt_col_put__consts, 1,
     0
 };
@@ -2351,7 +2351,7 @@ static const uint32_t Method_Kernel_displayRefresh_insts[] = { 0x0000030A, 0x030
 static const oop Method_Kernel_displayRefresh_consts[] = { (oop)&StaticSymbol_displayRefresh };
 static const struct CompiledMethod Method_Kernel_displayRefresh_compiled = {
     Method_Kernel_displayRefresh_insts, 4,
-    4, 0,
+    4, 0, 0,
     Method_Kernel_displayRefresh_consts, 1,
     0
 };
@@ -2364,7 +2364,7 @@ static const uint32_t Method_Kernel_displayRefreshRow__insts[] = { 0x0000040A, 0
 static const oop Method_Kernel_displayRefreshRow__consts[] = { (oop)&StaticSymbol_displayRefreshRow_ };
 static const struct CompiledMethod Method_Kernel_displayRefreshRow__compiled = {
     Method_Kernel_displayRefreshRow__insts, 5,
-    6, 1,
+    6, 1, 0,
     Method_Kernel_displayRefreshRow__consts, 1,
     0
 };
@@ -2377,7 +2377,7 @@ static const uint32_t Method_Kernel_bellStrike__insts[] = { 0x0000040A, 0x000105
 static const oop Method_Kernel_bellStrike__consts[] = { (oop)&StaticSymbol_bellStrike_ };
 static const struct CompiledMethod Method_Kernel_bellStrike__compiled = {
     Method_Kernel_bellStrike__insts, 5,
-    6, 1,
+    6, 1, 0,
     Method_Kernel_bellStrike__consts, 1,
     0
 };
@@ -2390,7 +2390,7 @@ static const uint32_t Method_Kernel_ntpSyncTz__insts[] = { 0x0000040A, 0x0001050
 static const oop Method_Kernel_ntpSyncTz__consts[] = { (oop)&StaticSymbol_ntpSyncTz_ };
 static const struct CompiledMethod Method_Kernel_ntpSyncTz__compiled = {
     Method_Kernel_ntpSyncTz__insts, 5,
-    6, 1,
+    6, 1, 0,
     Method_Kernel_ntpSyncTz__consts, 1,
     0
 };
@@ -2403,7 +2403,7 @@ static const uint32_t Method_Kernel_ntpDate_insts[] = { 0x0000030A, 0x03000002, 
 static const oop Method_Kernel_ntpDate_consts[] = { (oop)&StaticSymbol_ntpDate };
 static const struct CompiledMethod Method_Kernel_ntpDate_compiled = {
     Method_Kernel_ntpDate_insts, 4,
-    4, 0,
+    4, 0, 0,
     Method_Kernel_ntpDate_consts, 1,
     0
 };
@@ -2416,7 +2416,7 @@ static const uint32_t Method_Kernel_rtcValid_insts[] = { 0x0000040A, 0x04000002,
 static const oop Method_Kernel_rtcValid_consts[] = { (oop)&StaticSymbol_rtcValid, TAG_SMI(1), (oop)&StaticSymbol__eq };
 static const struct CompiledMethod Method_Kernel_rtcValid_compiled = {
     Method_Kernel_rtcValid_insts, 7,
-    5, 0,
+    5, 0, 0,
     Method_Kernel_rtcValid_consts, 3,
     0
 };
@@ -2429,7 +2429,7 @@ static const uint32_t Method_Kernel_rtcGet__insts[] = { 0x0000040A, 0x00010501, 
 static const oop Method_Kernel_rtcGet__consts[] = { (oop)&StaticSymbol_rtcGet_ };
 static const struct CompiledMethod Method_Kernel_rtcGet__compiled = {
     Method_Kernel_rtcGet__insts, 5,
-    6, 1,
+    6, 1, 0,
     Method_Kernel_rtcGet__consts, 1,
     0
 };
@@ -2442,7 +2442,7 @@ static const uint32_t Method_Kernel_rtcPut_value__insts[] = { 0x0000050A, 0x0001
 static const oop Method_Kernel_rtcPut_value__consts[] = { (oop)&StaticSymbol_rtcPut_value_ };
 static const struct CompiledMethod Method_Kernel_rtcPut_value__compiled = {
     Method_Kernel_rtcPut_value__insts, 7,
-    8, 2,
+    8, 2, 0,
     Method_Kernel_rtcPut_value__consts, 1,
     0
 };
@@ -2455,7 +2455,7 @@ static const uint32_t Method_Kernel_deepSleep__insts[] = { 0x0000040A, 0x0001050
 static const oop Method_Kernel_deepSleep__consts[] = { (oop)&StaticSymbol_deepSleep_ };
 static const struct CompiledMethod Method_Kernel_deepSleep__compiled = {
     Method_Kernel_deepSleep__insts, 5,
-    6, 1,
+    6, 1, 0,
     Method_Kernel_deepSleep__consts, 1,
     0
 };
@@ -2468,7 +2468,7 @@ static const uint32_t Method_Kernel_wallClock_insts[] = { 0x0000030A, 0x03000002
 static const oop Method_Kernel_wallClock_consts[] = { (oop)&StaticSymbol_wallClock };
 static const struct CompiledMethod Method_Kernel_wallClock_compiled = {
     Method_Kernel_wallClock_insts, 4,
-    4, 0,
+    4, 0, 0,
     Method_Kernel_wallClock_consts, 1,
     0
 };
@@ -2481,7 +2481,7 @@ static const uint32_t Method_Kernel_wallClockSetDate_time__insts[] = { 0x0000050
 static const oop Method_Kernel_wallClockSetDate_time__consts[] = { (oop)&StaticSymbol_wallClockSetDate_time_ };
 static const struct CompiledMethod Method_Kernel_wallClockSetDate_time__compiled = {
     Method_Kernel_wallClockSetDate_time__insts, 6,
-    8, 2,
+    8, 2, 0,
     Method_Kernel_wallClockSetDate_time__consts, 1,
     0
 };
@@ -2494,7 +2494,7 @@ static const uint32_t Method_Kernel_rtcAlarmAt_post_on__insts[] = { 0x0000060A, 
 static const oop Method_Kernel_rtcAlarmAt_post_on__consts[] = { (oop)&StaticSymbol_rtcAlarmAt_post_on_ };
 static const struct CompiledMethod Method_Kernel_rtcAlarmAt_post_on__compiled = {
     Method_Kernel_rtcAlarmAt_post_on__insts, 7,
-    10, 3,
+    10, 3, 0,
     Method_Kernel_rtcAlarmAt_post_on__consts, 1,
     0
 };
@@ -2507,7 +2507,7 @@ static const uint32_t Method_Kernel_pumpEvents_insts[] = { 0x0000030A, 0x0300000
 static const oop Method_Kernel_pumpEvents_consts[] = { (oop)&StaticSymbol_pumpEvents };
 static const struct CompiledMethod Method_Kernel_pumpEvents_compiled = {
     Method_Kernel_pumpEvents_insts, 4,
-    4, 0,
+    4, 0, 0,
     Method_Kernel_pumpEvents_consts, 1,
     0
 };
@@ -2520,7 +2520,7 @@ static const uint32_t Method_Kernel_httpListen__insts[] = { 0x0000040A, 0x000105
 static const oop Method_Kernel_httpListen__consts[] = { (oop)&StaticSymbol_httpListen_ };
 static const struct CompiledMethod Method_Kernel_httpListen__compiled = {
     Method_Kernel_httpListen__insts, 5,
-    6, 1,
+    6, 1, 0,
     Method_Kernel_httpListen__consts, 1,
     0
 };
@@ -2533,7 +2533,7 @@ static const uint32_t Method_Kernel_httpRespondId_status_body__insts[] = { 0x000
 static const oop Method_Kernel_httpRespondId_status_body__consts[] = { (oop)&StaticSymbol_httpRespondId_status_body_ };
 static const struct CompiledMethod Method_Kernel_httpRespondId_status_body__compiled = {
     Method_Kernel_httpRespondId_status_body__insts, 7,
-    10, 3,
+    10, 3, 0,
     Method_Kernel_httpRespondId_status_body__consts, 1,
     0
 };
@@ -2546,7 +2546,7 @@ static const uint32_t Method_Kernel_httpInject_path__insts[] = { 0x0000050A, 0x0
 static const oop Method_Kernel_httpInject_path__consts[] = { (oop)&StaticSymbol_httpInject_path_ };
 static const struct CompiledMethod Method_Kernel_httpInject_path__compiled = {
     Method_Kernel_httpInject_path__insts, 6,
-    8, 2,
+    8, 2, 0,
     Method_Kernel_httpInject_path__consts, 1,
     0
 };
@@ -2559,7 +2559,7 @@ static const uint32_t Method_Kernel_httpBeginId_status__insts[] = { 0x0000050A, 
 static const oop Method_Kernel_httpBeginId_status__consts[] = { (oop)&StaticSymbol_httpBeginId_status_ };
 static const struct CompiledMethod Method_Kernel_httpBeginId_status__compiled = {
     Method_Kernel_httpBeginId_status__insts, 6,
-    8, 2,
+    8, 2, 0,
     Method_Kernel_httpBeginId_status__consts, 1,
     0
 };
@@ -2572,7 +2572,7 @@ static const uint32_t Method_Kernel_httpChunkId_data__insts[] = { 0x0000050A, 0x
 static const oop Method_Kernel_httpChunkId_data__consts[] = { (oop)&StaticSymbol_httpChunkId_data_ };
 static const struct CompiledMethod Method_Kernel_httpChunkId_data__compiled = {
     Method_Kernel_httpChunkId_data__insts, 6,
-    8, 2,
+    8, 2, 0,
     Method_Kernel_httpChunkId_data__consts, 1,
     0
 };
@@ -2585,7 +2585,7 @@ static const uint32_t Method_Kernel_httpEndId__insts[] = { 0x0000040A, 0x0001050
 static const oop Method_Kernel_httpEndId__consts[] = { (oop)&StaticSymbol_httpEndId_ };
 static const struct CompiledMethod Method_Kernel_httpEndId__compiled = {
     Method_Kernel_httpEndId__insts, 5,
-    6, 1,
+    6, 1, 0,
     Method_Kernel_httpEndId__consts, 1,
     0
 };
@@ -2598,7 +2598,7 @@ static const uint32_t Method_Kernel_sensorFrame_insts[] = { 0x0000030A, 0x030000
 static const oop Method_Kernel_sensorFrame_consts[] = { (oop)&StaticSymbol_sensorFrame };
 static const struct CompiledMethod Method_Kernel_sensorFrame_compiled = {
     Method_Kernel_sensorFrame_insts, 4,
-    4, 0,
+    4, 0, 0,
     Method_Kernel_sensorFrame_consts, 1,
     0
 };
@@ -2611,7 +2611,7 @@ static const uint32_t Method_Kernel_sensorArmEventPost_on_threshold__insts[] = {
 static const oop Method_Kernel_sensorArmEventPost_on_threshold__consts[] = { (oop)&StaticSymbol_sensorArmEventPost_on_threshold_ };
 static const struct CompiledMethod Method_Kernel_sensorArmEventPost_on_threshold__compiled = {
     Method_Kernel_sensorArmEventPost_on_threshold__insts, 7,
-    10, 3,
+    10, 3, 0,
     Method_Kernel_sensorArmEventPost_on_threshold__consts, 1,
     0
 };
@@ -2623,7 +2623,7 @@ static const struct Closure Method_Kernel_sensorArmEventPost_on_threshold__closu
 static const uint32_t Method_Kernel_Object_insts[] = { 0x0001020A, 0x00000203 };
 static const struct CompiledMethod Method_Kernel_Object_compiled = {
     Method_Kernel_Object_insts, 2,
-    3, 0,
+    3, 0, 0,
     NULL, 0,
     0
 };
@@ -2635,7 +2635,7 @@ static const struct Closure Method_Kernel_Object_closure = {
 static const uint32_t Method_Kernel_Array_insts[] = { 0x0002020A, 0x00000203 };
 static const struct CompiledMethod Method_Kernel_Array_compiled = {
     Method_Kernel_Array_insts, 2,
-    3, 0,
+    3, 0, 0,
     NULL, 0,
     0
 };
@@ -2647,7 +2647,7 @@ static const struct Closure Method_Kernel_Array_closure = {
 static const uint32_t Method_Kernel_Collection_insts[] = { 0x0003020A, 0x00000203 };
 static const struct CompiledMethod Method_Kernel_Collection_compiled = {
     Method_Kernel_Collection_insts, 2,
-    3, 0,
+    3, 0, 0,
     NULL, 0,
     0
 };
@@ -2659,7 +2659,7 @@ static const struct Closure Method_Kernel_Collection_closure = {
 static const uint32_t Method_Kernel_OrderedCollection_insts[] = { 0x0004020A, 0x00000203 };
 static const struct CompiledMethod Method_Kernel_OrderedCollection_compiled = {
     Method_Kernel_OrderedCollection_insts, 2,
-    3, 0,
+    3, 0, 0,
     NULL, 0,
     0
 };
@@ -2671,7 +2671,7 @@ static const struct Closure Method_Kernel_OrderedCollection_closure = {
 static const uint32_t Method_Kernel_Interval_insts[] = { 0x0005020A, 0x00000203 };
 static const struct CompiledMethod Method_Kernel_Interval_compiled = {
     Method_Kernel_Interval_insts, 2,
-    3, 0,
+    3, 0, 0,
     NULL, 0,
     0
 };
@@ -2683,7 +2683,7 @@ static const struct Closure Method_Kernel_Interval_closure = {
 static const uint32_t Method_Kernel_Set_insts[] = { 0x0007020A, 0x00000203 };
 static const struct CompiledMethod Method_Kernel_Set_compiled = {
     Method_Kernel_Set_insts, 2,
-    3, 0,
+    3, 0, 0,
     NULL, 0,
     0
 };
@@ -2695,7 +2695,7 @@ static const struct Closure Method_Kernel_Set_closure = {
 static const uint32_t Method_Kernel_Dictionary_insts[] = { 0x0008020A, 0x00000203 };
 static const struct CompiledMethod Method_Kernel_Dictionary_compiled = {
     Method_Kernel_Dictionary_insts, 2,
-    3, 0,
+    3, 0, 0,
     NULL, 0,
     0
 };
@@ -2707,7 +2707,7 @@ static const struct Closure Method_Kernel_Dictionary_closure = {
 static const uint32_t Method_Kernel_Association_insts[] = { 0x0009020A, 0x00000203 };
 static const struct CompiledMethod Method_Kernel_Association_compiled = {
     Method_Kernel_Association_insts, 2,
-    3, 0,
+    3, 0, 0,
     NULL, 0,
     0
 };
@@ -2719,7 +2719,7 @@ static const struct Closure Method_Kernel_Association_closure = {
 static const uint32_t Method_Kernel_List_insts[] = { 0x000A020A, 0x00000203 };
 static const struct CompiledMethod Method_Kernel_List_compiled = {
     Method_Kernel_List_insts, 2,
-    3, 0,
+    3, 0, 0,
     NULL, 0,
     0
 };
@@ -2731,7 +2731,7 @@ static const struct Closure Method_Kernel_List_closure = {
 static const uint32_t Method_Kernel_Map_insts[] = { 0x000B020A, 0x00000203 };
 static const struct CompiledMethod Method_Kernel_Map_compiled = {
     Method_Kernel_Map_insts, 2,
-    3, 0,
+    3, 0, 0,
     NULL, 0,
     0
 };
@@ -2743,7 +2743,7 @@ static const struct Closure Method_Kernel_Map_closure = {
 static const uint32_t Method_Kernel_Protocol_insts[] = { 0x0023020A, 0x00000203 };
 static const struct CompiledMethod Method_Kernel_Protocol_compiled = {
     Method_Kernel_Protocol_insts, 2,
-    3, 0,
+    3, 0, 0,
     NULL, 0,
     0
 };
@@ -2755,7 +2755,7 @@ static const struct Closure Method_Kernel_Protocol_closure = {
 static const uint32_t Method_Kernel_Record_insts[] = { 0x000C020A, 0x00000203 };
 static const struct CompiledMethod Method_Kernel_Record_compiled = {
     Method_Kernel_Record_insts, 2,
-    3, 0,
+    3, 0, 0,
     NULL, 0,
     0
 };
@@ -2768,7 +2768,7 @@ static const uint32_t Method_Kernel_Cbor_insts[] = { 0x00000300, 0x0103020C, 0x0
 static const oop Method_Kernel_Cbor_consts[] = { (oop)&Vtable_Kernel_Cbor, (oop)&StaticSymbol_init_new };
 static const struct CompiledMethod Method_Kernel_Cbor_compiled = {
     Method_Kernel_Cbor_insts, 5,
-    4, 0,
+    4, 0, 0,
     Method_Kernel_Cbor_consts, 2,
     0
 };
@@ -2780,7 +2780,7 @@ static const struct Closure Method_Kernel_Cbor_closure = {
 static const uint32_t Method_Kernel_HeapStats_insts[] = { 0x0012020A, 0x00000203 };
 static const struct CompiledMethod Method_Kernel_HeapStats_compiled = {
     Method_Kernel_HeapStats_insts, 2,
-    3, 0,
+    3, 0, 0,
     NULL, 0,
     0
 };
@@ -2792,7 +2792,7 @@ static const struct Closure Method_Kernel_HeapStats_closure = {
 static const uint32_t Method_Kernel_Spans_insts[] = { 0x0014020A, 0x00000203 };
 static const struct CompiledMethod Method_Kernel_Spans_compiled = {
     Method_Kernel_Spans_insts, 2,
-    3, 0,
+    3, 0, 0,
     NULL, 0,
     0
 };
@@ -2804,7 +2804,7 @@ static const struct Closure Method_Kernel_Spans_closure = {
 static const uint32_t Method_Kernel_SpanCapture_insts[] = { 0x0015020A, 0x00000203 };
 static const struct CompiledMethod Method_Kernel_SpanCapture_compiled = {
     Method_Kernel_SpanCapture_insts, 2,
-    3, 0,
+    3, 0, 0,
     NULL, 0,
     0
 };
@@ -2817,7 +2817,7 @@ static const uint32_t Method_Kernel_heapStats_insts[] = { 0x0012030A, 0x0000050A
 static const oop Method_Kernel_heapStats_consts[] = { (oop)&StaticSymbol_heapStats, (oop)&StaticSymbol_fromList_ };
 static const struct CompiledMethod Method_Kernel_heapStats_compiled = {
     Method_Kernel_heapStats_insts, 7,
-    6, 0,
+    6, 0, 0,
     Method_Kernel_heapStats_consts, 2,
     0
 };
@@ -2830,7 +2830,7 @@ static const uint32_t Method_Kernel_cheapStats_insts[] = { 0x0013030A, 0x0000050
 static const oop Method_Kernel_cheapStats_consts[] = { (oop)&StaticSymbol_cheapStats, (oop)&StaticSymbol_fromList_ };
 static const struct CompiledMethod Method_Kernel_cheapStats_compiled = {
     Method_Kernel_cheapStats_insts, 7,
-    6, 0,
+    6, 0, 0,
     Method_Kernel_cheapStats_consts, 2,
     0
 };
@@ -2843,7 +2843,7 @@ static const uint32_t Method_Kernel_profileStart_insts[] = { 0x0000030A, 0x03000
 static const oop Method_Kernel_profileStart_consts[] = { (oop)&StaticSymbol_profileStart };
 static const struct CompiledMethod Method_Kernel_profileStart_compiled = {
     Method_Kernel_profileStart_insts, 5,
-    4, 0,
+    4, 0, 0,
     Method_Kernel_profileStart_consts, 1,
     0
 };
@@ -2856,7 +2856,7 @@ static const uint32_t Method_Kernel_profileStop_insts[] = { 0x0000030A, 0x030000
 static const oop Method_Kernel_profileStop_consts[] = { (oop)&StaticSymbol_profileStop };
 static const struct CompiledMethod Method_Kernel_profileStop_compiled = {
     Method_Kernel_profileStop_insts, 5,
-    4, 0,
+    4, 0, 0,
     Method_Kernel_profileStop_consts, 1,
     0
 };
@@ -2869,7 +2869,7 @@ static const uint32_t Method_Kernel_buildId_insts[] = { 0x0000030A, 0x03000002, 
 static const oop Method_Kernel_buildId_consts[] = { (oop)&StaticSymbol_buildId };
 static const struct CompiledMethod Method_Kernel_buildId_compiled = {
     Method_Kernel_buildId_insts, 4,
-    4, 0,
+    4, 0, 0,
     Method_Kernel_buildId_consts, 1,
     0
 };
@@ -2882,7 +2882,7 @@ static const uint32_t Method_Kernel_bootId_insts[] = { 0x0000030A, 0x03000002, 0
 static const oop Method_Kernel_bootId_consts[] = { (oop)&StaticSymbol_bootId };
 static const struct CompiledMethod Method_Kernel_bootId_compiled = {
     Method_Kernel_bootId_insts, 4,
-    4, 0,
+    4, 0, 0,
     Method_Kernel_bootId_consts, 1,
     0
 };
@@ -2895,7 +2895,7 @@ static const uint32_t Method_Kernel_otaRunningHash_insts[] = { 0x0000040A, 0x040
 static const oop Method_Kernel_otaRunningHash_consts[] = { (oop)&StaticSymbol_otaRunningHash, NULL, (oop)&StaticSymbol__eq_eq, (oop)&StaticSymbol_false, (oop)&StaticSymbol_overRaw_ };
 static const struct CompiledMethod Method_Kernel_otaRunningHash_compiled = {
     Method_Kernel_otaRunningHash_insts, 18,
-    8, 0,
+    8, 0, 0,
     Method_Kernel_otaRunningHash_consts, 5,
     0
 };
@@ -2908,7 +2908,7 @@ static const uint32_t Method_Kernel_otaIsRunning__insts[] = { 0x00010501, 0x0500
 static const oop Method_Kernel_otaIsRunning__consts[] = { (oop)&StaticSymbol_isBytes, (oop)&StaticSymbol_false, (oop)&StaticSymbol_rawLeaf, (oop)&StaticSymbol_otaIsRunning_ };
 static const struct CompiledMethod Method_Kernel_otaIsRunning__compiled = {
     Method_Kernel_otaIsRunning__insts, 15,
-    8, 1,
+    8, 1, 0,
     Method_Kernel_otaIsRunning__consts, 4,
     0
 };
@@ -2921,7 +2921,7 @@ static const uint32_t Method_Kernel_otaTrial_insts[] = { 0x0000030A, 0x03000002,
 static const oop Method_Kernel_otaTrial_consts[] = { (oop)&StaticSymbol_otaTrial };
 static const struct CompiledMethod Method_Kernel_otaTrial_compiled = {
     Method_Kernel_otaTrial_insts, 4,
-    4, 0,
+    4, 0, 0,
     Method_Kernel_otaTrial_consts, 1,
     0
 };
@@ -2934,7 +2934,7 @@ static const uint32_t Method_Kernel_otaStage_sig_host_port__insts[] = { 0x000108
 static const oop Method_Kernel_otaStage_sig_host_port__consts[] = { (oop)&StaticSymbol_isBytes, (oop)&StaticSymbol_false, NULL, (oop)&StaticSymbol__eq_eq, (oop)&StaticSymbol_true, (oop)&StaticSymbol_rawLeaf, (oop)&StaticSymbol_otaRawOf_, (oop)&StaticSymbol_otaStage_sig_host_port_ };
 static const struct CompiledMethod Method_Kernel_otaStage_sig_host_port__compiled = {
     Method_Kernel_otaStage_sig_host_port__insts, 36,
-    14, 4,
+    14, 4, 0,
     Method_Kernel_otaStage_sig_host_port__consts, 8,
     0
 };
@@ -2947,7 +2947,7 @@ static const uint32_t Method_Kernel_otaConfirm_insts[] = { 0x0000030A, 0x0300000
 static const oop Method_Kernel_otaConfirm_consts[] = { (oop)&StaticSymbol_otaConfirm };
 static const struct CompiledMethod Method_Kernel_otaConfirm_compiled = {
     Method_Kernel_otaConfirm_insts, 5,
-    4, 0,
+    4, 0, 0,
     Method_Kernel_otaConfirm_consts, 1,
     0
 };
@@ -2960,7 +2960,7 @@ static const uint32_t Method_Kernel_otaActivate_sig__insts[] = { 0x00010601, 0x0
 static const oop Method_Kernel_otaActivate_sig__consts[] = { (oop)&StaticSymbol_isBytes, (oop)&StaticSymbol_false, NULL, (oop)&StaticSymbol__eq_eq, (oop)&StaticSymbol_true, (oop)&StaticSymbol_rawLeaf, (oop)&StaticSymbol_otaRawOf_, (oop)&StaticSymbol_otaActivate_sig_ };
 static const struct CompiledMethod Method_Kernel_otaActivate_sig__compiled = {
     Method_Kernel_otaActivate_sig__insts, 35,
-    12, 2,
+    12, 2, 0,
     Method_Kernel_otaActivate_sig__consts, 8,
     0
 };
@@ -2973,7 +2973,7 @@ static const uint32_t Method_Kernel_otaRawOf__insts[] = { 0x00010501, 0x00000600
 static const oop Method_Kernel_otaRawOf__consts[] = { NULL, (oop)&StaticSymbol__eq_eq, (oop)&StaticSymbol_false, (oop)&StaticSymbol_rawLeaf };
 static const struct CompiledMethod Method_Kernel_otaRawOf__compiled = {
     Method_Kernel_otaRawOf__insts, 13,
-    7, 1,
+    7, 1, 0,
     Method_Kernel_otaRawOf__consts, 4,
     0
 };
@@ -2986,7 +2986,7 @@ static const uint32_t Method_Kernel_parseProfileMs__insts[] = { 0x00160A0A, 0x00
 static const oop Method_Kernel_parseProfileMs__consts[] = { (oop)&StaticSymbol_on_, TAG_SMI(32), (oop)&StaticSymbol_upTo_, (oop)&StaticString_profile_3, (oop)&StaticSymbol__eq, (oop)&StaticSymbol_false, TAG_SMI(0), NULL, (oop)&StaticSymbol__eq_eq, (oop)&StaticSymbol_size, TAG_SMI(1), (oop)&StaticSymbol__lt_eq, (oop)&StaticSymbol_at_, TAG_SMI(48), (oop)&StaticSymbol__lt, (oop)&StaticSymbol_true, TAG_SMI(57), (oop)&StaticSymbol__gt, TAG_SMI(10) };
 static const struct CompiledMethod Method_Kernel_parseProfileMs__compiled = {
     Method_Kernel_parseProfileMs__insts, 92,
-    26, 1,
+    26, 1, 0,
     Method_Kernel_parseProfileMs__consts, 19,
     0
 };
@@ -2999,7 +2999,7 @@ static const uint32_t Method_Kernel_metrics_insts[] = { 0x0000060A, 0x06000002, 
 static const oop Method_Kernel_metrics_consts[] = { (oop)&StaticSymbol_heapStats, (oop)&StaticSymbol_sysStats, (oop)&Vtable_Kernel_OrderedCollection, (oop)&StaticSymbol_init_new, (oop)&StaticSymbol_heapSize, TAG_SMI(1), (oop)&StaticSymbol_basicAt_, (oop)&StaticSymbol_key_value_, (oop)&StaticSymbol_add_, (oop)&StaticSymbol_liveBytes, TAG_SMI(2), (oop)&StaticSymbol_heapHighWater, TAG_SMI(3), (oop)&StaticSymbol_largestFreeBlock, TAG_SMI(4), (oop)&StaticSymbol_gcCycles, TAG_SMI(5), (oop)&StaticSymbol_handlesLive, (oop)&StaticSymbol_handlesHighWater, (oop)&StaticSymbol_queueHighWater, (oop)&StaticSymbol_overruns, (oop)&StaticSymbol_pulseDrops, (oop)&StaticSymbol_pulseCoalesced, TAG_SMI(6), (oop)&StaticSymbol_Metrics, (oop)&StaticSymbol_fromPairs_, (oop)&StaticSymbol_tag_fields_ };
 static const struct CompiledMethod Method_Kernel_metrics_compiled = {
     Method_Kernel_metrics_insts, 143,
-    25, 0,
+    25, 0, 0,
     Method_Kernel_metrics_consts, 27,
     0
 };
@@ -3012,7 +3012,7 @@ static const uint32_t Method_Kernel_cheap_insts[] = { 0x0000050A, 0x05000002, 0x
 static const oop Method_Kernel_cheap_consts[] = { (oop)&StaticSymbol_cheapStats, (oop)&Vtable_Kernel_OrderedCollection, (oop)&StaticSymbol_init_new, (oop)&StaticSymbol_outBytes, TAG_SMI(1), (oop)&StaticSymbol_basicAt_, (oop)&StaticSymbol_key_value_, (oop)&StaticSymbol_add_, (oop)&StaticSymbol_outHigh, TAG_SMI(2), (oop)&StaticSymbol_allocs, TAG_SMI(3), (oop)&StaticSymbol_frees, TAG_SMI(4), (oop)&StaticSymbol_fails, TAG_SMI(5), (oop)&StaticSymbol_CHeap, (oop)&StaticSymbol_fromPairs_, (oop)&StaticSymbol_tag_fields_ };
 static const struct CompiledMethod Method_Kernel_cheap_compiled = {
     Method_Kernel_cheap_insts, 73,
-    17, 0,
+    17, 0, 0,
     Method_Kernel_cheap_consts, 19,
     0
 };
@@ -3025,7 +3025,7 @@ static const uint32_t Method_Kernel_crashRecordTag_text__insts[] = { 0x000C050A,
 static const oop Method_Kernel_crashRecordTag_text__consts[] = { (oop)&StaticSymbol_text, (oop)&StaticSymbol_key_value_, (oop)&StaticSymbol_tag_with_ };
 static const struct CompiledMethod Method_Kernel_crashRecordTag_text__compiled = {
     Method_Kernel_crashRecordTag_text__insts, 10,
-    11, 2,
+    11, 2, 0,
     Method_Kernel_crashRecordTag_text__consts, 3,
     0
 };
@@ -3038,7 +3038,7 @@ static const uint32_t Method_Kernel_crashRecordText__insts[] = { 0x000C040A, 0x0
 static const oop Method_Kernel_crashRecordText__consts[] = { (oop)&StaticSymbol_error, (oop)&StaticSymbol_text, (oop)&StaticSymbol_key_value_, (oop)&StaticSymbol_tag_with_ };
 static const struct CompiledMethod Method_Kernel_crashRecordText__compiled = {
     Method_Kernel_crashRecordText__insts, 10,
-    10, 1,
+    10, 1, 0,
     Method_Kernel_crashRecordText__consts, 4,
     0
 };
@@ -3050,7 +3050,7 @@ static const struct Closure Method_Kernel_crashRecordText__closure = {
 static const uint32_t Method_Kernel_ByteArray_insts[] = { 0x000E020A, 0x00000203 };
 static const struct CompiledMethod Method_Kernel_ByteArray_compiled = {
     Method_Kernel_ByteArray_insts, 2,
-    3, 0,
+    3, 0, 0,
     NULL, 0,
     0
 };
@@ -3062,7 +3062,7 @@ static const struct Closure Method_Kernel_ByteArray_closure = {
 static const uint32_t Method_Kernel_NetBridge_insts[] = { 0x001C020A, 0x00000203 };
 static const struct CompiledMethod Method_Kernel_NetBridge_compiled = {
     Method_Kernel_NetBridge_insts, 2,
-    3, 0,
+    3, 0, 0,
     NULL, 0,
     0
 };
@@ -3074,7 +3074,7 @@ static const struct Closure Method_Kernel_NetBridge_closure = {
 static const uint32_t Method_Kernel_PortaBridge_insts[] = { 0x001D020A, 0x00000203 };
 static const struct CompiledMethod Method_Kernel_PortaBridge_compiled = {
     Method_Kernel_PortaBridge_insts, 2,
-    3, 0,
+    3, 0, 0,
     NULL, 0,
     0
 };
@@ -3086,7 +3086,7 @@ static const struct Closure Method_Kernel_PortaBridge_closure = {
 static const uint32_t Method_Kernel_ReadStream_insts[] = { 0x0016020A, 0x00000203 };
 static const struct CompiledMethod Method_Kernel_ReadStream_compiled = {
     Method_Kernel_ReadStream_insts, 2,
-    3, 0,
+    3, 0, 0,
     NULL, 0,
     0
 };
@@ -3098,7 +3098,7 @@ static const struct Closure Method_Kernel_ReadStream_closure = {
 static const uint32_t Method_Kernel_WriteStream_insts[] = { 0x0017020A, 0x00000203 };
 static const struct CompiledMethod Method_Kernel_WriteStream_compiled = {
     Method_Kernel_WriteStream_insts, 2,
-    3, 0,
+    3, 0, 0,
     NULL, 0,
     0
 };
@@ -3111,7 +3111,7 @@ static const uint32_t Method_Kernel_space_insts[] = { 0x00000400, 0x0204030C, 0x
 static const oop Method_Kernel_space_consts[] = { (oop)&Vtable_Kernel_Space, (oop)&StaticSymbol_init_new, (oop)&StaticString__4, (oop)&StaticSymbol_setRoot_ };
 static const struct CompiledMethod Method_Kernel_space_compiled = {
     Method_Kernel_space_insts, 8,
-    5, 0,
+    5, 0, 0,
     Method_Kernel_space_consts, 4,
     0
 };
@@ -3124,7 +3124,7 @@ static const uint32_t Method_Kernel_supervisor_insts[] = { 0x00000400, 0x0504030
 static const oop Method_Kernel_supervisor_consts[] = { (oop)&Vtable_Kernel_Supervisor, (oop)&StaticSymbol_init_new, (oop)&StaticSymbol_space, (oop)&StaticSymbol_setSpace_ };
 static const struct CompiledMethod Method_Kernel_supervisor_compiled = {
     Method_Kernel_supervisor_insts, 10,
-    6, 0,
+    6, 0, 0,
     Method_Kernel_supervisor_consts, 4,
     0
 };
@@ -3137,7 +3137,7 @@ static const uint32_t Method_Kernel_timers_insts[] = { 0x0025030A, 0x00000501, 0
 static const oop Method_Kernel_timers_consts[] = { (oop)&StaticSymbol_space, (oop)&StaticSymbol_usingSpace_seam_ };
 static const struct CompiledMethod Method_Kernel_timers_compiled = {
     Method_Kernel_timers_insts, 8,
-    6, 0,
+    6, 0, 0,
     Method_Kernel_timers_consts, 2,
     0
 };
@@ -3150,7 +3150,7 @@ static const uint32_t Method_Kernel_gpio_insts[] = { 0x0026030A, 0x00000501, 0x0
 static const oop Method_Kernel_gpio_consts[] = { (oop)&StaticSymbol_space, (oop)&StaticSymbol_usingSpace_seam_ };
 static const struct CompiledMethod Method_Kernel_gpio_compiled = {
     Method_Kernel_gpio_insts, 8,
-    6, 0,
+    6, 0, 0,
     Method_Kernel_gpio_consts, 2,
     0
 };
@@ -3163,7 +3163,7 @@ static const uint32_t Method_Kernel_display_insts[] = { 0x0027030A, 0x00000401, 
 static const oop Method_Kernel_display_consts[] = { (oop)&StaticSymbol_usingSeam_ };
 static const struct CompiledMethod Method_Kernel_display_compiled = {
     Method_Kernel_display_insts, 5,
-    5, 0,
+    5, 0, 0,
     Method_Kernel_display_consts, 1,
     0
 };
@@ -3176,7 +3176,7 @@ static const uint32_t Method_Kernel_bell_insts[] = { 0x0028030A, 0x00000401, 0x0
 static const oop Method_Kernel_bell_consts[] = { (oop)&StaticSymbol_usingSeam_ };
 static const struct CompiledMethod Method_Kernel_bell_compiled = {
     Method_Kernel_bell_insts, 5,
-    5, 0,
+    5, 0, 0,
     Method_Kernel_bell_consts, 1,
     0
 };
@@ -3189,7 +3189,7 @@ static const uint32_t Method_Kernel_rtcAlarm_insts[] = { 0x0029030A, 0x00000501,
 static const oop Method_Kernel_rtcAlarm_consts[] = { (oop)&StaticSymbol_space, (oop)&StaticSymbol_usingSpace_seam_ };
 static const struct CompiledMethod Method_Kernel_rtcAlarm_compiled = {
     Method_Kernel_rtcAlarm_insts, 8,
-    6, 0,
+    6, 0, 0,
     Method_Kernel_rtcAlarm_consts, 2,
     0
 };
@@ -3202,7 +3202,7 @@ static const uint32_t Method_Kernel_HashedCollection_insts[] = { 0x00000200, 0x0
 static const oop Method_Kernel_HashedCollection_consts[] = { (oop)&Vtable_Kernel_HashedCollection, TAG_SMI(3), (oop)&StaticSymbol___boundOuter_slotCount_ };
 static const struct CompiledMethod Method_Kernel_HashedCollection_compiled = {
     Method_Kernel_HashedCollection_insts, 5,
-    5, 0,
+    5, 0, 0,
     Method_Kernel_HashedCollection_consts, 3,
     0
 };
@@ -3215,7 +3215,7 @@ static const uint32_t Method_Kernel_BytesReadProtocol_insts[] = { 0x00000200, 0x
 static const oop Method_Kernel_BytesReadProtocol_consts[] = { (oop)&Vtable_Kernel_BytesReadProtocol, TAG_SMI(1), (oop)&StaticSymbol___boundOuter_slotCount_ };
 static const struct CompiledMethod Method_Kernel_BytesReadProtocol_compiled = {
     Method_Kernel_BytesReadProtocol_insts, 5,
-    5, 0,
+    5, 0, 0,
     Method_Kernel_BytesReadProtocol_consts, 3,
     0
 };
@@ -3228,7 +3228,7 @@ static const uint32_t Method_Kernel_Bytes_insts[] = { 0x00000200, 0x00000301, 0x
 static const oop Method_Kernel_Bytes_consts[] = { (oop)&Vtable_Kernel_Bytes, TAG_SMI(2), (oop)&StaticSymbol___boundOuter_slotCount_ };
 static const struct CompiledMethod Method_Kernel_Bytes_compiled = {
     Method_Kernel_Bytes_insts, 5,
-    5, 0,
+    5, 0, 0,
     Method_Kernel_Bytes_consts, 3,
     0
 };
@@ -3241,7 +3241,7 @@ static const uint32_t Method_Kernel_ByteBuilder_insts[] = { 0x00000200, 0x000003
 static const oop Method_Kernel_ByteBuilder_consts[] = { (oop)&Vtable_Kernel_ByteBuilder, TAG_SMI(3), (oop)&StaticSymbol___boundOuter_slotCount_ };
 static const struct CompiledMethod Method_Kernel_ByteBuilder_compiled = {
     Method_Kernel_ByteBuilder_insts, 5,
-    5, 0,
+    5, 0, 0,
     Method_Kernel_ByteBuilder_consts, 3,
     0
 };
@@ -3254,7 +3254,7 @@ static const uint32_t Method_Kernel_CHeapStats_insts[] = { 0x00000200, 0x0000030
 static const oop Method_Kernel_CHeapStats_consts[] = { (oop)&Vtable_Kernel_CHeapStats, TAG_SMI(6), (oop)&StaticSymbol___boundOuter_slotCount_ };
 static const struct CompiledMethod Method_Kernel_CHeapStats_compiled = {
     Method_Kernel_CHeapStats_insts, 5,
-    5, 0,
+    5, 0, 0,
     Method_Kernel_CHeapStats_consts, 3,
     0
 };
@@ -3267,7 +3267,7 @@ static const uint32_t Method_Kernel_Serial_insts[] = { 0x00000200, 0x00000301, 0
 static const oop Method_Kernel_Serial_consts[] = { (oop)&Vtable_Kernel_Serial, TAG_SMI(2), (oop)&StaticSymbol___boundOuter_slotCount_ };
 static const struct CompiledMethod Method_Kernel_Serial_compiled = {
     Method_Kernel_Serial_insts, 5,
-    5, 0,
+    5, 0, 0,
     Method_Kernel_Serial_consts, 3,
     0
 };
@@ -3280,7 +3280,7 @@ static const uint32_t Method_Kernel_Net_insts[] = { 0x00000200, 0x00000301, 0x00
 static const oop Method_Kernel_Net_consts[] = { (oop)&Vtable_Kernel_Net, TAG_SMI(2), (oop)&StaticSymbol___boundOuter_slotCount_ };
 static const struct CompiledMethod Method_Kernel_Net_compiled = {
     Method_Kernel_Net_insts, 5,
-    5, 0,
+    5, 0, 0,
     Method_Kernel_Net_consts, 3,
     0
 };
@@ -3293,7 +3293,7 @@ static const uint32_t Method_Kernel_Socket_insts[] = { 0x00000200, 0x00000301, 0
 static const oop Method_Kernel_Socket_consts[] = { (oop)&Vtable_Kernel_Socket, TAG_SMI(3), (oop)&StaticSymbol___boundOuter_slotCount_ };
 static const struct CompiledMethod Method_Kernel_Socket_compiled = {
     Method_Kernel_Socket_insts, 5,
-    5, 0,
+    5, 0, 0,
     Method_Kernel_Socket_consts, 3,
     0
 };
@@ -3306,7 +3306,7 @@ static const uint32_t Method_Kernel_Datagram_insts[] = { 0x00000200, 0x00000301,
 static const oop Method_Kernel_Datagram_consts[] = { (oop)&Vtable_Kernel_Datagram, TAG_SMI(4), (oop)&StaticSymbol___boundOuter_slotCount_ };
 static const struct CompiledMethod Method_Kernel_Datagram_compiled = {
     Method_Kernel_Datagram_insts, 5,
-    5, 0,
+    5, 0, 0,
     Method_Kernel_Datagram_consts, 3,
     0
 };
@@ -3319,7 +3319,7 @@ static const uint32_t Method_Kernel_Channel_insts[] = { 0x00000200, 0x00000301, 
 static const oop Method_Kernel_Channel_consts[] = { (oop)&Vtable_Kernel_Channel, TAG_SMI(2), (oop)&StaticSymbol___boundOuter_slotCount_ };
 static const struct CompiledMethod Method_Kernel_Channel_compiled = {
     Method_Kernel_Channel_insts, 5,
-    5, 0,
+    5, 0, 0,
     Method_Kernel_Channel_consts, 3,
     0
 };
@@ -3332,7 +3332,7 @@ static const uint32_t Method_Kernel_Space_insts[] = { 0x00000200, 0x00000301, 0x
 static const oop Method_Kernel_Space_consts[] = { (oop)&Vtable_Kernel_Space, TAG_SMI(2), (oop)&StaticSymbol___boundOuter_slotCount_ };
 static const struct CompiledMethod Method_Kernel_Space_compiled = {
     Method_Kernel_Space_insts, 5,
-    5, 0,
+    5, 0, 0,
     Method_Kernel_Space_consts, 3,
     0
 };
@@ -3345,7 +3345,7 @@ static const uint32_t Method_Kernel_SupervisedJob_insts[] = { 0x00000200, 0x0000
 static const oop Method_Kernel_SupervisedJob_consts[] = { (oop)&Vtable_Kernel_SupervisedJob, TAG_SMI(6), (oop)&StaticSymbol___boundOuter_slotCount_ };
 static const struct CompiledMethod Method_Kernel_SupervisedJob_compiled = {
     Method_Kernel_SupervisedJob_insts, 5,
-    5, 0,
+    5, 0, 0,
     Method_Kernel_SupervisedJob_consts, 3,
     0
 };
@@ -3358,7 +3358,7 @@ static const uint32_t Method_Kernel_Supervisor_insts[] = { 0x00000200, 0x0000030
 static const oop Method_Kernel_Supervisor_consts[] = { (oop)&Vtable_Kernel_Supervisor, TAG_SMI(5), (oop)&StaticSymbol___boundOuter_slotCount_ };
 static const struct CompiledMethod Method_Kernel_Supervisor_compiled = {
     Method_Kernel_Supervisor_insts, 5,
-    5, 0,
+    5, 0, 0,
     Method_Kernel_Supervisor_consts, 3,
     0
 };
@@ -3371,7 +3371,7 @@ static const uint32_t Method_Kernel_Transition_insts[] = { 0x00000200, 0x0000030
 static const oop Method_Kernel_Transition_consts[] = { (oop)&Vtable_Kernel_Transition, TAG_SMI(3), (oop)&StaticSymbol___boundOuter_slotCount_ };
 static const struct CompiledMethod Method_Kernel_Transition_compiled = {
     Method_Kernel_Transition_insts, 5,
-    5, 0,
+    5, 0, 0,
     Method_Kernel_Transition_consts, 3,
     0
 };
@@ -3384,7 +3384,7 @@ static const uint32_t Method_Kernel_Pending_insts[] = { 0x00000200, 0x00000301, 
 static const oop Method_Kernel_Pending_consts[] = { (oop)&Vtable_Kernel_Pending, TAG_SMI(4), (oop)&StaticSymbol___boundOuter_slotCount_ };
 static const struct CompiledMethod Method_Kernel_Pending_compiled = {
     Method_Kernel_Pending_insts, 5,
-    5, 0,
+    5, 0, 0,
     Method_Kernel_Pending_consts, 3,
     0
 };
@@ -3397,7 +3397,7 @@ static const uint32_t Method_Kernel_Timers_insts[] = { 0x00000200, 0x00000301, 0
 static const oop Method_Kernel_Timers_consts[] = { (oop)&Vtable_Kernel_Timers, TAG_SMI(5), (oop)&StaticSymbol___boundOuter_slotCount_ };
 static const struct CompiledMethod Method_Kernel_Timers_compiled = {
     Method_Kernel_Timers_insts, 5,
-    5, 0,
+    5, 0, 0,
     Method_Kernel_Timers_consts, 3,
     0
 };
@@ -3410,7 +3410,7 @@ static const uint32_t Method_Kernel_GpioPulse_insts[] = { 0x00000200, 0x00000301
 static const oop Method_Kernel_GpioPulse_consts[] = { (oop)&Vtable_Kernel_GpioPulse, TAG_SMI(3), (oop)&StaticSymbol___boundOuter_slotCount_ };
 static const struct CompiledMethod Method_Kernel_GpioPulse_compiled = {
     Method_Kernel_GpioPulse_insts, 5,
-    5, 0,
+    5, 0, 0,
     Method_Kernel_GpioPulse_consts, 3,
     0
 };
@@ -3423,7 +3423,7 @@ static const uint32_t Method_Kernel_Display_insts[] = { 0x00000200, 0x00000301, 
 static const oop Method_Kernel_Display_consts[] = { (oop)&Vtable_Kernel_Display, TAG_SMI(2), (oop)&StaticSymbol___boundOuter_slotCount_ };
 static const struct CompiledMethod Method_Kernel_Display_compiled = {
     Method_Kernel_Display_insts, 5,
-    5, 0,
+    5, 0, 0,
     Method_Kernel_Display_consts, 3,
     0
 };
@@ -3436,7 +3436,7 @@ static const uint32_t Method_Kernel_Bell_insts[] = { 0x00000200, 0x00000301, 0x0
 static const oop Method_Kernel_Bell_consts[] = { (oop)&Vtable_Kernel_Bell, TAG_SMI(2), (oop)&StaticSymbol___boundOuter_slotCount_ };
 static const struct CompiledMethod Method_Kernel_Bell_compiled = {
     Method_Kernel_Bell_insts, 5,
-    5, 0,
+    5, 0, 0,
     Method_Kernel_Bell_consts, 3,
     0
 };
@@ -3449,7 +3449,7 @@ static const uint32_t Method_Kernel_RtcAlarm_insts[] = { 0x00000200, 0x00000301,
 static const oop Method_Kernel_RtcAlarm_consts[] = { (oop)&Vtable_Kernel_RtcAlarm, TAG_SMI(3), (oop)&StaticSymbol___boundOuter_slotCount_ };
 static const struct CompiledMethod Method_Kernel_RtcAlarm_compiled = {
     Method_Kernel_RtcAlarm_insts, 5,
-    5, 0,
+    5, 0, 0,
     Method_Kernel_RtcAlarm_consts, 3,
     0
 };
@@ -3462,7 +3462,7 @@ static const uint32_t Method_Kernel_init_platform__insts[] = { 0x0000010B, 0x000
 static const oop Method_Kernel_init_platform__consts[] = { (oop)&Vtable_Kernel_Object, TAG_SMI(1), (oop)&StaticSymbol___boundOuter_slotCount_, (oop)&Vtable_Kernel_Array, (oop)&Vtable_Kernel_Collection, (oop)&Vtable_Kernel_OrderedCollection, TAG_SMI(3), (oop)&Vtable_Kernel_Interval, TAG_SMI(4), (oop)&Vtable_Kernel_HashedCollection, (oop)&Vtable_Kernel_Set, (oop)&Vtable_Kernel_Dictionary, (oop)&Vtable_Kernel_Association, (oop)&Vtable_Kernel_List, (oop)&Vtable_Kernel_Map, (oop)&Vtable_Kernel_Record, (oop)&Vtable_Kernel_BytesReadProtocol, (oop)&Vtable_Kernel_ByteArray, TAG_SMI(2), (oop)&Vtable_Kernel_Bytes, (oop)&Vtable_Kernel_ByteBuilder, (oop)&Vtable_Kernel_Cbor, (oop)&Vtable_Kernel_HeapStats, TAG_SMI(6), (oop)&Vtable_Kernel_CHeapStats, (oop)&Vtable_Kernel_Spans, (oop)&Vtable_Kernel_SpanCapture, TAG_SMI(7), (oop)&Vtable_Kernel_ReadStream, (oop)&Vtable_Kernel_WriteStream, (oop)&Vtable_Kernel_Serial, (oop)&Vtable_Kernel_Net, (oop)&Vtable_Kernel_Socket, (oop)&Vtable_Kernel_Datagram, (oop)&Vtable_Kernel_NetBridge, (oop)&Vtable_Kernel_PortaBridge, TAG_SMI(29), (oop)&Vtable_Kernel_Channel, (oop)&Vtable_Kernel_Space, (oop)&Vtable_Kernel_SupervisedJob, (oop)&Vtable_Kernel_Supervisor, TAG_SMI(5), (oop)&Vtable_Kernel_Transition, (oop)&Vtable_Kernel_Protocol, (oop)&Vtable_Kernel_Pending, (oop)&Vtable_Kernel_Timers, (oop)&Vtable_Kernel_GpioPulse, (oop)&Vtable_Kernel_Display, (oop)&Vtable_Kernel_Bell, (oop)&Vtable_Kernel_RtcAlarm };
 static const struct CompiledMethod Method_Kernel_init_platform__compiled = {
     Method_Kernel_init_platform__insts, 207,
-    6, 1,
+    6, 1, 0,
     Method_Kernel_init_platform__consts, 50,
     0
 };
@@ -3475,7 +3475,7 @@ static const uint32_t Method_Kernel_Object_isNil_insts[] = { 0x00000200, 0x00000
 static const oop Method_Kernel_Object_isNil_consts[] = { (oop)&StaticSymbol_false };
 static const struct CompiledMethod Method_Kernel_Object_isNil_compiled = {
     Method_Kernel_Object_isNil_insts, 2,
-    3, 0,
+    3, 0, 0,
     Method_Kernel_Object_isNil_consts, 1,
     0
 };
@@ -3488,7 +3488,7 @@ static const uint32_t Method_Kernel_Object_notNil_insts[] = { 0x00000200, 0x0000
 static const oop Method_Kernel_Object_notNil_consts[] = { (oop)&StaticSymbol_true };
 static const struct CompiledMethod Method_Kernel_Object_notNil_compiled = {
     Method_Kernel_Object_notNil_insts, 2,
-    3, 0,
+    3, 0, 0,
     Method_Kernel_Object_notNil_consts, 1,
     0
 };
@@ -3500,7 +3500,7 @@ static const struct Closure Method_Kernel_Object_notNil_closure = {
 static const uint32_t Method_Kernel_Object_ifNil__insts[] = { 0x00000301, 0x00000303 };
 static const struct CompiledMethod Method_Kernel_Object_ifNil__compiled = {
     Method_Kernel_Object_ifNil__insts, 2,
-    4, 1,
+    4, 1, 0,
     NULL, 0,
     0
 };
@@ -3513,7 +3513,7 @@ static const uint32_t Method_Kernel_Object_ifNotNil__insts[] = { 0x00010401, 0x0
 static const oop Method_Kernel_Object_ifNotNil__consts[] = { (oop)&StaticSymbol_value_ };
 static const struct CompiledMethod Method_Kernel_Object_ifNotNil__compiled = {
     Method_Kernel_Object_ifNotNil__insts, 5,
-    6, 1,
+    6, 1, 0,
     Method_Kernel_Object_ifNotNil__consts, 1,
     0
 };
@@ -3526,7 +3526,7 @@ static const uint32_t Method_Kernel_Object__eq_insts[] = { 0x00000401, 0x0001050
 static const oop Method_Kernel_Object__eq_consts[] = { (oop)&StaticSymbol__eq_eq };
 static const struct CompiledMethod Method_Kernel_Object__eq_compiled = {
     Method_Kernel_Object__eq_insts, 5,
-    6, 1,
+    6, 1, 0,
     Method_Kernel_Object__eq_consts, 1,
     0
 };
@@ -3539,7 +3539,7 @@ static const uint32_t Method_Kernel_Object_printString_insts[] = { 0x00000200, 0
 static const oop Method_Kernel_Object_printString_consts[] = { (oop)&StaticString_an_u32Object_5 };
 static const struct CompiledMethod Method_Kernel_Object_printString_compiled = {
     Method_Kernel_Object_printString_insts, 2,
-    3, 0,
+    3, 0, 0,
     Method_Kernel_Object_printString_consts, 1,
     0
 };
@@ -3552,7 +3552,7 @@ static const uint32_t Method_Kernel_Object_asString_insts[] = { 0x00000301, 0x03
 static const oop Method_Kernel_Object_asString_consts[] = { (oop)&StaticSymbol_printString };
 static const struct CompiledMethod Method_Kernel_Object_asString_compiled = {
     Method_Kernel_Object_asString_insts, 4,
-    4, 0,
+    4, 0, 0,
     Method_Kernel_Object_asString_consts, 1,
     0
 };
@@ -3565,7 +3565,7 @@ static const uint32_t Method_Kernel_Object_hash_insts[] = { 0x00000301, 0x030000
 static const oop Method_Kernel_Object_hash_consts[] = { (oop)&StaticSymbol_identityHash };
 static const struct CompiledMethod Method_Kernel_Object_hash_compiled = {
     Method_Kernel_Object_hash_insts, 4,
-    4, 0,
+    4, 0, 0,
     Method_Kernel_Object_hash_consts, 1,
     0
 };
@@ -3578,7 +3578,7 @@ static const uint32_t Method_Kernel_Object_isValue_insts[] = { 0x00000200, 0x000
 static const oop Method_Kernel_Object_isValue_consts[] = { (oop)&StaticSymbol_false };
 static const struct CompiledMethod Method_Kernel_Object_isValue_compiled = {
     Method_Kernel_Object_isValue_insts, 2,
-    3, 0,
+    3, 0, 0,
     Method_Kernel_Object_isValue_consts, 1,
     0
 };
@@ -3591,7 +3591,7 @@ static const uint32_t Method_Kernel_Object_isSymbol_insts[] = { 0x00000200, 0x00
 static const oop Method_Kernel_Object_isSymbol_consts[] = { (oop)&StaticSymbol_false };
 static const struct CompiledMethod Method_Kernel_Object_isSymbol_compiled = {
     Method_Kernel_Object_isSymbol_insts, 2,
-    3, 0,
+    3, 0, 0,
     Method_Kernel_Object_isSymbol_consts, 1,
     0
 };
@@ -3604,7 +3604,7 @@ static const uint32_t Method_Kernel_Object_isList_insts[] = { 0x00000200, 0x0000
 static const oop Method_Kernel_Object_isList_consts[] = { (oop)&StaticSymbol_false };
 static const struct CompiledMethod Method_Kernel_Object_isList_compiled = {
     Method_Kernel_Object_isList_insts, 2,
-    3, 0,
+    3, 0, 0,
     Method_Kernel_Object_isList_consts, 1,
     0
 };
@@ -3617,7 +3617,7 @@ static const uint32_t Method_Kernel_Object_isMap_insts[] = { 0x00000200, 0x00000
 static const oop Method_Kernel_Object_isMap_consts[] = { (oop)&StaticSymbol_false };
 static const struct CompiledMethod Method_Kernel_Object_isMap_compiled = {
     Method_Kernel_Object_isMap_insts, 2,
-    3, 0,
+    3, 0, 0,
     Method_Kernel_Object_isMap_consts, 1,
     0
 };
@@ -3630,7 +3630,7 @@ static const uint32_t Method_Kernel_Object_isRecord_insts[] = { 0x00000200, 0x00
 static const oop Method_Kernel_Object_isRecord_consts[] = { (oop)&StaticSymbol_false };
 static const struct CompiledMethod Method_Kernel_Object_isRecord_compiled = {
     Method_Kernel_Object_isRecord_insts, 2,
-    3, 0,
+    3, 0, 0,
     Method_Kernel_Object_isRecord_consts, 1,
     0
 };
@@ -3643,7 +3643,7 @@ static const uint32_t Method_Kernel_Object_isBytes_insts[] = { 0x00000200, 0x000
 static const oop Method_Kernel_Object_isBytes_consts[] = { (oop)&StaticSymbol_false };
 static const struct CompiledMethod Method_Kernel_Object_isBytes_compiled = {
     Method_Kernel_Object_isBytes_insts, 2,
-    3, 0,
+    3, 0, 0,
     Method_Kernel_Object_isBytes_consts, 1,
     0
 };
@@ -3656,7 +3656,7 @@ static const uint32_t Method_Kernel_Object_valueRank_insts[] = { 0x00000200, 0x0
 static const oop Method_Kernel_Object_valueRank_consts[] = { TAG_SMI(-1) };
 static const struct CompiledMethod Method_Kernel_Object_valueRank_compiled = {
     Method_Kernel_Object_valueRank_insts, 2,
-    3, 0,
+    3, 0, 0,
     Method_Kernel_Object_valueRank_consts, 1,
     0
 };
@@ -3669,7 +3669,7 @@ static const uint32_t Method_Kernel_Object_valueDepth_insts[] = { 0x00000200, 0x
 static const oop Method_Kernel_Object_valueDepth_consts[] = { TAG_SMI(0) };
 static const struct CompiledMethod Method_Kernel_Object_valueDepth_compiled = {
     Method_Kernel_Object_valueDepth_insts, 2,
-    3, 0,
+    3, 0, 0,
     Method_Kernel_Object_valueDepth_consts, 1,
     0
 };
@@ -3681,7 +3681,7 @@ static const struct Closure Method_Kernel_Object_valueDepth_closure = {
 static const uint32_t Method_Kernel_Object_init_new_insts[] = { 0x00000003 };
 static const struct CompiledMethod Method_Kernel_Object_init_new_compiled = {
     Method_Kernel_Object_init_new_insts, 1,
-    2, 0,
+    2, 0, 0,
     NULL, 0,
     0
 };
@@ -3694,7 +3694,7 @@ static const uint32_t Method_Kernel_Array_at__insts[] = { 0x00000401, 0x00010501
 static const oop Method_Kernel_Array_at__consts[] = { (oop)&StaticSymbol_basicAt_ };
 static const struct CompiledMethod Method_Kernel_Array_at__compiled = {
     Method_Kernel_Array_at__insts, 5,
-    6, 1,
+    6, 1, 0,
     Method_Kernel_Array_at__consts, 1,
     0
 };
@@ -3707,7 +3707,7 @@ static const uint32_t Method_Kernel_Array_at_put__insts[] = { 0x00000501, 0x0001
 static const oop Method_Kernel_Array_at_put__consts[] = { (oop)&StaticSymbol_basicAt_put_ };
 static const struct CompiledMethod Method_Kernel_Array_at_put__compiled = {
     Method_Kernel_Array_at_put__insts, 7,
-    8, 2,
+    8, 2, 0,
     Method_Kernel_Array_at_put__consts, 1,
     0
 };
@@ -3720,7 +3720,7 @@ static const uint32_t Method_Kernel_Array_size_insts[] = { 0x00000301, 0x0300000
 static const oop Method_Kernel_Array_size_consts[] = { (oop)&StaticSymbol_basicSize };
 static const struct CompiledMethod Method_Kernel_Array_size_compiled = {
     Method_Kernel_Array_size_insts, 4,
-    4, 0,
+    4, 0, 0,
     Method_Kernel_Array_size_consts, 1,
     0
 };
@@ -3733,7 +3733,7 @@ static const uint32_t Method_Kernel_Array_do__insts[] = { 0x00000300, 0x00030401
 static const oop Method_Kernel_Array_do__consts[] = { TAG_SMI(1), (oop)&StaticSymbol_size, (oop)&StaticSymbol__lt_eq, (oop)&StaticSymbol_basicAt_, (oop)&StaticSymbol_value_ };
 static const struct CompiledMethod Method_Kernel_Array_do__compiled = {
     Method_Kernel_Array_do__insts, 21,
-    12, 1,
+    12, 1, 0,
     Method_Kernel_Array_do__consts, 5,
     0
 };
@@ -3746,7 +3746,7 @@ static const uint32_t Method_Meta_Kernel_Array_new__insts[] = { 0x0001050A, 0x05
 static const oop Method_Meta_Kernel_Array_new__consts[] = { (oop)&StaticSymbol_basicNew_indexable_ };
 static const struct CompiledMethod Method_Meta_Kernel_Array_new__compiled = {
     Method_Meta_Kernel_Array_new__insts, 7,
-    7, 1,
+    7, 1, 0,
     Method_Meta_Kernel_Array_new__consts, 1,
     0
 };
@@ -3758,7 +3758,7 @@ static const struct Closure Method_Meta_Kernel_Array_new__closure = {
 static const uint32_t Method_Kernel_Array_init_new_insts[] = { 0x00000003 };
 static const struct CompiledMethod Method_Kernel_Array_init_new_compiled = {
     Method_Kernel_Array_init_new_insts, 1,
-    2, 0,
+    2, 0, 0,
     NULL, 0,
     0
 };
@@ -3771,7 +3771,7 @@ static const uint32_t Method_Kernel_Collection_do__insts[] = { 0x00000401, 0x000
 static const oop Method_Kernel_Collection_do__consts[] = { (oop)&StaticString_subclassResponsibility_6, (oop)&StaticSymbol_error_ };
 static const struct CompiledMethod Method_Kernel_Collection_do__compiled = {
     Method_Kernel_Collection_do__insts, 5,
-    6, 1,
+    6, 1, 0,
     Method_Kernel_Collection_do__consts, 2,
     0
 };
@@ -3784,7 +3784,7 @@ static const uint32_t Method_Kernel_Collection_size_insts[] = { 0x00000301, 0x00
 static const oop Method_Kernel_Collection_size_consts[] = { TAG_SMI(0), (oop)&Method_Block_Kernel_Collection_block3_value___compiled, (oop)&StaticSymbol_inject_into_ };
 static const struct CompiledMethod Method_Kernel_Collection_size_compiled = {
     Method_Kernel_Collection_size_insts, 6,
-    6, 0,
+    6, 0, 0,
     Method_Kernel_Collection_size_consts, 3,
     0
 };
@@ -3797,7 +3797,7 @@ static const uint32_t Method_Kernel_Collection_isEmpty_insts[] = { 0x00000401, 0
 static const oop Method_Kernel_Collection_isEmpty_consts[] = { (oop)&StaticSymbol_size, TAG_SMI(0), (oop)&StaticSymbol__eq };
 static const struct CompiledMethod Method_Kernel_Collection_isEmpty_compiled = {
     Method_Kernel_Collection_isEmpty_insts, 7,
-    5, 0,
+    5, 0, 0,
     Method_Kernel_Collection_isEmpty_consts, 3,
     0
 };
@@ -3810,7 +3810,7 @@ static const uint32_t Method_Kernel_Collection_inject_into__insts[] = { 0x000203
 static const oop Method_Kernel_Collection_inject_into__consts[] = { (oop)&Method_Block_Kernel_Collection_block4_value__compiled, (oop)&StaticSymbol_do_ };
 static const struct CompiledMethod Method_Kernel_Collection_inject_into__compiled = {
     Method_Kernel_Collection_inject_into__insts, 10,
-    8, 2,
+    8, 2, 0,
     Method_Kernel_Collection_inject_into__consts, 2,
     0
 };
@@ -3823,7 +3823,7 @@ static const uint32_t Method_Kernel_Collection_collect__insts[] = { 0x00020215, 
 static const oop Method_Kernel_Collection_collect__consts[] = { (oop)&Vtable_Kernel_OrderedCollection, (oop)&StaticSymbol_init_new, (oop)&Method_Block_Kernel_Collection_block5_value__compiled, (oop)&StaticSymbol_do_ };
 static const struct CompiledMethod Method_Kernel_Collection_collect__compiled = {
     Method_Kernel_Collection_collect__insts, 15,
-    7, 1,
+    7, 1, 0,
     Method_Kernel_Collection_collect__consts, 4,
     0
 };
@@ -3836,7 +3836,7 @@ static const uint32_t Method_Kernel_Collection_select__insts[] = { 0x00020215, 0
 static const oop Method_Kernel_Collection_select__consts[] = { (oop)&Vtable_Kernel_OrderedCollection, (oop)&StaticSymbol_init_new, (oop)&Method_Block_Kernel_Collection_block6_value__compiled, (oop)&StaticSymbol_do_ };
 static const struct CompiledMethod Method_Kernel_Collection_select__compiled = {
     Method_Kernel_Collection_select__insts, 15,
-    7, 1,
+    7, 1, 0,
     Method_Kernel_Collection_select__consts, 4,
     0
 };
@@ -3849,7 +3849,7 @@ static const uint32_t Method_Kernel_Collection_reject__insts[] = { 0x00020215, 0
 static const oop Method_Kernel_Collection_reject__consts[] = { (oop)&Vtable_Kernel_OrderedCollection, (oop)&StaticSymbol_init_new, (oop)&Method_Block_Kernel_Collection_block7_value__compiled, (oop)&StaticSymbol_do_ };
 static const struct CompiledMethod Method_Kernel_Collection_reject__compiled = {
     Method_Kernel_Collection_reject__insts, 15,
-    7, 1,
+    7, 1, 0,
     Method_Kernel_Collection_reject__consts, 4,
     0
 };
@@ -3862,7 +3862,7 @@ static const uint32_t Method_Kernel_Collection_includes__insts[] = { 0x00010215,
 static const oop Method_Kernel_Collection_includes__consts[] = { (oop)&StaticSymbol_false, (oop)&Method_Block_Kernel_Collection_block8_value___compiled, (oop)&StaticSymbol_inject_into_ };
 static const struct CompiledMethod Method_Kernel_Collection_includes__compiled = {
     Method_Kernel_Collection_includes__insts, 8,
-    7, 1,
+    7, 1, 0,
     Method_Kernel_Collection_includes__consts, 3,
     0
 };
@@ -3875,7 +3875,7 @@ static const uint32_t Method_Kernel_Collection_asArray_insts[] = { 0x00020115, 0
 static const oop Method_Kernel_Collection_asArray_consts[] = { (oop)&StaticSymbol_size, (oop)&StaticSymbol_basicNew_indexable_, TAG_SMI(1), (oop)&Method_Block_Kernel_Collection_block9_value__compiled, (oop)&StaticSymbol_do_ };
 static const struct CompiledMethod Method_Kernel_Collection_asArray_compiled = {
     Method_Kernel_Collection_asArray_insts, 19,
-    9, 0,
+    9, 0, 0,
     Method_Kernel_Collection_asArray_consts, 5,
     0
 };
@@ -3888,7 +3888,7 @@ static const uint32_t Method_Kernel_Collection_detect_ifNone__insts[] = { 0x0003
 static const oop Method_Kernel_Collection_detect_ifNone__consts[] = { (oop)&StaticSymbol_false, (oop)&Method_Block_Kernel_Collection_block10_value__compiled, (oop)&StaticSymbol_do_, (oop)&StaticSymbol_value };
 static const struct CompiledMethod Method_Kernel_Collection_detect_ifNone__compiled = {
     Method_Kernel_Collection_detect_ifNone__insts, 18,
-    10, 2,
+    10, 2, 0,
     Method_Kernel_Collection_detect_ifNone__consts, 4,
     0
 };
@@ -3901,7 +3901,7 @@ static const uint32_t Method_Kernel_Collection_detect__insts[] = { 0x00000401, 0
 static const oop Method_Kernel_Collection_detect__consts[] = { (oop)&Method_Block_Kernel_Collection_block11_value_compiled, (oop)&StaticSymbol_detect_ifNone_ };
 static const struct CompiledMethod Method_Kernel_Collection_detect__compiled = {
     Method_Kernel_Collection_detect__insts, 6,
-    7, 1,
+    7, 1, 0,
     Method_Kernel_Collection_detect__consts, 2,
     0
 };
@@ -3914,7 +3914,7 @@ static const uint32_t Method_Kernel_Collection_anySatisfy__insts[] = { 0x0002021
 static const oop Method_Kernel_Collection_anySatisfy__consts[] = { (oop)&StaticSymbol_false, (oop)&Method_Block_Kernel_Collection_block12_value__compiled, (oop)&StaticSymbol_do_ };
 static const struct CompiledMethod Method_Kernel_Collection_anySatisfy__compiled = {
     Method_Kernel_Collection_anySatisfy__insts, 10,
-    7, 1,
+    7, 1, 0,
     Method_Kernel_Collection_anySatisfy__consts, 3,
     0
 };
@@ -3927,7 +3927,7 @@ static const uint32_t Method_Kernel_Collection_allSatisfy__insts[] = { 0x0002021
 static const oop Method_Kernel_Collection_allSatisfy__consts[] = { (oop)&StaticSymbol_true, (oop)&Method_Block_Kernel_Collection_block13_value__compiled, (oop)&StaticSymbol_do_ };
 static const struct CompiledMethod Method_Kernel_Collection_allSatisfy__compiled = {
     Method_Kernel_Collection_allSatisfy__insts, 10,
-    7, 1,
+    7, 1, 0,
     Method_Kernel_Collection_allSatisfy__consts, 3,
     0
 };
@@ -3940,7 +3940,7 @@ static const uint32_t Method_Kernel_Collection_noneSatisfy__insts[] = { 0x000005
 static const oop Method_Kernel_Collection_noneSatisfy__consts[] = { (oop)&StaticSymbol_anySatisfy_, (oop)&StaticSymbol_not };
 static const struct CompiledMethod Method_Kernel_Collection_noneSatisfy__compiled = {
     Method_Kernel_Collection_noneSatisfy__insts, 7,
-    7, 1,
+    7, 1, 0,
     Method_Kernel_Collection_noneSatisfy__consts, 2,
     0
 };
@@ -3953,7 +3953,7 @@ static const uint32_t Method_Kernel_Collection_count__insts[] = { 0x00010215, 0x
 static const oop Method_Kernel_Collection_count__consts[] = { TAG_SMI(0), (oop)&Method_Block_Kernel_Collection_block14_value___compiled, (oop)&StaticSymbol_inject_into_ };
 static const struct CompiledMethod Method_Kernel_Collection_count__compiled = {
     Method_Kernel_Collection_count__insts, 8,
-    7, 1,
+    7, 1, 0,
     Method_Kernel_Collection_count__consts, 3,
     0
 };
@@ -3966,7 +3966,7 @@ static const uint32_t Method_Kernel_Collection_do_separatedBy__insts[] = { 0x000
 static const oop Method_Kernel_Collection_do_separatedBy__consts[] = { (oop)&StaticSymbol_true, (oop)&Method_Block_Kernel_Collection_block15_value__compiled, (oop)&StaticSymbol_do_ };
 static const struct CompiledMethod Method_Kernel_Collection_do_separatedBy__compiled = {
     Method_Kernel_Collection_do_separatedBy__insts, 11,
-    8, 2,
+    8, 2, 0,
     Method_Kernel_Collection_do_separatedBy__consts, 3,
     0
 };
@@ -3979,7 +3979,7 @@ static const uint32_t Method_Kernel_Collection_withIndexDo__insts[] = { 0x000202
 static const oop Method_Kernel_Collection_withIndexDo__consts[] = { TAG_SMI(0), (oop)&Method_Block_Kernel_Collection_block16_value__compiled, (oop)&StaticSymbol_do_ };
 static const struct CompiledMethod Method_Kernel_Collection_withIndexDo__compiled = {
     Method_Kernel_Collection_withIndexDo__insts, 10,
-    7, 1,
+    7, 1, 0,
     Method_Kernel_Collection_withIndexDo__consts, 3,
     0
 };
@@ -3992,7 +3992,7 @@ static const uint32_t Method_Kernel_Collection_indexOf_ifAbsent__insts[] = { 0x0
 static const oop Method_Kernel_Collection_indexOf_ifAbsent__consts[] = { TAG_SMI(0), (oop)&Method_Block_Kernel_Collection_block17_value___compiled, (oop)&StaticSymbol_withIndexDo_, (oop)&StaticSymbol__eq, (oop)&StaticSymbol_value, (oop)&StaticSymbol_false };
 static const struct CompiledMethod Method_Kernel_Collection_indexOf_ifAbsent__compiled = {
     Method_Kernel_Collection_indexOf_ifAbsent__insts, 21,
-    11, 2,
+    11, 2, 0,
     Method_Kernel_Collection_indexOf_ifAbsent__consts, 6,
     0
 };
@@ -4005,7 +4005,7 @@ static const uint32_t Method_Kernel_Collection_indexOf__insts[] = { 0x00000401, 
 static const oop Method_Kernel_Collection_indexOf__consts[] = { (oop)&Method_Block_Kernel_Collection_block18_value_compiled, (oop)&StaticSymbol_indexOf_ifAbsent_ };
 static const struct CompiledMethod Method_Kernel_Collection_indexOf__compiled = {
     Method_Kernel_Collection_indexOf__insts, 6,
-    7, 1,
+    7, 1, 0,
     Method_Kernel_Collection_indexOf__consts, 2,
     0
 };
@@ -4018,7 +4018,7 @@ static const uint32_t Method_Kernel_Collection_detectMax_ifNone__insts[] = { 0x0
 static const oop Method_Kernel_Collection_detectMax_ifNone__consts[] = { (oop)&StaticSymbol_false, (oop)&Method_Block_Kernel_Collection_block19_value__compiled, (oop)&StaticSymbol_do_, (oop)&StaticSymbol_value };
 static const struct CompiledMethod Method_Kernel_Collection_detectMax_ifNone__compiled = {
     Method_Kernel_Collection_detectMax_ifNone__insts, 18,
-    12, 2,
+    12, 2, 0,
     Method_Kernel_Collection_detectMax_ifNone__consts, 4,
     0
 };
@@ -4031,7 +4031,7 @@ static const uint32_t Method_Kernel_Collection_detectMin_ifNone__insts[] = { 0x0
 static const oop Method_Kernel_Collection_detectMin_ifNone__consts[] = { (oop)&Method_Block_Kernel_Collection_block20_value__compiled, (oop)&StaticSymbol_detectMax_ifNone_ };
 static const struct CompiledMethod Method_Kernel_Collection_detectMin_ifNone__compiled = {
     Method_Kernel_Collection_detectMin_ifNone__insts, 8,
-    8, 2,
+    8, 2, 0,
     Method_Kernel_Collection_detectMin_ifNone__consts, 2,
     0
 };
@@ -4044,7 +4044,7 @@ static const uint32_t Method_Kernel_Collection_detectMax__insts[] = { 0x00000401
 static const oop Method_Kernel_Collection_detectMax__consts[] = { (oop)&Method_Block_Kernel_Collection_block21_value_compiled, (oop)&StaticSymbol_detectMax_ifNone_ };
 static const struct CompiledMethod Method_Kernel_Collection_detectMax__compiled = {
     Method_Kernel_Collection_detectMax__insts, 6,
-    7, 1,
+    7, 1, 0,
     Method_Kernel_Collection_detectMax__consts, 2,
     0
 };
@@ -4057,7 +4057,7 @@ static const uint32_t Method_Kernel_Collection_detectMin__insts[] = { 0x00000401
 static const oop Method_Kernel_Collection_detectMin__consts[] = { (oop)&Method_Block_Kernel_Collection_block22_value_compiled, (oop)&StaticSymbol_detectMin_ifNone_ };
 static const struct CompiledMethod Method_Kernel_Collection_detectMin__compiled = {
     Method_Kernel_Collection_detectMin__insts, 6,
-    7, 1,
+    7, 1, 0,
     Method_Kernel_Collection_detectMin__consts, 2,
     0
 };
@@ -4069,7 +4069,7 @@ static const struct Closure Method_Kernel_Collection_detectMin__closure = {
 static const uint32_t Method_Kernel_Collection_init_new_insts[] = { 0x00000003 };
 static const struct CompiledMethod Method_Kernel_Collection_init_new_compiled = {
     Method_Kernel_Collection_init_new_insts, 1,
-    2, 0,
+    2, 0, 0,
     NULL, 0,
     0
 };
@@ -4082,7 +4082,7 @@ static const uint32_t Method_Kernel_OrderedCollection_do__insts[] = { 0x00000300
 static const oop Method_Kernel_OrderedCollection_do__consts[] = { TAG_SMI(1), (oop)&StaticSymbol__lt_eq, (oop)&StaticSymbol_basicAt_, (oop)&StaticSymbol_value_ };
 static const struct CompiledMethod Method_Kernel_OrderedCollection_do__compiled = {
     Method_Kernel_OrderedCollection_do__insts, 19,
-    11, 1,
+    11, 1, 0,
     Method_Kernel_OrderedCollection_do__consts, 4,
     0
 };
@@ -4094,7 +4094,7 @@ static const struct Closure Method_Kernel_OrderedCollection_do__closure = {
 static const uint32_t Method_Kernel_OrderedCollection_size_insts[] = { 0x0002020A, 0x00000203 };
 static const struct CompiledMethod Method_Kernel_OrderedCollection_size_compiled = {
     Method_Kernel_OrderedCollection_size_insts, 2,
-    3, 0,
+    3, 0, 0,
     NULL, 0,
     0
 };
@@ -4107,7 +4107,7 @@ static const uint32_t Method_Kernel_OrderedCollection_isEmpty_insts[] = { 0x0002
 static const oop Method_Kernel_OrderedCollection_isEmpty_consts[] = { TAG_SMI(0), (oop)&StaticSymbol__eq };
 static const struct CompiledMethod Method_Kernel_OrderedCollection_isEmpty_compiled = {
     Method_Kernel_OrderedCollection_isEmpty_insts, 5,
-    5, 0,
+    5, 0, 0,
     Method_Kernel_OrderedCollection_isEmpty_consts, 2,
     0
 };
@@ -4120,7 +4120,7 @@ static const uint32_t Method_Kernel_OrderedCollection_add__insts[] = { 0x0000040
 static const oop Method_Kernel_OrderedCollection_add__consts[] = { (oop)&StaticSymbol_ensureCapacity, TAG_SMI(1), (oop)&StaticSymbol_basicAt_put_ };
 static const struct CompiledMethod Method_Kernel_OrderedCollection_add__compiled = {
     Method_Kernel_OrderedCollection_add__insts, 14,
-    8, 1,
+    8, 1, 0,
     Method_Kernel_OrderedCollection_add__consts, 3,
     0
 };
@@ -4133,7 +4133,7 @@ static const uint32_t Method_Kernel_OrderedCollection_addLast__insts[] = { 0x000
 static const oop Method_Kernel_OrderedCollection_addLast__consts[] = { (oop)&StaticSymbol_add_ };
 static const struct CompiledMethod Method_Kernel_OrderedCollection_addLast__compiled = {
     Method_Kernel_OrderedCollection_addLast__insts, 5,
-    6, 1,
+    6, 1, 0,
     Method_Kernel_OrderedCollection_addLast__consts, 1,
     0
 };
@@ -4146,7 +4146,7 @@ static const uint32_t Method_Kernel_OrderedCollection_at__insts[] = { 0x00010601
 static const oop Method_Kernel_OrderedCollection_at__consts[] = { TAG_SMI(1), (oop)&StaticSymbol__lt, (oop)&StaticSymbol_true, (oop)&StaticSymbol__gt, (oop)&StaticString_index_u32out_u32of_u32bounds_7, (oop)&StaticSymbol_error_, (oop)&StaticSymbol_false, (oop)&StaticSymbol_basicAt_ };
 static const struct CompiledMethod Method_Kernel_OrderedCollection_at__compiled = {
     Method_Kernel_OrderedCollection_at__insts, 24,
-    9, 1,
+    9, 1, 0,
     Method_Kernel_OrderedCollection_at__consts, 8,
     0
 };
@@ -4159,7 +4159,7 @@ static const uint32_t Method_Kernel_OrderedCollection_at_put__insts[] = { 0x0001
 static const oop Method_Kernel_OrderedCollection_at_put__consts[] = { TAG_SMI(1), (oop)&StaticSymbol__lt, (oop)&StaticSymbol_true, (oop)&StaticSymbol__gt, (oop)&StaticString_index_u32out_u32of_u32bounds_7, (oop)&StaticSymbol_error_, (oop)&StaticSymbol_false, (oop)&StaticSymbol_basicAt_put_ };
 static const struct CompiledMethod Method_Kernel_OrderedCollection_at_put__compiled = {
     Method_Kernel_OrderedCollection_at_put__insts, 25,
-    10, 2,
+    10, 2, 0,
     Method_Kernel_OrderedCollection_at_put__consts, 8,
     0
 };
@@ -4172,7 +4172,7 @@ static const uint32_t Method_Kernel_OrderedCollection_first_insts[] = { 0x000003
 static const oop Method_Kernel_OrderedCollection_first_consts[] = { TAG_SMI(1), (oop)&StaticSymbol_at_ };
 static const struct CompiledMethod Method_Kernel_OrderedCollection_first_compiled = {
     Method_Kernel_OrderedCollection_first_insts, 5,
-    5, 0,
+    5, 0, 0,
     Method_Kernel_OrderedCollection_first_consts, 2,
     0
 };
@@ -4185,7 +4185,7 @@ static const uint32_t Method_Kernel_OrderedCollection_last_insts[] = { 0x0000030
 static const oop Method_Kernel_OrderedCollection_last_consts[] = { (oop)&StaticSymbol_at_ };
 static const struct CompiledMethod Method_Kernel_OrderedCollection_last_compiled = {
     Method_Kernel_OrderedCollection_last_insts, 5,
-    5, 0,
+    5, 0, 0,
     Method_Kernel_OrderedCollection_last_consts, 1,
     0
 };
@@ -4198,7 +4198,7 @@ static const uint32_t Method_Kernel_OrderedCollection_removeLast_insts[] = { 0x0
 static const oop Method_Kernel_OrderedCollection_removeLast_consts[] = { (oop)&StaticSymbol_at_, TAG_SMI(1) };
 static const struct CompiledMethod Method_Kernel_OrderedCollection_removeLast_compiled = {
     Method_Kernel_OrderedCollection_removeLast_insts, 11,
-    7, 0,
+    7, 0, 0,
     Method_Kernel_OrderedCollection_removeLast_consts, 2,
     0
 };
@@ -4211,7 +4211,7 @@ static const uint32_t Method_Kernel_OrderedCollection_removeFirst_insts[] = { 0x
 static const oop Method_Kernel_OrderedCollection_removeFirst_consts[] = { TAG_SMI(1), (oop)&StaticSymbol_at_, TAG_SMI(2), (oop)&StaticSymbol__lt_eq, (oop)&StaticSymbol_at_put_ };
 static const struct CompiledMethod Method_Kernel_OrderedCollection_removeFirst_compiled = {
     Method_Kernel_OrderedCollection_removeFirst_insts, 31,
-    13, 0,
+    13, 0, 0,
     Method_Kernel_OrderedCollection_removeFirst_consts, 5,
     0
 };
@@ -4224,7 +4224,7 @@ static const uint32_t Method_Kernel_OrderedCollection_ensureCapacity_insts[] = {
 static const oop Method_Kernel_OrderedCollection_ensureCapacity_consts[] = { (oop)&StaticSymbol_size, (oop)&StaticSymbol__eq, (oop)&StaticSymbol_grow, (oop)&StaticSymbol_false };
 static const struct CompiledMethod Method_Kernel_OrderedCollection_ensureCapacity_compiled = {
     Method_Kernel_OrderedCollection_ensureCapacity_insts, 14,
-    7, 0,
+    7, 0, 0,
     Method_Kernel_OrderedCollection_ensureCapacity_consts, 4,
     0
 };
@@ -4237,7 +4237,7 @@ static const uint32_t Method_Kernel_OrderedCollection_grow_insts[] = { 0x0000050
 static const oop Method_Kernel_OrderedCollection_grow_consts[] = { TAG_SMI(2), (oop)&StaticSymbol_size, (oop)&StaticSymbol_basicNew_indexable_, TAG_SMI(1), (oop)&StaticSymbol__lt_eq, (oop)&StaticSymbol_at_, (oop)&StaticSymbol_at_put_ };
 static const struct CompiledMethod Method_Kernel_OrderedCollection_grow_compiled = {
     Method_Kernel_OrderedCollection_grow_insts, 34,
-    13, 0,
+    13, 0, 0,
     Method_Kernel_OrderedCollection_grow_consts, 7,
     0
 };
@@ -4250,7 +4250,7 @@ static const uint32_t Method_Kernel_OrderedCollection_with_collect__insts[] = { 
 static const oop Method_Kernel_OrderedCollection_with_collect__consts[] = { (oop)&StaticSymbol_size, (oop)&StaticSymbol__eq, (oop)&StaticSymbol_false, (oop)&StaticString_size_u32mismatch_8, (oop)&StaticSymbol_error_, (oop)&Vtable_Kernel_OrderedCollection, (oop)&StaticSymbol_init_new, (oop)&Method_Block_Kernel_OrderedCollection_block23_value___compiled, (oop)&StaticSymbol_withIndexDo_ };
 static const struct CompiledMethod Method_Kernel_OrderedCollection_with_collect__compiled = {
     Method_Kernel_OrderedCollection_with_collect__insts, 32,
-    12, 2,
+    12, 2, 0,
     Method_Kernel_OrderedCollection_with_collect__consts, 9,
     0
 };
@@ -4263,7 +4263,7 @@ static const uint32_t Method_Kernel_OrderedCollection_copyFrom_to__insts[] = { 0
 static const oop Method_Kernel_OrderedCollection_copyFrom_to__consts[] = { TAG_SMI(1), (oop)&StaticSymbol__lt, (oop)&StaticSymbol_true, (oop)&StaticSymbol_size, (oop)&StaticSymbol__gt, (oop)&StaticString_index_u32out_u32of_u32bounds_7, (oop)&StaticSymbol_error_, (oop)&StaticSymbol_false, (oop)&Vtable_Kernel_OrderedCollection, (oop)&StaticSymbol_init_new, (oop)&StaticSymbol__lt_eq, (oop)&StaticSymbol_at_, (oop)&StaticSymbol_add_ };
 static const struct CompiledMethod Method_Kernel_OrderedCollection_copyFrom_to__compiled = {
     Method_Kernel_OrderedCollection_copyFrom_to__insts, 47,
-    14, 2,
+    14, 2, 0,
     Method_Kernel_OrderedCollection_copyFrom_to__consts, 13,
     0
 };
@@ -4276,7 +4276,7 @@ static const uint32_t Method_Kernel_OrderedCollection_reversed_insts[] = { 0x000
 static const oop Method_Kernel_OrderedCollection_reversed_consts[] = { (oop)&Vtable_Kernel_OrderedCollection, (oop)&StaticSymbol_init_new, (oop)&StaticSymbol_size, TAG_SMI(1), (oop)&StaticSymbol__lt_eq, (oop)&StaticSymbol_at_, (oop)&StaticSymbol_add_ };
 static const struct CompiledMethod Method_Kernel_OrderedCollection_reversed_compiled = {
     Method_Kernel_OrderedCollection_reversed_insts, 34,
-    16, 0,
+    16, 0, 0,
     Method_Kernel_OrderedCollection_reversed_consts, 7,
     0
 };
@@ -4289,7 +4289,7 @@ static const uint32_t Method_Kernel_OrderedCollection_first__insts[] = { 0x00000
 static const oop Method_Kernel_OrderedCollection_first__consts[] = { TAG_SMI(1), (oop)&StaticSymbol_copyFrom_to_ };
 static const struct CompiledMethod Method_Kernel_OrderedCollection_first__compiled = {
     Method_Kernel_OrderedCollection_first__insts, 6,
-    7, 1,
+    7, 1, 0,
     Method_Kernel_OrderedCollection_first__consts, 2,
     0
 };
@@ -4302,7 +4302,7 @@ static const uint32_t Method_Kernel_OrderedCollection_last__insts[] = { 0x000004
 static const oop Method_Kernel_OrderedCollection_last__consts[] = { (oop)&StaticSymbol_size, TAG_SMI(1), (oop)&StaticSymbol_copyFrom_to_ };
 static const struct CompiledMethod Method_Kernel_OrderedCollection_last__compiled = {
     Method_Kernel_OrderedCollection_last__insts, 14,
-    10, 1,
+    10, 1, 0,
     Method_Kernel_OrderedCollection_last__consts, 3,
     0
 };
@@ -4315,7 +4315,7 @@ static const uint32_t Method_Kernel_OrderedCollection__u44_insts[] = { 0x0001021
 static const oop Method_Kernel_OrderedCollection__u44_consts[] = { (oop)&Vtable_Kernel_OrderedCollection, (oop)&StaticSymbol_init_new, (oop)&Method_Block_Kernel_OrderedCollection_block24_value__compiled, (oop)&StaticSymbol_do_, (oop)&Method_Block_Kernel_OrderedCollection_block25_value__compiled };
 static const struct CompiledMethod Method_Kernel_OrderedCollection__u44_compiled = {
     Method_Kernel_OrderedCollection__u44_insts, 18,
-    8, 1,
+    8, 1, 0,
     Method_Kernel_OrderedCollection__u44_consts, 5,
     0
 };
@@ -4328,7 +4328,7 @@ static const uint32_t Method_Kernel_OrderedCollection_init_new_insts[] = { 0x000
 static const oop Method_Kernel_OrderedCollection_init_new_consts[] = { TAG_SMI(8), (oop)&StaticSymbol_basicNew_indexable_, TAG_SMI(0) };
 static const struct CompiledMethod Method_Kernel_OrderedCollection_init_new_compiled = {
     Method_Kernel_OrderedCollection_init_new_insts, 11,
-    6, 0,
+    6, 0, 0,
     Method_Kernel_OrderedCollection_init_new_consts, 3,
     0
 };
@@ -4341,7 +4341,7 @@ static const uint32_t Method_Kernel_Interval_do__insts[] = { 0x0003060A, 0x00000
 static const oop Method_Kernel_Interval_do__consts[] = { TAG_SMI(0), (oop)&StaticSymbol__gt, (oop)&StaticSymbol__lt_eq, (oop)&StaticSymbol_value_, NULL, (oop)&StaticSymbol__gt_eq };
 static const struct CompiledMethod Method_Kernel_Interval_do__compiled = {
     Method_Kernel_Interval_do__insts, 42,
-    12, 1,
+    12, 1, 0,
     Method_Kernel_Interval_do__consts, 6,
     0
 };
@@ -4354,7 +4354,7 @@ static const uint32_t Method_Kernel_Interval_size_insts[] = { 0x0003040A, 0x0000
 static const oop Method_Kernel_Interval_size_consts[] = { TAG_SMI(0), (oop)&StaticSymbol__gt, (oop)&StaticSymbol__lt, (oop)&StaticSymbol_false, (oop)&StaticSymbol__div_div, TAG_SMI(1) };
 static const struct CompiledMethod Method_Kernel_Interval_size_compiled = {
     Method_Kernel_Interval_size_insts, 45,
-    11, 0,
+    11, 0, 0,
     Method_Kernel_Interval_size_consts, 6,
     0
 };
@@ -4367,7 +4367,7 @@ static const uint32_t Method_Kernel_Interval_at__insts[] = { 0x00010601, 0x00000
 static const oop Method_Kernel_Interval_at__consts[] = { TAG_SMI(1), (oop)&StaticSymbol__lt, (oop)&StaticSymbol_true, (oop)&StaticSymbol_size, (oop)&StaticSymbol__gt, (oop)&StaticString_index_u32out_u32of_u32bounds_7, (oop)&StaticSymbol_error_, (oop)&StaticSymbol_false };
 static const struct CompiledMethod Method_Kernel_Interval_at__compiled = {
     Method_Kernel_Interval_at__insts, 29,
-    10, 1,
+    10, 1, 0,
     Method_Kernel_Interval_at__consts, 8,
     0
 };
@@ -4380,7 +4380,7 @@ static const uint32_t Method_Kernel_Interval_first_insts[] = { 0x00000301, 0x000
 static const oop Method_Kernel_Interval_first_consts[] = { TAG_SMI(1), (oop)&StaticSymbol_at_ };
 static const struct CompiledMethod Method_Kernel_Interval_first_compiled = {
     Method_Kernel_Interval_first_insts, 5,
-    5, 0,
+    5, 0, 0,
     Method_Kernel_Interval_first_consts, 2,
     0
 };
@@ -4393,7 +4393,7 @@ static const uint32_t Method_Kernel_Interval_last_insts[] = { 0x00000301, 0x0000
 static const oop Method_Kernel_Interval_last_consts[] = { (oop)&StaticSymbol_size, (oop)&StaticSymbol_at_ };
 static const struct CompiledMethod Method_Kernel_Interval_last_compiled = {
     Method_Kernel_Interval_last_insts, 7,
-    6, 0,
+    6, 0, 0,
     Method_Kernel_Interval_last_consts, 2,
     0
 };
@@ -4406,7 +4406,7 @@ static const uint32_t Method_Kernel_Interval_setStart_stop_step__insts[] = { 0x0
 static const oop Method_Kernel_Interval_setStart_stop_step__consts[] = { TAG_SMI(0), (oop)&StaticSymbol__eq, (oop)&StaticString_zero_u32step_9, (oop)&StaticSymbol_error_, (oop)&StaticSymbol_false };
 static const struct CompiledMethod Method_Kernel_Interval_setStart_stop_step__compiled = {
     Method_Kernel_Interval_setStart_stop_step__insts, 20,
-    11, 3,
+    11, 3, 0,
     Method_Kernel_Interval_setStart_stop_step__consts, 5,
     0
 };
@@ -4419,7 +4419,7 @@ static const uint32_t Method_Meta_Kernel_Interval_from_to__insts[] = { 0x0000060
 static const oop Method_Meta_Kernel_Interval_from_to__consts[] = { (oop)&Vtable_Kernel_Interval, (oop)&StaticSymbol_init_new, TAG_SMI(1), (oop)&StaticSymbol_setStart_stop_step_ };
 static const struct CompiledMethod Method_Meta_Kernel_Interval_from_to__compiled = {
     Method_Meta_Kernel_Interval_from_to__insts, 11,
-    9, 2,
+    9, 2, 0,
     Method_Meta_Kernel_Interval_from_to__consts, 4,
     0
 };
@@ -4432,7 +4432,7 @@ static const uint32_t Method_Meta_Kernel_Interval_from_to_by__insts[] = { 0x0000
 static const oop Method_Meta_Kernel_Interval_from_to_by__consts[] = { (oop)&Vtable_Kernel_Interval, (oop)&StaticSymbol_init_new, (oop)&StaticSymbol_setStart_stop_step_ };
 static const struct CompiledMethod Method_Meta_Kernel_Interval_from_to_by__compiled = {
     Method_Meta_Kernel_Interval_from_to_by__insts, 11,
-    10, 3,
+    10, 3, 0,
     Method_Meta_Kernel_Interval_from_to_by__consts, 3,
     0
 };
@@ -4445,7 +4445,7 @@ static const uint32_t Method_Kernel_Interval_init_new_insts[] = { 0x00000200, 0x
 static const oop Method_Kernel_Interval_init_new_consts[] = { NULL };
 static const struct CompiledMethod Method_Kernel_Interval_init_new_compiled = {
     Method_Kernel_Interval_init_new_insts, 7,
-    3, 0,
+    3, 0, 0,
     Method_Kernel_Interval_init_new_consts, 1,
     0
 };
@@ -4458,7 +4458,7 @@ static const uint32_t Method_Kernel_HashedCollection_capacity_insts[] = { 0x0001
 static const oop Method_Kernel_HashedCollection_capacity_consts[] = { (oop)&StaticSymbol_size };
 static const struct CompiledMethod Method_Kernel_HashedCollection_capacity_compiled = {
     Method_Kernel_HashedCollection_capacity_insts, 4,
-    4, 0,
+    4, 0, 0,
     Method_Kernel_HashedCollection_capacity_consts, 1,
     0
 };
@@ -4470,7 +4470,7 @@ static const struct Closure Method_Kernel_HashedCollection_capacity_closure = {
 static const uint32_t Method_Kernel_HashedCollection_size_insts[] = { 0x0002020A, 0x00000203 };
 static const struct CompiledMethod Method_Kernel_HashedCollection_size_compiled = {
     Method_Kernel_HashedCollection_size_insts, 2,
-    3, 0,
+    3, 0, 0,
     NULL, 0,
     0
 };
@@ -4483,7 +4483,7 @@ static const uint32_t Method_Kernel_HashedCollection_isEmpty_insts[] = { 0x00020
 static const oop Method_Kernel_HashedCollection_isEmpty_consts[] = { TAG_SMI(0), (oop)&StaticSymbol__eq };
 static const struct CompiledMethod Method_Kernel_HashedCollection_isEmpty_compiled = {
     Method_Kernel_HashedCollection_isEmpty_insts, 5,
-    5, 0,
+    5, 0, 0,
     Method_Kernel_HashedCollection_isEmpty_consts, 2,
     0
 };
@@ -4496,7 +4496,7 @@ static const uint32_t Method_Kernel_HashedCollection_indexFor__insts[] = { 0x000
 static const oop Method_Kernel_HashedCollection_indexFor__consts[] = { (oop)&StaticSymbol_hash, (oop)&StaticSymbol_capacity, (oop)&StaticSymbol__div_div, TAG_SMI(1) };
 static const struct CompiledMethod Method_Kernel_HashedCollection_indexFor__compiled = {
     Method_Kernel_HashedCollection_indexFor__insts, 19,
-    14, 1,
+    14, 1, 0,
     Method_Kernel_HashedCollection_indexFor__consts, 4,
     0
 };
@@ -4509,7 +4509,7 @@ static const uint32_t Method_Kernel_HashedCollection_slotFor__insts[] = { 0x0000
 static const oop Method_Kernel_HashedCollection_slotFor__consts[] = { (oop)&StaticSymbol_capacity, (oop)&StaticSymbol_indexFor_, (oop)&StaticSymbol_at_, NULL, (oop)&StaticSymbol__eq_eq, (oop)&StaticSymbol_not, (oop)&StaticSymbol__eq, (oop)&StaticSymbol_false, TAG_SMI(1), (oop)&StaticSymbol__gt };
 static const struct CompiledMethod Method_Kernel_HashedCollection_slotFor__compiled = {
     Method_Kernel_HashedCollection_slotFor__insts, 52,
-    18, 1,
+    18, 1, 0,
     Method_Kernel_HashedCollection_slotFor__consts, 10,
     0
 };
@@ -4522,7 +4522,7 @@ static const uint32_t Method_Kernel_HashedCollection_containsKey__insts[] = { 0x
 static const oop Method_Kernel_HashedCollection_containsKey__consts[] = { (oop)&StaticSymbol_slotFor_, (oop)&StaticSymbol_at_, NULL, (oop)&StaticSymbol__eq_eq, (oop)&StaticSymbol_not };
 static const struct CompiledMethod Method_Kernel_HashedCollection_containsKey__compiled = {
     Method_Kernel_HashedCollection_containsKey__insts, 13,
-    10, 1,
+    10, 1, 0,
     Method_Kernel_HashedCollection_containsKey__consts, 5,
     0
 };
@@ -4535,7 +4535,7 @@ static const uint32_t Method_Kernel_HashedCollection_atCapacity_insts[] = { 0x00
 static const oop Method_Kernel_HashedCollection_atCapacity_consts[] = { TAG_SMI(4), (oop)&StaticSymbol_size, TAG_SMI(3), (oop)&StaticSymbol__gt_eq };
 static const struct CompiledMethod Method_Kernel_HashedCollection_atCapacity_compiled = {
     Method_Kernel_HashedCollection_atCapacity_insts, 11,
-    8, 0,
+    8, 0, 0,
     Method_Kernel_HashedCollection_atCapacity_consts, 4,
     0
 };
@@ -4548,7 +4548,7 @@ static const uint32_t Method_Kernel_HashedCollection_growIfNeeded_insts[] = { 0x
 static const oop Method_Kernel_HashedCollection_growIfNeeded_consts[] = { (oop)&StaticSymbol_atCapacity, (oop)&StaticSymbol_grow, (oop)&StaticSymbol_false };
 static const struct CompiledMethod Method_Kernel_HashedCollection_growIfNeeded_compiled = {
     Method_Kernel_HashedCollection_growIfNeeded_insts, 11,
-    6, 0,
+    6, 0, 0,
     Method_Kernel_HashedCollection_growIfNeeded_consts, 3,
     0
 };
@@ -4561,7 +4561,7 @@ static const uint32_t Method_Kernel_HashedCollection_rehashFrom__insts[] = { 0x0
 static const oop Method_Kernel_HashedCollection_rehashFrom__consts[] = { (oop)&StaticSymbol_capacity, TAG_SMI(1), (oop)&StaticSymbol__gt, (oop)&StaticSymbol_false, (oop)&StaticSymbol_at_, NULL, (oop)&StaticSymbol__eq_eq, (oop)&StaticSymbol_not, (oop)&StaticSymbol_reinsertEntryAt_ };
 static const struct CompiledMethod Method_Kernel_HashedCollection_rehashFrom__compiled = {
     Method_Kernel_HashedCollection_rehashFrom__insts, 48,
-    14, 1,
+    14, 1, 0,
     Method_Kernel_HashedCollection_rehashFrom__consts, 9,
     0
 };
@@ -4574,7 +4574,7 @@ static const uint32_t Method_Kernel_HashedCollection_grow_insts[] = { 0x00000301
 static const oop Method_Kernel_HashedCollection_grow_consts[] = { (oop)&StaticString_subclassResponsibility_6, (oop)&StaticSymbol_error_ };
 static const struct CompiledMethod Method_Kernel_HashedCollection_grow_compiled = {
     Method_Kernel_HashedCollection_grow_insts, 5,
-    5, 0,
+    5, 0, 0,
     Method_Kernel_HashedCollection_grow_consts, 2,
     0
 };
@@ -4587,7 +4587,7 @@ static const uint32_t Method_Kernel_HashedCollection_reinsertEntryAt__insts[] = 
 static const oop Method_Kernel_HashedCollection_reinsertEntryAt__consts[] = { (oop)&StaticString_subclassResponsibility_6, (oop)&StaticSymbol_error_ };
 static const struct CompiledMethod Method_Kernel_HashedCollection_reinsertEntryAt__compiled = {
     Method_Kernel_HashedCollection_reinsertEntryAt__insts, 5,
-    6, 1,
+    6, 1, 0,
     Method_Kernel_HashedCollection_reinsertEntryAt__consts, 2,
     0
 };
@@ -4600,7 +4600,7 @@ static const uint32_t Method_Kernel_HashedCollection_do__insts[] = { 0x00000401,
 static const oop Method_Kernel_HashedCollection_do__consts[] = { (oop)&StaticString_subclassResponsibility_6, (oop)&StaticSymbol_error_ };
 static const struct CompiledMethod Method_Kernel_HashedCollection_do__compiled = {
     Method_Kernel_HashedCollection_do__insts, 5,
-    6, 1,
+    6, 1, 0,
     Method_Kernel_HashedCollection_do__consts, 2,
     0
 };
@@ -4613,7 +4613,7 @@ static const uint32_t Method_Kernel_HashedCollection_init_new_insts[] = { 0x0000
 static const oop Method_Kernel_HashedCollection_init_new_consts[] = { NULL };
 static const struct CompiledMethod Method_Kernel_HashedCollection_init_new_compiled = {
     Method_Kernel_HashedCollection_init_new_insts, 5,
-    3, 0,
+    3, 0, 0,
     Method_Kernel_HashedCollection_init_new_consts, 1,
     0
 };
@@ -4626,7 +4626,7 @@ static const uint32_t Method_Kernel_Set_add__insts[] = { 0x00010501, 0x00000600,
 static const oop Method_Kernel_Set_add__consts[] = { NULL, (oop)&StaticSymbol__eq_eq, (oop)&StaticString_nil_u32element_u32not_u32allowed_10, (oop)&StaticSymbol_error_, (oop)&StaticSymbol_false, (oop)&StaticSymbol_place_, (oop)&StaticSymbol_growIfNeeded };
 static const struct CompiledMethod Method_Kernel_Set_add__compiled = {
     Method_Kernel_Set_add__insts, 21,
-    9, 1,
+    9, 1, 0,
     Method_Kernel_Set_add__consts, 7,
     0
 };
@@ -4639,7 +4639,7 @@ static const uint32_t Method_Kernel_Set_addAll__insts[] = { 0x00010401, 0x000005
 static const oop Method_Kernel_Set_addAll__consts[] = { (oop)&Method_Block_Kernel_Set_block26_value__compiled, (oop)&StaticSymbol_do_ };
 static const struct CompiledMethod Method_Kernel_Set_addAll__compiled = {
     Method_Kernel_Set_addAll__insts, 6,
-    6, 1,
+    6, 1, 0,
     Method_Kernel_Set_addAll__consts, 2,
     0
 };
@@ -4652,7 +4652,7 @@ static const uint32_t Method_Kernel_Set_remove__insts[] = { 0x00000401, 0x000105
 static const oop Method_Kernel_Set_remove__consts[] = { (oop)&Method_Block_Kernel_Set_block27_value_compiled, (oop)&StaticSymbol_remove_ifAbsent_ };
 static const struct CompiledMethod Method_Kernel_Set_remove__compiled = {
     Method_Kernel_Set_remove__insts, 6,
-    7, 1,
+    7, 1, 0,
     Method_Kernel_Set_remove__consts, 2,
     0
 };
@@ -4665,7 +4665,7 @@ static const uint32_t Method_Kernel_Set_remove_ifAbsent__insts[] = { 0x00000601,
 static const oop Method_Kernel_Set_remove_ifAbsent__consts[] = { (oop)&StaticSymbol_slotFor_, (oop)&StaticSymbol_at_, NULL, (oop)&StaticSymbol__eq_eq, (oop)&StaticSymbol_value, (oop)&StaticSymbol_false, (oop)&StaticSymbol_at_put_, TAG_SMI(1), (oop)&StaticSymbol_rehashFrom_ };
 static const struct CompiledMethod Method_Kernel_Set_remove_ifAbsent__compiled = {
     Method_Kernel_Set_remove_ifAbsent__insts, 34,
-    12, 2,
+    12, 2, 0,
     Method_Kernel_Set_remove_ifAbsent__consts, 9,
     0
 };
@@ -4678,7 +4678,7 @@ static const uint32_t Method_Kernel_Set_includes__insts[] = { 0x00000401, 0x0001
 static const oop Method_Kernel_Set_includes__consts[] = { (oop)&StaticSymbol_containsKey_ };
 static const struct CompiledMethod Method_Kernel_Set_includes__compiled = {
     Method_Kernel_Set_includes__insts, 5,
-    6, 1,
+    6, 1, 0,
     Method_Kernel_Set_includes__consts, 1,
     0
 };
@@ -4691,7 +4691,7 @@ static const uint32_t Method_Kernel_Set_do__insts[] = { 0x00000300, 0x00030401, 
 static const oop Method_Kernel_Set_do__consts[] = { TAG_SMI(1), (oop)&StaticSymbol_capacity, (oop)&StaticSymbol__lt_eq, NULL, (oop)&StaticSymbol_at_, (oop)&StaticSymbol__eq_eq, (oop)&StaticSymbol_false, (oop)&StaticSymbol_value_ };
 static const struct CompiledMethod Method_Kernel_Set_do__compiled = {
     Method_Kernel_Set_do__insts, 31,
-    14, 1,
+    14, 1, 0,
     Method_Kernel_Set_do__consts, 8,
     0
 };
@@ -4704,7 +4704,7 @@ static const uint32_t Method_Kernel_Set_place__insts[] = { 0x00000501, 0x0001060
 static const oop Method_Kernel_Set_place__consts[] = { (oop)&StaticSymbol_slotFor_, (oop)&StaticSymbol_at_, NULL, (oop)&StaticSymbol__eq_eq, (oop)&StaticSymbol_at_put_, TAG_SMI(1), (oop)&StaticSymbol_false };
 static const struct CompiledMethod Method_Kernel_Set_place__compiled = {
     Method_Kernel_Set_place__insts, 26,
-    13, 1,
+    13, 1, 0,
     Method_Kernel_Set_place__consts, 7,
     0
 };
@@ -4717,7 +4717,7 @@ static const uint32_t Method_Kernel_Set_reinsertEntryAt__insts[] = { 0x0001050A,
 static const oop Method_Kernel_Set_reinsertEntryAt__consts[] = { (oop)&StaticSymbol_at_, NULL, (oop)&StaticSymbol_at_put_, TAG_SMI(1), (oop)&StaticSymbol_place_ };
 static const struct CompiledMethod Method_Kernel_Set_reinsertEntryAt__compiled = {
     Method_Kernel_Set_reinsertEntryAt__insts, 20,
-    9, 1,
+    9, 1, 0,
     Method_Kernel_Set_reinsertEntryAt__consts, 5,
     0
 };
@@ -4730,7 +4730,7 @@ static const uint32_t Method_Kernel_Set_grow_insts[] = { 0x0001040A, 0x00040201,
 static const oop Method_Kernel_Set_grow_consts[] = { (oop)&StaticSymbol_size, TAG_SMI(2), (oop)&StaticSymbol_basicNew_indexable_, TAG_SMI(0), TAG_SMI(1), (oop)&StaticSymbol__lt_eq, NULL, (oop)&StaticSymbol_at_, (oop)&StaticSymbol__eq_eq, (oop)&StaticSymbol_false, (oop)&StaticSymbol_place_ };
 static const struct CompiledMethod Method_Kernel_Set_grow_compiled = {
     Method_Kernel_Set_grow_insts, 47,
-    16, 0,
+    16, 0, 0,
     Method_Kernel_Set_grow_consts, 11,
     0
 };
@@ -4743,7 +4743,7 @@ static const uint32_t Method_Kernel_Set_init_new_insts[] = { 0x0000040A, 0x04000
 static const oop Method_Kernel_Set_init_new_consts[] = { TAG_SMI(8), (oop)&StaticSymbol_basicNew_indexable_, TAG_SMI(0) };
 static const struct CompiledMethod Method_Kernel_Set_init_new_compiled = {
     Method_Kernel_Set_init_new_insts, 11,
-    6, 0,
+    6, 0, 0,
     Method_Kernel_Set_init_new_consts, 3,
     0
 };
@@ -4756,7 +4756,7 @@ static const uint32_t Method_Kernel_Dictionary_at_put__insts[] = { 0x00010601, 0
 static const oop Method_Kernel_Dictionary_at_put__consts[] = { NULL, (oop)&StaticSymbol__eq_eq, (oop)&StaticString_nil_u32key_u32not_u32allowed_11, (oop)&StaticSymbol_error_, (oop)&StaticSymbol_false, (oop)&StaticSymbol_place_value_, (oop)&StaticSymbol_growIfNeeded };
 static const struct CompiledMethod Method_Kernel_Dictionary_at_put__compiled = {
     Method_Kernel_Dictionary_at_put__insts, 22,
-    10, 2,
+    10, 2, 0,
     Method_Kernel_Dictionary_at_put__consts, 7,
     0
 };
@@ -4769,7 +4769,7 @@ static const uint32_t Method_Kernel_Dictionary_at_ifAbsent__insts[] = { 0x000006
 static const oop Method_Kernel_Dictionary_at_ifAbsent__consts[] = { (oop)&StaticSymbol_slotFor_, (oop)&StaticSymbol_at_, NULL, (oop)&StaticSymbol__eq_eq, (oop)&StaticSymbol_value, (oop)&StaticSymbol_false };
 static const struct CompiledMethod Method_Kernel_Dictionary_at_ifAbsent__compiled = {
     Method_Kernel_Dictionary_at_ifAbsent__insts, 24,
-    12, 2,
+    12, 2, 0,
     Method_Kernel_Dictionary_at_ifAbsent__consts, 6,
     0
 };
@@ -4782,7 +4782,7 @@ static const uint32_t Method_Kernel_Dictionary_at__insts[] = { 0x00000401, 0x000
 static const oop Method_Kernel_Dictionary_at__consts[] = { (oop)&Method_Block_Kernel_Dictionary_block28_value_compiled, (oop)&StaticSymbol_at_ifAbsent_ };
 static const struct CompiledMethod Method_Kernel_Dictionary_at__compiled = {
     Method_Kernel_Dictionary_at__insts, 6,
-    7, 1,
+    7, 1, 0,
     Method_Kernel_Dictionary_at__consts, 2,
     0
 };
@@ -4795,7 +4795,7 @@ static const uint32_t Method_Kernel_Dictionary_at_ifAbsentPut__insts[] = { 0x000
 static const oop Method_Kernel_Dictionary_at_ifAbsentPut__consts[] = { (oop)&StaticSymbol_slotFor_, (oop)&StaticSymbol_at_, NULL, (oop)&StaticSymbol__eq_eq, (oop)&StaticSymbol_not, (oop)&StaticSymbol_false, (oop)&StaticSymbol_value, (oop)&StaticSymbol_at_put_ };
 static const struct CompiledMethod Method_Kernel_Dictionary_at_ifAbsentPut__compiled = {
     Method_Kernel_Dictionary_at_ifAbsentPut__insts, 30,
-    14, 2,
+    14, 2, 0,
     Method_Kernel_Dictionary_at_ifAbsentPut__consts, 8,
     0
 };
@@ -4808,7 +4808,7 @@ static const uint32_t Method_Kernel_Dictionary_includesKey__insts[] = { 0x000004
 static const oop Method_Kernel_Dictionary_includesKey__consts[] = { (oop)&StaticSymbol_containsKey_ };
 static const struct CompiledMethod Method_Kernel_Dictionary_includesKey__compiled = {
     Method_Kernel_Dictionary_includesKey__insts, 5,
-    6, 1,
+    6, 1, 0,
     Method_Kernel_Dictionary_includesKey__consts, 1,
     0
 };
@@ -4821,7 +4821,7 @@ static const uint32_t Method_Kernel_Dictionary_removeKey__insts[] = { 0x00000401
 static const oop Method_Kernel_Dictionary_removeKey__consts[] = { (oop)&Method_Block_Kernel_Dictionary_block29_value_compiled, (oop)&StaticSymbol_removeKey_ifAbsent_ };
 static const struct CompiledMethod Method_Kernel_Dictionary_removeKey__compiled = {
     Method_Kernel_Dictionary_removeKey__insts, 6,
-    7, 1,
+    7, 1, 0,
     Method_Kernel_Dictionary_removeKey__consts, 2,
     0
 };
@@ -4834,7 +4834,7 @@ static const uint32_t Method_Kernel_Dictionary_removeKey_ifAbsent__insts[] = { 0
 static const oop Method_Kernel_Dictionary_removeKey_ifAbsent__consts[] = { (oop)&StaticSymbol_slotFor_, (oop)&StaticSymbol_at_, NULL, (oop)&StaticSymbol__eq_eq, (oop)&StaticSymbol_value, (oop)&StaticSymbol_false, (oop)&StaticSymbol_at_put_, TAG_SMI(1), (oop)&StaticSymbol_rehashFrom_ };
 static const struct CompiledMethod Method_Kernel_Dictionary_removeKey_ifAbsent__compiled = {
     Method_Kernel_Dictionary_removeKey_ifAbsent__insts, 39,
-    14, 2,
+    14, 2, 0,
     Method_Kernel_Dictionary_removeKey_ifAbsent__consts, 9,
     0
 };
@@ -4847,7 +4847,7 @@ static const uint32_t Method_Kernel_Dictionary_keys_insts[] = { 0x0000060A, 0x06
 static const oop Method_Kernel_Dictionary_keys_consts[] = { (oop)&StaticSymbol_basicNew_indexable_, TAG_SMI(0), TAG_SMI(1), (oop)&StaticSymbol_capacity, (oop)&StaticSymbol__lt_eq, NULL, (oop)&StaticSymbol_at_, (oop)&StaticSymbol__eq_eq, (oop)&StaticSymbol_false, (oop)&StaticSymbol_at_put_ };
 static const struct CompiledMethod Method_Kernel_Dictionary_keys_compiled = {
     Method_Kernel_Dictionary_keys_insts, 46,
-    17, 0,
+    17, 0, 0,
     Method_Kernel_Dictionary_keys_consts, 10,
     0
 };
@@ -4860,7 +4860,7 @@ static const uint32_t Method_Kernel_Dictionary_values_insts[] = { 0x0000060A, 0x
 static const oop Method_Kernel_Dictionary_values_consts[] = { (oop)&StaticSymbol_basicNew_indexable_, TAG_SMI(0), TAG_SMI(1), (oop)&StaticSymbol_capacity, (oop)&StaticSymbol__lt_eq, NULL, (oop)&StaticSymbol_at_, (oop)&StaticSymbol__eq_eq, (oop)&StaticSymbol_false, (oop)&StaticSymbol_at_put_ };
 static const struct CompiledMethod Method_Kernel_Dictionary_values_compiled = {
     Method_Kernel_Dictionary_values_insts, 49,
-    19, 0,
+    19, 0, 0,
     Method_Kernel_Dictionary_values_consts, 10,
     0
 };
@@ -4873,7 +4873,7 @@ static const uint32_t Method_Kernel_Dictionary_keysAndValuesDo__insts[] = { 0x00
 static const oop Method_Kernel_Dictionary_keysAndValuesDo__consts[] = { TAG_SMI(1), (oop)&StaticSymbol_capacity, (oop)&StaticSymbol__lt_eq, NULL, (oop)&StaticSymbol_at_, (oop)&StaticSymbol__eq_eq, (oop)&StaticSymbol_false, (oop)&StaticSymbol_value_value_ };
 static const struct CompiledMethod Method_Kernel_Dictionary_keysAndValuesDo__compiled = {
     Method_Kernel_Dictionary_keysAndValuesDo__insts, 35,
-    17, 1,
+    17, 1, 0,
     Method_Kernel_Dictionary_keysAndValuesDo__consts, 8,
     0
 };
@@ -4886,7 +4886,7 @@ static const uint32_t Method_Kernel_Dictionary_do__insts[] = { 0x00000300, 0x000
 static const oop Method_Kernel_Dictionary_do__consts[] = { TAG_SMI(1), (oop)&StaticSymbol_capacity, (oop)&StaticSymbol__lt_eq, NULL, (oop)&StaticSymbol_at_, (oop)&StaticSymbol__eq_eq, (oop)&StaticSymbol_false, (oop)&StaticSymbol_value_ };
 static const struct CompiledMethod Method_Kernel_Dictionary_do__compiled = {
     Method_Kernel_Dictionary_do__insts, 34,
-    16, 1,
+    16, 1, 0,
     Method_Kernel_Dictionary_do__consts, 8,
     0
 };
@@ -4899,7 +4899,7 @@ static const uint32_t Method_Kernel_Dictionary_place_value__insts[] = { 0x000006
 static const oop Method_Kernel_Dictionary_place_value__consts[] = { (oop)&StaticSymbol_slotFor_, (oop)&StaticSymbol_at_, NULL, (oop)&StaticSymbol__eq_eq, (oop)&StaticSymbol_at_put_, TAG_SMI(1), (oop)&StaticSymbol_false };
 static const struct CompiledMethod Method_Kernel_Dictionary_place_value__compiled = {
     Method_Kernel_Dictionary_place_value__insts, 31,
-    14, 2,
+    14, 2, 0,
     Method_Kernel_Dictionary_place_value__consts, 7,
     0
 };
@@ -4912,7 +4912,7 @@ static const uint32_t Method_Kernel_Dictionary_reinsertEntryAt__insts[] = { 0x00
 static const oop Method_Kernel_Dictionary_reinsertEntryAt__consts[] = { (oop)&StaticSymbol_at_, NULL, (oop)&StaticSymbol_at_put_, TAG_SMI(1), (oop)&StaticSymbol_place_value_ };
 static const struct CompiledMethod Method_Kernel_Dictionary_reinsertEntryAt__compiled = {
     Method_Kernel_Dictionary_reinsertEntryAt__insts, 26,
-    12, 1,
+    12, 1, 0,
     Method_Kernel_Dictionary_reinsertEntryAt__consts, 5,
     0
 };
@@ -4925,7 +4925,7 @@ static const uint32_t Method_Kernel_Dictionary_grow_insts[] = { 0x0001050A, 0x00
 static const oop Method_Kernel_Dictionary_grow_consts[] = { (oop)&StaticSymbol_size, TAG_SMI(2), (oop)&StaticSymbol_basicNew_indexable_, TAG_SMI(0), TAG_SMI(1), (oop)&StaticSymbol__lt_eq, NULL, (oop)&StaticSymbol_at_, (oop)&StaticSymbol__eq_eq, (oop)&StaticSymbol_false, (oop)&StaticSymbol_place_value_ };
 static const struct CompiledMethod Method_Kernel_Dictionary_grow_compiled = {
     Method_Kernel_Dictionary_grow_insts, 63,
-    21, 0,
+    21, 0, 0,
     Method_Kernel_Dictionary_grow_consts, 11,
     0
 };
@@ -4938,7 +4938,7 @@ static const uint32_t Method_Kernel_Dictionary_init_new_insts[] = { 0x0000040A, 
 static const oop Method_Kernel_Dictionary_init_new_consts[] = { TAG_SMI(8), (oop)&StaticSymbol_basicNew_indexable_, TAG_SMI(0) };
 static const struct CompiledMethod Method_Kernel_Dictionary_init_new_compiled = {
     Method_Kernel_Dictionary_init_new_insts, 19,
-    7, 0,
+    7, 0, 0,
     Method_Kernel_Dictionary_init_new_consts, 3,
     0
 };
@@ -4950,7 +4950,7 @@ static const struct Closure Method_Kernel_Dictionary_init_new_closure = {
 static const uint32_t Method_Kernel_Association_setKey_value__insts[] = { 0x00010401, 0x0001040B, 0x00020401, 0x0002040B, 0x00000401, 0x00000403 };
 static const struct CompiledMethod Method_Kernel_Association_setKey_value__compiled = {
     Method_Kernel_Association_setKey_value__insts, 6,
-    5, 2,
+    5, 2, 0,
     NULL, 0,
     0
 };
@@ -4962,7 +4962,7 @@ static const struct Closure Method_Kernel_Association_setKey_value__closure = {
 static const uint32_t Method_Kernel_Association_key_insts[] = { 0x0001020A, 0x00000203 };
 static const struct CompiledMethod Method_Kernel_Association_key_compiled = {
     Method_Kernel_Association_key_insts, 2,
-    3, 0,
+    3, 0, 0,
     NULL, 0,
     0
 };
@@ -4974,7 +4974,7 @@ static const struct Closure Method_Kernel_Association_key_closure = {
 static const uint32_t Method_Kernel_Association_value_insts[] = { 0x0002020A, 0x00000203 };
 static const struct CompiledMethod Method_Kernel_Association_value_compiled = {
     Method_Kernel_Association_value_insts, 2,
-    3, 0,
+    3, 0, 0,
     NULL, 0,
     0
 };
@@ -4987,7 +4987,7 @@ static const uint32_t Method_Kernel_Association_printString_insts[] = { 0x000105
 static const oop Method_Kernel_Association_printString_consts[] = { (oop)&StaticSymbol_printString, (oop)&StaticString__u32_sub_gt_u32_12, (oop)&StaticSymbol__u44 };
 static const struct CompiledMethod Method_Kernel_Association_printString_compiled = {
     Method_Kernel_Association_printString_insts, 12,
-    6, 0,
+    6, 0, 0,
     Method_Kernel_Association_printString_consts, 3,
     0
 };
@@ -5000,7 +5000,7 @@ static const uint32_t Method_Meta_Kernel_Association_key_value__insts[] = { 0x00
 static const oop Method_Meta_Kernel_Association_key_value__consts[] = { (oop)&Vtable_Kernel_Association, (oop)&StaticSymbol_init_new, (oop)&StaticSymbol_setKey_value_ };
 static const struct CompiledMethod Method_Meta_Kernel_Association_key_value__compiled = {
     Method_Meta_Kernel_Association_key_value__insts, 10,
-    8, 2,
+    8, 2, 0,
     Method_Meta_Kernel_Association_key_value__consts, 3,
     0
 };
@@ -5013,7 +5013,7 @@ static const uint32_t Method_Kernel_Association_init_new_insts[] = { 0x00000200,
 static const oop Method_Kernel_Association_init_new_consts[] = { NULL };
 static const struct CompiledMethod Method_Kernel_Association_init_new_compiled = {
     Method_Kernel_Association_init_new_insts, 5,
-    3, 0,
+    3, 0, 0,
     Method_Kernel_Association_init_new_consts, 1,
     0
 };
@@ -5026,7 +5026,7 @@ static const uint32_t Method_Kernel_List_size_insts[] = { 0x0001030A, 0x03000002
 static const oop Method_Kernel_List_size_consts[] = { (oop)&StaticSymbol_size };
 static const struct CompiledMethod Method_Kernel_List_size_compiled = {
     Method_Kernel_List_size_insts, 4,
-    4, 0,
+    4, 0, 0,
     Method_Kernel_List_size_consts, 1,
     0
 };
@@ -5039,7 +5039,7 @@ static const uint32_t Method_Kernel_List_at__insts[] = { 0x00010601, 0x00000700,
 static const oop Method_Kernel_List_at__consts[] = { TAG_SMI(1), (oop)&StaticSymbol__lt, (oop)&StaticSymbol_true, (oop)&StaticSymbol_size, (oop)&StaticSymbol__gt, (oop)&StaticString_index_u32out_u32of_u32bounds_7, (oop)&StaticSymbol_error_, (oop)&StaticSymbol_false, (oop)&StaticSymbol_at_ };
 static const struct CompiledMethod Method_Kernel_List_at__compiled = {
     Method_Kernel_List_at__insts, 26,
-    10, 1,
+    10, 1, 0,
     Method_Kernel_List_at__consts, 9,
     0
 };
@@ -5052,7 +5052,7 @@ static const uint32_t Method_Kernel_List_at_ifAbsent__insts[] = { 0x00010701, 0x
 static const oop Method_Kernel_List_at_ifAbsent__consts[] = { TAG_SMI(1), (oop)&StaticSymbol__lt, (oop)&StaticSymbol_true, (oop)&StaticSymbol_size, (oop)&StaticSymbol__gt, (oop)&StaticSymbol_value, (oop)&StaticSymbol_false, (oop)&StaticSymbol_at_ };
 static const struct CompiledMethod Method_Kernel_List_at_ifAbsent__compiled = {
     Method_Kernel_List_at_ifAbsent__insts, 25,
-    11, 2,
+    11, 2, 0,
     Method_Kernel_List_at_ifAbsent__consts, 8,
     0
 };
@@ -5065,7 +5065,7 @@ static const uint32_t Method_Kernel_List_do__insts[] = { 0x0001040A, 0x00010501,
 static const oop Method_Kernel_List_do__consts[] = { (oop)&StaticSymbol_do_ };
 static const struct CompiledMethod Method_Kernel_List_do__compiled = {
     Method_Kernel_List_do__insts, 6,
-    6, 1,
+    6, 1, 0,
     Method_Kernel_List_do__consts, 1,
     0
 };
@@ -5078,7 +5078,7 @@ static const uint32_t Method_Kernel_List_inject_into__insts[] = { 0x00020315, 0x
 static const oop Method_Kernel_List_inject_into__consts[] = { (oop)&Method_Block_Kernel_List_block30_value__compiled, (oop)&StaticSymbol_do_ };
 static const struct CompiledMethod Method_Kernel_List_inject_into__compiled = {
     Method_Kernel_List_inject_into__insts, 10,
-    8, 2,
+    8, 2, 0,
     Method_Kernel_List_inject_into__consts, 2,
     0
 };
@@ -5091,7 +5091,7 @@ static const uint32_t Method_Kernel_List_anySatisfy__insts[] = { 0x00020215, 0x0
 static const oop Method_Kernel_List_anySatisfy__consts[] = { (oop)&StaticSymbol_false, (oop)&Method_Block_Kernel_List_block31_value__compiled, (oop)&StaticSymbol_do_ };
 static const struct CompiledMethod Method_Kernel_List_anySatisfy__compiled = {
     Method_Kernel_List_anySatisfy__insts, 10,
-    7, 1,
+    7, 1, 0,
     Method_Kernel_List_anySatisfy__consts, 3,
     0
 };
@@ -5104,7 +5104,7 @@ static const uint32_t Method_Kernel_List_isList_insts[] = { 0x00000200, 0x000002
 static const oop Method_Kernel_List_isList_consts[] = { (oop)&StaticSymbol_true };
 static const struct CompiledMethod Method_Kernel_List_isList_compiled = {
     Method_Kernel_List_isList_insts, 2,
-    3, 0,
+    3, 0, 0,
     Method_Kernel_List_isList_consts, 1,
     0
 };
@@ -5117,7 +5117,7 @@ static const uint32_t Method_Kernel_List_isValue_insts[] = { 0x00000200, 0x00000
 static const oop Method_Kernel_List_isValue_consts[] = { (oop)&StaticSymbol_true };
 static const struct CompiledMethod Method_Kernel_List_isValue_compiled = {
     Method_Kernel_List_isValue_insts, 2,
-    3, 0,
+    3, 0, 0,
     Method_Kernel_List_isValue_consts, 1,
     0
 };
@@ -5130,7 +5130,7 @@ static const uint32_t Method_Kernel_List_valueRank_insts[] = { 0x00000200, 0x000
 static const oop Method_Kernel_List_valueRank_consts[] = { TAG_SMI(7) };
 static const struct CompiledMethod Method_Kernel_List_valueRank_compiled = {
     Method_Kernel_List_valueRank_insts, 2,
-    3, 0,
+    3, 0, 0,
     Method_Kernel_List_valueRank_consts, 1,
     0
 };
@@ -5142,7 +5142,7 @@ static const struct Closure Method_Kernel_List_valueRank_closure = {
 static const uint32_t Method_Kernel_List_valueDepth_insts[] = { 0x0002020A, 0x00000203 };
 static const struct CompiledMethod Method_Kernel_List_valueDepth_compiled = {
     Method_Kernel_List_valueDepth_insts, 2,
-    3, 0,
+    3, 0, 0,
     NULL, 0,
     0
 };
@@ -5155,7 +5155,7 @@ static const uint32_t Method_Kernel_List__eq_insts[] = { 0x0000050A, 0x00010601,
 static const oop Method_Kernel_List__eq_consts[] = { (oop)&StaticSymbol_isValueObject_, (oop)&StaticSymbol_false, (oop)&StaticSymbol_value_equals_ };
 static const struct CompiledMethod Method_Kernel_List__eq_compiled = {
     Method_Kernel_List__eq_insts, 15,
-    8, 1,
+    8, 1, 0,
     Method_Kernel_List__eq_consts, 3,
     0
 };
@@ -5168,7 +5168,7 @@ static const uint32_t Method_Kernel_List_hash_insts[] = { 0x0000030A, 0x00000401
 static const oop Method_Kernel_List_hash_consts[] = { (oop)&StaticSymbol_valueHashOf_ };
 static const struct CompiledMethod Method_Kernel_List_hash_compiled = {
     Method_Kernel_List_hash_insts, 5,
-    5, 0,
+    5, 0, 0,
     Method_Kernel_List_hash_consts, 1,
     0
 };
@@ -5181,7 +5181,7 @@ static const uint32_t Method_Kernel_List_setItems__insts[] = { 0x00000400, 0x000
 static const oop Method_Kernel_List_setItems__consts[] = { TAG_SMI(0), TAG_SMI(1), (oop)&StaticSymbol_size, (oop)&StaticSymbol__lt_eq, NULL, (oop)&StaticSymbol_at_, (oop)&StaticSymbol_checkValue_, (oop)&StaticSymbol_depthOf_, (oop)&StaticSymbol__gt, (oop)&StaticSymbol_false, (oop)&StaticSymbol_checkDepth_ };
 static const struct CompiledMethod Method_Kernel_List_setItems__compiled = {
     Method_Kernel_List_setItems__insts, 50,
-    17, 1,
+    17, 1, 0,
     Method_Kernel_List_setItems__consts, 11,
     0
 };
@@ -5194,7 +5194,7 @@ static const uint32_t Method_Meta_Kernel_List_with__insts[] = { 0x0001060A, 0x06
 static const oop Method_Meta_Kernel_List_with__consts[] = { TAG_SMI(1), (oop)&StaticSymbol_basicNew_indexable_, (oop)&StaticSymbol_at_put_, (oop)&Vtable_Kernel_List, (oop)&StaticSymbol_init_new, (oop)&StaticSymbol_setItems_ };
 static const struct CompiledMethod Method_Meta_Kernel_List_with__compiled = {
     Method_Meta_Kernel_List_with__insts, 22,
-    9, 1,
+    9, 1, 0,
     Method_Meta_Kernel_List_with__consts, 6,
     0
 };
@@ -5207,7 +5207,7 @@ static const uint32_t Method_Meta_Kernel_List_with_with__insts[] = { 0x0001070A,
 static const oop Method_Meta_Kernel_List_with_with__consts[] = { TAG_SMI(2), (oop)&StaticSymbol_basicNew_indexable_, TAG_SMI(1), (oop)&StaticSymbol_at_put_, (oop)&Vtable_Kernel_List, (oop)&StaticSymbol_init_new, (oop)&StaticSymbol_setItems_ };
 static const struct CompiledMethod Method_Meta_Kernel_List_with_with__compiled = {
     Method_Meta_Kernel_List_with_with__insts, 27,
-    11, 2,
+    11, 2, 0,
     Method_Meta_Kernel_List_with_with__consts, 7,
     0
 };
@@ -5220,7 +5220,7 @@ static const uint32_t Method_Meta_Kernel_List_with_with_with__insts[] = { 0x0001
 static const oop Method_Meta_Kernel_List_with_with_with__consts[] = { TAG_SMI(3), (oop)&StaticSymbol_basicNew_indexable_, TAG_SMI(1), (oop)&StaticSymbol_at_put_, TAG_SMI(2), (oop)&Vtable_Kernel_List, (oop)&StaticSymbol_init_new, (oop)&StaticSymbol_setItems_ };
 static const struct CompiledMethod Method_Meta_Kernel_List_with_with_with__compiled = {
     Method_Meta_Kernel_List_with_with_with__insts, 32,
-    13, 3,
+    13, 3, 0,
     Method_Meta_Kernel_List_with_with_with__consts, 8,
     0
 };
@@ -5233,7 +5233,7 @@ static const uint32_t Method_Meta_Kernel_List_with_with_with_with__insts[] = { 0
 static const oop Method_Meta_Kernel_List_with_with_with_with__consts[] = { TAG_SMI(4), (oop)&StaticSymbol_basicNew_indexable_, TAG_SMI(1), (oop)&StaticSymbol_at_put_, TAG_SMI(2), TAG_SMI(3), (oop)&Vtable_Kernel_List, (oop)&StaticSymbol_init_new, (oop)&StaticSymbol_setItems_ };
 static const struct CompiledMethod Method_Meta_Kernel_List_with_with_with_with__compiled = {
     Method_Meta_Kernel_List_with_with_with_with__insts, 37,
-    15, 4,
+    15, 4, 0,
     Method_Meta_Kernel_List_with_with_with_with__consts, 9,
     0
 };
@@ -5246,7 +5246,7 @@ static const uint32_t Method_Meta_Kernel_List_fromCollection__insts[] = { 0x0002
 static const oop Method_Meta_Kernel_List_fromCollection__consts[] = { (oop)&StaticSymbol_size, (oop)&StaticSymbol_basicNew_indexable_, TAG_SMI(0), (oop)&Method_Block_Meta_Kernel_List_block32_value__compiled, (oop)&StaticSymbol_do_, (oop)&Vtable_Kernel_List, (oop)&StaticSymbol_init_new, (oop)&StaticSymbol_setItems_ };
 static const struct CompiledMethod Method_Meta_Kernel_List_fromCollection__compiled = {
     Method_Meta_Kernel_List_fromCollection__insts, 28,
-    12, 1,
+    12, 1, 0,
     Method_Meta_Kernel_List_fromCollection__consts, 8,
     0
 };
@@ -5259,7 +5259,7 @@ static const uint32_t Method_Kernel_List_init_new_insts[] = { 0x00000200, 0x0001
 static const oop Method_Kernel_List_init_new_consts[] = { NULL };
 static const struct CompiledMethod Method_Kernel_List_init_new_compiled = {
     Method_Kernel_List_init_new_insts, 5,
-    3, 0,
+    3, 0, 0,
     Method_Kernel_List_init_new_consts, 1,
     0
 };
@@ -5272,7 +5272,7 @@ static const uint32_t Method_Kernel_Map_size_insts[] = { 0x0001030A, 0x03000002,
 static const oop Method_Kernel_Map_size_consts[] = { (oop)&StaticSymbol_size };
 static const struct CompiledMethod Method_Kernel_Map_size_compiled = {
     Method_Kernel_Map_size_insts, 4,
-    4, 0,
+    4, 0, 0,
     Method_Kernel_Map_size_consts, 1,
     0
 };
@@ -5285,7 +5285,7 @@ static const uint32_t Method_Kernel_Map_at_ifAbsent__insts[] = { 0x00000800, 0x0
 static const oop Method_Kernel_Map_at_ifAbsent__consts[] = { TAG_SMI(1), (oop)&StaticSymbol_size, (oop)&StaticSymbol__lt_eq, TAG_SMI(2), (oop)&StaticSymbol__div_div, (oop)&StaticSymbol_at_, (oop)&StaticSymbol_valueCompare_with_, TAG_SMI(0), (oop)&StaticSymbol__eq, (oop)&StaticSymbol_false, (oop)&StaticSymbol__lt, NULL, (oop)&StaticSymbol_value };
 static const struct CompiledMethod Method_Kernel_Map_at_ifAbsent__compiled = {
     Method_Kernel_Map_at_ifAbsent__insts, 59,
-    20, 2,
+    20, 2, 0,
     Method_Kernel_Map_at_ifAbsent__consts, 13,
     0
 };
@@ -5298,7 +5298,7 @@ static const uint32_t Method_Kernel_Map_keysDo__insts[] = { 0x0001040A, 0x000105
 static const oop Method_Kernel_Map_keysDo__consts[] = { (oop)&StaticSymbol_do_ };
 static const struct CompiledMethod Method_Kernel_Map_keysDo__compiled = {
     Method_Kernel_Map_keysDo__insts, 6,
-    6, 1,
+    6, 1, 0,
     Method_Kernel_Map_keysDo__consts, 1,
     0
 };
@@ -5311,7 +5311,7 @@ static const uint32_t Method_Kernel_Map_do__insts[] = { 0x0002040A, 0x00010501, 
 static const oop Method_Kernel_Map_do__consts[] = { (oop)&StaticSymbol_do_ };
 static const struct CompiledMethod Method_Kernel_Map_do__compiled = {
     Method_Kernel_Map_do__insts, 6,
-    6, 1,
+    6, 1, 0,
     Method_Kernel_Map_do__consts, 1,
     0
 };
@@ -5324,7 +5324,7 @@ static const uint32_t Method_Kernel_Map_keysAndValuesDo__insts[] = { 0x00000300,
 static const oop Method_Kernel_Map_keysAndValuesDo__consts[] = { TAG_SMI(1), (oop)&StaticSymbol_size, (oop)&StaticSymbol__lt_eq, (oop)&StaticSymbol_at_, (oop)&StaticSymbol_value_value_ };
 static const struct CompiledMethod Method_Kernel_Map_keysAndValuesDo__compiled = {
     Method_Kernel_Map_keysAndValuesDo__insts, 25,
-    13, 1,
+    13, 1, 0,
     Method_Kernel_Map_keysAndValuesDo__consts, 5,
     0
 };
@@ -5337,7 +5337,7 @@ static const uint32_t Method_Kernel_Map_keyAt__insts[] = { 0x0001040A, 0x0001050
 static const oop Method_Kernel_Map_keyAt__consts[] = { (oop)&StaticSymbol_at_ };
 static const struct CompiledMethod Method_Kernel_Map_keyAt__compiled = {
     Method_Kernel_Map_keyAt__insts, 5,
-    6, 1,
+    6, 1, 0,
     Method_Kernel_Map_keyAt__consts, 1,
     0
 };
@@ -5350,7 +5350,7 @@ static const uint32_t Method_Kernel_Map_valueAt__insts[] = { 0x0002040A, 0x00010
 static const oop Method_Kernel_Map_valueAt__consts[] = { (oop)&StaticSymbol_at_ };
 static const struct CompiledMethod Method_Kernel_Map_valueAt__compiled = {
     Method_Kernel_Map_valueAt__insts, 5,
-    6, 1,
+    6, 1, 0,
     Method_Kernel_Map_valueAt__consts, 1,
     0
 };
@@ -5363,7 +5363,7 @@ static const uint32_t Method_Kernel_Map_isMap_insts[] = { 0x00000200, 0x00000203
 static const oop Method_Kernel_Map_isMap_consts[] = { (oop)&StaticSymbol_true };
 static const struct CompiledMethod Method_Kernel_Map_isMap_compiled = {
     Method_Kernel_Map_isMap_insts, 2,
-    3, 0,
+    3, 0, 0,
     Method_Kernel_Map_isMap_consts, 1,
     0
 };
@@ -5376,7 +5376,7 @@ static const uint32_t Method_Kernel_Map_isValue_insts[] = { 0x00000200, 0x000002
 static const oop Method_Kernel_Map_isValue_consts[] = { (oop)&StaticSymbol_true };
 static const struct CompiledMethod Method_Kernel_Map_isValue_compiled = {
     Method_Kernel_Map_isValue_insts, 2,
-    3, 0,
+    3, 0, 0,
     Method_Kernel_Map_isValue_consts, 1,
     0
 };
@@ -5389,7 +5389,7 @@ static const uint32_t Method_Kernel_Map_valueRank_insts[] = { 0x00000200, 0x0000
 static const oop Method_Kernel_Map_valueRank_consts[] = { TAG_SMI(8) };
 static const struct CompiledMethod Method_Kernel_Map_valueRank_compiled = {
     Method_Kernel_Map_valueRank_insts, 2,
-    3, 0,
+    3, 0, 0,
     Method_Kernel_Map_valueRank_consts, 1,
     0
 };
@@ -5401,7 +5401,7 @@ static const struct Closure Method_Kernel_Map_valueRank_closure = {
 static const uint32_t Method_Kernel_Map_valueDepth_insts[] = { 0x0003020A, 0x00000203 };
 static const struct CompiledMethod Method_Kernel_Map_valueDepth_compiled = {
     Method_Kernel_Map_valueDepth_insts, 2,
-    3, 0,
+    3, 0, 0,
     NULL, 0,
     0
 };
@@ -5414,7 +5414,7 @@ static const uint32_t Method_Kernel_Map__eq_insts[] = { 0x0000050A, 0x00010601, 
 static const oop Method_Kernel_Map__eq_consts[] = { (oop)&StaticSymbol_isValueObject_, (oop)&StaticSymbol_false, (oop)&StaticSymbol_value_equals_ };
 static const struct CompiledMethod Method_Kernel_Map__eq_compiled = {
     Method_Kernel_Map__eq_insts, 15,
-    8, 1,
+    8, 1, 0,
     Method_Kernel_Map__eq_consts, 3,
     0
 };
@@ -5427,7 +5427,7 @@ static const uint32_t Method_Kernel_Map_hash_insts[] = { 0x0000030A, 0x00000401,
 static const oop Method_Kernel_Map_hash_consts[] = { (oop)&StaticSymbol_valueHashOf_ };
 static const struct CompiledMethod Method_Kernel_Map_hash_compiled = {
     Method_Kernel_Map_hash_insts, 5,
-    5, 0,
+    5, 0, 0,
     Method_Kernel_Map_hash_consts, 1,
     0
 };
@@ -5440,7 +5440,7 @@ static const uint32_t Method_Kernel_Map_setPairs_values__insts[] = { 0x00011001,
 static const oop Method_Kernel_Map_setPairs_values__consts[] = { (oop)&StaticSymbol_size, TAG_SMI(1), (oop)&StaticSymbol__lt_eq, (oop)&StaticSymbol_at_, (oop)&StaticSymbol_checkValue_, TAG_SMI(2), (oop)&StaticSymbol__gt_eq, (oop)&StaticSymbol_valueCompare_with_, TAG_SMI(0), (oop)&StaticSymbol__gt, (oop)&StaticSymbol_false, (oop)&StaticSymbol_at_put_, NULL, (oop)&StaticSymbol__eq, (oop)&StaticSymbol_basicNew_indexable_, (oop)&StaticSymbol_depthOf_, (oop)&StaticSymbol_checkDepth_ };
 static const struct CompiledMethod Method_Kernel_Map_setPairs_values__compiled = {
     Method_Kernel_Map_setPairs_values__insts, 279,
-    32, 2,
+    32, 2, 0,
     Method_Kernel_Map_setPairs_values__consts, 17,
     0
 };
@@ -5453,7 +5453,7 @@ static const uint32_t Method_Meta_Kernel_Map_with__insts[] = { 0x0001070A, 0x070
 static const oop Method_Meta_Kernel_Map_with__consts[] = { TAG_SMI(1), (oop)&StaticSymbol_basicNew_indexable_, (oop)&StaticSymbol_key, (oop)&StaticSymbol_at_put_, (oop)&StaticSymbol_value, (oop)&Vtable_Kernel_Map, (oop)&StaticSymbol_init_new, (oop)&StaticSymbol_setPairs_values_ };
 static const struct CompiledMethod Method_Meta_Kernel_Map_with__compiled = {
     Method_Meta_Kernel_Map_with__insts, 40,
-    13, 1,
+    13, 1, 0,
     Method_Meta_Kernel_Map_with__consts, 8,
     0
 };
@@ -5466,7 +5466,7 @@ static const uint32_t Method_Meta_Kernel_Map_with_with__insts[] = { 0x0001080A, 
 static const oop Method_Meta_Kernel_Map_with_with__consts[] = { TAG_SMI(2), (oop)&StaticSymbol_basicNew_indexable_, TAG_SMI(1), (oop)&StaticSymbol_key, (oop)&StaticSymbol_at_put_, (oop)&StaticSymbol_value, (oop)&Vtable_Kernel_Map, (oop)&StaticSymbol_init_new, (oop)&StaticSymbol_setPairs_values_ };
 static const struct CompiledMethod Method_Meta_Kernel_Map_with_with__compiled = {
     Method_Meta_Kernel_Map_with_with__insts, 54,
-    16, 2,
+    16, 2, 0,
     Method_Meta_Kernel_Map_with_with__consts, 9,
     0
 };
@@ -5479,7 +5479,7 @@ static const uint32_t Method_Meta_Kernel_Map_with_with_with__insts[] = { 0x00010
 static const oop Method_Meta_Kernel_Map_with_with_with__consts[] = { TAG_SMI(3), (oop)&StaticSymbol_basicNew_indexable_, TAG_SMI(1), (oop)&StaticSymbol_key, (oop)&StaticSymbol_at_put_, (oop)&StaticSymbol_value, TAG_SMI(2), (oop)&Vtable_Kernel_Map, (oop)&StaticSymbol_init_new, (oop)&StaticSymbol_setPairs_values_ };
 static const struct CompiledMethod Method_Meta_Kernel_Map_with_with_with__compiled = {
     Method_Meta_Kernel_Map_with_with_with__insts, 68,
-    19, 3,
+    19, 3, 0,
     Method_Meta_Kernel_Map_with_with_with__consts, 10,
     0
 };
@@ -5492,7 +5492,7 @@ static const uint32_t Method_Meta_Kernel_Map_with_with_with_with__insts[] = { 0x
 static const oop Method_Meta_Kernel_Map_with_with_with_with__consts[] = { TAG_SMI(4), (oop)&StaticSymbol_basicNew_indexable_, TAG_SMI(1), (oop)&StaticSymbol_key, (oop)&StaticSymbol_at_put_, (oop)&StaticSymbol_value, TAG_SMI(2), TAG_SMI(3), (oop)&Vtable_Kernel_Map, (oop)&StaticSymbol_init_new, (oop)&StaticSymbol_setPairs_values_ };
 static const struct CompiledMethod Method_Meta_Kernel_Map_with_with_with_with__compiled = {
     Method_Meta_Kernel_Map_with_with_with_with__insts, 82,
-    22, 4,
+    22, 4, 0,
     Method_Meta_Kernel_Map_with_with_with_with__consts, 11,
     0
 };
@@ -5505,7 +5505,7 @@ static const uint32_t Method_Meta_Kernel_Map_fromPairs__insts[] = { 0x00010701, 
 static const oop Method_Meta_Kernel_Map_fromPairs__consts[] = { (oop)&StaticSymbol_size, (oop)&StaticSymbol_basicNew_indexable_, TAG_SMI(1), (oop)&StaticSymbol__lt_eq, NULL, (oop)&StaticSymbol_at_, (oop)&StaticSymbol_isList, (oop)&StaticSymbol_at_put_, TAG_SMI(2), (oop)&StaticSymbol_key, (oop)&StaticSymbol_value, (oop)&Vtable_Kernel_Map, (oop)&StaticSymbol_init_new, (oop)&StaticSymbol_setPairs_values_ };
 static const struct CompiledMethod Method_Meta_Kernel_Map_fromPairs__compiled = {
     Method_Meta_Kernel_Map_fromPairs__insts, 81,
-    23, 1,
+    23, 1, 0,
     Method_Meta_Kernel_Map_fromPairs__consts, 14,
     0
 };
@@ -5518,7 +5518,7 @@ static const uint32_t Method_Kernel_Map_init_new_insts[] = { 0x00000200, 0x00010
 static const oop Method_Kernel_Map_init_new_consts[] = { NULL };
 static const struct CompiledMethod Method_Kernel_Map_init_new_compiled = {
     Method_Kernel_Map_init_new_insts, 7,
-    3, 0,
+    3, 0, 0,
     Method_Kernel_Map_init_new_consts, 1,
     0
 };
@@ -5530,7 +5530,7 @@ static const struct Closure Method_Kernel_Map_init_new_closure = {
 static const uint32_t Method_Kernel_Record_tag_insts[] = { 0x0001020A, 0x00000203 };
 static const struct CompiledMethod Method_Kernel_Record_tag_compiled = {
     Method_Kernel_Record_tag_insts, 2,
-    3, 0,
+    3, 0, 0,
     NULL, 0,
     0
 };
@@ -5542,7 +5542,7 @@ static const struct Closure Method_Kernel_Record_tag_closure = {
 static const uint32_t Method_Kernel_Record_fields_insts[] = { 0x0002020A, 0x00000203 };
 static const struct CompiledMethod Method_Kernel_Record_fields_compiled = {
     Method_Kernel_Record_fields_insts, 2,
-    3, 0,
+    3, 0, 0,
     NULL, 0,
     0
 };
@@ -5555,7 +5555,7 @@ static const uint32_t Method_Kernel_Record_at_ifAbsent__insts[] = { 0x0002050A, 
 static const oop Method_Kernel_Record_at_ifAbsent__consts[] = { (oop)&StaticSymbol_at_ifAbsent_ };
 static const struct CompiledMethod Method_Kernel_Record_at_ifAbsent__compiled = {
     Method_Kernel_Record_at_ifAbsent__insts, 6,
-    8, 2,
+    8, 2, 0,
     Method_Kernel_Record_at_ifAbsent__consts, 1,
     0
 };
@@ -5568,7 +5568,7 @@ static const uint32_t Method_Kernel_Record_isRecord_insts[] = { 0x00000200, 0x00
 static const oop Method_Kernel_Record_isRecord_consts[] = { (oop)&StaticSymbol_true };
 static const struct CompiledMethod Method_Kernel_Record_isRecord_compiled = {
     Method_Kernel_Record_isRecord_insts, 2,
-    3, 0,
+    3, 0, 0,
     Method_Kernel_Record_isRecord_consts, 1,
     0
 };
@@ -5581,7 +5581,7 @@ static const uint32_t Method_Kernel_Record_isValue_insts[] = { 0x00000200, 0x000
 static const oop Method_Kernel_Record_isValue_consts[] = { (oop)&StaticSymbol_true };
 static const struct CompiledMethod Method_Kernel_Record_isValue_compiled = {
     Method_Kernel_Record_isValue_insts, 2,
-    3, 0,
+    3, 0, 0,
     Method_Kernel_Record_isValue_consts, 1,
     0
 };
@@ -5594,7 +5594,7 @@ static const uint32_t Method_Kernel_Record_valueRank_insts[] = { 0x00000200, 0x0
 static const oop Method_Kernel_Record_valueRank_consts[] = { TAG_SMI(9) };
 static const struct CompiledMethod Method_Kernel_Record_valueRank_compiled = {
     Method_Kernel_Record_valueRank_insts, 2,
-    3, 0,
+    3, 0, 0,
     Method_Kernel_Record_valueRank_consts, 1,
     0
 };
@@ -5606,7 +5606,7 @@ static const struct Closure Method_Kernel_Record_valueRank_closure = {
 static const uint32_t Method_Kernel_Record_valueDepth_insts[] = { 0x0003020A, 0x00000203 };
 static const struct CompiledMethod Method_Kernel_Record_valueDepth_compiled = {
     Method_Kernel_Record_valueDepth_insts, 2,
-    3, 0,
+    3, 0, 0,
     NULL, 0,
     0
 };
@@ -5619,7 +5619,7 @@ static const uint32_t Method_Kernel_Record__eq_insts[] = { 0x0000050A, 0x0001060
 static const oop Method_Kernel_Record__eq_consts[] = { (oop)&StaticSymbol_isValueObject_, (oop)&StaticSymbol_false, (oop)&StaticSymbol_value_equals_ };
 static const struct CompiledMethod Method_Kernel_Record__eq_compiled = {
     Method_Kernel_Record__eq_insts, 15,
-    8, 1,
+    8, 1, 0,
     Method_Kernel_Record__eq_consts, 3,
     0
 };
@@ -5632,7 +5632,7 @@ static const uint32_t Method_Kernel_Record_hash_insts[] = { 0x0000030A, 0x000004
 static const oop Method_Kernel_Record_hash_consts[] = { (oop)&StaticSymbol_valueHashOf_ };
 static const struct CompiledMethod Method_Kernel_Record_hash_compiled = {
     Method_Kernel_Record_hash_insts, 5,
-    5, 0,
+    5, 0, 0,
     Method_Kernel_Record_hash_consts, 1,
     0
 };
@@ -5645,7 +5645,7 @@ static const uint32_t Method_Kernel_Record_setTag_fields__insts[] = { 0x00010601
 static const oop Method_Kernel_Record_setTag_fields__consts[] = { (oop)&StaticSymbol_isSymbol, (oop)&StaticSymbol_false, (oop)&StaticString_not_u32a_u32value_0, (oop)&StaticSymbol_error_, (oop)&StaticSymbol_isMap, TAG_SMI(1), (oop)&StaticSymbol_valueDepth, (oop)&StaticSymbol_checkDepth_ };
 static const struct CompiledMethod Method_Kernel_Record_setTag_fields__compiled = {
     Method_Kernel_Record_setTag_fields__insts, 37,
-    12, 2,
+    12, 2, 0,
     Method_Kernel_Record_setTag_fields__consts, 8,
     0
 };
@@ -5658,7 +5658,7 @@ static const uint32_t Method_Meta_Kernel_Record_tag_fields__insts[] = { 0x000006
 static const oop Method_Meta_Kernel_Record_tag_fields__consts[] = { (oop)&Vtable_Kernel_Record, (oop)&StaticSymbol_init_new, (oop)&StaticSymbol_setTag_fields_ };
 static const struct CompiledMethod Method_Meta_Kernel_Record_tag_fields__compiled = {
     Method_Meta_Kernel_Record_tag_fields__insts, 10,
-    8, 2,
+    8, 2, 0,
     Method_Meta_Kernel_Record_tag_fields__consts, 3,
     0
 };
@@ -5671,7 +5671,7 @@ static const uint32_t Method_Meta_Kernel_Record_tag_with__insts[] = { 0x00000501
 static const oop Method_Meta_Kernel_Record_tag_with__consts[] = { (oop)&StaticSymbol_with_, (oop)&StaticSymbol_tag_fields_ };
 static const struct CompiledMethod Method_Meta_Kernel_Record_tag_with__compiled = {
     Method_Meta_Kernel_Record_tag_with__insts, 10,
-    10, 2,
+    10, 2, 0,
     Method_Meta_Kernel_Record_tag_with__consts, 2,
     0
 };
@@ -5684,7 +5684,7 @@ static const uint32_t Method_Meta_Kernel_Record_tag_with_with__insts[] = { 0x000
 static const oop Method_Meta_Kernel_Record_tag_with_with__consts[] = { (oop)&StaticSymbol_with_with_, (oop)&StaticSymbol_tag_fields_ };
 static const struct CompiledMethod Method_Meta_Kernel_Record_tag_with_with__compiled = {
     Method_Meta_Kernel_Record_tag_with_with__insts, 11,
-    12, 3,
+    12, 3, 0,
     Method_Meta_Kernel_Record_tag_with_with__consts, 2,
     0
 };
@@ -5697,7 +5697,7 @@ static const uint32_t Method_Meta_Kernel_Record_tag_with_with_with__insts[] = { 
 static const oop Method_Meta_Kernel_Record_tag_with_with_with__consts[] = { (oop)&StaticSymbol_with_with_with_, (oop)&StaticSymbol_tag_fields_ };
 static const struct CompiledMethod Method_Meta_Kernel_Record_tag_with_with_with__compiled = {
     Method_Meta_Kernel_Record_tag_with_with_with__insts, 12,
-    14, 4,
+    14, 4, 0,
     Method_Meta_Kernel_Record_tag_with_with_with__consts, 2,
     0
 };
@@ -5710,7 +5710,7 @@ static const uint32_t Method_Meta_Kernel_Record_tag_with_with_with_with__insts[]
 static const oop Method_Meta_Kernel_Record_tag_with_with_with_with__consts[] = { (oop)&StaticSymbol_with_with_with_with_, (oop)&StaticSymbol_tag_fields_ };
 static const struct CompiledMethod Method_Meta_Kernel_Record_tag_with_with_with_with__compiled = {
     Method_Meta_Kernel_Record_tag_with_with_with_with__insts, 13,
-    16, 5,
+    16, 5, 0,
     Method_Meta_Kernel_Record_tag_with_with_with_with__consts, 2,
     0
 };
@@ -5723,7 +5723,7 @@ static const uint32_t Method_Kernel_Record_init_new_insts[] = { 0x00000200, 0x00
 static const oop Method_Kernel_Record_init_new_consts[] = { NULL };
 static const struct CompiledMethod Method_Kernel_Record_init_new_compiled = {
     Method_Kernel_Record_init_new_insts, 7,
-    3, 0,
+    3, 0, 0,
     Method_Kernel_Record_init_new_consts, 1,
     0
 };
@@ -5736,7 +5736,7 @@ static const uint32_t Method_Kernel_BytesReadProtocol_u16At__insts[] = { 0x00000
 static const oop Method_Kernel_BytesReadProtocol_u16At__consts[] = { (oop)&StaticSymbol_u8At_, TAG_SMI(1), TAG_SMI(8), (oop)&StaticSymbol__lt_lt };
 static const struct CompiledMethod Method_Kernel_BytesReadProtocol_u16At__compiled = {
     Method_Kernel_BytesReadProtocol_u16At__insts, 15,
-    12, 1,
+    12, 1, 0,
     Method_Kernel_BytesReadProtocol_u16At__consts, 4,
     0
 };
@@ -5749,7 +5749,7 @@ static const uint32_t Method_Kernel_BytesReadProtocol_u16BeAt__insts[] = { 0x000
 static const oop Method_Kernel_BytesReadProtocol_u16BeAt__consts[] = { (oop)&StaticSymbol_u8At_, TAG_SMI(8), (oop)&StaticSymbol__lt_lt, TAG_SMI(1) };
 static const struct CompiledMethod Method_Kernel_BytesReadProtocol_u16BeAt__compiled = {
     Method_Kernel_BytesReadProtocol_u16BeAt__insts, 15,
-    12, 1,
+    12, 1, 0,
     Method_Kernel_BytesReadProtocol_u16BeAt__consts, 4,
     0
 };
@@ -5761,7 +5761,7 @@ static const struct Closure Method_Kernel_BytesReadProtocol_u16BeAt__closure = {
 static const uint32_t Method_Kernel_BytesReadProtocol_init_new_insts[] = { 0x00000003 };
 static const struct CompiledMethod Method_Kernel_BytesReadProtocol_init_new_compiled = {
     Method_Kernel_BytesReadProtocol_init_new_insts, 1,
-    2, 0,
+    2, 0, 0,
     NULL, 0,
     0
 };
@@ -5774,7 +5774,7 @@ static const uint32_t Method_Kernel_ByteArray_byteSize_insts[] = { 0x0001030A, 0
 static const oop Method_Kernel_ByteArray_byteSize_consts[] = { (oop)&StaticSymbol_size };
 static const struct CompiledMethod Method_Kernel_ByteArray_byteSize_compiled = {
     Method_Kernel_ByteArray_byteSize_insts, 4,
-    4, 0,
+    4, 0, 0,
     Method_Kernel_ByteArray_byteSize_consts, 1,
     0
 };
@@ -5787,7 +5787,7 @@ static const uint32_t Method_Kernel_ByteArray_u8At__insts[] = { 0x0001040A, 0x00
 static const oop Method_Kernel_ByteArray_u8At__consts[] = { (oop)&StaticSymbol_at_ };
 static const struct CompiledMethod Method_Kernel_ByteArray_u8At__compiled = {
     Method_Kernel_ByteArray_u8At__insts, 5,
-    6, 1,
+    6, 1, 0,
     Method_Kernel_ByteArray_u8At__consts, 1,
     0
 };
@@ -5800,7 +5800,7 @@ static const uint32_t Method_Kernel_ByteArray_u8At_put__insts[] = { 0x0001050A, 
 static const oop Method_Kernel_ByteArray_u8At_put__consts[] = { (oop)&StaticSymbol_at_put_ };
 static const struct CompiledMethod Method_Kernel_ByteArray_u8At_put__compiled = {
     Method_Kernel_ByteArray_u8At_put__insts, 7,
-    8, 2,
+    8, 2, 0,
     Method_Kernel_ByteArray_u8At_put__consts, 1,
     0
 };
@@ -5813,7 +5813,7 @@ static const uint32_t Method_Kernel_ByteArray_u16At_put__insts[] = { 0x00000501,
 static const oop Method_Kernel_ByteArray_u16At_put__consts[] = { TAG_SMI(255), (oop)&StaticSymbol_bitAnd_, (oop)&StaticSymbol_u8At_put_, TAG_SMI(1), TAG_SMI(8), (oop)&StaticSymbol__gt_gt };
 static const struct CompiledMethod Method_Kernel_ByteArray_u16At_put__compiled = {
     Method_Kernel_ByteArray_u16At_put__insts, 23,
-    12, 2,
+    12, 2, 0,
     Method_Kernel_ByteArray_u16At_put__consts, 6,
     0
 };
@@ -5826,7 +5826,7 @@ static const uint32_t Method_Kernel_ByteArray_u16BeAt_put__insts[] = { 0x0000050
 static const oop Method_Kernel_ByteArray_u16BeAt_put__consts[] = { TAG_SMI(8), (oop)&StaticSymbol__gt_gt, TAG_SMI(255), (oop)&StaticSymbol_bitAnd_, (oop)&StaticSymbol_u8At_put_, TAG_SMI(1) };
 static const struct CompiledMethod Method_Kernel_ByteArray_u16BeAt_put__compiled = {
     Method_Kernel_ByteArray_u16BeAt_put__insts, 23,
-    11, 2,
+    11, 2, 0,
     Method_Kernel_ByteArray_u16BeAt_put__consts, 6,
     0
 };
@@ -5839,7 +5839,7 @@ static const uint32_t Method_Kernel_ByteArray_freeze_insts[] = { 0x0000040A, 0x0
 static const oop Method_Kernel_ByteArray_freeze_consts[] = { (oop)&StaticSymbol_freezeBytes_, (oop)&StaticSymbol_overRaw_ };
 static const struct CompiledMethod Method_Kernel_ByteArray_freeze_compiled = {
     Method_Kernel_ByteArray_freeze_insts, 10,
-    7, 0,
+    7, 0, 0,
     Method_Kernel_ByteArray_freeze_consts, 2,
     0
 };
@@ -5851,7 +5851,7 @@ static const struct Closure Method_Kernel_ByteArray_freeze_closure = {
 static const uint32_t Method_Kernel_ByteArray_setRaw__insts[] = { 0x00010301, 0x0001030B, 0x00000301, 0x00000303 };
 static const struct CompiledMethod Method_Kernel_ByteArray_setRaw__compiled = {
     Method_Kernel_ByteArray_setRaw__insts, 4,
-    4, 1,
+    4, 1, 0,
     NULL, 0,
     0
 };
@@ -5864,7 +5864,7 @@ static const uint32_t Method_Meta_Kernel_ByteArray_new__insts[] = { 0x00000500, 
 static const oop Method_Meta_Kernel_ByteArray_new__consts[] = { (oop)&Vtable_Kernel_ByteArray, (oop)&StaticSymbol_init_new, (oop)&StaticSymbol_basicNewBytes_, (oop)&StaticSymbol_setRaw_ };
 static const struct CompiledMethod Method_Meta_Kernel_ByteArray_new__compiled = {
     Method_Meta_Kernel_ByteArray_new__insts, 13,
-    8, 1,
+    8, 1, 0,
     Method_Meta_Kernel_ByteArray_new__consts, 4,
     0
 };
@@ -5877,7 +5877,7 @@ static const uint32_t Method_Meta_Kernel_ByteArray_fromList__insts[] = { 0x00000
 static const oop Method_Meta_Kernel_ByteArray_fromList__consts[] = { (oop)&StaticSymbol_size, (oop)&StaticSymbol_new_, TAG_SMI(1), (oop)&StaticSymbol__lt_eq, (oop)&StaticSymbol_at_, (oop)&StaticSymbol_u8At_put_ };
 static const struct CompiledMethod Method_Meta_Kernel_ByteArray_fromList__compiled = {
     Method_Meta_Kernel_ByteArray_fromList__insts, 29,
-    15, 1,
+    15, 1, 0,
     Method_Meta_Kernel_ByteArray_fromList__consts, 6,
     0
 };
@@ -5890,7 +5890,7 @@ static const uint32_t Method_Meta_Kernel_ByteArray_fromHex__insts[] = { 0x000107
 static const oop Method_Meta_Kernel_ByteArray_fromHex__consts[] = { (oop)&StaticSymbol_size, TAG_SMI(2), (oop)&StaticSymbol__div_div, (oop)&StaticSymbol__eq, (oop)&StaticSymbol_false, (oop)&Vtable_Kernel_ByteArray, (oop)&StaticString_odd_sublength_u32hex_13, (oop)&StaticSymbol_init_new, (oop)&StaticSymbol_new_, TAG_SMI(1), (oop)&StaticSymbol__lt_eq, (oop)&StaticSymbol_at_, (oop)&StaticSymbol_hexDigit_, TAG_SMI(16), (oop)&StaticSymbol_u8At_put_, (oop)&StaticSymbol_freeze };
 static const struct CompiledMethod Method_Meta_Kernel_ByteArray_fromHex__compiled = {
     Method_Meta_Kernel_ByteArray_fromHex__insts, 74,
-    27, 1,
+    27, 1, 0,
     Method_Meta_Kernel_ByteArray_fromHex__consts, 16,
     0
 };
@@ -5903,7 +5903,7 @@ static const uint32_t Method_Meta_Kernel_ByteArray_hexDigit__insts[] = { 0x00010
 static const oop Method_Meta_Kernel_ByteArray_hexDigit__consts[] = { TAG_SMI(48), (oop)&StaticSymbol__gt_eq, TAG_SMI(57), (oop)&StaticSymbol__lt_eq, (oop)&StaticSymbol_false, TAG_SMI(65), TAG_SMI(70), TAG_SMI(55), TAG_SMI(97), TAG_SMI(102), TAG_SMI(87), (oop)&Vtable_Kernel_ByteArray, (oop)&StaticString_invalid_u32hex_u32digit_14, (oop)&StaticSymbol_init_new };
 static const struct CompiledMethod Method_Meta_Kernel_ByteArray_hexDigit__compiled = {
     Method_Meta_Kernel_ByteArray_hexDigit__insts, 61,
-    11, 1,
+    11, 1, 0,
     Method_Meta_Kernel_ByteArray_hexDigit__consts, 14,
     0
 };
@@ -5916,7 +5916,7 @@ static const uint32_t Method_Kernel_ByteArray_init_new_insts[] = { 0x00000200, 0
 static const oop Method_Kernel_ByteArray_init_new_consts[] = { NULL };
 static const struct CompiledMethod Method_Kernel_ByteArray_init_new_compiled = {
     Method_Kernel_ByteArray_init_new_insts, 3,
-    3, 0,
+    3, 0, 0,
     Method_Kernel_ByteArray_init_new_consts, 1,
     0
 };
@@ -5929,7 +5929,7 @@ static const uint32_t Method_Kernel_Bytes_byteSize_insts[] = { 0x0001030A, 0x030
 static const oop Method_Kernel_Bytes_byteSize_consts[] = { (oop)&StaticSymbol_size };
 static const struct CompiledMethod Method_Kernel_Bytes_byteSize_compiled = {
     Method_Kernel_Bytes_byteSize_insts, 4,
-    4, 0,
+    4, 0, 0,
     Method_Kernel_Bytes_byteSize_consts, 1,
     0
 };
@@ -5942,7 +5942,7 @@ static const uint32_t Method_Kernel_Bytes_u8At__insts[] = { 0x0001040A, 0x000105
 static const oop Method_Kernel_Bytes_u8At__consts[] = { (oop)&StaticSymbol_at_ };
 static const struct CompiledMethod Method_Kernel_Bytes_u8At__compiled = {
     Method_Kernel_Bytes_u8At__insts, 5,
-    6, 1,
+    6, 1, 0,
     Method_Kernel_Bytes_u8At__consts, 1,
     0
 };
@@ -5954,7 +5954,7 @@ static const struct Closure Method_Kernel_Bytes_u8At__closure = {
 static const uint32_t Method_Kernel_Bytes_freeze_insts[] = { 0x00000201, 0x00000203 };
 static const struct CompiledMethod Method_Kernel_Bytes_freeze_compiled = {
     Method_Kernel_Bytes_freeze_insts, 2,
-    3, 0,
+    3, 0, 0,
     NULL, 0,
     0
 };
@@ -5967,7 +5967,7 @@ static const uint32_t Method_Kernel_Bytes_asByteArray_insts[] = { 0x0000050A, 0x
 static const oop Method_Kernel_Bytes_asByteArray_consts[] = { (oop)&StaticSymbol_byteSize, (oop)&StaticSymbol_new_, TAG_SMI(1), (oop)&StaticSymbol__lt_eq, (oop)&StaticSymbol_u8At_, (oop)&StaticSymbol_u8At_put_ };
 static const struct CompiledMethod Method_Kernel_Bytes_asByteArray_compiled = {
     Method_Kernel_Bytes_asByteArray_insts, 30,
-    14, 0,
+    14, 0, 0,
     Method_Kernel_Bytes_asByteArray_consts, 6,
     0
 };
@@ -5980,7 +5980,7 @@ static const uint32_t Method_Kernel_Bytes_isBytes_insts[] = { 0x00000200, 0x0000
 static const oop Method_Kernel_Bytes_isBytes_consts[] = { (oop)&StaticSymbol_true };
 static const struct CompiledMethod Method_Kernel_Bytes_isBytes_compiled = {
     Method_Kernel_Bytes_isBytes_insts, 2,
-    3, 0,
+    3, 0, 0,
     Method_Kernel_Bytes_isBytes_consts, 1,
     0
 };
@@ -5993,7 +5993,7 @@ static const uint32_t Method_Kernel_Bytes_isValue_insts[] = { 0x00000200, 0x0000
 static const oop Method_Kernel_Bytes_isValue_consts[] = { (oop)&StaticSymbol_true };
 static const struct CompiledMethod Method_Kernel_Bytes_isValue_compiled = {
     Method_Kernel_Bytes_isValue_insts, 2,
-    3, 0,
+    3, 0, 0,
     Method_Kernel_Bytes_isValue_consts, 1,
     0
 };
@@ -6006,7 +6006,7 @@ static const uint32_t Method_Kernel_Bytes_valueRank_insts[] = { 0x00000200, 0x00
 static const oop Method_Kernel_Bytes_valueRank_consts[] = { TAG_SMI(5) };
 static const struct CompiledMethod Method_Kernel_Bytes_valueRank_compiled = {
     Method_Kernel_Bytes_valueRank_insts, 2,
-    3, 0,
+    3, 0, 0,
     Method_Kernel_Bytes_valueRank_consts, 1,
     0
 };
@@ -6019,7 +6019,7 @@ static const uint32_t Method_Kernel_Bytes_valueDepth_insts[] = { 0x00000200, 0x0
 static const oop Method_Kernel_Bytes_valueDepth_consts[] = { TAG_SMI(0) };
 static const struct CompiledMethod Method_Kernel_Bytes_valueDepth_compiled = {
     Method_Kernel_Bytes_valueDepth_insts, 2,
-    3, 0,
+    3, 0, 0,
     Method_Kernel_Bytes_valueDepth_consts, 1,
     0
 };
@@ -6032,7 +6032,7 @@ static const uint32_t Method_Kernel_Bytes__eq_insts[] = { 0x0000050A, 0x00010601
 static const oop Method_Kernel_Bytes__eq_consts[] = { (oop)&StaticSymbol_isValueObject_, (oop)&StaticSymbol_false, (oop)&StaticSymbol_value_equals_ };
 static const struct CompiledMethod Method_Kernel_Bytes__eq_compiled = {
     Method_Kernel_Bytes__eq_insts, 15,
-    8, 1,
+    8, 1, 0,
     Method_Kernel_Bytes__eq_consts, 3,
     0
 };
@@ -6045,7 +6045,7 @@ static const uint32_t Method_Kernel_Bytes_hash_insts[] = { 0x0000030A, 0x0000040
 static const oop Method_Kernel_Bytes_hash_consts[] = { (oop)&StaticSymbol_valueHashOf_ };
 static const struct CompiledMethod Method_Kernel_Bytes_hash_compiled = {
     Method_Kernel_Bytes_hash_insts, 5,
-    5, 0,
+    5, 0, 0,
     Method_Kernel_Bytes_hash_consts, 1,
     0
 };
@@ -6058,7 +6058,7 @@ static const uint32_t Method_Kernel_Bytes_printHex_insts[] = { 0x00000901, 0x090
 static const oop Method_Kernel_Bytes_printHex_consts[] = { (oop)&StaticSymbol_byteSize, TAG_SMI(2), (oop)&StaticSymbol_basicNew_indexable_, TAG_SMI(0), TAG_SMI(1), (oop)&StaticSymbol__lt_eq, (oop)&StaticSymbol_u8At_, TAG_SMI(4), (oop)&StaticSymbol__gt_gt, TAG_SMI(15), (oop)&StaticSymbol_bitAnd_, TAG_SMI(10), (oop)&StaticSymbol__lt, TAG_SMI(48), TAG_SMI(87), (oop)&StaticSymbol_at_put_, (oop)&StaticSymbol_string_ };
 static const struct CompiledMethod Method_Kernel_Bytes_printHex_compiled = {
     Method_Kernel_Bytes_printHex_insts, 90,
-    26, 0,
+    26, 0, 0,
     Method_Kernel_Bytes_printHex_consts, 17,
     0
 };
@@ -6070,7 +6070,7 @@ static const struct Closure Method_Kernel_Bytes_printHex_closure = {
 static const uint32_t Method_Kernel_Bytes_setRaw__insts[] = { 0x00010301, 0x0001030B, 0x00000301, 0x00000303 };
 static const struct CompiledMethod Method_Kernel_Bytes_setRaw__compiled = {
     Method_Kernel_Bytes_setRaw__insts, 4,
-    4, 1,
+    4, 1, 0,
     NULL, 0,
     0
 };
@@ -6082,7 +6082,7 @@ static const struct Closure Method_Kernel_Bytes_setRaw__closure = {
 static const uint32_t Method_Kernel_Bytes_rawLeaf_insts[] = { 0x0001020A, 0x00000203 };
 static const struct CompiledMethod Method_Kernel_Bytes_rawLeaf_compiled = {
     Method_Kernel_Bytes_rawLeaf_insts, 2,
-    3, 0,
+    3, 0, 0,
     NULL, 0,
     0
 };
@@ -6095,7 +6095,7 @@ static const uint32_t Method_Meta_Kernel_Bytes_overRaw__insts[] = { 0x00000500, 
 static const oop Method_Meta_Kernel_Bytes_overRaw__consts[] = { (oop)&Vtable_Kernel_Bytes, (oop)&StaticSymbol_init_new, (oop)&StaticSymbol_setRaw_ };
 static const struct CompiledMethod Method_Meta_Kernel_Bytes_overRaw__compiled = {
     Method_Meta_Kernel_Bytes_overRaw__insts, 9,
-    6, 1,
+    6, 1, 0,
     Method_Meta_Kernel_Bytes_overRaw__consts, 3,
     0
 };
@@ -6108,7 +6108,7 @@ static const uint32_t Method_Kernel_Bytes_init_new_insts[] = { 0x00000200, 0x000
 static const oop Method_Kernel_Bytes_init_new_consts[] = { NULL };
 static const struct CompiledMethod Method_Kernel_Bytes_init_new_compiled = {
     Method_Kernel_Bytes_init_new_insts, 3,
-    3, 0,
+    3, 0, 0,
     Method_Kernel_Bytes_init_new_consts, 1,
     0
 };
@@ -6120,7 +6120,7 @@ static const struct Closure Method_Kernel_Bytes_init_new_closure = {
 static const uint32_t Method_Kernel_ByteBuilder_size_insts[] = { 0x0002020A, 0x00000203 };
 static const struct CompiledMethod Method_Kernel_ByteBuilder_size_compiled = {
     Method_Kernel_ByteBuilder_size_insts, 2,
-    3, 0,
+    3, 0, 0,
     NULL, 0,
     0
 };
@@ -6133,7 +6133,7 @@ static const uint32_t Method_Kernel_ByteBuilder_at__insts[] = { 0x0001040A, 0x00
 static const oop Method_Kernel_ByteBuilder_at__consts[] = { (oop)&StaticSymbol_at_ };
 static const struct CompiledMethod Method_Kernel_ByteBuilder_at__compiled = {
     Method_Kernel_ByteBuilder_at__insts, 5,
-    6, 1,
+    6, 1, 0,
     Method_Kernel_ByteBuilder_at__consts, 1,
     0
 };
@@ -6146,7 +6146,7 @@ static const uint32_t Method_Kernel_ByteBuilder_add__insts[] = { 0x0002050A, 0x0
 static const oop Method_Kernel_ByteBuilder_add__consts[] = { (oop)&StaticSymbol_size, (oop)&StaticSymbol__eq, (oop)&StaticSymbol_grow, (oop)&StaticSymbol_false, TAG_SMI(1), (oop)&StaticSymbol_at_put_ };
 static const struct CompiledMethod Method_Kernel_ByteBuilder_add__compiled = {
     Method_Kernel_ByteBuilder_add__insts, 23,
-    8, 1,
+    8, 1, 0,
     Method_Kernel_ByteBuilder_add__consts, 6,
     0
 };
@@ -6159,7 +6159,7 @@ static const uint32_t Method_Kernel_ByteBuilder_do__insts[] = { 0x00000300, 0x00
 static const oop Method_Kernel_ByteBuilder_do__consts[] = { TAG_SMI(1), (oop)&StaticSymbol__lt_eq, (oop)&StaticSymbol_at_, (oop)&StaticSymbol_value_ };
 static const struct CompiledMethod Method_Kernel_ByteBuilder_do__compiled = {
     Method_Kernel_ByteBuilder_do__insts, 19,
-    11, 1,
+    11, 1, 0,
     Method_Kernel_ByteBuilder_do__consts, 4,
     0
 };
@@ -6172,7 +6172,7 @@ static const uint32_t Method_Kernel_ByteBuilder_grow_insts[] = { 0x0000050A, 0x0
 static const oop Method_Kernel_ByteBuilder_grow_consts[] = { (oop)&StaticSymbol_size, TAG_SMI(2), (oop)&StaticSymbol_basicNewBytes_, TAG_SMI(1), (oop)&StaticSymbol__lt_eq, (oop)&StaticSymbol_at_, (oop)&StaticSymbol_at_put_ };
 static const struct CompiledMethod Method_Kernel_ByteBuilder_grow_compiled = {
     Method_Kernel_ByteBuilder_grow_insts, 32,
-    13, 0,
+    13, 0, 0,
     Method_Kernel_ByteBuilder_grow_consts, 7,
     0
 };
@@ -6185,7 +6185,7 @@ static const uint32_t Method_Kernel_ByteBuilder_frozenBytes_insts[] = { 0x000005
 static const oop Method_Kernel_ByteBuilder_frozenBytes_consts[] = { (oop)&StaticSymbol_basicNewBytes_, TAG_SMI(1), (oop)&StaticSymbol__lt_eq, (oop)&StaticSymbol_at_, (oop)&StaticSymbol_at_put_, (oop)&StaticSymbol_freezeBytes_, (oop)&StaticSymbol_overRaw_ };
 static const struct CompiledMethod Method_Kernel_ByteBuilder_frozenBytes_compiled = {
     Method_Kernel_ByteBuilder_frozenBytes_insts, 34,
-    13, 0,
+    13, 0, 0,
     Method_Kernel_ByteBuilder_frozenBytes_consts, 7,
     0
 };
@@ -6198,7 +6198,7 @@ static const uint32_t Method_Kernel_ByteBuilder_init_new_insts[] = { 0x0000040A,
 static const oop Method_Kernel_ByteBuilder_init_new_consts[] = { TAG_SMI(16), (oop)&StaticSymbol_basicNewBytes_, TAG_SMI(0) };
 static const struct CompiledMethod Method_Kernel_ByteBuilder_init_new_compiled = {
     Method_Kernel_ByteBuilder_init_new_insts, 9,
-    5, 0,
+    5, 0, 0,
     Method_Kernel_ByteBuilder_init_new_consts, 3,
     0
 };
@@ -6211,7 +6211,7 @@ static const uint32_t Method_Kernel_Cbor_encode__insts[] = { 0x00000500, 0x03050
 static const oop Method_Kernel_Cbor_encode__consts[] = { (oop)&Vtable_Kernel_ByteBuilder, (oop)&StaticSymbol_init_new, TAG_SMI(1), (oop)&StaticSymbol_encode_into_depth_, (oop)&StaticSymbol_frozenBytes };
 static const struct CompiledMethod Method_Kernel_Cbor_encode__compiled = {
     Method_Kernel_Cbor_encode__insts, 17,
-    9, 1,
+    9, 1, 0,
     Method_Kernel_Cbor_encode__consts, 5,
     0
 };
@@ -6224,7 +6224,7 @@ static const uint32_t Method_Kernel_Cbor_encode_into_depth__insts[] = { 0x000308
 static const oop Method_Kernel_Cbor_encode_into_depth__consts[] = { TAG_SMI(32), (oop)&StaticSymbol__gt, (oop)&StaticString_message_u32depth_u32exceeded_1, (oop)&StaticSymbol_error_, (oop)&StaticSymbol_false, NULL, (oop)&StaticSymbol__eq_eq, TAG_SMI(246), (oop)&StaticSymbol_add_, (oop)&StaticSymbol_true, TAG_SMI(245), TAG_SMI(244), (oop)&StaticSymbol_rankOf_, TAG_SMI(2), (oop)&StaticSymbol__eq, (oop)&StaticSymbol_cborEncodeInt_, (oop)&StaticSymbol_appendFrag_into_, TAG_SMI(3), (oop)&StaticSymbol_cborEncodeFloat_, TAG_SMI(4), (oop)&StaticSymbol_encodeString_into_, TAG_SMI(5), (oop)&StaticSymbol_encodeBytes_into_, TAG_SMI(6), (oop)&StaticSymbol_encodeSymbol_into_, TAG_SMI(7), (oop)&StaticSymbol_encodeList_into_depth_, TAG_SMI(8), (oop)&StaticSymbol_encodeMap_into_depth_, TAG_SMI(9), (oop)&StaticSymbol_encodeRecord_into_depth_, (oop)&StaticString_not_u32a_u32value_0 };
 static const struct CompiledMethod Method_Kernel_Cbor_encode_into_depth__compiled = {
     Method_Kernel_Cbor_encode_into_depth__insts, 176,
-    26, 3,
+    26, 3, 0,
     Method_Kernel_Cbor_encode_into_depth__consts, 32,
     0
 };
@@ -6237,7 +6237,7 @@ static const uint32_t Method_Kernel_Cbor_emitHead_len_into__insts[] = { 0x000107
 static const oop Method_Kernel_Cbor_emitHead_len_into__consts[] = { TAG_SMI(32), TAG_SMI(24), (oop)&StaticSymbol__lt, (oop)&StaticSymbol_add_, (oop)&StaticSymbol_false, TAG_SMI(256), TAG_SMI(65536), TAG_SMI(25), TAG_SMI(8), (oop)&StaticSymbol__gt_gt, TAG_SMI(255), (oop)&StaticSymbol_bitAnd_, TAG_SMI(4294967296), TAG_SMI(26), TAG_SMI(16), TAG_SMI(27), TAG_SMI(56), TAG_SMI(48), TAG_SMI(40) };
 static const struct CompiledMethod Method_Kernel_Cbor_emitHead_len_into__compiled = {
     Method_Kernel_Cbor_emitHead_len_into__insts, 207,
-    23, 3,
+    23, 3, 0,
     Method_Kernel_Cbor_emitHead_len_into__consts, 19,
     0
 };
@@ -6250,7 +6250,7 @@ static const uint32_t Method_Kernel_Cbor_appendFrag_into__insts[] = { 0x00000400
 static const oop Method_Kernel_Cbor_appendFrag_into__consts[] = { TAG_SMI(1), (oop)&StaticSymbol_size, (oop)&StaticSymbol__lt_eq, (oop)&StaticSymbol_at_, (oop)&StaticSymbol_add_ };
 static const struct CompiledMethod Method_Kernel_Cbor_appendFrag_into__compiled = {
     Method_Kernel_Cbor_appendFrag_into__insts, 21,
-    13, 2,
+    13, 2, 0,
     Method_Kernel_Cbor_appendFrag_into__consts, 5,
     0
 };
@@ -6263,7 +6263,7 @@ static const uint32_t Method_Kernel_Cbor_encodeString_into__insts[] = { 0x000106
 static const oop Method_Kernel_Cbor_encodeString_into__consts[] = { (oop)&StaticSymbol_size, TAG_SMI(3), (oop)&StaticSymbol_emitHead_len_into_, TAG_SMI(1), (oop)&StaticSymbol__lt_eq, (oop)&StaticSymbol_at_, (oop)&StaticSymbol_add_ };
 static const struct CompiledMethod Method_Kernel_Cbor_encodeString_into__compiled = {
     Method_Kernel_Cbor_encodeString_into__insts, 29,
-    15, 2,
+    15, 2, 0,
     Method_Kernel_Cbor_encodeString_into__consts, 7,
     0
 };
@@ -6276,7 +6276,7 @@ static const uint32_t Method_Kernel_Cbor_encodeBytes_into__insts[] = { 0x0001060
 static const oop Method_Kernel_Cbor_encodeBytes_into__consts[] = { (oop)&StaticSymbol_byteSize, TAG_SMI(2), (oop)&StaticSymbol_emitHead_len_into_, TAG_SMI(1), (oop)&StaticSymbol__lt_eq, (oop)&StaticSymbol_u8At_, (oop)&StaticSymbol_add_ };
 static const struct CompiledMethod Method_Kernel_Cbor_encodeBytes_into__compiled = {
     Method_Kernel_Cbor_encodeBytes_into__insts, 29,
-    15, 2,
+    15, 2, 0,
     Method_Kernel_Cbor_encodeBytes_into__consts, 7,
     0
 };
@@ -6289,7 +6289,7 @@ static const uint32_t Method_Kernel_Cbor_encodeSymbol_into__insts[] = { 0x000007
 static const oop Method_Kernel_Cbor_encodeSymbol_into__consts[] = { TAG_SMI(6), TAG_SMI(39), (oop)&StaticSymbol_emitHead_len_into_, (oop)&StaticSymbol_printString, (oop)&StaticSymbol_size, TAG_SMI(1), TAG_SMI(3), (oop)&StaticSymbol__lt_eq, (oop)&StaticSymbol_at_, (oop)&StaticSymbol_add_ };
 static const struct CompiledMethod Method_Kernel_Cbor_encodeSymbol_into__compiled = {
     Method_Kernel_Cbor_encodeSymbol_into__insts, 43,
-    20, 2,
+    20, 2, 0,
     Method_Kernel_Cbor_encodeSymbol_into__consts, 10,
     0
 };
@@ -6302,7 +6302,7 @@ static const uint32_t Method_Kernel_Cbor_encodeList_into_depth__insts[] = { 0x00
 static const oop Method_Kernel_Cbor_encodeList_into_depth__consts[] = { TAG_SMI(4), (oop)&StaticSymbol_size, (oop)&StaticSymbol_emitHead_len_into_, (oop)&Method_Block_Kernel_Cbor_block33_value__compiled, (oop)&StaticSymbol_do_ };
 static const struct CompiledMethod Method_Kernel_Cbor_encodeList_into_depth__compiled = {
     Method_Kernel_Cbor_encodeList_into_depth__insts, 17,
-    10, 3,
+    10, 3, 0,
     Method_Kernel_Cbor_encodeList_into_depth__consts, 5,
     0
 };
@@ -6315,7 +6315,7 @@ static const uint32_t Method_Kernel_Cbor_encodeMap_into_depth__insts[] = { 0x000
 static const oop Method_Kernel_Cbor_encodeMap_into_depth__consts[] = { (oop)&Vtable_Kernel_OrderedCollection, (oop)&StaticSymbol_init_new, (oop)&Method_Block_Kernel_Cbor_block34_value___compiled, (oop)&StaticSymbol_keysAndValuesDo_, (oop)&StaticSymbol_size, (oop)&StaticSymbol_sortPairsBytewise_vals_, TAG_SMI(5), (oop)&StaticSymbol_emitHead_len_into_, TAG_SMI(1), (oop)&StaticSymbol__lt_eq, (oop)&StaticSymbol_at_, (oop)&StaticSymbol_appendColl_into_, (oop)&StaticSymbol_encode_into_depth_ };
 static const struct CompiledMethod Method_Kernel_Cbor_encodeMap_into_depth__compiled = {
     Method_Kernel_Cbor_encodeMap_into_depth__insts, 66,
-    23, 3,
+    23, 3, 0,
     Method_Kernel_Cbor_encodeMap_into_depth__consts, 13,
     0
 };
@@ -6328,7 +6328,7 @@ static const uint32_t Method_Kernel_Cbor_encodeEntry_value_keys_vals_depth__inst
 static const oop Method_Kernel_Cbor_encodeEntry_value_keys_vals_depth__consts[] = { (oop)&Vtable_Kernel_ByteBuilder, (oop)&StaticSymbol_init_new, TAG_SMI(1), (oop)&StaticSymbol_encode_into_depth_, (oop)&StaticSymbol_add_ };
 static const struct CompiledMethod Method_Kernel_Cbor_encodeEntry_value_keys_vals_depth__compiled = {
     Method_Kernel_Cbor_encodeEntry_value_keys_vals_depth__insts, 25,
-    15, 5,
+    15, 5, 0,
     Method_Kernel_Cbor_encodeEntry_value_keys_vals_depth__consts, 5,
     0
 };
@@ -6341,7 +6341,7 @@ static const uint32_t Method_Kernel_Cbor_encodeRecord_into_depth__insts[] = { 0x
 static const oop Method_Kernel_Cbor_encodeRecord_into_depth__consts[] = { TAG_SMI(6), TAG_SMI(27), (oop)&StaticSymbol_emitHead_len_into_, TAG_SMI(4), TAG_SMI(2), (oop)&StaticSymbol_tag, TAG_SMI(1), (oop)&StaticSymbol_encode_into_depth_, (oop)&StaticSymbol_fields };
 static const struct CompiledMethod Method_Kernel_Cbor_encodeRecord_into_depth__compiled = {
     Method_Kernel_Cbor_encodeRecord_into_depth__insts, 34,
-    15, 3,
+    15, 3, 0,
     Method_Kernel_Cbor_encodeRecord_into_depth__consts, 9,
     0
 };
@@ -6354,7 +6354,7 @@ static const uint32_t Method_Kernel_Cbor_appendColl_into__insts[] = { 0x00010315
 static const oop Method_Kernel_Cbor_appendColl_into__consts[] = { (oop)&Method_Block_Kernel_Cbor_block35_value__compiled, (oop)&StaticSymbol_do_ };
 static const struct CompiledMethod Method_Kernel_Cbor_appendColl_into__compiled = {
     Method_Kernel_Cbor_appendColl_into__insts, 8,
-    7, 2,
+    7, 2, 0,
     Method_Kernel_Cbor_appendColl_into__consts, 2,
     0
 };
@@ -6367,7 +6367,7 @@ static const uint32_t Method_Kernel_Cbor_sortPairsBytewise_vals__insts[] = { 0x0
 static const oop Method_Kernel_Cbor_sortPairsBytewise_vals__consts[] = { (oop)&StaticSymbol_size, TAG_SMI(2), (oop)&StaticSymbol__lt_eq, (oop)&StaticSymbol_at_, TAG_SMI(1), (oop)&StaticSymbol__gt_eq, (oop)&StaticSymbol_compareBytes_with_, TAG_SMI(0), (oop)&StaticSymbol__gt, (oop)&StaticSymbol_false, (oop)&StaticSymbol_at_put_, NULL };
 static const struct CompiledMethod Method_Kernel_Cbor_sortPairsBytewise_vals__compiled = {
     Method_Kernel_Cbor_sortPairsBytewise_vals__insts, 89,
-    25, 2,
+    25, 2, 0,
     Method_Kernel_Cbor_sortPairsBytewise_vals__consts, 12,
     0
 };
@@ -6380,7 +6380,7 @@ static const uint32_t Method_Kernel_Cbor_compareBytes_with__insts[] = { 0x00010A
 static const oop Method_Kernel_Cbor_compareBytes_with__consts[] = { (oop)&StaticSymbol_size, (oop)&StaticSymbol__lt, TAG_SMI(1), (oop)&StaticSymbol__lt_eq, (oop)&StaticSymbol_at_, TAG_SMI(-1), (oop)&StaticSymbol_false, (oop)&StaticSymbol__gt, TAG_SMI(0) };
 static const struct CompiledMethod Method_Kernel_Cbor_compareBytes_with__compiled = {
     Method_Kernel_Cbor_compareBytes_with__insts, 75,
-    22, 2,
+    22, 2, 0,
     Method_Kernel_Cbor_compareBytes_with__consts, 9,
     0
 };
@@ -6393,7 +6393,7 @@ static const uint32_t Method_Kernel_Cbor_decode_ifInvalid__insts[] = { 0x0003031
 static const oop Method_Kernel_Cbor_decode_ifInvalid__consts[] = { (oop)&StaticSymbol_byteSize, (oop)&StaticSymbol_rawBytesOf_size_, (oop)&Method_Block_Kernel_Cbor_block36_value_compiled, (oop)&Method_Block_Kernel_Cbor_block37_value__compiled, (oop)&Method_Block_Kernel_Cbor_block38_value__compiled, (oop)&StaticSymbol_on_do_ };
 static const struct CompiledMethod Method_Kernel_Cbor_decode_ifInvalid__compiled = {
     Method_Kernel_Cbor_decode_ifInvalid__insts, 18,
-    12, 2,
+    12, 2, 0,
     Method_Kernel_Cbor_decode_ifInvalid__consts, 6,
     0
 };
@@ -6406,7 +6406,7 @@ static const uint32_t Method_Kernel_Cbor_rawBytesOf_size__insts[] = { 0x0000070A
 static const oop Method_Kernel_Cbor_rawBytesOf_size__consts[] = { (oop)&StaticSymbol_basicNew_indexable_, TAG_SMI(1), (oop)&StaticSymbol__lt_eq, (oop)&StaticSymbol_u8At_, (oop)&StaticSymbol_at_put_, (oop)&StaticSymbol_string_ };
 static const struct CompiledMethod Method_Kernel_Cbor_rawBytesOf_size__compiled = {
     Method_Kernel_Cbor_rawBytesOf_size__insts, 32,
-    15, 2,
+    15, 2, 0,
     Method_Kernel_Cbor_rawBytesOf_size__consts, 6,
     0
 };
@@ -6419,7 +6419,7 @@ static const uint32_t Method_Kernel_Cbor_failDecode__insts[] = { 0x00000401, 0x0
 static const oop Method_Kernel_Cbor_failDecode__consts[] = { (oop)&StaticSymbol_cborInvalid, (oop)&StaticSymbol_error_tag_ };
 static const struct CompiledMethod Method_Kernel_Cbor_failDecode__compiled = {
     Method_Kernel_Cbor_failDecode__insts, 6,
-    7, 1,
+    7, 1, 0,
     Method_Kernel_Cbor_failDecode__consts, 2,
     0
 };
@@ -6432,7 +6432,7 @@ static const uint32_t Method_Kernel_Cbor_result_next__insts[] = { 0x0000070A, 0x
 static const oop Method_Kernel_Cbor_result_next__consts[] = { TAG_SMI(2), (oop)&StaticSymbol_basicNew_indexable_, TAG_SMI(1), (oop)&StaticSymbol_at_put_ };
 static const struct CompiledMethod Method_Kernel_Cbor_result_next__compiled = {
     Method_Kernel_Cbor_result_next__insts, 20,
-    11, 2,
+    11, 2, 0,
     Method_Kernel_Cbor_result_next__consts, 4,
     0
 };
@@ -6445,7 +6445,7 @@ static const uint32_t Method_Kernel_Cbor_parse_at_depth__insts[] = { 0x00030C01,
 static const oop Method_Kernel_Cbor_parse_at_depth__consts[] = { TAG_SMI(32), (oop)&StaticSymbol__gt, (oop)&StaticString_message_u32depth_u32exceeded_1, (oop)&StaticSymbol_failDecode_, (oop)&StaticSymbol_false, (oop)&StaticSymbol_size, (oop)&StaticSymbol__gt_eq, (oop)&StaticString_not_u32a_u32value_0, TAG_SMI(1), (oop)&StaticSymbol_at_, TAG_SMI(246), (oop)&StaticSymbol__eq, NULL, (oop)&StaticSymbol_result_next_, TAG_SMI(245), (oop)&StaticSymbol_true, TAG_SMI(244), TAG_SMI(247), TAG_SMI(249), TAG_SMI(250), TAG_SMI(251), (oop)&StaticSymbol_floatFrom_at_, (oop)&StaticSymbol_cborReadHead_at_, TAG_SMI(-1), (oop)&StaticSymbol__eq_eq, (oop)&StaticSymbol_basicAt_, TAG_SMI(2), TAG_SMI(3), TAG_SMI(0), (oop)&StaticSymbol_intFrom_arg_, (oop)&StaticSymbol_bytesFrom_at_len_, (oop)&StaticSymbol_stringFrom_at_len_, TAG_SMI(4), (oop)&StaticSymbol_listFrom_at_count_depth_, TAG_SMI(5), (oop)&StaticSymbol_mapFrom_at_count_depth_, TAG_SMI(6), (oop)&StaticSymbol_tagFrom_at_tag_depth_ };
 static const struct CompiledMethod Method_Kernel_Cbor_parse_at_depth__compiled = {
     Method_Kernel_Cbor_parse_at_depth__insts, 263,
-    38, 3,
+    38, 3, 0,
     Method_Kernel_Cbor_parse_at_depth__consts, 38,
     0
 };
@@ -6458,7 +6458,7 @@ static const uint32_t Method_Kernel_Cbor_intFrom_arg__insts[] = { 0x0000070A, 0x
 static const oop Method_Kernel_Cbor_intFrom_arg__consts[] = { (oop)&StaticSymbol_cborIntFromMajor_arg_, NULL, (oop)&StaticSymbol__eq_eq, (oop)&StaticString_integer_u32out_u32of_u32range_15, (oop)&StaticSymbol_failDecode_, (oop)&StaticSymbol_false };
 static const struct CompiledMethod Method_Kernel_Cbor_intFrom_arg__compiled = {
     Method_Kernel_Cbor_intFrom_arg__insts, 21,
-    12, 2,
+    12, 2, 0,
     Method_Kernel_Cbor_intFrom_arg__consts, 6,
     0
 };
@@ -6471,7 +6471,7 @@ static const uint32_t Method_Kernel_Cbor_floatFrom_at__insts[] = { 0x0000080A, 0
 static const oop Method_Kernel_Cbor_floatFrom_at__consts[] = { (oop)&StaticSymbol_cborReadFloat_at_, TAG_SMI(-1), (oop)&StaticSymbol__eq_eq, (oop)&StaticString_not_u32a_u32value_0, (oop)&StaticSymbol_failDecode_, (oop)&StaticSymbol_false, TAG_SMI(1), (oop)&StaticSymbol_basicAt_, (oop)&StaticSymbol_valueRank_, TAG_SMI(3), (oop)&StaticSymbol__eq, TAG_SMI(2), (oop)&StaticSymbol_result_next_ };
 static const struct CompiledMethod Method_Kernel_Cbor_floatFrom_at__compiled = {
     Method_Kernel_Cbor_floatFrom_at__insts, 49,
-    17, 2,
+    17, 2, 0,
     Method_Kernel_Cbor_floatFrom_at__consts, 13,
     0
 };
@@ -6484,7 +6484,7 @@ static const uint32_t Method_Kernel_Cbor_bytesFrom_at_len__insts[] = { 0x0002080
 static const oop Method_Kernel_Cbor_bytesFrom_at_len__consts[] = { (oop)&StaticSymbol_size, (oop)&StaticSymbol__gt, (oop)&StaticString_not_u32a_u32value_0, (oop)&StaticSymbol_failDecode_, (oop)&StaticSymbol_false, (oop)&StaticSymbol_new_, TAG_SMI(1), (oop)&StaticSymbol__lt_eq, (oop)&StaticSymbol_at_, (oop)&StaticSymbol_u8At_put_, (oop)&StaticSymbol_freeze, (oop)&StaticSymbol_result_next_ };
 static const struct CompiledMethod Method_Kernel_Cbor_bytesFrom_at_len__compiled = {
     Method_Kernel_Cbor_bytesFrom_at_len__insts, 52,
-    20, 3,
+    20, 3, 0,
     Method_Kernel_Cbor_bytesFrom_at_len__consts, 12,
     0
 };
@@ -6497,7 +6497,7 @@ static const uint32_t Method_Kernel_Cbor_stringFrom_at_len__insts[] = { 0x000209
 static const oop Method_Kernel_Cbor_stringFrom_at_len__consts[] = { (oop)&StaticSymbol_size, (oop)&StaticSymbol__gt, (oop)&StaticString_not_u32a_u32value_0, (oop)&StaticSymbol_failDecode_, (oop)&StaticSymbol_false, (oop)&StaticSymbol_basicNew_indexable_, TAG_SMI(1), (oop)&StaticSymbol__lt_eq, (oop)&StaticSymbol_at_, (oop)&StaticSymbol_at_put_, (oop)&StaticSymbol_string_, (oop)&StaticSymbol_utf8Valid_, (oop)&StaticString_invalid_u32utf_sub8_16, (oop)&StaticSymbol_result_next_ };
 static const struct CompiledMethod Method_Kernel_Cbor_stringFrom_at_len__compiled = {
     Method_Kernel_Cbor_stringFrom_at_len__insts, 71,
-    21, 3,
+    21, 3, 0,
     Method_Kernel_Cbor_stringFrom_at_len__consts, 14,
     0
 };
@@ -6510,7 +6510,7 @@ static const uint32_t Method_Kernel_Cbor_listFrom_at_count_depth__insts[] = { 0x
 static const oop Method_Kernel_Cbor_listFrom_at_count_depth__consts[] = { (oop)&Vtable_Kernel_OrderedCollection, (oop)&StaticSymbol_init_new, TAG_SMI(1), (oop)&StaticSymbol__lt_eq, (oop)&StaticSymbol_parse_at_depth_, (oop)&StaticSymbol_at_, (oop)&StaticSymbol_add_, TAG_SMI(2), (oop)&StaticSymbol_fromCollection_, (oop)&StaticSymbol_result_next_ };
 static const struct CompiledMethod Method_Kernel_Cbor_listFrom_at_count_depth__compiled = {
     Method_Kernel_Cbor_listFrom_at_count_depth__insts, 50,
-    20, 4,
+    20, 4, 0,
     Method_Kernel_Cbor_listFrom_at_count_depth__consts, 10,
     0
 };
@@ -6523,7 +6523,7 @@ static const uint32_t Method_Kernel_Cbor_mapFrom_at_count_depth__insts[] = { 0x0
 static const oop Method_Kernel_Cbor_mapFrom_at_count_depth__consts[] = { (oop)&Vtable_Kernel_OrderedCollection, (oop)&StaticSymbol_init_new, TAG_SMI(1), (oop)&StaticSymbol__lt_eq, (oop)&StaticSymbol_parse_at_depth_, (oop)&StaticSymbol_at_, TAG_SMI(2), (oop)&StaticSymbol_checkNoDupKey_in_, (oop)&StaticSymbol_add_, (oop)&StaticSymbol_size, (oop)&StaticSymbol_with_with_, (oop)&StaticSymbol_fromPairs_, (oop)&StaticSymbol_result_next_ };
 static const struct CompiledMethod Method_Kernel_Cbor_mapFrom_at_count_depth__compiled = {
     Method_Kernel_Cbor_mapFrom_at_count_depth__insts, 121,
-    29, 4,
+    29, 4, 0,
     Method_Kernel_Cbor_mapFrom_at_count_depth__consts, 13,
     0
 };
@@ -6536,7 +6536,7 @@ static const uint32_t Method_Kernel_Cbor_checkNoDupKey_in__insts[] = { 0x0000050
 static const oop Method_Kernel_Cbor_checkNoDupKey_in__consts[] = { (oop)&StaticSymbol_false, TAG_SMI(1), (oop)&StaticSymbol_size, (oop)&StaticSymbol__lt_eq, (oop)&StaticSymbol_not, (oop)&StaticSymbol_at_, (oop)&StaticSymbol__eq, (oop)&StaticSymbol_true, (oop)&StaticString_not_u32a_u32value_0, (oop)&StaticSymbol_failDecode_ };
 static const struct CompiledMethod Method_Kernel_Cbor_checkNoDupKey_in__compiled = {
     Method_Kernel_Cbor_checkNoDupKey_in__insts, 43,
-    16, 2,
+    16, 2, 0,
     Method_Kernel_Cbor_checkNoDupKey_in__consts, 10,
     0
 };
@@ -6549,7 +6549,7 @@ static const uint32_t Method_Kernel_Cbor_tagFrom_at_tag_depth__insts[] = { 0x000
 static const oop Method_Kernel_Cbor_tagFrom_at_tag_depth__consts[] = { TAG_SMI(39), (oop)&StaticSymbol__eq, (oop)&StaticSymbol_symbolTagFrom_at_depth_, (oop)&StaticSymbol_false, TAG_SMI(27), (oop)&StaticSymbol_recordTagFrom_at_depth_, TAG_SMI(2), (oop)&StaticSymbol_true, TAG_SMI(3), (oop)&StaticString_integer_u32out_u32of_u32range_15, (oop)&StaticSymbol_failDecode_, (oop)&StaticString_not_u32a_u32value_0 };
 static const struct CompiledMethod Method_Kernel_Cbor_tagFrom_at_tag_depth__compiled = {
     Method_Kernel_Cbor_tagFrom_at_tag_depth__insts, 52,
-    15, 4,
+    15, 4, 0,
     Method_Kernel_Cbor_tagFrom_at_tag_depth__consts, 12,
     0
 };
@@ -6562,7 +6562,7 @@ static const uint32_t Method_Kernel_Cbor_symbolTagFrom_at_depth__insts[] = { 0x0
 static const oop Method_Kernel_Cbor_symbolTagFrom_at_depth__consts[] = { (oop)&StaticSymbol_parse_at_depth_, TAG_SMI(1), (oop)&StaticSymbol_at_, (oop)&StaticSymbol_rankOf_, TAG_SMI(4), (oop)&StaticSymbol__eq, (oop)&StaticSymbol_false, (oop)&StaticString_not_u32a_u32value_0, (oop)&StaticSymbol_failDecode_, (oop)&StaticSymbol_asSymbol_, TAG_SMI(2), (oop)&StaticSymbol_result_next_ };
 static const struct CompiledMethod Method_Kernel_Cbor_symbolTagFrom_at_depth__compiled = {
     Method_Kernel_Cbor_symbolTagFrom_at_depth__insts, 40,
-    17, 3,
+    17, 3, 0,
     Method_Kernel_Cbor_symbolTagFrom_at_depth__consts, 12,
     0
 };
@@ -6575,7 +6575,7 @@ static const uint32_t Method_Kernel_Cbor_recordTagFrom_at_depth__insts[] = { 0x0
 static const oop Method_Kernel_Cbor_recordTagFrom_at_depth__consts[] = { (oop)&StaticSymbol_cborReadHead_at_, TAG_SMI(-1), (oop)&StaticSymbol__eq_eq, (oop)&StaticString_not_u32a_u32value_0, (oop)&StaticSymbol_failDecode_, (oop)&StaticSymbol_false, TAG_SMI(1), (oop)&StaticSymbol_basicAt_, TAG_SMI(4), (oop)&StaticSymbol__eq, TAG_SMI(2), TAG_SMI(3), (oop)&StaticSymbol_parse_at_depth_, (oop)&StaticSymbol_at_, (oop)&StaticSymbol_rankOf_, TAG_SMI(6), TAG_SMI(8), (oop)&StaticSymbol_tag_fields_, (oop)&StaticSymbol_result_next_ };
 static const struct CompiledMethod Method_Kernel_Cbor_recordTagFrom_at_depth__compiled = {
     Method_Kernel_Cbor_recordTagFrom_at_depth__insts, 133,
-    34, 3,
+    34, 3, 0,
     Method_Kernel_Cbor_recordTagFrom_at_depth__consts, 19,
     0
 };
@@ -6587,7 +6587,7 @@ static const struct Closure Method_Kernel_Cbor_recordTagFrom_at_depth__closure =
 static const uint32_t Method_Kernel_Cbor_init_new_insts[] = { 0x00000003 };
 static const struct CompiledMethod Method_Kernel_Cbor_init_new_compiled = {
     Method_Kernel_Cbor_init_new_insts, 1,
-    2, 0,
+    2, 0, 0,
     NULL, 0,
     0
 };
@@ -6599,7 +6599,7 @@ static const struct Closure Method_Kernel_Cbor_init_new_closure = {
 static const uint32_t Method_Kernel_HeapStats_heapSize_insts[] = { 0x0001020A, 0x00000203 };
 static const struct CompiledMethod Method_Kernel_HeapStats_heapSize_compiled = {
     Method_Kernel_HeapStats_heapSize_insts, 2,
-    3, 0,
+    3, 0, 0,
     NULL, 0,
     0
 };
@@ -6611,7 +6611,7 @@ static const struct Closure Method_Kernel_HeapStats_heapSize_closure = {
 static const uint32_t Method_Kernel_HeapStats_liveBytes_insts[] = { 0x0002020A, 0x00000203 };
 static const struct CompiledMethod Method_Kernel_HeapStats_liveBytes_compiled = {
     Method_Kernel_HeapStats_liveBytes_insts, 2,
-    3, 0,
+    3, 0, 0,
     NULL, 0,
     0
 };
@@ -6623,7 +6623,7 @@ static const struct Closure Method_Kernel_HeapStats_liveBytes_closure = {
 static const uint32_t Method_Kernel_HeapStats_highWater_insts[] = { 0x0003020A, 0x00000203 };
 static const struct CompiledMethod Method_Kernel_HeapStats_highWater_compiled = {
     Method_Kernel_HeapStats_highWater_insts, 2,
-    3, 0,
+    3, 0, 0,
     NULL, 0,
     0
 };
@@ -6635,7 +6635,7 @@ static const struct Closure Method_Kernel_HeapStats_highWater_closure = {
 static const uint32_t Method_Kernel_HeapStats_largestFreeBlock_insts[] = { 0x0004020A, 0x00000203 };
 static const struct CompiledMethod Method_Kernel_HeapStats_largestFreeBlock_compiled = {
     Method_Kernel_HeapStats_largestFreeBlock_insts, 2,
-    3, 0,
+    3, 0, 0,
     NULL, 0,
     0
 };
@@ -6647,7 +6647,7 @@ static const struct Closure Method_Kernel_HeapStats_largestFreeBlock_closure = {
 static const uint32_t Method_Kernel_HeapStats_gcCycles_insts[] = { 0x0005020A, 0x00000203 };
 static const struct CompiledMethod Method_Kernel_HeapStats_gcCycles_compiled = {
     Method_Kernel_HeapStats_gcCycles_insts, 2,
-    3, 0,
+    3, 0, 0,
     NULL, 0,
     0
 };
@@ -6660,7 +6660,7 @@ static const uint32_t Method_Kernel_HeapStats_setFromList__insts[] = { 0x0001040
 static const oop Method_Kernel_HeapStats_setFromList__consts[] = { TAG_SMI(1), (oop)&StaticSymbol_basicAt_, TAG_SMI(2), TAG_SMI(3), TAG_SMI(4), TAG_SMI(5) };
 static const struct CompiledMethod Method_Kernel_HeapStats_setFromList__compiled = {
     Method_Kernel_HeapStats_setFromList__insts, 27,
-    10, 1,
+    10, 1, 0,
     Method_Kernel_HeapStats_setFromList__consts, 6,
     0
 };
@@ -6673,7 +6673,7 @@ static const uint32_t Method_Kernel_HeapStats_printString_insts[] = { 0x00000B00
 static const oop Method_Kernel_HeapStats_printString_consts[] = { (oop)&StaticString_live_u32_17, (oop)&StaticSymbol_printString, (oop)&StaticSymbol__u44, (oop)&StaticString__u32_div_u32hw_u32_18, (oop)&StaticString__u32_div_u32free_u32_19, (oop)&StaticString__u32_div_u32gc_u32_20, (oop)&StaticString__u32_div_u32size_u32_21 };
 static const struct CompiledMethod Method_Kernel_HeapStats_printString_compiled = {
     Method_Kernel_HeapStats_printString_insts, 39,
-    14, 0,
+    14, 0, 0,
     Method_Kernel_HeapStats_printString_consts, 7,
     0
 };
@@ -6686,7 +6686,7 @@ static const uint32_t Method_Meta_Kernel_HeapStats_fromList__insts[] = { 0x00000
 static const oop Method_Meta_Kernel_HeapStats_fromList__consts[] = { (oop)&Vtable_Kernel_HeapStats, (oop)&StaticSymbol_init_new, (oop)&StaticSymbol_setFromList_ };
 static const struct CompiledMethod Method_Meta_Kernel_HeapStats_fromList__compiled = {
     Method_Meta_Kernel_HeapStats_fromList__insts, 9,
-    6, 1,
+    6, 1, 0,
     Method_Meta_Kernel_HeapStats_fromList__consts, 3,
     0
 };
@@ -6699,7 +6699,7 @@ static const uint32_t Method_Kernel_HeapStats_init_new_insts[] = { 0x00000200, 0
 static const oop Method_Kernel_HeapStats_init_new_consts[] = { NULL };
 static const struct CompiledMethod Method_Kernel_HeapStats_init_new_compiled = {
     Method_Kernel_HeapStats_init_new_insts, 11,
-    3, 0,
+    3, 0, 0,
     Method_Kernel_HeapStats_init_new_consts, 1,
     0
 };
@@ -6711,7 +6711,7 @@ static const struct Closure Method_Kernel_HeapStats_init_new_closure = {
 static const uint32_t Method_Kernel_CHeapStats_outBytes_insts[] = { 0x0001020A, 0x00000203 };
 static const struct CompiledMethod Method_Kernel_CHeapStats_outBytes_compiled = {
     Method_Kernel_CHeapStats_outBytes_insts, 2,
-    3, 0,
+    3, 0, 0,
     NULL, 0,
     0
 };
@@ -6723,7 +6723,7 @@ static const struct Closure Method_Kernel_CHeapStats_outBytes_closure = {
 static const uint32_t Method_Kernel_CHeapStats_outHigh_insts[] = { 0x0002020A, 0x00000203 };
 static const struct CompiledMethod Method_Kernel_CHeapStats_outHigh_compiled = {
     Method_Kernel_CHeapStats_outHigh_insts, 2,
-    3, 0,
+    3, 0, 0,
     NULL, 0,
     0
 };
@@ -6735,7 +6735,7 @@ static const struct Closure Method_Kernel_CHeapStats_outHigh_closure = {
 static const uint32_t Method_Kernel_CHeapStats_allocs_insts[] = { 0x0003020A, 0x00000203 };
 static const struct CompiledMethod Method_Kernel_CHeapStats_allocs_compiled = {
     Method_Kernel_CHeapStats_allocs_insts, 2,
-    3, 0,
+    3, 0, 0,
     NULL, 0,
     0
 };
@@ -6747,7 +6747,7 @@ static const struct Closure Method_Kernel_CHeapStats_allocs_closure = {
 static const uint32_t Method_Kernel_CHeapStats_frees_insts[] = { 0x0004020A, 0x00000203 };
 static const struct CompiledMethod Method_Kernel_CHeapStats_frees_compiled = {
     Method_Kernel_CHeapStats_frees_insts, 2,
-    3, 0,
+    3, 0, 0,
     NULL, 0,
     0
 };
@@ -6759,7 +6759,7 @@ static const struct Closure Method_Kernel_CHeapStats_frees_closure = {
 static const uint32_t Method_Kernel_CHeapStats_fails_insts[] = { 0x0005020A, 0x00000203 };
 static const struct CompiledMethod Method_Kernel_CHeapStats_fails_compiled = {
     Method_Kernel_CHeapStats_fails_insts, 2,
-    3, 0,
+    3, 0, 0,
     NULL, 0,
     0
 };
@@ -6772,7 +6772,7 @@ static const uint32_t Method_Kernel_CHeapStats_setFromList__insts[] = { 0x000104
 static const oop Method_Kernel_CHeapStats_setFromList__consts[] = { TAG_SMI(1), (oop)&StaticSymbol_basicAt_, TAG_SMI(2), TAG_SMI(3), TAG_SMI(4), TAG_SMI(5) };
 static const struct CompiledMethod Method_Kernel_CHeapStats_setFromList__compiled = {
     Method_Kernel_CHeapStats_setFromList__insts, 27,
-    10, 1,
+    10, 1, 0,
     Method_Kernel_CHeapStats_setFromList__consts, 6,
     0
 };
@@ -6785,7 +6785,7 @@ static const uint32_t Method_Kernel_CHeapStats_printString_insts[] = { 0x00000B0
 static const oop Method_Kernel_CHeapStats_printString_consts[] = { (oop)&StaticString_out_u32_22, (oop)&StaticSymbol_printString, (oop)&StaticSymbol__u44, (oop)&StaticString__u32_div_u32hw_u32_18, (oop)&StaticString__u32_div_u32a_u32_23, (oop)&StaticString__u32_div_u32f_u32_24, (oop)&StaticString__u32_div_u32fail_u32_25 };
 static const struct CompiledMethod Method_Kernel_CHeapStats_printString_compiled = {
     Method_Kernel_CHeapStats_printString_insts, 39,
-    14, 0,
+    14, 0, 0,
     Method_Kernel_CHeapStats_printString_consts, 7,
     0
 };
@@ -6798,7 +6798,7 @@ static const uint32_t Method_Meta_Kernel_CHeapStats_fromList__insts[] = { 0x0000
 static const oop Method_Meta_Kernel_CHeapStats_fromList__consts[] = { (oop)&Vtable_Kernel_CHeapStats, (oop)&StaticSymbol_init_new, (oop)&StaticSymbol_setFromList_ };
 static const struct CompiledMethod Method_Meta_Kernel_CHeapStats_fromList__compiled = {
     Method_Meta_Kernel_CHeapStats_fromList__insts, 9,
-    6, 1,
+    6, 1, 0,
     Method_Meta_Kernel_CHeapStats_fromList__consts, 3,
     0
 };
@@ -6811,7 +6811,7 @@ static const uint32_t Method_Kernel_CHeapStats_init_new_insts[] = { 0x00000200, 
 static const oop Method_Kernel_CHeapStats_init_new_consts[] = { NULL };
 static const struct CompiledMethod Method_Kernel_CHeapStats_init_new_compiled = {
     Method_Kernel_CHeapStats_init_new_insts, 11,
-    3, 0,
+    3, 0, 0,
     Method_Kernel_CHeapStats_init_new_consts, 1,
     0
 };
@@ -6824,7 +6824,7 @@ static const uint32_t Method_Kernel_Spans_ensureTables_insts[] = { 0x0001040A, 0
 static const oop Method_Kernel_Spans_ensureTables_consts[] = { (oop)&StaticSymbol_isNil, (oop)&Vtable_Kernel_OrderedCollection, (oop)&StaticSymbol_init_new, (oop)&StaticSymbol_httpQueue, (oop)&StaticSymbol_add_, TAG_SMI(0), (oop)&StaticSymbol_egress, (oop)&StaticSymbol_false };
 static const struct CompiledMethod Method_Kernel_Spans_ensureTables_compiled = {
     Method_Kernel_Spans_ensureTables_insts, 38,
-    10, 0,
+    10, 0, 0,
     Method_Kernel_Spans_ensureTables_consts, 8,
     0
 };
@@ -6837,7 +6837,7 @@ static const uint32_t Method_Kernel_Spans_httpQueueSlot_insts[] = { 0x00000301, 
 static const oop Method_Kernel_Spans_httpQueueSlot_consts[] = { (oop)&StaticSymbol_ensureTables, TAG_SMI(0) };
 static const struct CompiledMethod Method_Kernel_Spans_httpQueueSlot_compiled = {
     Method_Kernel_Spans_httpQueueSlot_insts, 5,
-    4, 0,
+    4, 0, 0,
     Method_Kernel_Spans_httpQueueSlot_consts, 2,
     0
 };
@@ -6850,7 +6850,7 @@ static const uint32_t Method_Kernel_Spans_egressSlot_insts[] = { 0x00000301, 0x0
 static const oop Method_Kernel_Spans_egressSlot_consts[] = { (oop)&StaticSymbol_ensureTables, TAG_SMI(1) };
 static const struct CompiledMethod Method_Kernel_Spans_egressSlot_compiled = {
     Method_Kernel_Spans_egressSlot_insts, 5,
-    4, 0,
+    4, 0, 0,
     Method_Kernel_Spans_egressSlot_consts, 2,
     0
 };
@@ -6863,7 +6863,7 @@ static const uint32_t Method_Kernel_Spans_register__insts[] = { 0x00000601, 0x06
 static const oop Method_Kernel_Spans_register__consts[] = { (oop)&StaticSymbol_ensureTables, TAG_SMI(1), (oop)&StaticSymbol_size, (oop)&StaticSymbol__lt_eq, (oop)&StaticSymbol_at_, (oop)&StaticSymbol__eq, (oop)&StaticSymbol_false, NULL, (oop)&StaticSymbol_add_, TAG_SMI(0) };
 static const struct CompiledMethod Method_Kernel_Spans_register__compiled = {
     Method_Kernel_Spans_register__insts, 48,
-    17, 1,
+    17, 1, 0,
     Method_Kernel_Spans_register__consts, 10,
     0
 };
@@ -6876,7 +6876,7 @@ static const uint32_t Method_Kernel_Spans_slotCount_insts[] = { 0x00000301, 0x03
 static const oop Method_Kernel_Spans_slotCount_consts[] = { (oop)&StaticSymbol_ensureTables, (oop)&StaticSymbol_size };
 static const struct CompiledMethod Method_Kernel_Spans_slotCount_compiled = {
     Method_Kernel_Spans_slotCount_insts, 7,
-    5, 0,
+    5, 0, 0,
     Method_Kernel_Spans_slotCount_consts, 2,
     0
 };
@@ -6889,7 +6889,7 @@ static const uint32_t Method_Kernel_Spans_nameAt__insts[] = { 0x0001040A, 0x0001
 static const oop Method_Kernel_Spans_nameAt__consts[] = { TAG_SMI(1), (oop)&StaticSymbol_at_ };
 static const struct CompiledMethod Method_Kernel_Spans_nameAt__compiled = {
     Method_Kernel_Spans_nameAt__insts, 7,
-    8, 1,
+    8, 1, 0,
     Method_Kernel_Spans_nameAt__consts, 2,
     0
 };
@@ -6902,7 +6902,7 @@ static const uint32_t Method_Kernel_Spans_pathAt__insts[] = { 0x00000701, 0x0001
 static const oop Method_Kernel_Spans_pathAt__consts[] = { (oop)&StaticSymbol_nameAt_, (oop)&StaticSymbol_printString, (oop)&Vtable_Kernel_WriteStream, (oop)&StaticSymbol_init_new, TAG_SMI(2), (oop)&StaticSymbol_size, (oop)&StaticSymbol__lt_eq, (oop)&StaticSymbol_at_, (oop)&StaticSymbol_nextPut_, TAG_SMI(1), (oop)&StaticSymbol_contents };
 static const struct CompiledMethod Method_Kernel_Spans_pathAt__compiled = {
     Method_Kernel_Spans_pathAt__insts, 37,
-    16, 1,
+    16, 1, 0,
     Method_Kernel_Spans_pathAt__consts, 11,
     0
 };
@@ -6915,7 +6915,7 @@ static const uint32_t Method_Kernel_Spans_langAt__insts[] = { 0x00010501, 0x0000
 static const oop Method_Kernel_Spans_langAt__consts[] = { TAG_SMI(2), (oop)&StaticSymbol__lt, (oop)&StaticString_C_26, (oop)&StaticString_nsl_27 };
 static const struct CompiledMethod Method_Kernel_Spans_langAt__compiled = {
     Method_Kernel_Spans_langAt__insts, 9,
-    7, 1,
+    7, 1, 0,
     Method_Kernel_Spans_langAt__consts, 4,
     0
 };
@@ -6928,7 +6928,7 @@ static const uint32_t Method_Kernel_Spans_begin__insts[] = { 0x0000050A, 0x05000
 static const oop Method_Kernel_Spans_begin__consts[] = { (oop)&StaticSymbol_spanBegin_ };
 static const struct CompiledMethod Method_Kernel_Spans_begin__compiled = {
     Method_Kernel_Spans_begin__insts, 7,
-    6, 1,
+    6, 1, 0,
     Method_Kernel_Spans_begin__consts, 1,
     0
 };
@@ -6941,7 +6941,7 @@ static const uint32_t Method_Kernel_Spans_end__insts[] = { 0x0000050A, 0x0500040
 static const oop Method_Kernel_Spans_end__consts[] = { (oop)&StaticSymbol_spanEnd_ };
 static const struct CompiledMethod Method_Kernel_Spans_end__compiled = {
     Method_Kernel_Spans_end__insts, 7,
-    6, 1,
+    6, 1, 0,
     Method_Kernel_Spans_end__consts, 1,
     0
 };
@@ -6954,7 +6954,7 @@ static const uint32_t Method_Kernel_Spans_recordSlot_us__insts[] = { 0x0000060A,
 static const oop Method_Kernel_Spans_recordSlot_us__consts[] = { (oop)&StaticSymbol_spanRecord_us_ };
 static const struct CompiledMethod Method_Kernel_Spans_recordSlot_us__compiled = {
     Method_Kernel_Spans_recordSlot_us__insts, 8,
-    8, 2,
+    8, 2, 0,
     Method_Kernel_Spans_recordSlot_us__consts, 1,
     0
 };
@@ -6967,7 +6967,7 @@ static const uint32_t Method_Kernel_Spans_statsAt__insts[] = { 0x0000050A, 0x050
 static const oop Method_Kernel_Spans_statsAt__consts[] = { (oop)&StaticSymbol_spanStats_ };
 static const struct CompiledMethod Method_Kernel_Spans_statsAt__compiled = {
     Method_Kernel_Spans_statsAt__insts, 6,
-    6, 1,
+    6, 1, 0,
     Method_Kernel_Spans_statsAt__consts, 1,
     0
 };
@@ -6980,7 +6980,7 @@ static const uint32_t Method_Kernel_Spans_noteFailure__insts[] = { 0x0002040A, 0
 static const oop Method_Kernel_Spans_noteFailure__consts[] = { TAG_SMI(1), (oop)&StaticSymbol_at_, (oop)&StaticSymbol_at_put_ };
 static const struct CompiledMethod Method_Kernel_Spans_noteFailure__compiled = {
     Method_Kernel_Spans_noteFailure__insts, 16,
-    12, 1,
+    12, 1, 0,
     Method_Kernel_Spans_noteFailure__consts, 3,
     0
 };
@@ -6993,7 +6993,7 @@ static const uint32_t Method_Kernel_Spans_failuresAt__insts[] = { 0x0002040A, 0x
 static const oop Method_Kernel_Spans_failuresAt__consts[] = { TAG_SMI(1), (oop)&StaticSymbol_at_ };
 static const struct CompiledMethod Method_Kernel_Spans_failuresAt__compiled = {
     Method_Kernel_Spans_failuresAt__insts, 7,
-    8, 1,
+    8, 1, 0,
     Method_Kernel_Spans_failuresAt__consts, 2,
     0
 };
@@ -7006,7 +7006,7 @@ static const uint32_t Method_Kernel_Spans_resetAll_insts[] = { 0x00000501, 0x050
 static const oop Method_Kernel_Spans_resetAll_consts[] = { (oop)&StaticSymbol_ensureTables, (oop)&StaticSymbol_spanReset, TAG_SMI(1), (oop)&StaticSymbol_size, (oop)&StaticSymbol__lt_eq, TAG_SMI(0), (oop)&StaticSymbol_at_put_, NULL };
 static const struct CompiledMethod Method_Kernel_Spans_resetAll_compiled = {
     Method_Kernel_Spans_resetAll_insts, 31,
-    14, 0,
+    14, 0, 0,
     Method_Kernel_Spans_resetAll_consts, 8,
     0
 };
@@ -7019,7 +7019,7 @@ static const uint32_t Method_Kernel_Spans_minSamplesForP95_insts[] = { 0x0000020
 static const oop Method_Kernel_Spans_minSamplesForP95_consts[] = { TAG_SMI(200) };
 static const struct CompiledMethod Method_Kernel_Spans_minSamplesForP95_compiled = {
     Method_Kernel_Spans_minSamplesForP95_insts, 2,
-    3, 0,
+    3, 0, 0,
     Method_Kernel_Spans_minSamplesForP95_consts, 1,
     0
 };
@@ -7032,7 +7032,7 @@ static const uint32_t Method_Kernel_Spans_decadeName__insts[] = { 0x00010501, 0x
 static const oop Method_Kernel_Spans_decadeName__consts[] = { TAG_SMI(1), (oop)&StaticSymbol__eq, (oop)&StaticSymbol_lt100us, (oop)&StaticSymbol_false, TAG_SMI(2), (oop)&StaticSymbol_lt1ms, TAG_SMI(3), (oop)&StaticSymbol_lt10ms, TAG_SMI(4), (oop)&StaticSymbol_lt100ms, TAG_SMI(5), (oop)&StaticSymbol_lt1s, (oop)&StaticSymbol_ge1s };
 static const struct CompiledMethod Method_Kernel_Spans_decadeName__compiled = {
     Method_Kernel_Spans_decadeName__insts, 47,
-    11, 1,
+    11, 1, 0,
     Method_Kernel_Spans_decadeName__consts, 13,
     0
 };
@@ -7045,7 +7045,7 @@ static const uint32_t Method_Kernel_Spans_decadeAt_percentile__insts[] = { 0x000
 static const oop Method_Kernel_Spans_decadeAt_percentile__consts[] = { (oop)&StaticSymbol_statsAt_, TAG_SMI(1), (oop)&StaticSymbol_basicAt_, (oop)&StaticSymbol_minSamplesForP95, (oop)&StaticSymbol__lt, (oop)&StaticSymbol_insufficient, (oop)&StaticSymbol_false, TAG_SMI(99), TAG_SMI(100), (oop)&StaticSymbol__div_div, TAG_SMI(0), TAG_SMI(6), (oop)&StaticSymbol__lt_eq, TAG_SMI(5), (oop)&StaticSymbol__gt_eq, (oop)&StaticSymbol_decadeName_, NULL, (oop)&StaticSymbol_ge1s };
 static const struct CompiledMethod Method_Kernel_Spans_decadeAt_percentile__compiled = {
     Method_Kernel_Spans_decadeAt_percentile__insts, 68,
-    23, 2,
+    23, 2, 0,
     Method_Kernel_Spans_decadeAt_percentile__consts, 18,
     0
 };
@@ -7058,7 +7058,7 @@ static const uint32_t Method_Kernel_Spans_p50At__insts[] = { 0x00000401, 0x00010
 static const oop Method_Kernel_Spans_p50At__consts[] = { TAG_SMI(50), (oop)&StaticSymbol_decadeAt_percentile_ };
 static const struct CompiledMethod Method_Kernel_Spans_p50At__compiled = {
     Method_Kernel_Spans_p50At__insts, 6,
-    7, 1,
+    7, 1, 0,
     Method_Kernel_Spans_p50At__consts, 2,
     0
 };
@@ -7071,7 +7071,7 @@ static const uint32_t Method_Kernel_Spans_p95At__insts[] = { 0x00000401, 0x00010
 static const oop Method_Kernel_Spans_p95At__consts[] = { TAG_SMI(95), (oop)&StaticSymbol_decadeAt_percentile_ };
 static const struct CompiledMethod Method_Kernel_Spans_p95At__compiled = {
     Method_Kernel_Spans_p95At__insts, 6,
-    7, 1,
+    7, 1, 0,
     Method_Kernel_Spans_p95At__consts, 2,
     0
 };
@@ -7084,7 +7084,7 @@ static const uint32_t Method_Kernel_Spans_recordAt__insts[] = { 0x00000601, 0x00
 static const oop Method_Kernel_Spans_recordAt__consts[] = { (oop)&StaticSymbol_statsAt_, (oop)&Vtable_Kernel_OrderedCollection, (oop)&StaticSymbol_init_new, (oop)&StaticSymbol_span, (oop)&StaticSymbol_nameAt_, (oop)&StaticSymbol_key_value_, (oop)&StaticSymbol_add_, (oop)&StaticSymbol_n, TAG_SMI(1), (oop)&StaticSymbol_basicAt_, (oop)&StaticSymbol_fails, (oop)&StaticSymbol_failuresAt_, (oop)&StaticSymbol_minUs, TAG_SMI(2), (oop)&StaticSymbol_maxUs, TAG_SMI(3), (oop)&StaticSymbol_sumUsLo, TAG_SMI(4), (oop)&StaticSymbol_sumUsHi, TAG_SMI(5), (oop)&StaticSymbol_b0, TAG_SMI(6), (oop)&StaticSymbol_b1, TAG_SMI(7), (oop)&StaticSymbol_b2, TAG_SMI(8), (oop)&StaticSymbol_b3, TAG_SMI(9), (oop)&StaticSymbol_b4, TAG_SMI(10), (oop)&StaticSymbol_b5, TAG_SMI(11), (oop)&StaticSymbol_LatencySpan, (oop)&StaticSymbol_fromPairs_, (oop)&StaticSymbol_tag_fields_ };
 static const struct CompiledMethod Method_Kernel_Spans_recordAt__compiled = {
     Method_Kernel_Spans_recordAt__insts, 179,
-    26, 1,
+    26, 1, 0,
     Method_Kernel_Spans_recordAt__consts, 35,
     0
 };
@@ -7097,7 +7097,7 @@ static const uint32_t Method_Kernel_Spans_init_new_insts[] = { 0x00000200, 0x000
 static const oop Method_Kernel_Spans_init_new_consts[] = { NULL };
 static const struct CompiledMethod Method_Kernel_Spans_init_new_compiled = {
     Method_Kernel_Spans_init_new_insts, 5,
-    3, 0,
+    3, 0, 0,
     Method_Kernel_Spans_init_new_consts, 1,
     0
 };
@@ -7110,7 +7110,7 @@ static const uint32_t Method_Kernel_SpanCapture_onSpace_spans__insts[] = { 0x000
 static const oop Method_Kernel_SpanCapture_onSpace_spans__consts[] = { (oop)&StaticSymbol_false, (oop)&StaticString_diag_divspans_divctl_28, (oop)&StaticSymbol_channel_, (oop)&StaticString_diag_divspans_divresult_29 };
 static const struct CompiledMethod Method_Kernel_SpanCapture_onSpace_spans__compiled = {
     Method_Kernel_SpanCapture_onSpace_spans__insts, 18,
-    8, 2,
+    8, 2, 0,
     Method_Kernel_SpanCapture_onSpace_spans__consts, 4,
     0
 };
@@ -7123,7 +7123,7 @@ static const uint32_t Method_Kernel_SpanCapture_start_insts[] = { 0x0003030A, 0x
 static const oop Method_Kernel_SpanCapture_start_consts[] = { (oop)&StaticString__4, (oop)&Method_Block_Kernel_SpanCapture_block40_value__compiled, (oop)&StaticSymbol_whenever_do_, (oop)&StaticSymbol_normalise };
 static const struct CompiledMethod Method_Kernel_SpanCapture_start_compiled = {
     Method_Kernel_SpanCapture_start_insts, 10,
-    6, 0,
+    6, 0, 0,
     Method_Kernel_SpanCapture_start_consts, 4,
     0
 };
@@ -7136,7 +7136,7 @@ static const uint32_t Method_Kernel_SpanCapture_normalise_insts[] = { 0x0003040A
 static const oop Method_Kernel_SpanCapture_normalise_consts[] = { (oop)&StaticSymbol_peek, (oop)&StaticSymbol_isNil, (oop)&StaticSymbol_false, (oop)&StaticSymbol_state, (oop)&Method_Block_Kernel_SpanCapture_block41_value_compiled, (oop)&StaticSymbol_at_ifAbsent_, (oop)&StaticSymbol_running, (oop)&StaticSymbol__eq, (oop)&StaticString__4, (oop)&StaticSymbol_SpanCtl, (oop)&StaticSymbol_stopped, (oop)&StaticSymbol_key_value_, (oop)&StaticSymbol_tag_with_, (oop)&StaticSymbol_put_value_ };
 static const struct CompiledMethod Method_Kernel_SpanCapture_normalise_compiled = {
     Method_Kernel_SpanCapture_normalise_insts, 40,
-    18, 0,
+    18, 0, 0,
     Method_Kernel_SpanCapture_normalise_consts, 14,
     0
 };
@@ -7149,7 +7149,7 @@ static const uint32_t Method_Kernel_SpanCapture_apply__insts[] = { 0x00010501, 0
 static const oop Method_Kernel_SpanCapture_apply__consts[] = { (oop)&StaticSymbol_state, (oop)&Method_Block_Kernel_SpanCapture_block42_value_compiled, (oop)&StaticSymbol_at_ifAbsent_, (oop)&StaticSymbol_running, (oop)&StaticSymbol__eq, (oop)&StaticSymbol_beginWindow, (oop)&StaticSymbol_false, (oop)&StaticSymbol_stopped, (oop)&StaticSymbol_endWindow };
 static const struct CompiledMethod Method_Kernel_SpanCapture_apply__compiled = {
     Method_Kernel_SpanCapture_apply__insts, 30,
-    11, 1,
+    11, 1, 0,
     Method_Kernel_SpanCapture_apply__consts, 9,
     0
 };
@@ -7162,7 +7162,7 @@ static const uint32_t Method_Kernel_SpanCapture_beginWindow_insts[] = { 0x000003
 static const oop Method_Kernel_SpanCapture_beginWindow_consts[] = { TAG_SMI(0), (oop)&StaticSymbol_millis, (oop)&StaticSymbol_resetAll, (oop)&StaticSymbol_true };
 static const struct CompiledMethod Method_Kernel_SpanCapture_beginWindow_compiled = {
     Method_Kernel_SpanCapture_beginWindow_insts, 11,
-    5, 0,
+    5, 0, 0,
     Method_Kernel_SpanCapture_beginWindow_consts, 4,
     0
 };
@@ -7175,7 +7175,7 @@ static const uint32_t Method_Kernel_SpanCapture_endWindow_insts[] = { 0x0006040A
 static const oop Method_Kernel_SpanCapture_endWindow_consts[] = { (oop)&StaticSymbol_false, TAG_SMI(0), (oop)&StaticSymbol_millis, (oop)&StaticSymbol__lt, TAG_SMI(-1), (oop)&StaticString__4, (oop)&StaticSymbol_publishSlots, (oop)&StaticSymbol_summaryMs_total_, (oop)&StaticSymbol_put_value_ };
 static const struct CompiledMethod Method_Kernel_SpanCapture_endWindow_compiled = {
     Method_Kernel_SpanCapture_endWindow_insts, 36,
-    13, 0,
+    13, 0, 0,
     Method_Kernel_SpanCapture_endWindow_consts, 9,
     0
 };
@@ -7188,7 +7188,7 @@ static const uint32_t Method_Kernel_SpanCapture_publishSlots_insts[] = { 0x00000
 static const oop Method_Kernel_SpanCapture_publishSlots_consts[] = { TAG_SMI(0), (oop)&StaticSymbol_slotCount, (oop)&StaticSymbol__lt, (oop)&StaticString_diag_divspans_div_30, (oop)&StaticSymbol_pathAt_, (oop)&StaticSymbol__u44, (oop)&StaticSymbol_channel_, (oop)&StaticString__4, (oop)&StaticSymbol_recordAt_, (oop)&StaticSymbol_put_value_, (oop)&StaticSymbol_statsAt_, TAG_SMI(1), (oop)&StaticSymbol_basicAt_, NULL };
 static const struct CompiledMethod Method_Kernel_SpanCapture_publishSlots_compiled = {
     Method_Kernel_SpanCapture_publishSlots_insts, 48,
-    17, 0,
+    17, 0, 0,
     Method_Kernel_SpanCapture_publishSlots_consts, 14,
     0
 };
@@ -7201,7 +7201,7 @@ static const uint32_t Method_Kernel_SpanCapture_summaryMs_total__insts[] = { 0x0
 static const oop Method_Kernel_SpanCapture_summaryMs_total__consts[] = { (oop)&StaticSymbol_SpanCapture, (oop)&StaticSymbol_n, (oop)&StaticSymbol_key_value_, (oop)&StaticSymbol_ms, (oop)&StaticSymbol_tag_with_with_ };
 static const struct CompiledMethod Method_Kernel_SpanCapture_summaryMs_total__compiled = {
     Method_Kernel_SpanCapture_summaryMs_total__insts, 18,
-    12, 2,
+    12, 2, 0,
     Method_Kernel_SpanCapture_summaryMs_total__consts, 5,
     0
 };
@@ -7214,7 +7214,7 @@ static const uint32_t Method_Meta_Kernel_SpanCapture_onSpace_spans__insts[] = { 
 static const oop Method_Meta_Kernel_SpanCapture_onSpace_spans__consts[] = { (oop)&Vtable_Kernel_SpanCapture, (oop)&StaticSymbol_init_new, (oop)&StaticSymbol_onSpace_spans_ };
 static const struct CompiledMethod Method_Meta_Kernel_SpanCapture_onSpace_spans__compiled = {
     Method_Meta_Kernel_SpanCapture_onSpace_spans__insts, 10,
-    8, 2,
+    8, 2, 0,
     Method_Meta_Kernel_SpanCapture_onSpace_spans__consts, 3,
     0
 };
@@ -7227,7 +7227,7 @@ static const uint32_t Method_Kernel_SpanCapture_init_new_insts[] = { 0x00000200,
 static const oop Method_Kernel_SpanCapture_init_new_consts[] = { NULL };
 static const struct CompiledMethod Method_Kernel_SpanCapture_init_new_compiled = {
     Method_Kernel_SpanCapture_init_new_insts, 13,
-    3, 0,
+    3, 0, 0,
     Method_Kernel_SpanCapture_init_new_consts, 1,
     0
 };
@@ -7240,7 +7240,7 @@ static const uint32_t Method_Kernel_ReadStream_next_insts[] = { 0x00000401, 0x04
 static const oop Method_Kernel_ReadStream_next_consts[] = { (oop)&StaticSymbol_atEnd, (oop)&StaticString_next_u32past_u32end_31, (oop)&StaticSymbol_error_, (oop)&StaticSymbol_false, TAG_SMI(1), (oop)&StaticSymbol_at_ };
 static const struct CompiledMethod Method_Kernel_ReadStream_next_compiled = {
     Method_Kernel_ReadStream_next_insts, 20,
-    8, 0,
+    8, 0, 0,
     Method_Kernel_ReadStream_next_consts, 6,
     0
 };
@@ -7253,7 +7253,7 @@ static const uint32_t Method_Kernel_ReadStream_peek_insts[] = { 0x00000401, 0x04
 static const oop Method_Kernel_ReadStream_peek_consts[] = { (oop)&StaticSymbol_atEnd, (oop)&StaticString_peek_u32past_u32end_32, (oop)&StaticSymbol_error_, (oop)&StaticSymbol_false, TAG_SMI(1), (oop)&StaticSymbol_at_ };
 static const struct CompiledMethod Method_Kernel_ReadStream_peek_compiled = {
     Method_Kernel_ReadStream_peek_insts, 18,
-    8, 0,
+    8, 0, 0,
     Method_Kernel_ReadStream_peek_consts, 6,
     0
 };
@@ -7266,7 +7266,7 @@ static const uint32_t Method_Kernel_ReadStream_atEnd_insts[] = { 0x0002030A, 0x0
 static const oop Method_Kernel_ReadStream_atEnd_consts[] = { (oop)&StaticSymbol_size, (oop)&StaticSymbol__gt_eq };
 static const struct CompiledMethod Method_Kernel_ReadStream_atEnd_compiled = {
     Method_Kernel_ReadStream_atEnd_insts, 7,
-    6, 0,
+    6, 0, 0,
     Method_Kernel_ReadStream_atEnd_consts, 2,
     0
 };
@@ -7278,7 +7278,7 @@ static const struct Closure Method_Kernel_ReadStream_atEnd_closure = {
 static const uint32_t Method_Kernel_ReadStream_skip__insts[] = { 0x0002040A, 0x00010501, 0x05040304, 0x0002030B, 0x00000301, 0x00000303 };
 static const struct CompiledMethod Method_Kernel_ReadStream_skip__compiled = {
     Method_Kernel_ReadStream_skip__insts, 6,
-    6, 1,
+    6, 1, 0,
     NULL, 0,
     0
 };
@@ -7290,7 +7290,7 @@ static const struct Closure Method_Kernel_ReadStream_skip__closure = {
 static const uint32_t Method_Kernel_ReadStream_position_insts[] = { 0x0002020A, 0x00000203 };
 static const struct CompiledMethod Method_Kernel_ReadStream_position_compiled = {
     Method_Kernel_ReadStream_position_insts, 2,
-    3, 0,
+    3, 0, 0,
     NULL, 0,
     0
 };
@@ -7303,7 +7303,7 @@ static const uint32_t Method_Kernel_ReadStream_reset_insts[] = { 0x00000200, 0x0
 static const oop Method_Kernel_ReadStream_reset_consts[] = { TAG_SMI(0) };
 static const struct CompiledMethod Method_Kernel_ReadStream_reset_compiled = {
     Method_Kernel_ReadStream_reset_insts, 4,
-    3, 0,
+    3, 0, 0,
     Method_Kernel_ReadStream_reset_consts, 1,
     0
 };
@@ -7316,7 +7316,7 @@ static const uint32_t Method_Kernel_ReadStream_next__insts[] = { 0x0002070A, 0x0
 static const oop Method_Kernel_ReadStream_next__consts[] = { (oop)&StaticSymbol_size, (oop)&StaticSymbol__gt, (oop)&StaticString_next__u32beyond_u32end_33, (oop)&StaticSymbol_error_, (oop)&StaticSymbol_false, (oop)&StaticSymbol_basicNew_indexable_, TAG_SMI(1), (oop)&StaticSymbol__lt_eq, (oop)&StaticSymbol_at_, (oop)&StaticSymbol_at_put_, (oop)&StaticSymbol_string_ };
 static const struct CompiledMethod Method_Kernel_ReadStream_next__compiled = {
     Method_Kernel_ReadStream_next__insts, 54,
-    17, 1,
+    17, 1, 0,
     Method_Kernel_ReadStream_next__consts, 11,
     0
 };
@@ -7329,7 +7329,7 @@ static const uint32_t Method_Kernel_ReadStream_upTo__insts[] = { 0x00000701, 0x0
 static const oop Method_Kernel_ReadStream_upTo__consts[] = { (oop)&StaticSymbol_atEnd, NULL, (oop)&StaticSymbol_false, (oop)&Vtable_Kernel_OrderedCollection, (oop)&StaticSymbol_init_new, (oop)&StaticSymbol_next, (oop)&StaticSymbol__eq, (oop)&StaticSymbol_asArray, (oop)&StaticSymbol_string_, (oop)&StaticSymbol_add_ };
 static const struct CompiledMethod Method_Kernel_ReadStream_upTo__compiled = {
     Method_Kernel_ReadStream_upTo__insts, 53,
-    17, 1,
+    17, 1, 0,
     Method_Kernel_ReadStream_upTo__consts, 10,
     0
 };
@@ -7342,7 +7342,7 @@ static const uint32_t Method_Kernel_ReadStream_nextLine_insts[] = { 0x00000601, 
 static const oop Method_Kernel_ReadStream_nextLine_consts[] = { (oop)&StaticSymbol_atEnd, NULL, (oop)&StaticSymbol_false, TAG_SMI(10), (oop)&StaticSymbol_upTo_, (oop)&StaticSymbol_size, TAG_SMI(0), (oop)&StaticSymbol__gt, (oop)&StaticSymbol_at_, TAG_SMI(13), (oop)&StaticSymbol__eq, TAG_SMI(1), (oop)&StaticSymbol_prefixOf_upTo_ };
 static const struct CompiledMethod Method_Kernel_ReadStream_nextLine_compiled = {
     Method_Kernel_ReadStream_nextLine_insts, 44,
-    16, 0,
+    16, 0, 0,
     Method_Kernel_ReadStream_nextLine_consts, 13,
     0
 };
@@ -7355,7 +7355,7 @@ static const uint32_t Method_Kernel_ReadStream_upToEnd_insts[] = { 0x00000501, 0
 static const oop Method_Kernel_ReadStream_upToEnd_consts[] = { (oop)&StaticSymbol_atEnd, NULL, (oop)&StaticSymbol_false, (oop)&Vtable_Kernel_OrderedCollection, (oop)&StaticSymbol_init_new, (oop)&StaticSymbol_next, (oop)&StaticSymbol_add_, (oop)&StaticSymbol_asArray, (oop)&StaticSymbol_string_ };
 static const struct CompiledMethod Method_Kernel_ReadStream_upToEnd_compiled = {
     Method_Kernel_ReadStream_upToEnd_insts, 36,
-    10, 0,
+    10, 0, 0,
     Method_Kernel_ReadStream_upToEnd_consts, 9,
     0
 };
@@ -7368,7 +7368,7 @@ static const uint32_t Method_Kernel_ReadStream_do__insts[] = { 0x00000601, 0x060
 static const oop Method_Kernel_ReadStream_do__consts[] = { (oop)&StaticSymbol_atEnd, (oop)&StaticSymbol_next, (oop)&StaticSymbol_value_, NULL };
 static const struct CompiledMethod Method_Kernel_ReadStream_do__compiled = {
     Method_Kernel_ReadStream_do__insts, 15,
-    9, 1,
+    9, 1, 0,
     Method_Kernel_ReadStream_do__consts, 4,
     0
 };
@@ -7381,7 +7381,7 @@ static const uint32_t Method_Kernel_ReadStream_prefixOf_upTo__insts[] = { 0x0000
 static const oop Method_Kernel_ReadStream_prefixOf_upTo__consts[] = { (oop)&StaticSymbol_basicNew_indexable_, TAG_SMI(1), (oop)&StaticSymbol__lt_eq, (oop)&StaticSymbol_at_, (oop)&StaticSymbol_at_put_, (oop)&StaticSymbol_string_ };
 static const struct CompiledMethod Method_Kernel_ReadStream_prefixOf_upTo__compiled = {
     Method_Kernel_ReadStream_prefixOf_upTo__insts, 32,
-    15, 2,
+    15, 2, 0,
     Method_Kernel_ReadStream_prefixOf_upTo__consts, 6,
     0
 };
@@ -7394,7 +7394,7 @@ static const uint32_t Method_Kernel_ReadStream_setSource__insts[] = { 0x00010301
 static const oop Method_Kernel_ReadStream_setSource__consts[] = { TAG_SMI(0) };
 static const struct CompiledMethod Method_Kernel_ReadStream_setSource__compiled = {
     Method_Kernel_ReadStream_setSource__insts, 6,
-    4, 1,
+    4, 1, 0,
     Method_Kernel_ReadStream_setSource__consts, 1,
     0
 };
@@ -7407,7 +7407,7 @@ static const uint32_t Method_Meta_Kernel_ReadStream_on__insts[] = { 0x00000500, 
 static const oop Method_Meta_Kernel_ReadStream_on__consts[] = { (oop)&Vtable_Kernel_ReadStream, (oop)&StaticSymbol_init_new, (oop)&StaticSymbol_setSource_ };
 static const struct CompiledMethod Method_Meta_Kernel_ReadStream_on__compiled = {
     Method_Meta_Kernel_ReadStream_on__insts, 9,
-    6, 1,
+    6, 1, 0,
     Method_Meta_Kernel_ReadStream_on__consts, 3,
     0
 };
@@ -7420,7 +7420,7 @@ static const uint32_t Method_Kernel_ReadStream_init_new_insts[] = { 0x00000200, 
 static const oop Method_Kernel_ReadStream_init_new_consts[] = { NULL };
 static const struct CompiledMethod Method_Kernel_ReadStream_init_new_compiled = {
     Method_Kernel_ReadStream_init_new_insts, 5,
-    3, 0,
+    3, 0, 0,
     Method_Kernel_ReadStream_init_new_consts, 1,
     0
 };
@@ -7433,7 +7433,7 @@ static const uint32_t Method_Kernel_WriteStream_nextPut__insts[] = { 0x00010601,
 static const oop Method_Kernel_WriteStream_nextPut__consts[] = { TAG_SMI(0), (oop)&StaticSymbol__lt, (oop)&StaticSymbol_true, TAG_SMI(255), (oop)&StaticSymbol__gt, (oop)&StaticString_byte_u32out_u32of_u32range_u320_u46_u46255_34, (oop)&StaticSymbol_error_, (oop)&StaticSymbol_false, (oop)&StaticSymbol_add_ };
 static const struct CompiledMethod Method_Kernel_WriteStream_nextPut__compiled = {
     Method_Kernel_WriteStream_nextPut__insts, 25,
-    9, 1,
+    9, 1, 0,
     Method_Kernel_WriteStream_nextPut__consts, 9,
     0
 };
@@ -7446,7 +7446,7 @@ static const uint32_t Method_Kernel_WriteStream_nextPutAll__insts[] = { 0x000003
 static const oop Method_Kernel_WriteStream_nextPutAll__consts[] = { TAG_SMI(1), (oop)&StaticSymbol_size, (oop)&StaticSymbol__lt_eq, (oop)&StaticSymbol_at_, (oop)&StaticSymbol_add_ };
 static const struct CompiledMethod Method_Kernel_WriteStream_nextPutAll__compiled = {
     Method_Kernel_WriteStream_nextPutAll__insts, 21,
-    12, 1,
+    12, 1, 0,
     Method_Kernel_WriteStream_nextPutAll__consts, 5,
     0
 };
@@ -7459,7 +7459,7 @@ static const uint32_t Method_Kernel_WriteStream_print__insts[] = { 0x00000401, 0
 static const oop Method_Kernel_WriteStream_print__consts[] = { (oop)&StaticSymbol_printString, (oop)&StaticSymbol_nextPutAll_ };
 static const struct CompiledMethod Method_Kernel_WriteStream_print__compiled = {
     Method_Kernel_WriteStream_print__insts, 7,
-    7, 1,
+    7, 1, 0,
     Method_Kernel_WriteStream_print__consts, 2,
     0
 };
@@ -7472,7 +7472,7 @@ static const uint32_t Method_Kernel_WriteStream_nextPutLine__insts[] = { 0x00000
 static const oop Method_Kernel_WriteStream_nextPutLine__consts[] = { (oop)&StaticSymbol_nextPutAll_, TAG_SMI(10), (oop)&StaticSymbol_nextPut_ };
 static const struct CompiledMethod Method_Kernel_WriteStream_nextPutLine__compiled = {
     Method_Kernel_WriteStream_nextPutLine__insts, 10,
-    7, 1,
+    7, 1, 0,
     Method_Kernel_WriteStream_nextPutLine__consts, 3,
     0
 };
@@ -7485,7 +7485,7 @@ static const uint32_t Method_Kernel_WriteStream_contents_insts[] = { 0x0000040A,
 static const oop Method_Kernel_WriteStream_contents_consts[] = { (oop)&StaticSymbol_asArray, (oop)&StaticSymbol_string_ };
 static const struct CompiledMethod Method_Kernel_WriteStream_contents_compiled = {
     Method_Kernel_WriteStream_contents_insts, 8,
-    6, 0,
+    6, 0, 0,
     Method_Kernel_WriteStream_contents_consts, 2,
     0
 };
@@ -7498,7 +7498,7 @@ static const uint32_t Method_Kernel_WriteStream_size_insts[] = { 0x0001030A, 0x0
 static const oop Method_Kernel_WriteStream_size_consts[] = { (oop)&StaticSymbol_size };
 static const struct CompiledMethod Method_Kernel_WriteStream_size_compiled = {
     Method_Kernel_WriteStream_size_insts, 4,
-    4, 0,
+    4, 0, 0,
     Method_Kernel_WriteStream_size_consts, 1,
     0
 };
@@ -7511,7 +7511,7 @@ static const uint32_t Method_Kernel_WriteStream_reset_insts[] = { 0x00000300, 0x
 static const oop Method_Kernel_WriteStream_reset_consts[] = { (oop)&Vtable_Kernel_OrderedCollection, (oop)&StaticSymbol_init_new };
 static const struct CompiledMethod Method_Kernel_WriteStream_reset_compiled = {
     Method_Kernel_WriteStream_reset_insts, 9,
-    5, 0,
+    5, 0, 0,
     Method_Kernel_WriteStream_reset_consts, 2,
     0
 };
@@ -7524,7 +7524,7 @@ static const uint32_t Method_Kernel_WriteStream_init_new_insts[] = { 0x00000300,
 static const oop Method_Kernel_WriteStream_init_new_consts[] = { (oop)&Vtable_Kernel_OrderedCollection, (oop)&StaticSymbol_init_new };
 static const struct CompiledMethod Method_Kernel_WriteStream_init_new_compiled = {
     Method_Kernel_WriteStream_init_new_insts, 8,
-    5, 0,
+    5, 0, 0,
     Method_Kernel_WriteStream_init_new_consts, 2,
     0
 };
@@ -7536,7 +7536,7 @@ static const struct Closure Method_Kernel_WriteStream_init_new_closure = {
 static const uint32_t Method_Kernel_Serial_setPort__insts[] = { 0x00010301, 0x0001030B, 0x00000301, 0x00000303 };
 static const struct CompiledMethod Method_Kernel_Serial_setPort__compiled = {
     Method_Kernel_Serial_setPort__insts, 4,
-    4, 1,
+    4, 1, 0,
     NULL, 0,
     0
 };
@@ -7549,7 +7549,7 @@ static const uint32_t Method_Kernel_Serial_writeByte__insts[] = { 0x0001040A, 0x
 static const oop Method_Kernel_Serial_writeByte__consts[] = { (oop)&StaticSymbol_basicWriteByte_ };
 static const struct CompiledMethod Method_Kernel_Serial_writeByte__compiled = {
     Method_Kernel_Serial_writeByte__insts, 6,
-    6, 1,
+    6, 1, 0,
     Method_Kernel_Serial_writeByte__consts, 1,
     0
 };
@@ -7562,7 +7562,7 @@ static const uint32_t Method_Kernel_Serial_write__insts[] = { 0x00000300, 0x0003
 static const oop Method_Kernel_Serial_write__consts[] = { TAG_SMI(1), (oop)&StaticSymbol_size, (oop)&StaticSymbol__lt_eq, (oop)&StaticSymbol_at_, (oop)&StaticSymbol_basicWriteByte_ };
 static const struct CompiledMethod Method_Kernel_Serial_write__compiled = {
     Method_Kernel_Serial_write__insts, 21,
-    12, 1,
+    12, 1, 0,
     Method_Kernel_Serial_write__consts, 5,
     0
 };
@@ -7575,7 +7575,7 @@ static const uint32_t Method_Kernel_Serial_atEnd_insts[] = { 0x0001030A, 0x03000
 static const oop Method_Kernel_Serial_atEnd_consts[] = { (oop)&StaticSymbol_basicAtEnd };
 static const struct CompiledMethod Method_Kernel_Serial_atEnd_compiled = {
     Method_Kernel_Serial_atEnd_insts, 4,
-    4, 0,
+    4, 0, 0,
     Method_Kernel_Serial_atEnd_consts, 1,
     0
 };
@@ -7588,7 +7588,7 @@ static const uint32_t Method_Kernel_Serial_readByte_insts[] = { 0x0001040A, 0x04
 static const oop Method_Kernel_Serial_readByte_consts[] = { (oop)&StaticSymbol_basicAtEnd, NULL, (oop)&StaticSymbol_false, (oop)&StaticSymbol_basicReadByte };
 static const struct CompiledMethod Method_Kernel_Serial_readByte_compiled = {
     Method_Kernel_Serial_readByte_insts, 12,
-    6, 0,
+    6, 0, 0,
     Method_Kernel_Serial_readByte_consts, 4,
     0
 };
@@ -7601,7 +7601,7 @@ static const uint32_t Method_Kernel_Serial_read__insts[] = { 0x00000500, 0x03050
 static const oop Method_Kernel_Serial_read__consts[] = { (oop)&Vtable_Kernel_OrderedCollection, (oop)&StaticSymbol_init_new, (oop)&StaticSymbol_size, (oop)&StaticSymbol__lt, (oop)&StaticSymbol_basicAtEnd, (oop)&StaticSymbol_not, (oop)&StaticSymbol_false, (oop)&StaticSymbol_basicReadByte, (oop)&StaticSymbol_add_, NULL, (oop)&StaticSymbol_asArray, (oop)&StaticSymbol_string_ };
 static const struct CompiledMethod Method_Kernel_Serial_read__compiled = {
     Method_Kernel_Serial_read__insts, 38,
-    12, 1,
+    12, 1, 0,
     Method_Kernel_Serial_read__consts, 12,
     0
 };
@@ -7614,7 +7614,7 @@ static const uint32_t Method_Kernel_Serial_readLine_insts[] = { 0x0001070A, 0x07
 static const oop Method_Kernel_Serial_readLine_consts[] = { (oop)&StaticSymbol_basicAtEnd, NULL, (oop)&StaticSymbol_false, (oop)&Vtable_Kernel_OrderedCollection, (oop)&StaticSymbol_init_new, (oop)&StaticSymbol_not, (oop)&StaticSymbol_basicReadByte, TAG_SMI(10), (oop)&StaticSymbol__eq, (oop)&StaticSymbol_true, (oop)&StaticSymbol_add_, (oop)&StaticSymbol_size, TAG_SMI(0), (oop)&StaticSymbol__gt, (oop)&StaticSymbol_at_, TAG_SMI(13), (oop)&StaticSymbol_removeLast, (oop)&StaticSymbol_asArray, (oop)&StaticSymbol_string_ };
 static const struct CompiledMethod Method_Kernel_Serial_readLine_compiled = {
     Method_Kernel_Serial_readLine_insts, 79,
-    15, 0,
+    15, 0, 0,
     Method_Kernel_Serial_readLine_consts, 19,
     0
 };
@@ -7627,7 +7627,7 @@ static const uint32_t Method_Meta_Kernel_Serial_onPort__insts[] = { 0x00000500, 
 static const oop Method_Meta_Kernel_Serial_onPort__consts[] = { (oop)&Vtable_Kernel_Serial, (oop)&StaticSymbol_init_new, (oop)&StaticSymbol_setPort_ };
 static const struct CompiledMethod Method_Meta_Kernel_Serial_onPort__compiled = {
     Method_Meta_Kernel_Serial_onPort__insts, 9,
-    6, 1,
+    6, 1, 0,
     Method_Meta_Kernel_Serial_onPort__consts, 3,
     0
 };
@@ -7640,7 +7640,7 @@ static const uint32_t Method_Kernel_Serial_init_new_insts[] = { 0x00000200, 0x00
 static const oop Method_Kernel_Serial_init_new_consts[] = { NULL };
 static const struct CompiledMethod Method_Kernel_Serial_init_new_compiled = {
     Method_Kernel_Serial_init_new_insts, 3,
-    3, 0,
+    3, 0, 0,
     Method_Kernel_Serial_init_new_consts, 1,
     0
 };
@@ -7652,7 +7652,7 @@ static const struct Closure Method_Kernel_Serial_init_new_closure = {
 static const uint32_t Method_Kernel_Net_setPort__insts[] = { 0x00010301, 0x0001030B, 0x00000301, 0x00000303 };
 static const struct CompiledMethod Method_Kernel_Net_setPort__compiled = {
     Method_Kernel_Net_setPort__insts, 4,
-    4, 1,
+    4, 1, 0,
     NULL, 0,
     0
 };
@@ -7665,7 +7665,7 @@ static const uint32_t Method_Kernel_Net_udp_insts[] = { 0x00000301, 0x00000400, 
 static const oop Method_Kernel_Net_udp_consts[] = { TAG_SMI(0), (oop)&StaticSymbol_udpBindPort_ };
 static const struct CompiledMethod Method_Kernel_Net_udp_compiled = {
     Method_Kernel_Net_udp_insts, 5,
-    5, 0,
+    5, 0, 0,
     Method_Kernel_Net_udp_consts, 2,
     0
 };
@@ -7678,7 +7678,7 @@ static const uint32_t Method_Kernel_Net_udpBindPort__insts[] = { 0x0001050A, 0x0
 static const oop Method_Kernel_Net_udpBindPort__consts[] = { (oop)&StaticSymbol_basicBind_, TAG_SMI(0), (oop)&StaticSymbol__lt, NULL, (oop)&StaticSymbol_false, (oop)&StaticSymbol_onPort_handle_ };
 static const struct CompiledMethod Method_Kernel_Net_udpBindPort__compiled = {
     Method_Kernel_Net_udpBindPort__insts, 21,
-    10, 1,
+    10, 1, 0,
     Method_Kernel_Net_udpBindPort__consts, 6,
     0
 };
@@ -7691,7 +7691,7 @@ static const uint32_t Method_Meta_Kernel_Net_onPort__insts[] = { 0x00000500, 0x0
 static const oop Method_Meta_Kernel_Net_onPort__consts[] = { (oop)&Vtable_Kernel_Net, (oop)&StaticSymbol_init_new, (oop)&StaticSymbol_setPort_ };
 static const struct CompiledMethod Method_Meta_Kernel_Net_onPort__compiled = {
     Method_Meta_Kernel_Net_onPort__insts, 9,
-    6, 1,
+    6, 1, 0,
     Method_Meta_Kernel_Net_onPort__consts, 3,
     0
 };
@@ -7704,7 +7704,7 @@ static const uint32_t Method_Kernel_Net_init_new_insts[] = { 0x00000200, 0x00010
 static const oop Method_Kernel_Net_init_new_consts[] = { NULL };
 static const struct CompiledMethod Method_Kernel_Net_init_new_compiled = {
     Method_Kernel_Net_init_new_insts, 3,
-    3, 0,
+    3, 0, 0,
     Method_Kernel_Net_init_new_consts, 1,
     0
 };
@@ -7716,7 +7716,7 @@ static const struct Closure Method_Kernel_Net_init_new_closure = {
 static const uint32_t Method_Kernel_Socket_setPort_handle__insts[] = { 0x00010401, 0x0001040B, 0x00020401, 0x0002040B, 0x00000401, 0x00000403 };
 static const struct CompiledMethod Method_Kernel_Socket_setPort_handle__compiled = {
     Method_Kernel_Socket_setPort_handle__insts, 6,
-    5, 2,
+    5, 2, 0,
     NULL, 0,
     0
 };
@@ -7729,7 +7729,7 @@ static const uint32_t Method_Kernel_Socket_sendTo_port_data__insts[] = { 0x00010
 static const oop Method_Kernel_Socket_sendTo_port_data__consts[] = { (oop)&StaticSymbol_rawLeaf, (oop)&StaticSymbol_basicSend_to_port_data_ };
 static const struct CompiledMethod Method_Kernel_Socket_sendTo_port_data__compiled = {
     Method_Kernel_Socket_sendTo_port_data__insts, 11,
-    12, 3,
+    12, 3, 0,
     Method_Kernel_Socket_sendTo_port_data__consts, 2,
     0
 };
@@ -7742,7 +7742,7 @@ static const uint32_t Method_Kernel_Socket_receive_insts[] = { 0x0001040A, 0x000
 static const oop Method_Kernel_Socket_receive_consts[] = { (oop)&StaticSymbol_basicReceive_, NULL, (oop)&StaticSymbol__eq_eq, (oop)&StaticSymbol_false, TAG_SMI(1), (oop)&StaticSymbol_basicAt_, (oop)&StaticSymbol_overRaw_, TAG_SMI(2), TAG_SMI(3), (oop)&StaticSymbol_data_senderHost_senderPort_ };
 static const struct CompiledMethod Method_Kernel_Socket_receive_compiled = {
     Method_Kernel_Socket_receive_insts, 35,
-    12, 0,
+    12, 0, 0,
     Method_Kernel_Socket_receive_consts, 10,
     0
 };
@@ -7755,7 +7755,7 @@ static const uint32_t Method_Kernel_Socket_close_insts[] = { 0x0001030A, 0x00020
 static const oop Method_Kernel_Socket_close_consts[] = { (oop)&StaticSymbol_basicClose_ };
 static const struct CompiledMethod Method_Kernel_Socket_close_compiled = {
     Method_Kernel_Socket_close_insts, 6,
-    5, 0,
+    5, 0, 0,
     Method_Kernel_Socket_close_consts, 1,
     0
 };
@@ -7768,7 +7768,7 @@ static const uint32_t Method_Meta_Kernel_Socket_onPort_handle__insts[] = { 0x000
 static const oop Method_Meta_Kernel_Socket_onPort_handle__consts[] = { (oop)&Vtable_Kernel_Socket, (oop)&StaticSymbol_init_new, (oop)&StaticSymbol_setPort_handle_ };
 static const struct CompiledMethod Method_Meta_Kernel_Socket_onPort_handle__compiled = {
     Method_Meta_Kernel_Socket_onPort_handle__insts, 10,
-    8, 2,
+    8, 2, 0,
     Method_Meta_Kernel_Socket_onPort_handle__consts, 3,
     0
 };
@@ -7781,7 +7781,7 @@ static const uint32_t Method_Kernel_Socket_init_new_insts[] = { 0x00000200, 0x00
 static const oop Method_Kernel_Socket_init_new_consts[] = { NULL };
 static const struct CompiledMethod Method_Kernel_Socket_init_new_compiled = {
     Method_Kernel_Socket_init_new_insts, 5,
-    3, 0,
+    3, 0, 0,
     Method_Kernel_Socket_init_new_consts, 1,
     0
 };
@@ -7793,7 +7793,7 @@ static const struct Closure Method_Kernel_Socket_init_new_closure = {
 static const uint32_t Method_Kernel_Datagram_setData_host_port__insts[] = { 0x00010501, 0x0001050B, 0x00020501, 0x0002050B, 0x00030501, 0x0003050B, 0x00000501, 0x00000503 };
 static const struct CompiledMethod Method_Kernel_Datagram_setData_host_port__compiled = {
     Method_Kernel_Datagram_setData_host_port__insts, 8,
-    6, 3,
+    6, 3, 0,
     NULL, 0,
     0
 };
@@ -7805,7 +7805,7 @@ static const struct Closure Method_Kernel_Datagram_setData_host_port__closure = 
 static const uint32_t Method_Kernel_Datagram_data_insts[] = { 0x0001020A, 0x00000203 };
 static const struct CompiledMethod Method_Kernel_Datagram_data_compiled = {
     Method_Kernel_Datagram_data_insts, 2,
-    3, 0,
+    3, 0, 0,
     NULL, 0,
     0
 };
@@ -7817,7 +7817,7 @@ static const struct Closure Method_Kernel_Datagram_data_closure = {
 static const uint32_t Method_Kernel_Datagram_senderHost_insts[] = { 0x0002020A, 0x00000203 };
 static const struct CompiledMethod Method_Kernel_Datagram_senderHost_compiled = {
     Method_Kernel_Datagram_senderHost_insts, 2,
-    3, 0,
+    3, 0, 0,
     NULL, 0,
     0
 };
@@ -7829,7 +7829,7 @@ static const struct Closure Method_Kernel_Datagram_senderHost_closure = {
 static const uint32_t Method_Kernel_Datagram_senderPort_insts[] = { 0x0003020A, 0x00000203 };
 static const struct CompiledMethod Method_Kernel_Datagram_senderPort_compiled = {
     Method_Kernel_Datagram_senderPort_insts, 2,
-    3, 0,
+    3, 0, 0,
     NULL, 0,
     0
 };
@@ -7842,7 +7842,7 @@ static const uint32_t Method_Meta_Kernel_Datagram_data_senderHost_senderPort__in
 static const oop Method_Meta_Kernel_Datagram_data_senderHost_senderPort__consts[] = { (oop)&Vtable_Kernel_Datagram, (oop)&StaticSymbol_init_new, (oop)&StaticSymbol_setData_host_port_ };
 static const struct CompiledMethod Method_Meta_Kernel_Datagram_data_senderHost_senderPort__compiled = {
     Method_Meta_Kernel_Datagram_data_senderHost_senderPort__insts, 11,
-    10, 3,
+    10, 3, 0,
     Method_Meta_Kernel_Datagram_data_senderHost_senderPort__consts, 3,
     0
 };
@@ -7855,7 +7855,7 @@ static const uint32_t Method_Kernel_Datagram_init_new_insts[] = { 0x00000200, 0x
 static const oop Method_Kernel_Datagram_init_new_consts[] = { NULL };
 static const struct CompiledMethod Method_Kernel_Datagram_init_new_compiled = {
     Method_Kernel_Datagram_init_new_insts, 7,
-    3, 0,
+    3, 0, 0,
     Method_Kernel_Datagram_init_new_consts, 1,
     0
 };
@@ -7867,7 +7867,7 @@ static const struct Closure Method_Kernel_Datagram_init_new_closure = {
 static const uint32_t Method_Kernel_NetBridge_setSocket_out_peerHost_peerPort_in__insts[] = { 0x00010701, 0x0001070B, 0x00020701, 0x0002070B, 0x00030701, 0x0003070B, 0x00040701, 0x0004070B, 0x00050701, 0x0005070B, 0x00000701, 0x00000703 };
 static const struct CompiledMethod Method_Kernel_NetBridge_setSocket_out_peerHost_peerPort_in__compiled = {
     Method_Kernel_NetBridge_setSocket_out_peerHost_peerPort_in__insts, 12,
-    8, 5,
+    8, 5, 0,
     NULL, 0,
     0
 };
@@ -7880,7 +7880,7 @@ static const uint32_t Method_Kernel_NetBridge_encodeFor__insts[] = { 0x00000500,
 static const oop Method_Kernel_NetBridge_encodeFor__consts[] = { (oop)&Vtable_Kernel_Cbor, (oop)&StaticSymbol_init_new, (oop)&StaticSymbol_encode_ };
 static const struct CompiledMethod Method_Kernel_NetBridge_encodeFor__compiled = {
     Method_Kernel_NetBridge_encodeFor__insts, 10,
-    7, 1,
+    7, 1, 0,
     Method_Kernel_NetBridge_encodeFor__consts, 3,
     0
 };
@@ -7893,7 +7893,7 @@ static const uint32_t Method_Kernel_NetBridge_start_insts[] = { 0x0002030A, 0x00
 static const oop Method_Kernel_NetBridge_start_consts[] = { (oop)&StaticString__4, (oop)&Method_Block_Kernel_NetBridge_block43_value__compiled, (oop)&StaticSymbol_whenever_do_ };
 static const struct CompiledMethod Method_Kernel_NetBridge_start_compiled = {
     Method_Kernel_NetBridge_start_insts, 7,
-    6, 0,
+    6, 0, 0,
     Method_Kernel_NetBridge_start_consts, 3,
     0
 };
@@ -7906,7 +7906,7 @@ static const uint32_t Method_Kernel_NetBridge_pumpInbound_insts[] = { 0x00010115
 static const oop Method_Kernel_NetBridge_pumpInbound_consts[] = { (oop)&StaticSymbol_receive, NULL, (oop)&StaticSymbol__eq_eq, (oop)&StaticSymbol_false, (oop)&Vtable_Kernel_Cbor, (oop)&StaticSymbol_init_new, (oop)&StaticSymbol_data, (oop)&Method_Block_Kernel_NetBridge_block44_value__compiled, (oop)&StaticSymbol_decode_ifInvalid_, (oop)&StaticString__4, (oop)&StaticSymbol_out_value_ };
 static const struct CompiledMethod Method_Kernel_NetBridge_pumpInbound_compiled = {
     Method_Kernel_NetBridge_pumpInbound_insts, 43,
-    15, 0,
+    15, 0, 0,
     Method_Kernel_NetBridge_pumpInbound_consts, 11,
     0
 };
@@ -7919,7 +7919,7 @@ static const uint32_t Method_Meta_Kernel_NetBridge_socket_out_peer_port_in__inst
 static const oop Method_Meta_Kernel_NetBridge_socket_out_peer_port_in__consts[] = { (oop)&Vtable_Kernel_NetBridge, (oop)&StaticSymbol_init_new, (oop)&StaticSymbol_setSocket_out_peerHost_peerPort_in_ };
 static const struct CompiledMethod Method_Meta_Kernel_NetBridge_socket_out_peer_port_in__compiled = {
     Method_Meta_Kernel_NetBridge_socket_out_peer_port_in__insts, 13,
-    14, 5,
+    14, 5, 0,
     Method_Meta_Kernel_NetBridge_socket_out_peer_port_in__consts, 3,
     0
 };
@@ -7932,7 +7932,7 @@ static const uint32_t Method_Kernel_NetBridge_init_new_insts[] = { 0x00000200, 0
 static const oop Method_Kernel_NetBridge_init_new_consts[] = { NULL };
 static const struct CompiledMethod Method_Kernel_NetBridge_init_new_compiled = {
     Method_Kernel_NetBridge_init_new_insts, 11,
-    3, 0,
+    3, 0, 0,
     Method_Kernel_NetBridge_init_new_consts, 1,
     0
 };
@@ -7945,7 +7945,7 @@ static const uint32_t Method_Kernel_PortaBridge_setSocket_space_id_peer_port_spa
 static const oop Method_Kernel_PortaBridge_setSocket_space_id_peer_port_spans__consts[] = { (oop)&StaticSymbol_bootId, (oop)&StaticSymbol_pullSend, (oop)&StaticSymbol_register_, (oop)&StaticSymbol_pullWait, (oop)&StaticSymbol_applyIn, (oop)&StaticSymbol_pushBuild, (oop)&StaticSymbol_pushSend, (oop)&StaticSymbol_pushWait, (oop)&StaticSymbol_pushCollect, (oop)&StaticSymbol_pushEncode, (oop)&StaticSymbol_pushTrim };
 static const struct CompiledMethod Method_Kernel_PortaBridge_setSocket_space_id_peer_port_spans__compiled = {
     Method_Kernel_PortaBridge_setSocket_space_id_peer_port_spans__insts, 64,
-    20, 6,
+    20, 6, 0,
     Method_Kernel_PortaBridge_setSocket_space_id_peer_port_spans__consts, 11,
     0
 };
@@ -7957,7 +7957,7 @@ static const struct Closure Method_Kernel_PortaBridge_setSocket_space_id_peer_po
 static const uint32_t Method_Kernel_PortaBridge_bootId_insts[] = { 0x001C020A, 0x00000203 };
 static const struct CompiledMethod Method_Kernel_PortaBridge_bootId_compiled = {
     Method_Kernel_PortaBridge_bootId_insts, 2,
-    3, 0,
+    3, 0, 0,
     NULL, 0,
     0
 };
@@ -7970,7 +7970,7 @@ static const uint32_t Method_Kernel_PortaBridge_maxBatchBytes_insts[] = { 0x0000
 static const oop Method_Kernel_PortaBridge_maxBatchBytes_consts[] = { TAG_SMI(512) };
 static const struct CompiledMethod Method_Kernel_PortaBridge_maxBatchBytes_compiled = {
     Method_Kernel_PortaBridge_maxBatchBytes_insts, 2,
-    3, 0,
+    3, 0, 0,
     Method_Kernel_PortaBridge_maxBatchBytes_consts, 1,
     0
 };
@@ -7983,7 +7983,7 @@ static const uint32_t Method_Kernel_PortaBridge_maxValueBytes_insts[] = { 0x0000
 static const oop Method_Kernel_PortaBridge_maxValueBytes_consts[] = { TAG_SMI(256) };
 static const struct CompiledMethod Method_Kernel_PortaBridge_maxValueBytes_compiled = {
     Method_Kernel_PortaBridge_maxValueBytes_insts, 2,
-    3, 0,
+    3, 0, 0,
     Method_Kernel_PortaBridge_maxValueBytes_consts, 1,
     0
 };
@@ -7996,7 +7996,7 @@ static const uint32_t Method_Kernel_PortaBridge_maxRows_insts[] = { 0x00000200, 
 static const oop Method_Kernel_PortaBridge_maxRows_consts[] = { TAG_SMI(8) };
 static const struct CompiledMethod Method_Kernel_PortaBridge_maxRows_compiled = {
     Method_Kernel_PortaBridge_maxRows_insts, 2,
-    3, 0,
+    3, 0, 0,
     Method_Kernel_PortaBridge_maxRows_consts, 1,
     0
 };
@@ -8009,7 +8009,7 @@ static const uint32_t Method_Kernel_PortaBridge_replyBudget_insts[] = { 0x000002
 static const oop Method_Kernel_PortaBridge_replyBudget_consts[] = { TAG_SMI(2000) };
 static const struct CompiledMethod Method_Kernel_PortaBridge_replyBudget_compiled = {
     Method_Kernel_PortaBridge_replyBudget_insts, 2,
-    3, 0,
+    3, 0, 0,
     Method_Kernel_PortaBridge_replyBudget_consts, 1,
     0
 };
@@ -8022,7 +8022,7 @@ static const uint32_t Method_Kernel_PortaBridge_maxPending_insts[] = { 0x0000020
 static const oop Method_Kernel_PortaBridge_maxPending_consts[] = { TAG_SMI(64) };
 static const struct CompiledMethod Method_Kernel_PortaBridge_maxPending_compiled = {
     Method_Kernel_PortaBridge_maxPending_insts, 2,
-    3, 0,
+    3, 0, 0,
     Method_Kernel_PortaBridge_maxPending_consts, 1,
     0
 };
@@ -8034,7 +8034,7 @@ static const struct Closure Method_Kernel_PortaBridge_maxPending_closure = {
 static const uint32_t Method_Kernel_PortaBridge_cursor_insts[] = { 0x0006020A, 0x00000203 };
 static const struct CompiledMethod Method_Kernel_PortaBridge_cursor_compiled = {
     Method_Kernel_PortaBridge_cursor_insts, 2,
-    3, 0,
+    3, 0, 0,
     NULL, 0,
     0
 };
@@ -8046,7 +8046,7 @@ static const struct Closure Method_Kernel_PortaBridge_cursor_closure = {
 static const uint32_t Method_Kernel_PortaBridge_acked_insts[] = { 0x0007020A, 0x00000203 };
 static const struct CompiledMethod Method_Kernel_PortaBridge_acked_compiled = {
     Method_Kernel_PortaBridge_acked_insts, 2,
-    3, 0,
+    3, 0, 0,
     NULL, 0,
     0
 };
@@ -8058,7 +8058,7 @@ static const struct Closure Method_Kernel_PortaBridge_acked_closure = {
 static const uint32_t Method_Kernel_PortaBridge_rejected_insts[] = { 0x0008020A, 0x00000203 };
 static const struct CompiledMethod Method_Kernel_PortaBridge_rejected_compiled = {
     Method_Kernel_PortaBridge_rejected_insts, 2,
-    3, 0,
+    3, 0, 0,
     NULL, 0,
     0
 };
@@ -8070,7 +8070,7 @@ static const struct Closure Method_Kernel_PortaBridge_rejected_closure = {
 static const uint32_t Method_Kernel_PortaBridge_misses_insts[] = { 0x0009020A, 0x00000203 };
 static const struct CompiledMethod Method_Kernel_PortaBridge_misses_compiled = {
     Method_Kernel_PortaBridge_misses_insts, 2,
-    3, 0,
+    3, 0, 0,
     NULL, 0,
     0
 };
@@ -8082,7 +8082,7 @@ static const struct Closure Method_Kernel_PortaBridge_misses_closure = {
 static const uint32_t Method_Kernel_PortaBridge_dropped_insts[] = { 0x000A020A, 0x00000203 };
 static const struct CompiledMethod Method_Kernel_PortaBridge_dropped_compiled = {
     Method_Kernel_PortaBridge_dropped_insts, 2,
-    3, 0,
+    3, 0, 0,
     NULL, 0,
     0
 };
@@ -8094,7 +8094,7 @@ static const struct Closure Method_Kernel_PortaBridge_dropped_closure = {
 static const uint32_t Method_Kernel_PortaBridge_crossed_insts[] = { 0x000B020A, 0x00000203 };
 static const struct CompiledMethod Method_Kernel_PortaBridge_crossed_compiled = {
     Method_Kernel_PortaBridge_crossed_insts, 2,
-    3, 0,
+    3, 0, 0,
     NULL, 0,
     0
 };
@@ -8107,7 +8107,7 @@ static const uint32_t Method_Kernel_PortaBridge_pendingSize_insts[] = { 0x000F03
 static const oop Method_Kernel_PortaBridge_pendingSize_consts[] = { (oop)&StaticSymbol_size };
 static const struct CompiledMethod Method_Kernel_PortaBridge_pendingSize_compiled = {
     Method_Kernel_PortaBridge_pendingSize_insts, 4,
-    4, 0,
+    4, 0, 0,
     Method_Kernel_PortaBridge_pendingSize_consts, 1,
     0
 };
@@ -8119,7 +8119,7 @@ static const struct Closure Method_Kernel_PortaBridge_pendingSize_closure = {
 static const uint32_t Method_Kernel_PortaBridge_pendingRows_insts[] = { 0x000F020A, 0x00000203 };
 static const struct CompiledMethod Method_Kernel_PortaBridge_pendingRows_compiled = {
     Method_Kernel_PortaBridge_pendingRows_insts, 2,
-    3, 0,
+    3, 0, 0,
     NULL, 0,
     0
 };
@@ -8132,7 +8132,7 @@ static const uint32_t Method_Kernel_PortaBridge_subscribeStream__insts[] = { 0x0
 static const oop Method_Kernel_PortaBridge_subscribeStream__consts[] = { (oop)&StaticSymbol_channel_, (oop)&StaticString__4, (oop)&Method_Block_Kernel_PortaBridge_block45_value__compiled, (oop)&StaticSymbol_whenever_do_ };
 static const struct CompiledMethod Method_Kernel_PortaBridge_subscribeStream__compiled = {
     Method_Kernel_PortaBridge_subscribeStream__insts, 12,
-    7, 1,
+    7, 1, 0,
     Method_Kernel_PortaBridge_subscribeStream__consts, 4,
     0
 };
@@ -8145,7 +8145,7 @@ static const uint32_t Method_Kernel_PortaBridge_capture_value__insts[] = { 0x000
 static const oop Method_Kernel_PortaBridge_capture_value__consts[] = { (oop)&StaticSymbol_stamp, TAG_SMI(1), (oop)&StaticSymbol_with_with_with_with_, (oop)&StaticSymbol_add_, (oop)&StaticSymbol_size, (oop)&StaticSymbol_maxPending, (oop)&StaticSymbol__gt, (oop)&StaticSymbol_removeFirst, NULL };
 static const struct CompiledMethod Method_Kernel_PortaBridge_capture_value__compiled = {
     Method_Kernel_PortaBridge_capture_value__insts, 33,
-    12, 2,
+    12, 2, 0,
     Method_Kernel_PortaBridge_capture_value__consts, 9,
     0
 };
@@ -8158,7 +8158,7 @@ static const uint32_t Method_Kernel_PortaBridge_pullFrame_insts[] = { 0x00000400
 static const oop Method_Kernel_PortaBridge_pullFrame_consts[] = { (oop)&Vtable_Kernel_Cbor, (oop)&StaticSymbol_init_new, (oop)&StaticSymbol_pull, (oop)&StaticSymbol_id, (oop)&StaticSymbol_key_value_, (oop)&StaticSymbol_cursor, (oop)&StaticSymbol_bootId, (oop)&StaticSymbol_hw, (oop)&StaticSymbol_tag_with_with_with_with_, (oop)&StaticSymbol_encode_ };
 static const struct CompiledMethod Method_Kernel_PortaBridge_pullFrame_compiled = {
     Method_Kernel_PortaBridge_pullFrame_insts, 40,
-    14, 0,
+    14, 0, 0,
     Method_Kernel_PortaBridge_pullFrame_consts, 10,
     0
 };
@@ -8171,7 +8171,7 @@ static const uint32_t Method_Kernel_PortaBridge_applyBatch__insts[] = { 0x000102
 static const oop Method_Kernel_PortaBridge_applyBatch__consts[] = { (oop)&StaticSymbol_false, (oop)&Vtable_Kernel_Cbor, (oop)&StaticSymbol_init_new, (oop)&Method_Block_Kernel_PortaBridge_block46_value__compiled, (oop)&StaticSymbol_decode_ifInvalid_, (oop)&StaticSymbol_rankOf_, TAG_SMI(9), (oop)&StaticSymbol__eq, (oop)&StaticSymbol_tag, (oop)&StaticSymbol_batch, (oop)&StaticSymbol_entries, (oop)&Method_Block_Kernel_PortaBridge_block47_value_compiled, (oop)&StaticSymbol_at_ifAbsent_, TAG_SMI(7), TAG_SMI(1), (oop)&StaticSymbol_size, (oop)&StaticSymbol__lt_eq, (oop)&StaticSymbol_at_, (oop)&StaticSymbol_applyEntry_, NULL, (oop)&StaticSymbol_hi, (oop)&Method_Block_Kernel_PortaBridge_block48_value_compiled, TAG_SMI(2), (oop)&StaticSymbol__gt, (oop)&StaticSymbol_true };
 static const struct CompiledMethod Method_Kernel_PortaBridge_applyBatch__compiled = {
     Method_Kernel_PortaBridge_applyBatch__insts, 110,
-    24, 1,
+    24, 1, 0,
     Method_Kernel_PortaBridge_applyBatch__consts, 25,
     0
 };
@@ -8184,7 +8184,7 @@ static const uint32_t Method_Kernel_PortaBridge_applyEntry__insts[] = { 0x00000A
 static const oop Method_Kernel_PortaBridge_applyEntry__consts[] = { (oop)&StaticSymbol_rankOf_, TAG_SMI(7), (oop)&StaticSymbol__eq, (oop)&StaticSymbol_false, TAG_SMI(1), (oop)&StaticSymbol_size, TAG_SMI(4), TAG_SMI(2), (oop)&StaticSymbol_at_, TAG_SMI(3), (oop)&StaticSymbol_mayApply_, (oop)&StaticSymbol_true, (oop)&StaticSymbol_kindAt_, TAG_SMI(0), (oop)&StaticSymbol_error, (oop)&StaticString_kind_u32mismatch_35, (oop)&StaticSymbol_telLog_text_, (oop)&StaticSymbol_put_value_, (oop)&StaticSymbol_out_value_ };
 static const struct CompiledMethod Method_Kernel_PortaBridge_applyEntry__compiled = {
     Method_Kernel_PortaBridge_applyEntry__insts, 146,
-    27, 1,
+    27, 1, 0,
     Method_Kernel_PortaBridge_applyEntry__consts, 19,
     0
 };
@@ -8197,7 +8197,7 @@ static const uint32_t Method_Kernel_PortaBridge_mayApply__insts[] = { 0x00010501
 static const oop Method_Kernel_PortaBridge_mayApply__consts[] = { (oop)&StaticString_dbg_divreq_36, (oop)&StaticSymbol__eq, (oop)&StaticSymbol_true, (oop)&StaticSymbol_false, (oop)&StaticString_goal_37, (oop)&StaticString_goal_div_38, (oop)&StaticSymbol_path_startsWith_ };
 static const struct CompiledMethod Method_Kernel_PortaBridge_mayApply__compiled = {
     Method_Kernel_PortaBridge_mayApply__insts, 24,
-    9, 1,
+    9, 1, 0,
     Method_Kernel_PortaBridge_mayApply__consts, 7,
     0
 };
@@ -8210,7 +8210,7 @@ static const uint32_t Method_Kernel_PortaBridge_path_startsWith__insts[] = { 0x0
 static const oop Method_Kernel_PortaBridge_path_startsWith__consts[] = { (oop)&StaticSymbol_size, (oop)&StaticSymbol__lt, (oop)&StaticSymbol_false, TAG_SMI(1), (oop)&StaticSymbol__lt_eq, (oop)&StaticSymbol_at_, (oop)&StaticSymbol__eq, NULL, (oop)&StaticSymbol_true };
 static const struct CompiledMethod Method_Kernel_PortaBridge_path_startsWith__compiled = {
     Method_Kernel_PortaBridge_path_startsWith__insts, 45,
-    18, 2,
+    18, 2, 0,
     Method_Kernel_PortaBridge_path_startsWith__consts, 9,
     0
 };
@@ -8223,7 +8223,7 @@ static const uint32_t Method_Kernel_PortaBridge_pushFrame_insts[] = { 0x0010050A
 static const oop Method_Kernel_PortaBridge_pushFrame_consts[] = { (oop)&StaticSymbol_begin_, (oop)&StaticSymbol_collectOutbound, (oop)&StaticSymbol_end_, (oop)&StaticSymbol_isEmpty, NULL, (oop)&StaticSymbol_false, (oop)&StaticSymbol_encodePush_, (oop)&StaticSymbol_byteSize, (oop)&StaticSymbol_maxBatchBytes, (oop)&StaticSymbol__gt, (oop)&StaticSymbol_size, TAG_SMI(1), (oop)&StaticSymbol_removeLast };
 static const struct CompiledMethod Method_Kernel_PortaBridge_pushFrame_compiled = {
     Method_Kernel_PortaBridge_pushFrame_insts, 84,
-    20, 0,
+    20, 0, 0,
     Method_Kernel_PortaBridge_pushFrame_consts, 13,
     0
 };
@@ -8236,7 +8236,7 @@ static const uint32_t Method_Kernel_PortaBridge_encodePush__insts[] = { 0x000005
 static const oop Method_Kernel_PortaBridge_encodePush__consts[] = { (oop)&Vtable_Kernel_Cbor, (oop)&StaticSymbol_init_new, (oop)&StaticSymbol_push, (oop)&StaticSymbol_id, (oop)&StaticSymbol_key_value_, (oop)&StaticSymbol_bootId, (oop)&StaticSymbol_entries, (oop)&StaticSymbol_fromCollection_, (oop)&StaticSymbol_tag_with_with_with_, (oop)&StaticSymbol_encode_ };
 static const struct CompiledMethod Method_Kernel_PortaBridge_encodePush__compiled = {
     Method_Kernel_PortaBridge_encodePush__insts, 38,
-    16, 1,
+    16, 1, 0,
     Method_Kernel_PortaBridge_encodePush__consts, 10,
     0
 };
@@ -8249,7 +8249,7 @@ static const uint32_t Method_Kernel_PortaBridge_collectOutbound_insts[] = { 0x00
 static const oop Method_Kernel_PortaBridge_collectOutbound_consts[] = { (oop)&Vtable_Kernel_OrderedCollection, (oop)&StaticSymbol_init_new, TAG_SMI(1), (oop)&StaticSymbol_size, (oop)&StaticSymbol__lt_eq, (oop)&StaticSymbol_at_, (oop)&StaticSymbol_add_, NULL, (oop)&StaticString_obs_39, (oop)&StaticSymbol_addCellsFrom_into_, (oop)&StaticString_sys_40, (oop)&StaticString_diag_41, (oop)&StaticSymbol_sortedBySeq_ };
 static const struct CompiledMethod Method_Kernel_PortaBridge_collectOutbound_compiled = {
     Method_Kernel_PortaBridge_collectOutbound_insts, 49,
-    12, 0,
+    12, 0, 0,
     Method_Kernel_PortaBridge_collectOutbound_consts, 13,
     0
 };
@@ -8262,7 +8262,7 @@ static const uint32_t Method_Kernel_PortaBridge_addCellsFrom_into__insts[] = { 0
 static const oop Method_Kernel_PortaBridge_addCellsFrom_into__consts[] = { (oop)&StaticSymbol_channel_, (oop)&StaticSymbol_maxRows, (oop)&StaticSymbol_changedSince_max_, TAG_SMI(1), (oop)&StaticSymbol_size, (oop)&StaticSymbol__lt_eq, (oop)&StaticSymbol_at_, TAG_SMI(3), (oop)&StaticSymbol_valueFits_, TAG_SMI(2), (oop)&StaticSymbol_with_with_with_with_, (oop)&StaticSymbol_add_, NULL };
 static const struct CompiledMethod Method_Kernel_PortaBridge_addCellsFrom_into__compiled = {
     Method_Kernel_PortaBridge_addCellsFrom_into__insts, 66,
-    25, 2,
+    25, 2, 0,
     Method_Kernel_PortaBridge_addCellsFrom_into__consts, 13,
     0
 };
@@ -8275,7 +8275,7 @@ static const uint32_t Method_Kernel_PortaBridge_valueFits__insts[] = { 0x0000070
 static const oop Method_Kernel_PortaBridge_valueFits__consts[] = { (oop)&Vtable_Kernel_Cbor, (oop)&StaticSymbol_init_new, (oop)&StaticSymbol_encode_, (oop)&StaticSymbol_byteSize, (oop)&StaticSymbol_maxValueBytes, (oop)&StaticSymbol__lt_eq };
 static const struct CompiledMethod Method_Kernel_PortaBridge_valueFits__compiled = {
     Method_Kernel_PortaBridge_valueFits__insts, 17,
-    9, 1,
+    9, 1, 0,
     Method_Kernel_PortaBridge_valueFits__consts, 6,
     0
 };
@@ -8288,7 +8288,7 @@ static const uint32_t Method_Kernel_PortaBridge_sortedBySeq__insts[] = { 0x00000
 static const oop Method_Kernel_PortaBridge_sortedBySeq__consts[] = { TAG_SMI(2), (oop)&StaticSymbol_size, (oop)&StaticSymbol__lt_eq, (oop)&StaticSymbol_at_, TAG_SMI(1), (oop)&StaticSymbol__gt_eq, (oop)&StaticSymbol__gt, (oop)&StaticSymbol_false, (oop)&StaticSymbol_at_put_, NULL };
 static const struct CompiledMethod Method_Kernel_PortaBridge_sortedBySeq__compiled = {
     Method_Kernel_PortaBridge_sortedBySeq__insts, 70,
-    19, 1,
+    19, 1, 0,
     Method_Kernel_PortaBridge_sortedBySeq__consts, 10,
     0
 };
@@ -8301,7 +8301,7 @@ static const uint32_t Method_Kernel_PortaBridge_applyAck__insts[] = { 0x00010215
 static const oop Method_Kernel_PortaBridge_applyAck__consts[] = { (oop)&StaticSymbol_false, (oop)&Vtable_Kernel_Cbor, (oop)&StaticSymbol_init_new, (oop)&Method_Block_Kernel_PortaBridge_block49_value__compiled, (oop)&StaticSymbol_decode_ifInvalid_, (oop)&StaticSymbol_rankOf_, TAG_SMI(9), (oop)&StaticSymbol__eq, (oop)&StaticSymbol_tag, (oop)&StaticSymbol_ack, (oop)&StaticSymbol_hw, (oop)&Method_Block_Kernel_PortaBridge_block50_value_compiled, (oop)&StaticSymbol_at_ifAbsent_, TAG_SMI(2), (oop)&StaticSymbol__gt, (oop)&Vtable_Kernel_OrderedCollection, TAG_SMI(1), (oop)&StaticSymbol_size, (oop)&StaticSymbol__lt_eq, (oop)&StaticSymbol_at_, (oop)&StaticSymbol_add_, NULL, (oop)&StaticSymbol_true };
 static const struct CompiledMethod Method_Kernel_PortaBridge_applyAck__compiled = {
     Method_Kernel_PortaBridge_applyAck__insts, 115,
-    28, 1,
+    28, 1, 0,
     Method_Kernel_PortaBridge_applyAck__consts, 23,
     0
 };
@@ -8314,7 +8314,7 @@ static const uint32_t Method_Kernel_PortaBridge_checkIn_insts[] = { 0x0001060A, 
 static const oop Method_Kernel_PortaBridge_checkIn_consts[] = { NULL, (oop)&StaticSymbol__eq_eq, (oop)&StaticSymbol_false, (oop)&StaticSymbol_begin_, (oop)&StaticSymbol_pullFrame, (oop)&StaticSymbol_sendTo_port_data_, (oop)&StaticSymbol_end_, (oop)&StaticSymbol_batch, (oop)&StaticSymbol_awaitReply_, TAG_SMI(1), (oop)&StaticSymbol_applyBatch_, (oop)&StaticSymbol_publishApps, (oop)&StaticSymbol_publishMetrics, (oop)&StaticSymbol_publishCheap, (oop)&StaticSymbol_pushOnce, (oop)&StaticSymbol_otaCheck };
 static const struct CompiledMethod Method_Kernel_PortaBridge_checkIn_compiled = {
     Method_Kernel_PortaBridge_checkIn_insts, 78,
-    21, 0,
+    21, 0, 0,
     Method_Kernel_PortaBridge_checkIn_consts, 16,
     0
 };
@@ -8327,7 +8327,7 @@ static const uint32_t Method_Kernel_PortaBridge_publishMetrics_insts[] = { 0x000
 static const oop Method_Kernel_PortaBridge_publishMetrics_consts[] = { (oop)&StaticString_sys_divmetrics_42, (oop)&StaticSymbol_metrics, (oop)&StaticSymbol_put_value_ };
 static const struct CompiledMethod Method_Kernel_PortaBridge_publishMetrics_compiled = {
     Method_Kernel_PortaBridge_publishMetrics_insts, 9,
-    7, 0,
+    7, 0, 0,
     Method_Kernel_PortaBridge_publishMetrics_consts, 3,
     0
 };
@@ -8340,7 +8340,7 @@ static const uint32_t Method_Kernel_PortaBridge_publishCheap_insts[] = { 0x00020
 static const oop Method_Kernel_PortaBridge_publishCheap_consts[] = { (oop)&StaticString_sys_divcheap_43, (oop)&StaticSymbol_cheap, (oop)&StaticSymbol_put_value_ };
 static const struct CompiledMethod Method_Kernel_PortaBridge_publishCheap_compiled = {
     Method_Kernel_PortaBridge_publishCheap_insts, 9,
-    7, 0,
+    7, 0, 0,
     Method_Kernel_PortaBridge_publishCheap_consts, 3,
     0
 };
@@ -8353,7 +8353,7 @@ static const uint32_t Method_Kernel_PortaBridge_publishApps_insts[] = { 0x000E04
 static const oop Method_Kernel_PortaBridge_publishApps_consts[] = { (oop)&StaticSymbol_false, (oop)&StaticSymbol_otaRunningHash, NULL, (oop)&StaticSymbol__eq_eq, (oop)&StaticString_obs_divapps_divmain_44, (oop)&StaticSymbol_AppObs, (oop)&StaticSymbol_image, (oop)&StaticSymbol_BlobRef, (oop)&StaticSymbol_hash, (oop)&StaticSymbol_key_value_, (oop)&StaticSymbol_tag_with_, (oop)&StaticSymbol_lifecycle, (oop)&StaticSymbol_running, (oop)&StaticSymbol_tag_with_with_, (oop)&StaticSymbol_put_value_, (oop)&StaticSymbol_true };
 static const struct CompiledMethod Method_Kernel_PortaBridge_publishApps_compiled = {
     Method_Kernel_PortaBridge_publishApps_insts, 54,
-    21, 0,
+    21, 0, 0,
     Method_Kernel_PortaBridge_publishApps_consts, 16,
     0
 };
@@ -8366,7 +8366,7 @@ static const uint32_t Method_Kernel_PortaBridge_otaCheck_insts[] = { 0x000D090A,
 static const oop Method_Kernel_PortaBridge_otaCheck_consts[] = { (oop)&StaticSymbol_not, TAG_SMI(0), (oop)&StaticSymbol__gt, (oop)&StaticSymbol_otaTrial, (oop)&StaticSymbol_false, (oop)&StaticSymbol_otaConfirm, (oop)&StaticSymbol_true, (oop)&StaticSymbol_info, (oop)&StaticString_ota_u32confirmed_45, (oop)&StaticSymbol_telLog_text_, (oop)&StaticSymbol_otaActivate_sig_, (oop)&StaticString_goal_divapps_divmain_46, (oop)&Method_Block_Kernel_PortaBridge_block51_value_compiled, (oop)&StaticSymbol_peekCell_ifStream_, NULL, (oop)&StaticSymbol__eq_eq, (oop)&StaticSymbol_otaWantedFrom_, (oop)&StaticSymbol_error, (oop)&StaticString_ota_u32bad_u32record_47, TAG_SMI(1), (oop)&StaticSymbol_at_, TAG_SMI(2), (oop)&StaticSymbol_otaIsRunning_, (oop)&StaticSymbol_otaStage_sig_host_port_, (oop)&StaticString_ota_u32staged_48, (oop)&StaticString_ota_u32stage_u32failed_49 };
 static const struct CompiledMethod Method_Kernel_PortaBridge_otaCheck_compiled = {
     Method_Kernel_PortaBridge_otaCheck_insts, 135,
-    24, 0,
+    24, 0, 0,
     Method_Kernel_PortaBridge_otaCheck_consts, 26,
     0
 };
@@ -8379,7 +8379,7 @@ static const uint32_t Method_Kernel_PortaBridge_telLog_text__insts[] = { 0x00020
 static const oop Method_Kernel_PortaBridge_telLog_text__consts[] = { (oop)&StaticString_tel_divlog_50, (oop)&StaticSymbol_Log, (oop)&StaticSymbol_level, (oop)&StaticSymbol_key_value_, (oop)&StaticSymbol_text, (oop)&StaticSymbol_tag_with_with_, (oop)&StaticSymbol_out_value_ };
 static const struct CompiledMethod Method_Kernel_PortaBridge_telLog_text__compiled = {
     Method_Kernel_PortaBridge_telLog_text__insts, 23,
-    15, 2,
+    15, 2, 0,
     Method_Kernel_PortaBridge_telLog_text__consts, 7,
     0
 };
@@ -8392,7 +8392,7 @@ static const uint32_t Method_Kernel_PortaBridge_otaWantedFrom__insts[] = { 0x000
 static const oop Method_Kernel_PortaBridge_otaWantedFrom__consts[] = { (oop)&StaticSymbol_rankOf_, TAG_SMI(9), (oop)&StaticSymbol__eq, (oop)&StaticSymbol_false, NULL, (oop)&StaticSymbol_tag, (oop)&StaticSymbol_App, (oop)&StaticSymbol_image, (oop)&Method_Block_Kernel_PortaBridge_block52_value_compiled, (oop)&StaticSymbol_at_ifAbsent_, (oop)&StaticSymbol_BlobRef, (oop)&StaticSymbol_hash, (oop)&Method_Block_Kernel_PortaBridge_block53_value_compiled, (oop)&StaticSymbol_isBytes, (oop)&StaticSymbol_sig, (oop)&Method_Block_Kernel_PortaBridge_block54_value_compiled, (oop)&StaticSymbol_with_with_ };
 static const struct CompiledMethod Method_Kernel_PortaBridge_otaWantedFrom__compiled = {
     Method_Kernel_PortaBridge_otaWantedFrom__insts, 87,
-    23, 1,
+    23, 1, 0,
     Method_Kernel_PortaBridge_otaWantedFrom__consts, 17,
     0
 };
@@ -8405,7 +8405,7 @@ static const uint32_t Method_Kernel_PortaBridge_pushOnce_insts[] = { 0x0010050A,
 static const oop Method_Kernel_PortaBridge_pushOnce_consts[] = { (oop)&StaticSymbol_begin_, (oop)&StaticSymbol_pushFrame, (oop)&StaticSymbol_end_, NULL, (oop)&StaticSymbol__eq_eq, (oop)&StaticSymbol_false, (oop)&StaticSymbol_sendTo_port_data_, (oop)&StaticSymbol_ack, (oop)&StaticSymbol_awaitReply_, TAG_SMI(1), (oop)&StaticSymbol_applyAck_ };
 static const struct CompiledMethod Method_Kernel_PortaBridge_pushOnce_compiled = {
     Method_Kernel_PortaBridge_pushOnce_insts, 64,
-    18, 0,
+    18, 0, 0,
     Method_Kernel_PortaBridge_pushOnce_consts, 11,
     0
 };
@@ -8418,7 +8418,7 @@ static const uint32_t Method_Kernel_PortaBridge_awaitReply__insts[] = { 0x000008
 static const oop Method_Kernel_PortaBridge_awaitReply__consts[] = { (oop)&StaticSymbol_monotonicMillis, (oop)&StaticSymbol_replyBudget, (oop)&StaticSymbol__lt, (oop)&StaticSymbol_receive, NULL, (oop)&StaticSymbol__eq_eq, (oop)&StaticSymbol_false, (oop)&StaticSymbol_data, (oop)&StaticSymbol_tagOf_, (oop)&StaticSymbol_isCrossed_expecting_, TAG_SMI(1) };
 static const struct CompiledMethod Method_Kernel_PortaBridge_awaitReply__compiled = {
     Method_Kernel_PortaBridge_awaitReply__insts, 52,
-    19, 1,
+    19, 1, 0,
     Method_Kernel_PortaBridge_awaitReply__consts, 11,
     0
 };
@@ -8431,7 +8431,7 @@ static const uint32_t Method_Kernel_PortaBridge_tagOf__insts[] = { 0x00010215, 0
 static const oop Method_Kernel_PortaBridge_tagOf__consts[] = { (oop)&StaticSymbol_false, (oop)&Vtable_Kernel_Cbor, (oop)&StaticSymbol_init_new, (oop)&Method_Block_Kernel_PortaBridge_block55_value__compiled, (oop)&StaticSymbol_decode_ifInvalid_, NULL, (oop)&StaticSymbol_rankOf_, TAG_SMI(9), (oop)&StaticSymbol__eq, (oop)&StaticSymbol_tag };
 static const struct CompiledMethod Method_Kernel_PortaBridge_tagOf__compiled = {
     Method_Kernel_PortaBridge_tagOf__insts, 36,
-    11, 1,
+    11, 1, 0,
     Method_Kernel_PortaBridge_tagOf__consts, 10,
     0
 };
@@ -8444,7 +8444,7 @@ static const uint32_t Method_Kernel_PortaBridge_isCrossed_expecting__insts[] = {
 static const oop Method_Kernel_PortaBridge_isCrossed_expecting__consts[] = { NULL, (oop)&StaticSymbol__eq_eq, (oop)&StaticSymbol_false, (oop)&StaticSymbol__eq, (oop)&StaticSymbol_batch, (oop)&StaticSymbol_true, (oop)&StaticSymbol_ack };
 static const struct CompiledMethod Method_Kernel_PortaBridge_isCrossed_expecting__compiled = {
     Method_Kernel_PortaBridge_isCrossed_expecting__insts, 38,
-    11, 2,
+    11, 2, 0,
     Method_Kernel_PortaBridge_isCrossed_expecting__consts, 7,
     0
 };
@@ -8457,7 +8457,7 @@ static const uint32_t Method_Meta_Kernel_PortaBridge_socket_space_id_peer_port_s
 static const oop Method_Meta_Kernel_PortaBridge_socket_space_id_peer_port_spans__consts[] = { (oop)&Vtable_Kernel_PortaBridge, (oop)&StaticSymbol_init_new, (oop)&StaticSymbol_setSocket_space_id_peer_port_spans_ };
 static const struct CompiledMethod Method_Meta_Kernel_PortaBridge_socket_space_id_peer_port_spans__compiled = {
     Method_Meta_Kernel_PortaBridge_socket_space_id_peer_port_spans__insts, 14,
-    16, 6,
+    16, 6, 0,
     Method_Meta_Kernel_PortaBridge_socket_space_id_peer_port_spans__consts, 3,
     0
 };
@@ -8470,7 +8470,7 @@ static const uint32_t Method_Kernel_PortaBridge_init_new_insts[] = { 0x00000200,
 static const oop Method_Kernel_PortaBridge_init_new_consts[] = { NULL, TAG_SMI(0), (oop)&StaticSymbol_false, (oop)&Vtable_Kernel_OrderedCollection, (oop)&StaticSymbol_init_new };
 static const struct CompiledMethod Method_Kernel_PortaBridge_init_new_compiled = {
     Method_Kernel_PortaBridge_init_new_insts, 62,
-    5, 0,
+    5, 0, 0,
     Method_Kernel_PortaBridge_init_new_consts, 5,
     0
 };
@@ -8482,7 +8482,7 @@ static const struct Closure Method_Kernel_PortaBridge_init_new_closure = {
 static const uint32_t Method_Kernel_Channel_setRoot__insts[] = { 0x00010301, 0x0001030B, 0x00000301, 0x00000303 };
 static const struct CompiledMethod Method_Kernel_Channel_setRoot__compiled = {
     Method_Kernel_Channel_setRoot__insts, 4,
-    4, 1,
+    4, 1, 0,
     NULL, 0,
     0
 };
@@ -8494,7 +8494,7 @@ static const struct Closure Method_Kernel_Channel_setRoot__closure = {
 static const uint32_t Method_Kernel_Channel_rootPath_insts[] = { 0x0001020A, 0x00000203 };
 static const struct CompiledMethod Method_Kernel_Channel_rootPath_compiled = {
     Method_Kernel_Channel_rootPath_insts, 2,
-    3, 0,
+    3, 0, 0,
     NULL, 0,
     0
 };
@@ -8507,7 +8507,7 @@ static const uint32_t Method_Kernel_Channel_resolve__insts[] = { 0x0000040A, 0x0
 static const oop Method_Kernel_Channel_resolve__consts[] = { (oop)&StaticSymbol_checkPath_, (oop)&StaticString__4, (oop)&StaticSymbol__eq, (oop)&StaticSymbol_false, (oop)&StaticString__div_51, (oop)&StaticSymbol__u44 };
 static const struct CompiledMethod Method_Kernel_Channel_resolve__compiled = {
     Method_Kernel_Channel_resolve__insts, 30,
-    10, 1,
+    10, 1, 0,
     Method_Kernel_Channel_resolve__consts, 6,
     0
 };
@@ -8520,7 +8520,7 @@ static const uint32_t Method_Kernel_Channel_channel__insts[] = { 0x00000500, 0x0
 static const oop Method_Kernel_Channel_channel__consts[] = { (oop)&Vtable_Kernel_Channel, (oop)&StaticSymbol_init_new, (oop)&StaticSymbol_resolve_, (oop)&StaticSymbol_setRoot_ };
 static const struct CompiledMethod Method_Kernel_Channel_channel__compiled = {
     Method_Kernel_Channel_channel__insts, 13,
-    8, 1,
+    8, 1, 0,
     Method_Kernel_Channel_channel__consts, 4,
     0
 };
@@ -8533,7 +8533,7 @@ static const uint32_t Method_Kernel_Channel_KIND_STREAM_insts[] = { 0x00000200, 
 static const oop Method_Kernel_Channel_KIND_STREAM_consts[] = { TAG_SMI(1) };
 static const struct CompiledMethod Method_Kernel_Channel_KIND_STREAM_compiled = {
     Method_Kernel_Channel_KIND_STREAM_insts, 2,
-    3, 0,
+    3, 0, 0,
     Method_Kernel_Channel_KIND_STREAM_consts, 1,
     0
 };
@@ -8546,7 +8546,7 @@ static const uint32_t Method_Kernel_Channel_KIND_CELL_insts[] = { 0x00000200, 0x
 static const oop Method_Kernel_Channel_KIND_CELL_consts[] = { TAG_SMI(2) };
 static const struct CompiledMethod Method_Kernel_Channel_KIND_CELL_compiled = {
     Method_Kernel_Channel_KIND_CELL_insts, 2,
-    3, 0,
+    3, 0, 0,
     Method_Kernel_Channel_KIND_CELL_consts, 1,
     0
 };
@@ -8559,7 +8559,7 @@ static const uint32_t Method_Kernel_Channel_kindAt__insts[] = { 0x0000050A, 0x05
 static const oop Method_Kernel_Channel_kindAt__consts[] = { (oop)&StaticSymbol_resolve_, (oop)&StaticSymbol_spaceKind_ };
 static const struct CompiledMethod Method_Kernel_Channel_kindAt__compiled = {
     Method_Kernel_Channel_kindAt__insts, 9,
-    8, 1,
+    8, 1, 0,
     Method_Kernel_Channel_kindAt__consts, 2,
     0
 };
@@ -8572,7 +8572,7 @@ static const uint32_t Method_Kernel_Channel_out_value__insts[] = { 0x0000060A, 0
 static const oop Method_Kernel_Channel_out_value__consts[] = { (oop)&StaticSymbol_checkValue_, (oop)&StaticSymbol_resolve_, (oop)&StaticSymbol_spaceKind_, (oop)&StaticSymbol_KIND_CELL, (oop)&StaticSymbol__eq, (oop)&StaticString_not_u32a_u32stream_52, (oop)&StaticSymbol_error_, (oop)&StaticSymbol_false, (oop)&StaticSymbol_spacePost_value_ };
 static const struct CompiledMethod Method_Kernel_Channel_out_value__compiled = {
     Method_Kernel_Channel_out_value__insts, 34,
-    13, 2,
+    13, 2, 0,
     Method_Kernel_Channel_out_value__consts, 9,
     0
 };
@@ -8585,7 +8585,7 @@ static const uint32_t Method_Kernel_Channel_take_ifEmpty__insts[] = { 0x00000701
 static const oop Method_Kernel_Channel_take_ifEmpty__consts[] = { (oop)&StaticSymbol_resolve_, (oop)&StaticSymbol_spaceKind_, (oop)&StaticSymbol_KIND_CELL, (oop)&StaticSymbol__eq, (oop)&StaticString_not_u32a_u32stream_52, (oop)&StaticSymbol_error_, (oop)&StaticSymbol_false, (oop)&StaticSymbol_spaceTake_, NULL, (oop)&StaticSymbol__eq_eq, (oop)&StaticSymbol_value, TAG_SMI(1), (oop)&StaticSymbol_basicAt_ };
 static const struct CompiledMethod Method_Kernel_Channel_take_ifEmpty__compiled = {
     Method_Kernel_Channel_take_ifEmpty__insts, 44,
-    15, 2,
+    15, 2, 0,
     Method_Kernel_Channel_take_ifEmpty__consts, 13,
     0
 };
@@ -8598,7 +8598,7 @@ static const uint32_t Method_Kernel_Channel_put_value__insts[] = { 0x0000060A, 0
 static const oop Method_Kernel_Channel_put_value__consts[] = { (oop)&StaticSymbol_checkValue_, (oop)&StaticSymbol_resolve_, (oop)&StaticSymbol_spaceKind_, (oop)&StaticSymbol_KIND_STREAM, (oop)&StaticSymbol__eq, (oop)&StaticString_not_u32a_u32cell_53, (oop)&StaticSymbol_error_, (oop)&StaticSymbol_false, (oop)&StaticSymbol_spacePut_value_ };
 static const struct CompiledMethod Method_Kernel_Channel_put_value__compiled = {
     Method_Kernel_Channel_put_value__insts, 34,
-    13, 2,
+    13, 2, 0,
     Method_Kernel_Channel_put_value__consts, 9,
     0
 };
@@ -8611,7 +8611,7 @@ static const uint32_t Method_Kernel_Channel_peek_ifAbsent__insts[] = { 0x0000070
 static const oop Method_Kernel_Channel_peek_ifAbsent__consts[] = { (oop)&StaticSymbol_resolve_, (oop)&StaticSymbol_spaceKind_, (oop)&StaticSymbol_KIND_STREAM, (oop)&StaticSymbol__eq, (oop)&StaticString_not_u32a_u32cell_53, (oop)&StaticSymbol_error_, (oop)&StaticSymbol_false, TAG_SMI(0), (oop)&StaticSymbol_value, (oop)&StaticSymbol_spacePeek_ };
 static const struct CompiledMethod Method_Kernel_Channel_peek_ifAbsent__compiled = {
     Method_Kernel_Channel_peek_ifAbsent__insts, 41,
-    14, 2,
+    14, 2, 0,
     Method_Kernel_Channel_peek_ifAbsent__consts, 10,
     0
 };
@@ -8624,7 +8624,7 @@ static const uint32_t Method_Kernel_Channel_peek_insts[] = { 0x00000301, 0x00000
 static const oop Method_Kernel_Channel_peek_consts[] = { (oop)&StaticString__4, (oop)&Method_Block_Kernel_Channel_block56_value_compiled, (oop)&StaticSymbol_peek_ifAbsent_ };
 static const struct CompiledMethod Method_Kernel_Channel_peek_compiled = {
     Method_Kernel_Channel_peek_insts, 6,
-    6, 0,
+    6, 0, 0,
     Method_Kernel_Channel_peek_consts, 3,
     0
 };
@@ -8637,7 +8637,7 @@ static const uint32_t Method_Kernel_Channel_peek__insts[] = { 0x00000401, 0x0001
 static const oop Method_Kernel_Channel_peek__consts[] = { (oop)&Method_Block_Kernel_Channel_block57_value_compiled, (oop)&StaticSymbol_peek_ifAbsent_ };
 static const struct CompiledMethod Method_Kernel_Channel_peek__compiled = {
     Method_Kernel_Channel_peek__insts, 6,
-    7, 1,
+    7, 1, 0,
     Method_Kernel_Channel_peek__consts, 2,
     0
 };
@@ -8650,7 +8650,7 @@ static const uint32_t Method_Kernel_Channel_peekCell_ifStream__insts[] = { 0x000
 static const oop Method_Kernel_Channel_peekCell_ifStream__consts[] = { (oop)&StaticSymbol_resolve_, (oop)&StaticSymbol_spaceKind_, (oop)&StaticSymbol_KIND_STREAM, (oop)&StaticSymbol__eq, (oop)&StaticSymbol_value, (oop)&StaticSymbol_false, TAG_SMI(0), NULL, (oop)&StaticSymbol_spacePeek_ };
 static const struct CompiledMethod Method_Kernel_Channel_peekCell_ifStream__compiled = {
     Method_Kernel_Channel_peekCell_ifStream__insts, 39,
-    13, 2,
+    13, 2, 0,
     Method_Kernel_Channel_peekCell_ifStream__consts, 9,
     0
 };
@@ -8663,7 +8663,7 @@ static const uint32_t Method_Kernel_Channel_changedSince_max__insts[] = { 0x0000
 static const oop Method_Kernel_Channel_changedSince_max__consts[] = { (oop)&StaticSymbol_spaceChangedSince_under_max_, (oop)&Vtable_Kernel_OrderedCollection, (oop)&StaticSymbol_init_new, TAG_SMI(1), (oop)&StaticSymbol_basicSize, (oop)&StaticSymbol__lt_eq, (oop)&StaticSymbol_basicAt_, (oop)&StaticSymbol_rowOf_, (oop)&StaticSymbol_add_, NULL };
 static const struct CompiledMethod Method_Kernel_Channel_changedSince_max__compiled = {
     Method_Kernel_Channel_changedSince_max__insts, 42,
-    18, 2,
+    18, 2, 0,
     Method_Kernel_Channel_changedSince_max__consts, 10,
     0
 };
@@ -8676,7 +8676,7 @@ static const uint32_t Method_Kernel_Channel_rowOf__insts[] = { 0x0000050A, 0x050
 static const oop Method_Kernel_Channel_rowOf__consts[] = { TAG_SMI(1), (oop)&StaticSymbol_basicAt_, TAG_SMI(2), TAG_SMI(3), (oop)&StaticSymbol_with_with_with_ };
 static const struct CompiledMethod Method_Kernel_Channel_rowOf__compiled = {
     Method_Kernel_Channel_rowOf__insts, 17,
-    10, 1,
+    10, 1, 0,
     Method_Kernel_Channel_rowOf__consts, 5,
     0
 };
@@ -8689,7 +8689,7 @@ static const uint32_t Method_Kernel_Channel_whenever_do__insts[] = { 0x0000060A,
 static const oop Method_Kernel_Channel_whenever_do__consts[] = { (oop)&StaticSymbol_resolve_, (oop)&StaticSymbol_spaceRegister_block_owner_ };
 static const struct CompiledMethod Method_Kernel_Channel_whenever_do__compiled = {
     Method_Kernel_Channel_whenever_do__insts, 12,
-    9, 2,
+    9, 2, 0,
     Method_Kernel_Channel_whenever_do__consts, 2,
     0
 };
@@ -8702,7 +8702,7 @@ static const uint32_t Method_Kernel_Channel_dropMyReactions_insts[] = { 0x000004
 static const oop Method_Kernel_Channel_dropMyReactions_consts[] = { (oop)&StaticSymbol_spaceDropReactionsOwnedBy_ };
 static const struct CompiledMethod Method_Kernel_Channel_dropMyReactions_compiled = {
     Method_Kernel_Channel_dropMyReactions_insts, 7,
-    5, 0,
+    5, 0, 0,
     Method_Kernel_Channel_dropMyReactions_consts, 1,
     0
 };
@@ -8715,7 +8715,7 @@ static const uint32_t Method_Kernel_Channel_init_new_insts[] = { 0x00000200, 0x0
 static const oop Method_Kernel_Channel_init_new_consts[] = { NULL };
 static const struct CompiledMethod Method_Kernel_Channel_init_new_compiled = {
     Method_Kernel_Channel_init_new_insts, 3,
-    3, 0,
+    3, 0, 0,
     Method_Kernel_Channel_init_new_consts, 1,
     0
 };
@@ -8728,7 +8728,7 @@ static const uint32_t Method_Kernel_Space_drain_insts[] = { 0x00000D0A, 0x0D000C
 static const oop Method_Kernel_Space_drain_consts[] = { (oop)&StaticSymbol_spaceDequeue, NULL, (oop)&StaticSymbol__eq_eq, (oop)&StaticSymbol_not, TAG_SMI(1), (oop)&StaticSymbol_basicAt_, TAG_SMI(2), TAG_SMI(3), (oop)&StaticSymbol_basicSize, (oop)&StaticSymbol__lt_eq, (oop)&StaticSymbol_protectedFire_value_, (oop)&StaticSymbol_false, (oop)&StaticSymbol_postCrash_channel_ };
 static const struct CompiledMethod Method_Kernel_Space_drain_compiled = {
     Method_Kernel_Space_drain_insts, 68,
-    23, 0,
+    23, 0, 0,
     Method_Kernel_Space_drain_consts, 13,
     0
 };
@@ -8741,7 +8741,7 @@ static const uint32_t Method_Kernel_Space_seq_insts[] = { 0x0000040A, 0x0400030A
 static const oop Method_Kernel_Space_seq_consts[] = { (oop)&StaticSymbol_spaceSeq };
 static const struct CompiledMethod Method_Kernel_Space_seq_compiled = {
     Method_Kernel_Space_seq_insts, 5,
-    5, 0,
+    5, 0, 0,
     Method_Kernel_Space_seq_consts, 1,
     0
 };
@@ -8754,7 +8754,7 @@ static const uint32_t Method_Kernel_Space_stamp_insts[] = { 0x0000040A, 0x040003
 static const oop Method_Kernel_Space_stamp_consts[] = { (oop)&StaticSymbol_spaceStamp };
 static const struct CompiledMethod Method_Kernel_Space_stamp_compiled = {
     Method_Kernel_Space_stamp_insts, 5,
-    5, 0,
+    5, 0, 0,
     Method_Kernel_Space_stamp_consts, 1,
     0
 };
@@ -8767,7 +8767,7 @@ static const uint32_t Method_Kernel_Space_postCrash_channel__insts[] = { 0x00000
 static const oop Method_Kernel_Space_postCrash_channel__consts[] = { (oop)&StaticSymbol_isSysPath_, (oop)&StaticString_supervisor_subcrash_u32_54, (oop)&StaticSymbol__u44, (oop)&StaticString__u32_55, (oop)&StaticSymbol_text, (oop)&Method_Block_Kernel_Space_block58_value_compiled, (oop)&StaticSymbol_at_ifAbsent_, (oop)&StaticSymbol_out, (oop)&StaticString_sys_divcrash_56, (oop)&StaticSymbol_tag, (oop)&Method_Block_Kernel_Space_block59_value_compiled, (oop)&StaticSymbol_key_value_, (oop)&StaticSymbol_channel, (oop)&StaticSymbol_tag_with_with_, (oop)&StaticSymbol_out_value_ };
 static const struct CompiledMethod Method_Kernel_Space_postCrash_channel__compiled = {
     Method_Kernel_Space_postCrash_channel__insts, 51,
-    19, 2,
+    19, 2, 0,
     Method_Kernel_Space_postCrash_channel__consts, 15,
     0
 };
@@ -8780,7 +8780,7 @@ static const uint32_t Method_Kernel_Space_isSysPath__insts[] = { 0x00010501, 0x0
 static const oop Method_Kernel_Space_isSysPath__consts[] = { (oop)&StaticString_sys_40, (oop)&StaticSymbol__eq, (oop)&StaticSymbol_true, (oop)&StaticSymbol_false, (oop)&StaticSymbol_size, TAG_SMI(4), (oop)&StaticSymbol__gt, TAG_SMI(1), (oop)&StaticSymbol_at_, TAG_SMI(115), TAG_SMI(2), TAG_SMI(121), TAG_SMI(3), TAG_SMI(47) };
 static const struct CompiledMethod Method_Kernel_Space_isSysPath__compiled = {
     Method_Kernel_Space_isSysPath__insts, 56,
-    20, 1,
+    20, 1, 0,
     Method_Kernel_Space_isSysPath__consts, 14,
     0
 };
@@ -8792,7 +8792,7 @@ static const struct Closure Method_Kernel_Space_isSysPath__closure = {
 static const uint32_t Method_Kernel_Space_init_new_insts[] = { 0x00000003 };
 static const struct CompiledMethod Method_Kernel_Space_init_new_compiled = {
     Method_Kernel_Space_init_new_insts, 1,
-    2, 0,
+    2, 0, 0,
     NULL, 0,
     0
 };
@@ -8804,7 +8804,7 @@ static const struct Closure Method_Kernel_Space_init_new_closure = {
 static const uint32_t Method_Kernel_SupervisedJob_rootCap_insts[] = { 0x0001020A, 0x00000203 };
 static const struct CompiledMethod Method_Kernel_SupervisedJob_rootCap_compiled = {
     Method_Kernel_SupervisedJob_rootCap_insts, 2,
-    3, 0,
+    3, 0, 0,
     NULL, 0,
     0
 };
@@ -8816,7 +8816,7 @@ static const struct Closure Method_Kernel_SupervisedJob_rootCap_closure = {
 static const uint32_t Method_Kernel_SupervisedJob_rootPath_insts[] = { 0x0002020A, 0x00000203 };
 static const struct CompiledMethod Method_Kernel_SupervisedJob_rootPath_compiled = {
     Method_Kernel_SupervisedJob_rootPath_insts, 2,
-    3, 0,
+    3, 0, 0,
     NULL, 0,
     0
 };
@@ -8828,7 +8828,7 @@ static const struct Closure Method_Kernel_SupervisedJob_rootPath_closure = {
 static const uint32_t Method_Kernel_SupervisedJob_restartThunk_insts[] = { 0x0003020A, 0x00000203 };
 static const struct CompiledMethod Method_Kernel_SupervisedJob_restartThunk_compiled = {
     Method_Kernel_SupervisedJob_restartThunk_insts, 2,
-    3, 0,
+    3, 0, 0,
     NULL, 0,
     0
 };
@@ -8840,7 +8840,7 @@ static const struct Closure Method_Kernel_SupervisedJob_restartThunk_closure = {
 static const uint32_t Method_Kernel_SupervisedJob_crashes_insts[] = { 0x0004020A, 0x00000203 };
 static const struct CompiledMethod Method_Kernel_SupervisedJob_crashes_compiled = {
     Method_Kernel_SupervisedJob_crashes_insts, 2,
-    3, 0,
+    3, 0, 0,
     NULL, 0,
     0
 };
@@ -8852,7 +8852,7 @@ static const struct Closure Method_Kernel_SupervisedJob_crashes_closure = {
 static const uint32_t Method_Kernel_SupervisedJob_quarantined_insts[] = { 0x0005020A, 0x00000203 };
 static const struct CompiledMethod Method_Kernel_SupervisedJob_quarantined_compiled = {
     Method_Kernel_SupervisedJob_quarantined_insts, 2,
-    3, 0,
+    3, 0, 0,
     NULL, 0,
     0
 };
@@ -8865,7 +8865,7 @@ static const uint32_t Method_Kernel_SupervisedJob_bumpCrashes_insts[] = { 0x0004
 static const oop Method_Kernel_SupervisedJob_bumpCrashes_consts[] = { TAG_SMI(1) };
 static const struct CompiledMethod Method_Kernel_SupervisedJob_bumpCrashes_compiled = {
     Method_Kernel_SupervisedJob_bumpCrashes_insts, 6,
-    5, 0,
+    5, 0, 0,
     Method_Kernel_SupervisedJob_bumpCrashes_consts, 1,
     0
 };
@@ -8878,7 +8878,7 @@ static const uint32_t Method_Kernel_SupervisedJob_noteProgress_insts[] = { 0x000
 static const oop Method_Kernel_SupervisedJob_noteProgress_consts[] = { TAG_SMI(0) };
 static const struct CompiledMethod Method_Kernel_SupervisedJob_noteProgress_compiled = {
     Method_Kernel_SupervisedJob_noteProgress_insts, 4,
-    3, 0,
+    3, 0, 0,
     Method_Kernel_SupervisedJob_noteProgress_consts, 1,
     0
 };
@@ -8891,7 +8891,7 @@ static const uint32_t Method_Kernel_SupervisedJob_markQuarantined_insts[] = { 0x
 static const oop Method_Kernel_SupervisedJob_markQuarantined_consts[] = { (oop)&StaticSymbol_true };
 static const struct CompiledMethod Method_Kernel_SupervisedJob_markQuarantined_compiled = {
     Method_Kernel_SupervisedJob_markQuarantined_insts, 4,
-    3, 0,
+    3, 0, 0,
     Method_Kernel_SupervisedJob_markQuarantined_consts, 1,
     0
 };
@@ -8904,7 +8904,7 @@ static const uint32_t Method_Kernel_SupervisedJob_addresses__insts[] = { 0x00010
 static const oop Method_Kernel_SupervisedJob_addresses__consts[] = { (oop)&StaticSymbol__eq, (oop)&StaticSymbol_true, (oop)&StaticSymbol_false, (oop)&StaticSymbol_size, (oop)&StaticSymbol__gt, TAG_SMI(1), (oop)&StaticSymbol__lt_eq, (oop)&StaticSymbol_at_, NULL, TAG_SMI(47) };
 static const struct CompiledMethod Method_Kernel_SupervisedJob_addresses__compiled = {
     Method_Kernel_SupervisedJob_addresses__insts, 64,
-    19, 1,
+    19, 1, 0,
     Method_Kernel_SupervisedJob_addresses__consts, 10,
     0
 };
@@ -8917,7 +8917,7 @@ static const uint32_t Method_Kernel_SupervisedJob_setRootCap_restart__insts[] = 
 static const oop Method_Kernel_SupervisedJob_setRootCap_restart__consts[] = { (oop)&StaticSymbol_rootPath };
 static const struct CompiledMethod Method_Kernel_SupervisedJob_setRootCap_restart__compiled = {
     Method_Kernel_SupervisedJob_setRootCap_restart__insts, 10,
-    6, 2,
+    6, 2, 0,
     Method_Kernel_SupervisedJob_setRootCap_restart__consts, 1,
     0
 };
@@ -8930,7 +8930,7 @@ static const uint32_t Method_Meta_Kernel_SupervisedJob_rootCap_restart__insts[] 
 static const oop Method_Meta_Kernel_SupervisedJob_rootCap_restart__consts[] = { (oop)&Vtable_Kernel_SupervisedJob, (oop)&StaticSymbol_init_new, (oop)&StaticSymbol_setRootCap_restart_ };
 static const struct CompiledMethod Method_Meta_Kernel_SupervisedJob_rootCap_restart__compiled = {
     Method_Meta_Kernel_SupervisedJob_rootCap_restart__insts, 10,
-    8, 2,
+    8, 2, 0,
     Method_Meta_Kernel_SupervisedJob_rootCap_restart__consts, 3,
     0
 };
@@ -8943,7 +8943,7 @@ static const uint32_t Method_Kernel_SupervisedJob_init_new_insts[] = { 0x0000020
 static const oop Method_Kernel_SupervisedJob_init_new_consts[] = { NULL, TAG_SMI(0), (oop)&StaticSymbol_false };
 static const struct CompiledMethod Method_Kernel_SupervisedJob_init_new_compiled = {
     Method_Kernel_SupervisedJob_init_new_insts, 11,
-    3, 0,
+    3, 0, 0,
     Method_Kernel_SupervisedJob_init_new_consts, 3,
     0
 };
@@ -8956,7 +8956,7 @@ static const uint32_t Method_Kernel_Supervisor_setSpace__insts[] = { 0x00010301,
 static const oop Method_Kernel_Supervisor_setSpace__consts[] = { (oop)&Vtable_Kernel_OrderedCollection, (oop)&StaticSymbol_init_new };
 static const struct CompiledMethod Method_Kernel_Supervisor_setSpace__compiled = {
     Method_Kernel_Supervisor_setSpace__insts, 11,
-    6, 1,
+    6, 1, 0,
     Method_Kernel_Supervisor_setSpace__consts, 2,
     0
 };
@@ -8968,7 +8968,7 @@ static const struct Closure Method_Kernel_Supervisor_setSpace__closure = {
 static const uint32_t Method_Kernel_Supervisor_timers__insts[] = { 0x00010301, 0x0004030B, 0x00000301, 0x00000303 };
 static const struct CompiledMethod Method_Kernel_Supervisor_timers__compiled = {
     Method_Kernel_Supervisor_timers__insts, 4,
-    4, 1,
+    4, 1, 0,
     NULL, 0,
     0
 };
@@ -8981,7 +8981,7 @@ static const uint32_t Method_Kernel_Supervisor_register_restart_progress__insts[
 static const oop Method_Kernel_Supervisor_register_restart_progress__consts[] = { (oop)&StaticSymbol_rootCap_restart_, (oop)&StaticSymbol_add_, (oop)&StaticString__4, (oop)&Method_Block_Kernel_Supervisor_block60_value__compiled, (oop)&StaticSymbol_whenever_do_ };
 static const struct CompiledMethod Method_Kernel_Supervisor_register_restart_progress__compiled = {
     Method_Kernel_Supervisor_register_restart_progress__insts, 19,
-    12, 3,
+    12, 3, 0,
     Method_Kernel_Supervisor_register_restart_progress__consts, 5,
     0
 };
@@ -8994,7 +8994,7 @@ static const uint32_t Method_Kernel_Supervisor_start_insts[] = { 0x0001040A, 0x0
 static const oop Method_Kernel_Supervisor_start_consts[] = { (oop)&StaticString_sys_40, (oop)&StaticSymbol_channel_, (oop)&StaticString_crash_57, (oop)&Method_Block_Kernel_Supervisor_block61_value__compiled, (oop)&StaticSymbol_whenever_do_ };
 static const struct CompiledMethod Method_Kernel_Supervisor_start_compiled = {
     Method_Kernel_Supervisor_start_insts, 10,
-    6, 0,
+    6, 0, 0,
     Method_Kernel_Supervisor_start_consts, 5,
     0
 };
@@ -9007,7 +9007,7 @@ static const uint32_t Method_Kernel_Supervisor_isQuarantined__insts[] = { 0x0001
 static const oop Method_Kernel_Supervisor_isQuarantined__consts[] = { (oop)&Method_Block_Kernel_Supervisor_block62_value__compiled, (oop)&Method_Block_Kernel_Supervisor_block63_value_compiled, (oop)&StaticSymbol_detect_ifNone_, NULL, (oop)&StaticSymbol__eq_eq, (oop)&StaticSymbol_false, (oop)&StaticSymbol_quarantined };
 static const struct CompiledMethod Method_Kernel_Supervisor_isQuarantined__compiled = {
     Method_Kernel_Supervisor_isQuarantined__insts, 19,
-    9, 1,
+    9, 1, 0,
     Method_Kernel_Supervisor_isQuarantined__consts, 7,
     0
 };
@@ -9020,7 +9020,7 @@ static const uint32_t Method_Kernel_Supervisor_handleCrash__insts[] = { 0x000106
 static const oop Method_Kernel_Supervisor_handleCrash__consts[] = { (oop)&StaticSymbol_channel, (oop)&Method_Block_Kernel_Supervisor_block64_value_compiled, (oop)&StaticSymbol_at_ifAbsent_, (oop)&StaticSymbol_jobAddressing_, NULL, (oop)&StaticSymbol__eq_eq, (oop)&StaticSymbol_false, (oop)&StaticSymbol_quarantined, (oop)&StaticSymbol_bumpCrashes, (oop)&StaticSymbol_crashes, (oop)&StaticSymbol__gt_eq, (oop)&StaticSymbol_quarantine_, (oop)&StaticSymbol_restart_ };
 static const struct CompiledMethod Method_Kernel_Supervisor_handleCrash__compiled = {
     Method_Kernel_Supervisor_handleCrash__insts, 49,
-    16, 1,
+    16, 1, 0,
     Method_Kernel_Supervisor_handleCrash__consts, 13,
     0
 };
@@ -9033,7 +9033,7 @@ static const uint32_t Method_Kernel_Supervisor_sweepJob__insts[] = { 0x0000050A,
 static const oop Method_Kernel_Supervisor_sweepJob__consts[] = { (oop)&StaticSymbol_rootCap, (oop)&StaticSymbol_spaceDropReactionsOwnedBy_, NULL, (oop)&StaticSymbol__eq_eq, (oop)&StaticSymbol_false, (oop)&StaticSymbol_rootPath, (oop)&StaticSymbol_cancelAddressedBy_ };
 static const struct CompiledMethod Method_Kernel_Supervisor_sweepJob__compiled = {
     Method_Kernel_Supervisor_sweepJob__insts, 22,
-    10, 1,
+    10, 1, 0,
     Method_Kernel_Supervisor_sweepJob__consts, 7,
     0
 };
@@ -9046,7 +9046,7 @@ static const uint32_t Method_Kernel_Supervisor_restart__insts[] = { 0x00000401, 
 static const oop Method_Kernel_Supervisor_restart__consts[] = { (oop)&StaticSymbol_sweepJob_, (oop)&StaticSymbol_restartThunk, (oop)&StaticSymbol_value };
 static const struct CompiledMethod Method_Kernel_Supervisor_restart__compiled = {
     Method_Kernel_Supervisor_restart__insts, 11,
-    7, 1,
+    7, 1, 0,
     Method_Kernel_Supervisor_restart__consts, 3,
     0
 };
@@ -9059,7 +9059,7 @@ static const uint32_t Method_Kernel_Supervisor_quarantine__insts[] = { 0x0000040
 static const oop Method_Kernel_Supervisor_quarantine__consts[] = { (oop)&StaticSymbol_sweepJob_, (oop)&StaticSymbol_markQuarantined, (oop)&StaticString_sys_40, (oop)&StaticSymbol_channel_, (oop)&StaticString_log_58, (oop)&StaticSymbol_quarantine, (oop)&StaticSymbol_channel, (oop)&StaticSymbol_rootPath, (oop)&StaticSymbol_key_value_, (oop)&StaticSymbol_tag_with_, (oop)&StaticSymbol_out_value_ };
 static const struct CompiledMethod Method_Kernel_Supervisor_quarantine__compiled = {
     Method_Kernel_Supervisor_quarantine__insts, 29,
-    16, 1,
+    16, 1, 0,
     Method_Kernel_Supervisor_quarantine__consts, 11,
     0
 };
@@ -9072,7 +9072,7 @@ static const uint32_t Method_Kernel_Supervisor_jobAddressing__insts[] = { 0x0001
 static const oop Method_Kernel_Supervisor_jobAddressing__consts[] = { NULL, (oop)&StaticSymbol__eq_eq, (oop)&StaticSymbol_false, (oop)&Method_Block_Kernel_Supervisor_block65_value__compiled, (oop)&Method_Block_Kernel_Supervisor_block66_value_compiled, (oop)&StaticSymbol_detect_ifNone_ };
 static const struct CompiledMethod Method_Kernel_Supervisor_jobAddressing__compiled = {
     Method_Kernel_Supervisor_jobAddressing__insts, 17,
-    8, 1,
+    8, 1, 0,
     Method_Kernel_Supervisor_jobAddressing__consts, 6,
     0
 };
@@ -9085,7 +9085,7 @@ static const uint32_t Method_Kernel_Supervisor_init_new_insts[] = { 0x00000200, 
 static const oop Method_Kernel_Supervisor_init_new_consts[] = { NULL, TAG_SMI(3) };
 static const struct CompiledMethod Method_Kernel_Supervisor_init_new_compiled = {
     Method_Kernel_Supervisor_init_new_insts, 9,
-    3, 0,
+    3, 0, 0,
     Method_Kernel_Supervisor_init_new_consts, 2,
     0
 };
@@ -9097,7 +9097,7 @@ static const struct Closure Method_Kernel_Supervisor_init_new_closure = {
 static const uint32_t Method_Kernel_Transition_action_insts[] = { 0x0001020A, 0x00000203 };
 static const struct CompiledMethod Method_Kernel_Transition_action_compiled = {
     Method_Kernel_Transition_action_insts, 2,
-    3, 0,
+    3, 0, 0,
     NULL, 0,
     0
 };
@@ -9109,7 +9109,7 @@ static const struct Closure Method_Kernel_Transition_action_closure = {
 static const uint32_t Method_Kernel_Transition_target_insts[] = { 0x0002020A, 0x00000203 };
 static const struct CompiledMethod Method_Kernel_Transition_target_compiled = {
     Method_Kernel_Transition_target_insts, 2,
-    3, 0,
+    3, 0, 0,
     NULL, 0,
     0
 };
@@ -9121,7 +9121,7 @@ static const struct Closure Method_Kernel_Transition_target_closure = {
 static const uint32_t Method_Kernel_Transition_setAction_target__insts[] = { 0x00010401, 0x0001040B, 0x00020401, 0x0002040B, 0x00000401, 0x00000403 };
 static const struct CompiledMethod Method_Kernel_Transition_setAction_target__compiled = {
     Method_Kernel_Transition_setAction_target__insts, 6,
-    5, 2,
+    5, 2, 0,
     NULL, 0,
     0
 };
@@ -9134,7 +9134,7 @@ static const uint32_t Method_Meta_Kernel_Transition_action_target__insts[] = { 0
 static const oop Method_Meta_Kernel_Transition_action_target__consts[] = { (oop)&Vtable_Kernel_Transition, (oop)&StaticSymbol_init_new, (oop)&StaticSymbol_setAction_target_ };
 static const struct CompiledMethod Method_Meta_Kernel_Transition_action_target__compiled = {
     Method_Meta_Kernel_Transition_action_target__insts, 10,
-    8, 2,
+    8, 2, 0,
     Method_Meta_Kernel_Transition_action_target__consts, 3,
     0
 };
@@ -9147,7 +9147,7 @@ static const uint32_t Method_Kernel_Transition_init_new_insts[] = { 0x00000200, 
 static const oop Method_Kernel_Transition_init_new_consts[] = { NULL };
 static const struct CompiledMethod Method_Kernel_Transition_init_new_compiled = {
     Method_Kernel_Transition_init_new_insts, 5,
-    3, 0,
+    3, 0, 0,
     Method_Kernel_Transition_init_new_consts, 1,
     0
 };
@@ -9160,7 +9160,7 @@ static const uint32_t Method_Kernel_Protocol_state_on_do_then__insts[] = { 0x000
 static const oop Method_Kernel_Protocol_state_on_do_then__consts[] = { (oop)&Method_Block_Kernel_Protocol_block67_value_compiled, (oop)&StaticSymbol_at_ifAbsent_, NULL, (oop)&StaticSymbol__eq_eq, (oop)&Vtable_Kernel_Dictionary, (oop)&StaticSymbol_init_new, (oop)&StaticSymbol_at_put_, (oop)&StaticSymbol_false, (oop)&StaticSymbol_action_target_ };
 static const struct CompiledMethod Method_Kernel_Protocol_state_on_do_then__compiled = {
     Method_Kernel_Protocol_state_on_do_then__insts, 37,
-    16, 4,
+    16, 4, 0,
     Method_Kernel_Protocol_state_on_do_then__consts, 9,
     0
 };
@@ -9173,7 +9173,7 @@ static const uint32_t Method_Kernel_Protocol_state_onEntry__insts[] = { 0x000505
 static const oop Method_Kernel_Protocol_state_onEntry__consts[] = { (oop)&StaticSymbol_at_put_ };
 static const struct CompiledMethod Method_Kernel_Protocol_state_onEntry__compiled = {
     Method_Kernel_Protocol_state_onEntry__insts, 7,
-    8, 2,
+    8, 2, 0,
     Method_Kernel_Protocol_state_onEntry__consts, 1,
     0
 };
@@ -9185,7 +9185,7 @@ static const struct Closure Method_Kernel_Protocol_state_onEntry__closure = {
 static const uint32_t Method_Kernel_Protocol_onUnhandled__insts[] = { 0x00010301, 0x0004030B, 0x00000301, 0x00000303 };
 static const struct CompiledMethod Method_Kernel_Protocol_onUnhandled__compiled = {
     Method_Kernel_Protocol_onUnhandled__insts, 4,
-    4, 1,
+    4, 1, 0,
     NULL, 0,
     0
 };
@@ -9198,7 +9198,7 @@ static const uint32_t Method_Kernel_Protocol_startIn__insts[] = { 0x00010301, 0x
 static const oop Method_Kernel_Protocol_startIn__consts[] = { NULL, (oop)&StaticSymbol_runEntry_with_ };
 static const struct CompiledMethod Method_Kernel_Protocol_startIn__compiled = {
     Method_Kernel_Protocol_startIn__insts, 9,
-    7, 1,
+    7, 1, 0,
     Method_Kernel_Protocol_startIn__consts, 2,
     0
 };
@@ -9210,7 +9210,7 @@ static const struct Closure Method_Kernel_Protocol_startIn__closure = {
 static const uint32_t Method_Kernel_Protocol_trace__insts[] = { 0x00010301, 0x0006030B, 0x00000301, 0x00000303 };
 static const struct CompiledMethod Method_Kernel_Protocol_trace__compiled = {
     Method_Kernel_Protocol_trace__insts, 4,
-    4, 1,
+    4, 1, 0,
     NULL, 0,
     0
 };
@@ -9222,7 +9222,7 @@ static const struct Closure Method_Kernel_Protocol_trace__closure = {
 static const uint32_t Method_Kernel_Protocol_currentState_insts[] = { 0x0002020A, 0x00000203 };
 static const struct CompiledMethod Method_Kernel_Protocol_currentState_compiled = {
     Method_Kernel_Protocol_currentState_insts, 2,
-    3, 0,
+    3, 0, 0,
     NULL, 0,
     0
 };
@@ -9234,7 +9234,7 @@ static const struct Closure Method_Kernel_Protocol_currentState_closure = {
 static const uint32_t Method_Kernel_Protocol_name_insts[] = { 0x0001020A, 0x00000203 };
 static const struct CompiledMethod Method_Kernel_Protocol_name_compiled = {
     Method_Kernel_Protocol_name_insts, 2,
-    3, 0,
+    3, 0, 0,
     NULL, 0,
     0
 };
@@ -9246,7 +9246,7 @@ static const struct Closure Method_Kernel_Protocol_name_closure = {
 static const uint32_t Method_Kernel_Protocol_snapshot_insts[] = { 0x0002020A, 0x00000203 };
 static const struct CompiledMethod Method_Kernel_Protocol_snapshot_compiled = {
     Method_Kernel_Protocol_snapshot_insts, 2,
-    3, 0,
+    3, 0, 0,
     NULL, 0,
     0
 };
@@ -9258,7 +9258,7 @@ static const struct Closure Method_Kernel_Protocol_snapshot_closure = {
 static const uint32_t Method_Kernel_Protocol_restore__insts[] = { 0x00010301, 0x0002030B, 0x00000301, 0x00000303 };
 static const struct CompiledMethod Method_Kernel_Protocol_restore__compiled = {
     Method_Kernel_Protocol_restore__insts, 4,
-    4, 1,
+    4, 1, 0,
     NULL, 0,
     0
 };
@@ -9271,7 +9271,7 @@ static const uint32_t Method_Kernel_Protocol_handle__insts[] = { 0x00000801, 0x0
 static const oop Method_Kernel_Protocol_handle__consts[] = { (oop)&StaticSymbol_keyFor_, (oop)&Method_Block_Kernel_Protocol_block68_value_compiled, (oop)&StaticSymbol_at_ifAbsent_, (oop)&StaticSymbol_false, NULL, (oop)&StaticSymbol__eq_eq, (oop)&Method_Block_Kernel_Protocol_block69_value_compiled, (oop)&StaticSymbol_true, (oop)&StaticSymbol_asString, (oop)&StaticString___u32_59, (oop)&StaticSymbol__u44, (oop)&StaticString__u32_sub_60, (oop)&StaticString__sub_gt_u32_61, (oop)&StaticSymbol_target, (oop)&StaticSymbol_out, (oop)&StaticSymbol_action, (oop)&StaticSymbol_value_value_, (oop)&StaticSymbol_runEntry_with_ };
 static const struct CompiledMethod Method_Kernel_Protocol_handle__compiled = {
     Method_Kernel_Protocol_handle__insts, 104,
-    25, 1,
+    25, 1, 0,
     Method_Kernel_Protocol_handle__consts, 18,
     0
 };
@@ -9284,7 +9284,7 @@ static const uint32_t Method_Kernel_Protocol_keyFor__insts[] = { 0x00010501, 0x0
 static const oop Method_Kernel_Protocol_keyFor__consts[] = { (oop)&StaticSymbol_isSymbol, (oop)&StaticSymbol_false, (oop)&StaticSymbol_isRecord, (oop)&StaticSymbol_tag, (oop)&StaticSymbol_event };
 static const struct CompiledMethod Method_Kernel_Protocol_keyFor__compiled = {
     Method_Kernel_Protocol_keyFor__insts, 20,
-    9, 1,
+    9, 1, 0,
     Method_Kernel_Protocol_keyFor__consts, 5,
     0
 };
@@ -9297,7 +9297,7 @@ static const uint32_t Method_Kernel_Protocol_validate_insts[] = { 0x0003030A, 0x
 static const oop Method_Kernel_Protocol_validate_consts[] = { (oop)&Method_Block_Kernel_Protocol_block70_value__compiled, (oop)&StaticSymbol_do_ };
 static const struct CompiledMethod Method_Kernel_Protocol_validate_compiled = {
     Method_Kernel_Protocol_validate_insts, 6,
-    5, 0,
+    5, 0, 0,
     Method_Kernel_Protocol_validate_consts, 2,
     0
 };
@@ -9310,7 +9310,7 @@ static const uint32_t Method_Kernel_Protocol_runEntry_with__insts[] = { 0x000506
 static const oop Method_Kernel_Protocol_runEntry_with__consts[] = { (oop)&Method_Block_Kernel_Protocol_block72_value_compiled, (oop)&StaticSymbol_at_ifAbsent_, NULL, (oop)&StaticSymbol__eq_eq, (oop)&StaticSymbol_false, (oop)&StaticSymbol_value_value_ };
 static const struct CompiledMethod Method_Kernel_Protocol_runEntry_with__compiled = {
     Method_Kernel_Protocol_runEntry_with__insts, 20,
-    12, 2,
+    12, 2, 0,
     Method_Kernel_Protocol_runEntry_with__consts, 6,
     0
 };
@@ -9322,7 +9322,7 @@ static const struct Closure Method_Kernel_Protocol_runEntry_with__closure = {
 static const uint32_t Method_Kernel_Protocol_setName__insts[] = { 0x00010301, 0x0001030B, 0x00000301, 0x00000303 };
 static const struct CompiledMethod Method_Kernel_Protocol_setName__compiled = {
     Method_Kernel_Protocol_setName__insts, 4,
-    4, 1,
+    4, 1, 0,
     NULL, 0,
     0
 };
@@ -9335,7 +9335,7 @@ static const uint32_t Method_Meta_Kernel_Protocol_named__insts[] = { 0x00000500,
 static const oop Method_Meta_Kernel_Protocol_named__consts[] = { (oop)&Vtable_Kernel_Protocol, (oop)&StaticSymbol_init_new, (oop)&StaticSymbol_setName_ };
 static const struct CompiledMethod Method_Meta_Kernel_Protocol_named__compiled = {
     Method_Meta_Kernel_Protocol_named__insts, 9,
-    6, 1,
+    6, 1, 0,
     Method_Meta_Kernel_Protocol_named__consts, 3,
     0
 };
@@ -9348,7 +9348,7 @@ static const uint32_t Method_Kernel_Protocol_init_new_insts[] = { 0x00000200, 0x
 static const oop Method_Kernel_Protocol_init_new_consts[] = { (oop)&StaticSymbol_protocol, (oop)&StaticSymbol_initial, (oop)&Vtable_Kernel_Dictionary, (oop)&StaticSymbol_init_new, NULL, (oop)&StaticSymbol_false };
 static const struct CompiledMethod Method_Kernel_Protocol_init_new_compiled = {
     Method_Kernel_Protocol_init_new_insts, 23,
-    5, 0,
+    5, 0, 0,
     Method_Kernel_Protocol_init_new_consts, 6,
     0
 };
@@ -9360,7 +9360,7 @@ static const struct Closure Method_Kernel_Protocol_init_new_closure = {
 static const uint32_t Method_Kernel_Pending_chan_insts[] = { 0x0001020A, 0x00000203 };
 static const struct CompiledMethod Method_Kernel_Pending_chan_compiled = {
     Method_Kernel_Pending_chan_insts, 2,
-    3, 0,
+    3, 0, 0,
     NULL, 0,
     0
 };
@@ -9372,7 +9372,7 @@ static const struct Closure Method_Kernel_Pending_chan_closure = {
 static const uint32_t Method_Kernel_Pending_msg_insts[] = { 0x0002020A, 0x00000203 };
 static const struct CompiledMethod Method_Kernel_Pending_msg_compiled = {
     Method_Kernel_Pending_msg_insts, 2,
-    3, 0,
+    3, 0, 0,
     NULL, 0,
     0
 };
@@ -9384,7 +9384,7 @@ static const struct Closure Method_Kernel_Pending_msg_closure = {
 static const uint32_t Method_Kernel_Pending_repeating_insts[] = { 0x0003020A, 0x00000203 };
 static const struct CompiledMethod Method_Kernel_Pending_repeating_compiled = {
     Method_Kernel_Pending_repeating_insts, 2,
-    3, 0,
+    3, 0, 0,
     NULL, 0,
     0
 };
@@ -9396,7 +9396,7 @@ static const struct Closure Method_Kernel_Pending_repeating_closure = {
 static const uint32_t Method_Kernel_Pending_setChan_msg_repeating__insts[] = { 0x00010501, 0x0001050B, 0x00020501, 0x0002050B, 0x00030501, 0x0003050B, 0x00000501, 0x00000503 };
 static const struct CompiledMethod Method_Kernel_Pending_setChan_msg_repeating__compiled = {
     Method_Kernel_Pending_setChan_msg_repeating__insts, 8,
-    6, 3,
+    6, 3, 0,
     NULL, 0,
     0
 };
@@ -9409,7 +9409,7 @@ static const uint32_t Method_Meta_Kernel_Pending_chan_msg_repeating__insts[] = {
 static const oop Method_Meta_Kernel_Pending_chan_msg_repeating__consts[] = { (oop)&Vtable_Kernel_Pending, (oop)&StaticSymbol_init_new, (oop)&StaticSymbol_setChan_msg_repeating_ };
 static const struct CompiledMethod Method_Meta_Kernel_Pending_chan_msg_repeating__compiled = {
     Method_Meta_Kernel_Pending_chan_msg_repeating__insts, 11,
-    10, 3,
+    10, 3, 0,
     Method_Meta_Kernel_Pending_chan_msg_repeating__consts, 3,
     0
 };
@@ -9422,7 +9422,7 @@ static const uint32_t Method_Kernel_Pending_init_new_insts[] = { 0x00000200, 0x0
 static const oop Method_Kernel_Pending_init_new_consts[] = { NULL };
 static const struct CompiledMethod Method_Kernel_Pending_init_new_compiled = {
     Method_Kernel_Pending_init_new_insts, 7,
-    3, 0,
+    3, 0, 0,
     Method_Kernel_Pending_init_new_consts, 1,
     0
 };
@@ -9435,7 +9435,7 @@ static const uint32_t Method_Kernel_Timers_after_post_on__insts[] = { 0x00000701
 static const oop Method_Kernel_Timers_after_post_on__consts[] = { (oop)&StaticSymbol_allocateToken, (oop)&StaticSymbol_false, (oop)&StaticSymbol_chan_msg_repeating_, (oop)&StaticSymbol_at_put_, (oop)&StaticSymbol_timerAfter_token_ };
 static const struct CompiledMethod Method_Kernel_Timers_after_post_on__compiled = {
     Method_Kernel_Timers_after_post_on__insts, 22,
-    15, 3,
+    15, 3, 0,
     Method_Kernel_Timers_after_post_on__consts, 5,
     0
 };
@@ -9448,7 +9448,7 @@ static const uint32_t Method_Kernel_Timers_every_post_on__insts[] = { 0x00000701
 static const oop Method_Kernel_Timers_every_post_on__consts[] = { (oop)&StaticSymbol_allocateToken, (oop)&StaticSymbol_true, (oop)&StaticSymbol_chan_msg_repeating_, (oop)&StaticSymbol_at_put_, (oop)&StaticSymbol_timerEvery_token_ };
 static const struct CompiledMethod Method_Kernel_Timers_every_post_on__compiled = {
     Method_Kernel_Timers_every_post_on__insts, 22,
-    15, 3,
+    15, 3, 0,
     Method_Kernel_Timers_every_post_on__consts, 5,
     0
 };
@@ -9461,7 +9461,7 @@ static const uint32_t Method_Kernel_Timers_cancel__insts[] = { 0x0004050A, 0x000
 static const oop Method_Kernel_Timers_cancel__consts[] = { (oop)&Method_Block_Kernel_Timers_block73_value_compiled, (oop)&StaticSymbol_at_ifAbsent_, NULL, (oop)&StaticSymbol__eq_eq, (oop)&StaticSymbol_false, (oop)&StaticSymbol_removeKey_, (oop)&StaticSymbol_timerCancel_ };
 static const struct CompiledMethod Method_Kernel_Timers_cancel__compiled = {
     Method_Kernel_Timers_cancel__insts, 23,
-    11, 1,
+    11, 1, 0,
     Method_Kernel_Timers_cancel__consts, 7,
     0
 };
@@ -9474,7 +9474,7 @@ static const uint32_t Method_Kernel_Timers_pendingCount_insts[] = { 0x0004030A, 
 static const oop Method_Kernel_Timers_pendingCount_consts[] = { (oop)&StaticSymbol_size };
 static const struct CompiledMethod Method_Kernel_Timers_pendingCount_compiled = {
     Method_Kernel_Timers_pendingCount_insts, 4,
-    4, 0,
+    4, 0, 0,
     Method_Kernel_Timers_pendingCount_consts, 1,
     0
 };
@@ -9487,7 +9487,7 @@ static const uint32_t Method_Kernel_Timers_cancelAddressedBy__insts[] = { 0x0004
 static const oop Method_Kernel_Timers_cancelAddressedBy__consts[] = { (oop)&StaticSymbol_keys, TAG_SMI(1), (oop)&StaticSymbol_size, (oop)&StaticSymbol__lt_eq, NULL, (oop)&StaticSymbol_at_, (oop)&Method_Block_Kernel_Timers_block74_value_compiled, (oop)&StaticSymbol_at_ifAbsent_, (oop)&StaticSymbol__eq_eq, (oop)&StaticSymbol_false, (oop)&StaticSymbol_chan, (oop)&StaticSymbol_rootPath, (oop)&StaticSymbol_is_under_, (oop)&StaticSymbol_cancel_ };
 static const struct CompiledMethod Method_Kernel_Timers_cancelAddressedBy__compiled = {
     Method_Kernel_Timers_cancelAddressedBy__insts, 54,
-    21, 1,
+    21, 1, 0,
     Method_Kernel_Timers_cancelAddressedBy__consts, 14,
     0
 };
@@ -9500,7 +9500,7 @@ static const uint32_t Method_Kernel_Timers_is_under__insts[] = { 0x00010901, 0x0
 static const oop Method_Kernel_Timers_is_under__consts[] = { (oop)&StaticSymbol__eq, (oop)&StaticSymbol_true, (oop)&StaticSymbol_false, (oop)&StaticSymbol_size, (oop)&StaticSymbol__gt, TAG_SMI(1), (oop)&StaticSymbol__lt_eq, (oop)&StaticSymbol_at_, NULL, TAG_SMI(47) };
 static const struct CompiledMethod Method_Kernel_Timers_is_under__compiled = {
     Method_Kernel_Timers_is_under__insts, 64,
-    20, 2,
+    20, 2, 0,
     Method_Kernel_Timers_is_under__consts, 10,
     0
 };
@@ -9513,7 +9513,7 @@ static const uint32_t Method_Kernel_Timers_now_insts[] = { 0x0002030A, 0x0300000
 static const oop Method_Kernel_Timers_now_consts[] = { (oop)&StaticSymbol_monotonicMillis };
 static const struct CompiledMethod Method_Kernel_Timers_now_compiled = {
     Method_Kernel_Timers_now_insts, 4,
-    4, 0,
+    4, 0, 0,
     Method_Kernel_Timers_now_consts, 1,
     0
 };
@@ -9526,7 +9526,7 @@ static const uint32_t Method_Kernel_Timers_dispatch__insts[] = { 0x0004050A, 0x0
 static const oop Method_Kernel_Timers_dispatch__consts[] = { (oop)&Method_Block_Kernel_Timers_block75_value_compiled, (oop)&StaticSymbol_at_ifAbsent_, NULL, (oop)&StaticSymbol__eq_eq, (oop)&StaticSymbol_false, (oop)&StaticSymbol_repeating, (oop)&StaticSymbol_removeKey_, (oop)&StaticSymbol_chan, (oop)&StaticString__4, (oop)&StaticSymbol_msg, (oop)&StaticSymbol_out_value_ };
 static const struct CompiledMethod Method_Kernel_Timers_dispatch__compiled = {
     Method_Kernel_Timers_dispatch__insts, 34,
-    13, 1,
+    13, 1, 0,
     Method_Kernel_Timers_dispatch__consts, 11,
     0
 };
@@ -9539,7 +9539,7 @@ static const uint32_t Method_Kernel_Timers_allocateToken_insts[] = { 0x0003030A,
 static const oop Method_Kernel_Timers_allocateToken_consts[] = { TAG_SMI(1) };
 static const struct CompiledMethod Method_Kernel_Timers_allocateToken_compiled = {
     Method_Kernel_Timers_allocateToken_insts, 8,
-    6, 0,
+    6, 0, 0,
     Method_Kernel_Timers_allocateToken_consts, 1,
     0
 };
@@ -9551,7 +9551,7 @@ static const struct Closure Method_Kernel_Timers_allocateToken_closure = {
 static const uint32_t Method_Kernel_Timers_setSpace_seam__insts[] = { 0x00010401, 0x0001040B, 0x00020401, 0x0002040B, 0x00000401, 0x00000403 };
 static const struct CompiledMethod Method_Kernel_Timers_setSpace_seam__compiled = {
     Method_Kernel_Timers_setSpace_seam__insts, 6,
-    5, 2,
+    5, 2, 0,
     NULL, 0,
     0
 };
@@ -9564,7 +9564,7 @@ static const uint32_t Method_Meta_Kernel_Timers_usingSpace_seam__insts[] = { 0x0
 static const oop Method_Meta_Kernel_Timers_usingSpace_seam__consts[] = { (oop)&Vtable_Kernel_Timers, (oop)&StaticSymbol_init_new, (oop)&StaticSymbol_setSpace_seam_ };
 static const struct CompiledMethod Method_Meta_Kernel_Timers_usingSpace_seam__compiled = {
     Method_Meta_Kernel_Timers_usingSpace_seam__insts, 10,
-    8, 2,
+    8, 2, 0,
     Method_Meta_Kernel_Timers_usingSpace_seam__consts, 3,
     0
 };
@@ -9577,7 +9577,7 @@ static const uint32_t Method_Kernel_Timers_init_new_insts[] = { 0x00000200, 0x00
 static const oop Method_Kernel_Timers_init_new_consts[] = { NULL, TAG_SMI(1), (oop)&Vtable_Kernel_Dictionary, (oop)&StaticSymbol_init_new };
 static const struct CompiledMethod Method_Kernel_Timers_init_new_compiled = {
     Method_Kernel_Timers_init_new_insts, 14,
-    5, 0,
+    5, 0, 0,
     Method_Kernel_Timers_init_new_consts, 4,
     0
 };
@@ -9590,7 +9590,7 @@ static const uint32_t Method_Kernel_GpioPulse_pin_edge_post_on__insts[] = { 0x00
 static const oop Method_Kernel_GpioPulse_pin_edge_post_on__consts[] = { (oop)&StaticSymbol_rootPath, (oop)&StaticSymbol_gpioPin_edge_post_on_ };
 static const struct CompiledMethod Method_Kernel_GpioPulse_pin_edge_post_on__compiled = {
     Method_Kernel_GpioPulse_pin_edge_post_on__insts, 11,
-    13, 4,
+    13, 4, 0,
     Method_Kernel_GpioPulse_pin_edge_post_on__consts, 2,
     0
 };
@@ -9603,7 +9603,7 @@ static const uint32_t Method_Kernel_GpioPulse_fire__insts[] = { 0x0002040A, 0x00
 static const oop Method_Kernel_GpioPulse_fire__consts[] = { (oop)&StaticSymbol_gpioFire_ };
 static const struct CompiledMethod Method_Kernel_GpioPulse_fire__compiled = {
     Method_Kernel_GpioPulse_fire__insts, 6,
-    6, 1,
+    6, 1, 0,
     Method_Kernel_GpioPulse_fire__consts, 1,
     0
 };
@@ -9616,7 +9616,7 @@ static const uint32_t Method_Kernel_GpioPulse_set_to__insts[] = { 0x0002070A, 0x
 static const oop Method_Kernel_GpioPulse_set_to__consts[] = { (oop)&StaticSymbol_gpioSet_to_, NULL, (oop)&StaticSymbol__eq_eq, (oop)&StaticString_gpio_u32pin_u32not_u32declared_62, (oop)&StaticSymbol_gpioUndeclared, (oop)&StaticSymbol_error_tag_, (oop)&StaticSymbol_false };
 static const struct CompiledMethod Method_Kernel_GpioPulse_set_to__compiled = {
     Method_Kernel_GpioPulse_set_to__insts, 19,
-    12, 2,
+    12, 2, 0,
     Method_Kernel_GpioPulse_set_to__consts, 7,
     0
 };
@@ -9629,7 +9629,7 @@ static const uint32_t Method_Kernel_GpioPulse_level__insts[] = { 0x0002050A, 0x0
 static const oop Method_Kernel_GpioPulse_level__consts[] = { (oop)&StaticSymbol_gpioLevel_, NULL, (oop)&StaticSymbol__eq_eq, (oop)&StaticString_gpio_u32pin_u32not_u32declared_62, (oop)&StaticSymbol_gpioUndeclared, (oop)&StaticSymbol_error_tag_, (oop)&StaticSymbol_false };
 static const struct CompiledMethod Method_Kernel_GpioPulse_level__compiled = {
     Method_Kernel_GpioPulse_level__insts, 20,
-    12, 1,
+    12, 1, 0,
     Method_Kernel_GpioPulse_level__consts, 7,
     0
 };
@@ -9641,7 +9641,7 @@ static const struct Closure Method_Kernel_GpioPulse_level__closure = {
 static const uint32_t Method_Kernel_GpioPulse_setSpace_seam__insts[] = { 0x00010401, 0x0001040B, 0x00020401, 0x0002040B, 0x00000401, 0x00000403 };
 static const struct CompiledMethod Method_Kernel_GpioPulse_setSpace_seam__compiled = {
     Method_Kernel_GpioPulse_setSpace_seam__insts, 6,
-    5, 2,
+    5, 2, 0,
     NULL, 0,
     0
 };
@@ -9654,7 +9654,7 @@ static const uint32_t Method_Meta_Kernel_GpioPulse_usingSpace_seam__insts[] = { 
 static const oop Method_Meta_Kernel_GpioPulse_usingSpace_seam__consts[] = { (oop)&Vtable_Kernel_GpioPulse, (oop)&StaticSymbol_init_new, (oop)&StaticSymbol_setSpace_seam_ };
 static const struct CompiledMethod Method_Meta_Kernel_GpioPulse_usingSpace_seam__compiled = {
     Method_Meta_Kernel_GpioPulse_usingSpace_seam__insts, 10,
-    8, 2,
+    8, 2, 0,
     Method_Meta_Kernel_GpioPulse_usingSpace_seam__consts, 3,
     0
 };
@@ -9667,7 +9667,7 @@ static const uint32_t Method_Kernel_GpioPulse_init_new_insts[] = { 0x00000200, 0
 static const oop Method_Kernel_GpioPulse_init_new_consts[] = { NULL };
 static const struct CompiledMethod Method_Kernel_GpioPulse_init_new_compiled = {
     Method_Kernel_GpioPulse_init_new_insts, 5,
-    3, 0,
+    3, 0, 0,
     Method_Kernel_GpioPulse_init_new_consts, 1,
     0
 };
@@ -9680,7 +9680,7 @@ static const uint32_t Method_Kernel_Display_clear_insts[] = { 0x00000301, 0x0001
 static const oop Method_Kernel_Display_clear_consts[] = { (oop)&StaticSymbol_displayClear, (oop)&StaticSymbol_check_ };
 static const struct CompiledMethod Method_Kernel_Display_clear_compiled = {
     Method_Kernel_Display_clear_insts, 7,
-    6, 0,
+    6, 0, 0,
     Method_Kernel_Display_clear_consts, 2,
     0
 };
@@ -9693,7 +9693,7 @@ static const uint32_t Method_Kernel_Display_at_col_put__insts[] = { 0x00000601, 
 static const oop Method_Kernel_Display_at_col_put__consts[] = { (oop)&StaticSymbol_displayAt_col_put_, (oop)&StaticSymbol_check_ };
 static const struct CompiledMethod Method_Kernel_Display_at_col_put__compiled = {
     Method_Kernel_Display_at_col_put__insts, 10,
-    12, 3,
+    12, 3, 0,
     Method_Kernel_Display_at_col_put__consts, 2,
     0
 };
@@ -9706,7 +9706,7 @@ static const uint32_t Method_Kernel_Display_refresh_insts[] = { 0x00000301, 0x00
 static const oop Method_Kernel_Display_refresh_consts[] = { (oop)&StaticSymbol_displayRefresh, (oop)&StaticSymbol_check_ };
 static const struct CompiledMethod Method_Kernel_Display_refresh_compiled = {
     Method_Kernel_Display_refresh_insts, 7,
-    6, 0,
+    6, 0, 0,
     Method_Kernel_Display_refresh_consts, 2,
     0
 };
@@ -9719,7 +9719,7 @@ static const uint32_t Method_Kernel_Display_refreshRow__insts[] = { 0x00000401, 
 static const oop Method_Kernel_Display_refreshRow__consts[] = { (oop)&StaticSymbol_displayRefreshRow_, (oop)&StaticSymbol_check_ };
 static const struct CompiledMethod Method_Kernel_Display_refreshRow__compiled = {
     Method_Kernel_Display_refreshRow__insts, 8,
-    8, 1,
+    8, 1, 0,
     Method_Kernel_Display_refreshRow__consts, 2,
     0
 };
@@ -9732,7 +9732,7 @@ static const uint32_t Method_Kernel_Display_check__insts[] = { 0x00010501, 0x000
 static const oop Method_Kernel_Display_check__consts[] = { NULL, (oop)&StaticSymbol__eq_eq, (oop)&StaticString_no_u32display_u32on_u32this_u32board_63, (oop)&StaticSymbol_displayUnavailable, (oop)&StaticSymbol_error_tag_, (oop)&StaticSymbol_false, TAG_SMI(1), (oop)&StaticSymbol__eq, (oop)&StaticString_row_u32or_u32column_u32outside_u32the_u32grid_64, (oop)&StaticSymbol_displayBounds, TAG_SMI(2), (oop)&StaticString_display_u32driver_u32fault_65, (oop)&StaticSymbol_displayFault };
 static const struct CompiledMethod Method_Kernel_Display_check__compiled = {
     Method_Kernel_Display_check__insts, 41,
-    12, 1,
+    12, 1, 0,
     Method_Kernel_Display_check__consts, 13,
     0
 };
@@ -9744,7 +9744,7 @@ static const struct Closure Method_Kernel_Display_check__closure = {
 static const uint32_t Method_Kernel_Display_setSeam__insts[] = { 0x00010301, 0x0001030B, 0x00000301, 0x00000303 };
 static const struct CompiledMethod Method_Kernel_Display_setSeam__compiled = {
     Method_Kernel_Display_setSeam__insts, 4,
-    4, 1,
+    4, 1, 0,
     NULL, 0,
     0
 };
@@ -9757,7 +9757,7 @@ static const uint32_t Method_Meta_Kernel_Display_usingSeam__insts[] = { 0x000005
 static const oop Method_Meta_Kernel_Display_usingSeam__consts[] = { (oop)&Vtable_Kernel_Display, (oop)&StaticSymbol_init_new, (oop)&StaticSymbol_setSeam_ };
 static const struct CompiledMethod Method_Meta_Kernel_Display_usingSeam__compiled = {
     Method_Meta_Kernel_Display_usingSeam__insts, 9,
-    6, 1,
+    6, 1, 0,
     Method_Meta_Kernel_Display_usingSeam__consts, 3,
     0
 };
@@ -9770,7 +9770,7 @@ static const uint32_t Method_Kernel_Display_init_new_insts[] = { 0x00000200, 0x0
 static const oop Method_Kernel_Display_init_new_consts[] = { NULL };
 static const struct CompiledMethod Method_Kernel_Display_init_new_compiled = {
     Method_Kernel_Display_init_new_insts, 3,
-    3, 0,
+    3, 0, 0,
     Method_Kernel_Display_init_new_consts, 1,
     0
 };
@@ -9783,7 +9783,7 @@ static const uint32_t Method_Kernel_Bell_strike__insts[] = { 0x00010601, 0x00000
 static const oop Method_Kernel_Bell_strike__consts[] = { TAG_SMI(1), (oop)&StaticSymbol__lt, (oop)&StaticSymbol_true, TAG_SMI(8), (oop)&StaticSymbol__gt, (oop)&StaticString_bell_u32count_u32outside_u321_sub8_66, (oop)&StaticSymbol_bellBounds, (oop)&StaticSymbol_error_tag_, (oop)&StaticSymbol_false, (oop)&StaticSymbol_bellStrike_, (oop)&StaticSymbol_check_ };
 static const struct CompiledMethod Method_Kernel_Bell_strike__compiled = {
     Method_Kernel_Bell_strike__insts, 28,
-    10, 1,
+    10, 1, 0,
     Method_Kernel_Bell_strike__consts, 11,
     0
 };
@@ -9796,7 +9796,7 @@ static const uint32_t Method_Kernel_Bell_bellsForHalfHour__insts[] = { 0x0001050
 static const oop Method_Kernel_Bell_bellsForHalfHour__consts[] = { TAG_SMI(8), (oop)&StaticSymbol__div_div, TAG_SMI(0), (oop)&StaticSymbol__eq, (oop)&StaticSymbol_false };
 static const struct CompiledMethod Method_Kernel_Bell_bellsForHalfHour__compiled = {
     Method_Kernel_Bell_bellsForHalfHour__insts, 20,
-    10, 1,
+    10, 1, 0,
     Method_Kernel_Bell_bellsForHalfHour__consts, 5,
     0
 };
@@ -9809,7 +9809,7 @@ static const uint32_t Method_Kernel_Bell_check__insts[] = { 0x00010501, 0x000006
 static const oop Method_Kernel_Bell_check__consts[] = { NULL, (oop)&StaticSymbol__eq_eq, (oop)&StaticString_no_u32bell_u32on_u32this_u32board_67, (oop)&StaticSymbol_bellUnavailable, (oop)&StaticSymbol_error_tag_, (oop)&StaticSymbol_false, TAG_SMI(2), (oop)&StaticSymbol__eq, (oop)&StaticString_bell_u32driver_u32fault_68, (oop)&StaticSymbol_bellFault };
 static const struct CompiledMethod Method_Kernel_Bell_check__compiled = {
     Method_Kernel_Bell_check__insts, 28,
-    11, 1,
+    11, 1, 0,
     Method_Kernel_Bell_check__consts, 10,
     0
 };
@@ -9821,7 +9821,7 @@ static const struct Closure Method_Kernel_Bell_check__closure = {
 static const uint32_t Method_Kernel_Bell_setSeam__insts[] = { 0x00010301, 0x0001030B, 0x00000301, 0x00000303 };
 static const struct CompiledMethod Method_Kernel_Bell_setSeam__compiled = {
     Method_Kernel_Bell_setSeam__insts, 4,
-    4, 1,
+    4, 1, 0,
     NULL, 0,
     0
 };
@@ -9834,7 +9834,7 @@ static const uint32_t Method_Meta_Kernel_Bell_usingSeam__insts[] = { 0x00000500,
 static const oop Method_Meta_Kernel_Bell_usingSeam__consts[] = { (oop)&Vtable_Kernel_Bell, (oop)&StaticSymbol_init_new, (oop)&StaticSymbol_setSeam_ };
 static const struct CompiledMethod Method_Meta_Kernel_Bell_usingSeam__compiled = {
     Method_Meta_Kernel_Bell_usingSeam__insts, 9,
-    6, 1,
+    6, 1, 0,
     Method_Meta_Kernel_Bell_usingSeam__consts, 3,
     0
 };
@@ -9847,7 +9847,7 @@ static const uint32_t Method_Kernel_Bell_init_new_insts[] = { 0x00000200, 0x0001
 static const oop Method_Kernel_Bell_init_new_consts[] = { NULL };
 static const struct CompiledMethod Method_Kernel_Bell_init_new_compiled = {
     Method_Kernel_Bell_init_new_insts, 3,
-    3, 0,
+    3, 0, 0,
     Method_Kernel_Bell_init_new_consts, 1,
     0
 };
@@ -9860,7 +9860,7 @@ static const uint32_t Method_Kernel_RtcAlarm_at_post_on__insts[] = { 0x0002080A,
 static const oop Method_Kernel_RtcAlarm_at_post_on__consts[] = { (oop)&StaticSymbol_rootPath, (oop)&StaticSymbol_rtcAlarmAt_post_on_, NULL, (oop)&StaticSymbol__eq_eq, (oop)&StaticSymbol_false, (oop)&StaticSymbol_true };
 static const struct CompiledMethod Method_Kernel_RtcAlarm_at_post_on__compiled = {
     Method_Kernel_RtcAlarm_at_post_on__insts, 16,
-    13, 3,
+    13, 3, 0,
     Method_Kernel_RtcAlarm_at_post_on__consts, 6,
     0
 };
@@ -9872,7 +9872,7 @@ static const struct Closure Method_Kernel_RtcAlarm_at_post_on__closure = {
 static const uint32_t Method_Kernel_RtcAlarm_setSpace_seam__insts[] = { 0x00010401, 0x0001040B, 0x00020401, 0x0002040B, 0x00000401, 0x00000403 };
 static const struct CompiledMethod Method_Kernel_RtcAlarm_setSpace_seam__compiled = {
     Method_Kernel_RtcAlarm_setSpace_seam__insts, 6,
-    5, 2,
+    5, 2, 0,
     NULL, 0,
     0
 };
@@ -9885,7 +9885,7 @@ static const uint32_t Method_Meta_Kernel_RtcAlarm_usingSpace_seam__insts[] = { 0
 static const oop Method_Meta_Kernel_RtcAlarm_usingSpace_seam__consts[] = { (oop)&Vtable_Kernel_RtcAlarm, (oop)&StaticSymbol_init_new, (oop)&StaticSymbol_setSpace_seam_ };
 static const struct CompiledMethod Method_Meta_Kernel_RtcAlarm_usingSpace_seam__compiled = {
     Method_Meta_Kernel_RtcAlarm_usingSpace_seam__insts, 10,
-    8, 2,
+    8, 2, 0,
     Method_Meta_Kernel_RtcAlarm_usingSpace_seam__consts, 3,
     0
 };
@@ -9898,7 +9898,7 @@ static const uint32_t Method_Kernel_RtcAlarm_init_new_insts[] = { 0x00000200, 0x
 static const oop Method_Kernel_RtcAlarm_init_new_consts[] = { NULL };
 static const struct CompiledMethod Method_Kernel_RtcAlarm_init_new_compiled = {
     Method_Kernel_RtcAlarm_init_new_insts, 5,
-    3, 0,
+    3, 0, 0,
     Method_Kernel_RtcAlarm_init_new_consts, 1,
     0
 };
@@ -9911,7 +9911,7 @@ static const uint32_t Method_Supervisor_run_platform_args_debug__insts[] = { 0x0
 static const oop Method_Supervisor_run_platform_args_debug__consts[] = { TAG_SMI(1), (oop)&StaticSymbol__eq, (oop)&Vtable_Supervisor_Debugger, (oop)&StaticSymbol_init_m_io_, (oop)&StaticSymbol_registerEntry_, (oop)&Method_Block_Supervisor_block76_value__compiled, (oop)&StaticSymbol_onBreak_, (oop)&StaticString_dbg_ready_69, (oop)&StaticSymbol_println, (oop)&StaticSymbol_initialLoop, (oop)&StaticSymbol_false, (oop)&StaticSymbol_main_args_ };
 static const struct CompiledMethod Method_Supervisor_run_platform_args_debug__compiled = {
     Method_Supervisor_run_platform_args_debug__insts, 35,
-    14, 4,
+    14, 4, 0,
     Method_Supervisor_run_platform_args_debug__consts, 12,
     0
 };
@@ -9924,7 +9924,7 @@ static const uint32_t Method_Supervisor_ObjectMirror_insts[] = { 0x00000200, 0x0
 static const oop Method_Supervisor_ObjectMirror_consts[] = { (oop)&Vtable_Supervisor_ObjectMirror, TAG_SMI(3), (oop)&StaticSymbol___boundOuter_slotCount_ };
 static const struct CompiledMethod Method_Supervisor_ObjectMirror_compiled = {
     Method_Supervisor_ObjectMirror_insts, 5,
-    5, 0,
+    5, 0, 0,
     Method_Supervisor_ObjectMirror_consts, 3,
     0
 };
@@ -9937,7 +9937,7 @@ static const uint32_t Method_Supervisor_ContextMirror_insts[] = { 0x00000200, 0x
 static const oop Method_Supervisor_ContextMirror_consts[] = { (oop)&Vtable_Supervisor_ContextMirror, TAG_SMI(3), (oop)&StaticSymbol___boundOuter_slotCount_ };
 static const struct CompiledMethod Method_Supervisor_ContextMirror_compiled = {
     Method_Supervisor_ContextMirror_insts, 5,
-    5, 0,
+    5, 0, 0,
     Method_Supervisor_ContextMirror_consts, 3,
     0
 };
@@ -9950,7 +9950,7 @@ static const uint32_t Method_Supervisor_Debugger_insts[] = { 0x00000200, 0x00000
 static const oop Method_Supervisor_Debugger_consts[] = { (oop)&Vtable_Supervisor_Debugger, TAG_SMI(14), (oop)&StaticSymbol___boundOuter_slotCount_ };
 static const struct CompiledMethod Method_Supervisor_Debugger_compiled = {
     Method_Supervisor_Debugger_insts, 5,
-    5, 0,
+    5, 0, 0,
     Method_Supervisor_Debugger_consts, 3,
     0
 };
@@ -9963,7 +9963,7 @@ static const uint32_t Method_Supervisor_init_mirror__insts[] = { 0x0000010B, 0x0
 static const oop Method_Supervisor_init_mirror__consts[] = { (oop)&Vtable_Supervisor_ObjectMirror, TAG_SMI(3), (oop)&StaticSymbol___boundOuter_slotCount_, (oop)&Vtable_Supervisor_ContextMirror, (oop)&Vtable_Supervisor_Debugger, TAG_SMI(14) };
 static const struct CompiledMethod Method_Supervisor_init_mirror__compiled = {
     Method_Supervisor_init_mirror__insts, 17,
-    6, 1,
+    6, 1, 0,
     Method_Supervisor_init_mirror__consts, 6,
     0
 };
@@ -9976,7 +9976,7 @@ static const uint32_t Method_Supervisor_ObjectMirror_vtable_insts[] = { 0x000103
 static const oop Method_Supervisor_ObjectMirror_vtable_consts[] = { (oop)&StaticSymbol_vtableOf_ };
 static const struct CompiledMethod Method_Supervisor_ObjectMirror_vtable_compiled = {
     Method_Supervisor_ObjectMirror_vtable_insts, 5,
-    5, 0,
+    5, 0, 0,
     Method_Supervisor_ObjectMirror_vtable_consts, 1,
     0
 };
@@ -9989,7 +9989,7 @@ static const uint32_t Method_Supervisor_ObjectMirror_bindings_insts[] = { 0x0001
 static const oop Method_Supervisor_ObjectMirror_bindings_consts[] = { (oop)&StaticSymbol_vtable, (oop)&StaticSymbol_bindingsOf_ };
 static const struct CompiledMethod Method_Supervisor_ObjectMirror_bindings_compiled = {
     Method_Supervisor_ObjectMirror_bindings_insts, 7,
-    6, 0,
+    6, 0, 0,
     Method_Supervisor_ObjectMirror_bindings_consts, 2,
     0
 };
@@ -10001,7 +10001,7 @@ static const struct Closure Method_Supervisor_ObjectMirror_bindings_closure = {
 static const uint32_t Method_Supervisor_ObjectMirror_reflectee_insts[] = { 0x0002020A, 0x00000203 };
 static const struct CompiledMethod Method_Supervisor_ObjectMirror_reflectee_compiled = {
     Method_Supervisor_ObjectMirror_reflectee_insts, 2,
-    3, 0,
+    3, 0, 0,
     NULL, 0,
     0
 };
@@ -10013,7 +10013,7 @@ static const struct Closure Method_Supervisor_ObjectMirror_reflectee_closure = {
 static const uint32_t Method_Supervisor_ObjectMirror_init_m_obj__insts[] = { 0x0001010B, 0x0002020B, 0x00000003 };
 static const struct CompiledMethod Method_Supervisor_ObjectMirror_init_m_obj__compiled = {
     Method_Supervisor_ObjectMirror_init_m_obj__insts, 3,
-    4, 2,
+    4, 2, 0,
     NULL, 0,
     0
 };
@@ -10025,7 +10025,7 @@ static const struct Closure Method_Supervisor_ObjectMirror_init_m_obj__closure =
 static const uint32_t Method_Supervisor_ContextMirror_context_insts[] = { 0x0002020A, 0x00000203 };
 static const struct CompiledMethod Method_Supervisor_ContextMirror_context_compiled = {
     Method_Supervisor_ContextMirror_context_insts, 2,
-    3, 0,
+    3, 0, 0,
     NULL, 0,
     0
 };
@@ -10038,7 +10038,7 @@ static const uint32_t Method_Supervisor_ContextMirror_rawSender_insts[] = { 0x00
 static const oop Method_Supervisor_ContextMirror_rawSender_consts[] = { (oop)&StaticSymbol_senderOf_ };
 static const struct CompiledMethod Method_Supervisor_ContextMirror_rawSender_compiled = {
     Method_Supervisor_ContextMirror_rawSender_insts, 5,
-    5, 0,
+    5, 0, 0,
     Method_Supervisor_ContextMirror_rawSender_consts, 1,
     0
 };
@@ -10051,7 +10051,7 @@ static const uint32_t Method_Supervisor_ContextMirror_sender_insts[] = { 0x00010
 static const oop Method_Supervisor_ContextMirror_sender_consts[] = { (oop)&StaticSymbol_senderOf_, NULL, (oop)&StaticSymbol__eq_eq, (oop)&Vtable_Supervisor_ContextMirror, (oop)&StaticSymbol_init_m_ctx_ };
 static const struct CompiledMethod Method_Supervisor_ContextMirror_sender_compiled = {
     Method_Supervisor_ContextMirror_sender_insts, 21,
-    9, 0,
+    9, 0, 0,
     Method_Supervisor_ContextMirror_sender_consts, 5,
     0
 };
@@ -10064,7 +10064,7 @@ static const uint32_t Method_Supervisor_ContextMirror_pc_insts[] = { 0x0001030A,
 static const oop Method_Supervisor_ContextMirror_pc_consts[] = { (oop)&StaticSymbol_pcOf_ };
 static const struct CompiledMethod Method_Supervisor_ContextMirror_pc_compiled = {
     Method_Supervisor_ContextMirror_pc_insts, 5,
-    5, 0,
+    5, 0, 0,
     Method_Supervisor_ContextMirror_pc_consts, 1,
     0
 };
@@ -10077,7 +10077,7 @@ static const uint32_t Method_Supervisor_ContextMirror_offset_insts[] = { 0x00010
 static const oop Method_Supervisor_ContextMirror_offset_consts[] = { (oop)&StaticSymbol_offsetOf_ };
 static const struct CompiledMethod Method_Supervisor_ContextMirror_offset_compiled = {
     Method_Supervisor_ContextMirror_offset_insts, 5,
-    5, 0,
+    5, 0, 0,
     Method_Supervisor_ContextMirror_offset_consts, 1,
     0
 };
@@ -10090,7 +10090,7 @@ static const uint32_t Method_Supervisor_ContextMirror_registerAt__insts[] = { 0x
 static const oop Method_Supervisor_ContextMirror_registerAt__consts[] = { (oop)&StaticSymbol_reg_at_ };
 static const struct CompiledMethod Method_Supervisor_ContextMirror_registerAt__compiled = {
     Method_Supervisor_ContextMirror_registerAt__insts, 6,
-    7, 1,
+    7, 1, 0,
     Method_Supervisor_ContextMirror_registerAt__consts, 1,
     0
 };
@@ -10103,7 +10103,7 @@ static const uint32_t Method_Supervisor_ContextMirror_registerAt_put__insts[] = 
 static const oop Method_Supervisor_ContextMirror_registerAt_put__consts[] = { (oop)&StaticSymbol_reg_at_put_ };
 static const struct CompiledMethod Method_Supervisor_ContextMirror_registerAt_put__compiled = {
     Method_Supervisor_ContextMirror_registerAt_put__insts, 7,
-    9, 2,
+    9, 2, 0,
     Method_Supervisor_ContextMirror_registerAt_put__consts, 1,
     0
 };
@@ -10116,7 +10116,7 @@ static const uint32_t Method_Supervisor_ContextMirror_numRegisters_insts[] = { 0
 static const oop Method_Supervisor_ContextMirror_numRegisters_consts[] = { (oop)&StaticSymbol_numRegistersOf_ };
 static const struct CompiledMethod Method_Supervisor_ContextMirror_numRegisters_compiled = {
     Method_Supervisor_ContextMirror_numRegisters_insts, 5,
-    5, 0,
+    5, 0, 0,
     Method_Supervisor_ContextMirror_numRegisters_consts, 1,
     0
 };
@@ -10128,7 +10128,7 @@ static const struct Closure Method_Supervisor_ContextMirror_numRegisters_closure
 static const uint32_t Method_Supervisor_ContextMirror_init_m_ctx__insts[] = { 0x0001010B, 0x0002020B, 0x00000003 };
 static const struct CompiledMethod Method_Supervisor_ContextMirror_init_m_ctx__compiled = {
     Method_Supervisor_ContextMirror_init_m_ctx__insts, 3,
-    4, 2,
+    4, 2, 0,
     NULL, 0,
     0
 };
@@ -10140,7 +10140,7 @@ static const struct Closure Method_Supervisor_ContextMirror_init_m_ctx__closure 
 static const uint32_t Method_Supervisor_Debugger_registerEntry__insts[] = { 0x00010301, 0x0003030B, 0x00000301, 0x00000303 };
 static const struct CompiledMethod Method_Supervisor_Debugger_registerEntry__compiled = {
     Method_Supervisor_Debugger_registerEntry__insts, 4,
-    4, 1,
+    4, 1, 0,
     NULL, 0,
     0
 };
@@ -10153,7 +10153,7 @@ static const uint32_t Method_Supervisor_Debugger_buildRegistry_insts[] = { 0x000
 static const oop Method_Supervisor_Debugger_buildRegistry_consts[] = { NULL, (oop)&StaticSymbol__eq_eq, (oop)&StaticSymbol_OrderedCollection, (oop)&StaticSymbol_new, (oop)&StaticSymbol_vtableOf_, (oop)&StaticSymbol_selectorsOf_, (oop)&StaticSymbol_methodsOf_, (oop)&StaticSymbol_identityHash, TAG_SMI(1), (oop)&StaticSymbol_basicSize, (oop)&StaticSymbol__lt_eq, (oop)&StaticSymbol_size, (oop)&StaticSymbol_add_, (oop)&StaticSymbol_basicAt_, (oop)&StaticSymbol_delegateOf_, (oop)&StaticSymbol_false };
 static const struct CompiledMethod Method_Supervisor_Debugger_buildRegistry_compiled = {
     Method_Supervisor_Debugger_buildRegistry_insts, 106,
-    35, 0,
+    35, 0, 0,
     Method_Supervisor_Debugger_buildRegistry_consts, 16,
     0
 };
@@ -10166,7 +10166,7 @@ static const uint32_t Method_Supervisor_Debugger_listMethods_insts[] = { 0x00000
 static const oop Method_Supervisor_Debugger_listMethods_consts[] = { (oop)&StaticSymbol_buildRegistry, TAG_SMI(1), (oop)&StaticSymbol_size, (oop)&StaticSymbol__lt_eq, NULL, (oop)&StaticSymbol_WriteStream, (oop)&StaticSymbol_new, (oop)&StaticSymbol_at_, (oop)&StaticSymbol_print_, (oop)&StaticString__u32_55, (oop)&StaticSymbol_nextPutAll_, (oop)&StaticSymbol_printString, (oop)&StaticSymbol_contents, (oop)&StaticSymbol_println, (oop)&StaticString_dbg_ok_u32methods_70 };
 static const struct CompiledMethod Method_Supervisor_Debugger_listMethods_compiled = {
     Method_Supervisor_Debugger_listMethods_insts, 63,
-    20, 0,
+    20, 0, 0,
     Method_Supervisor_Debugger_listMethods_consts, 15,
     0
 };
@@ -10179,7 +10179,7 @@ static const uint32_t Method_Supervisor_Debugger_methodAt__insts[] = { 0x0000040
 static const oop Method_Supervisor_Debugger_methodAt__consts[] = { (oop)&StaticSymbol_buildRegistry, TAG_SMI(1), (oop)&StaticSymbol_size, (oop)&StaticSymbol__lt_eq, (oop)&StaticSymbol_at_, (oop)&StaticSymbol__eq, (oop)&StaticSymbol_false, NULL };
 static const struct CompiledMethod Method_Supervisor_Debugger_methodAt__compiled = {
     Method_Supervisor_Debugger_methodAt__insts, 32,
-    15, 1,
+    15, 1, 0,
     Method_Supervisor_Debugger_methodAt__consts, 8,
     0
 };
@@ -10192,7 +10192,7 @@ static const uint32_t Method_Supervisor_Debugger_parseInt__insts[] = { 0x0000060
 static const oop Method_Supervisor_Debugger_parseInt__consts[] = { TAG_SMI(0), TAG_SMI(1), (oop)&StaticSymbol_size, (oop)&StaticSymbol__lt_eq, (oop)&StaticSymbol_at_, TAG_SMI(48), (oop)&StaticSymbol__gt_eq, TAG_SMI(57), (oop)&StaticSymbol_false, TAG_SMI(10), NULL };
 static const struct CompiledMethod Method_Supervisor_Debugger_parseInt__compiled = {
     Method_Supervisor_Debugger_parseInt__insts, 46,
-    17, 1,
+    17, 1, 0,
     Method_Supervisor_Debugger_parseInt__consts, 11,
     0
 };
@@ -10205,7 +10205,7 @@ static const uint32_t Method_Supervisor_Debugger_ensureBp_insts[] = { 0x0008040A
 static const oop Method_Supervisor_Debugger_ensureBp_consts[] = { NULL, (oop)&StaticSymbol__eq_eq, (oop)&StaticSymbol_OrderedCollection, (oop)&StaticSymbol_new, (oop)&StaticSymbol_false };
 static const struct CompiledMethod Method_Supervisor_Debugger_ensureBp_compiled = {
     Method_Supervisor_Debugger_ensureBp_insts, 27,
-    11, 0,
+    11, 0, 0,
     Method_Supervisor_Debugger_ensureBp_consts, 5,
     0
 };
@@ -10218,7 +10218,7 @@ static const uint32_t Method_Supervisor_Debugger_break_at__insts[] = { 0x0000070
 static const oop Method_Supervisor_Debugger_break_at__consts[] = { (oop)&StaticSymbol_ensureBp, (oop)&StaticSymbol_methodAt_, NULL, (oop)&StaticSymbol__eq_eq, (oop)&StaticString_dbg_error_u32no_submethod_71, (oop)&StaticSymbol_println, (oop)&StaticSymbol_false, (oop)&StaticSymbol_breakAt_offset_, (oop)&StaticSymbol_add_, (oop)&StaticString_dbg_ok_u32break_72 };
 static const struct CompiledMethod Method_Supervisor_Debugger_break_at__compiled = {
     Method_Supervisor_Debugger_break_at__insts, 43,
-    15, 2,
+    15, 2, 0,
     Method_Supervisor_Debugger_break_at__consts, 10,
     0
 };
@@ -10231,7 +10231,7 @@ static const uint32_t Method_Supervisor_Debugger_clear_at__insts[] = { 0x0000080
 static const oop Method_Supervisor_Debugger_clear_at__consts[] = { (oop)&StaticSymbol_ensureBp, TAG_SMI(0), TAG_SMI(1), (oop)&StaticSymbol__lt, (oop)&StaticSymbol_size, (oop)&StaticSymbol__lt_eq, (oop)&StaticSymbol_false, (oop)&StaticSymbol_at_, (oop)&StaticSymbol__eq, NULL, (oop)&StaticString_dbg_error_u32no_subbp_73, (oop)&StaticSymbol_println, (oop)&StaticSymbol_unbreakAt_offset_, (oop)&StaticSymbol_at_put_, (oop)&StaticSymbol_removeLast, (oop)&StaticString_dbg_ok_u32clear_74 };
 static const struct CompiledMethod Method_Supervisor_Debugger_clear_at__compiled = {
     Method_Supervisor_Debugger_clear_at__insts, 131,
-    24, 2,
+    24, 2, 0,
     Method_Supervisor_Debugger_clear_at__consts, 16,
     0
 };
@@ -10244,7 +10244,7 @@ static const uint32_t Method_Supervisor_Debugger_doBreak__insts[] = { 0x0002090A
 static const oop Method_Supervisor_Debugger_doBreak__consts[] = { (oop)&StaticSymbol_ReadStream, (oop)&StaticSymbol_on_, TAG_SMI(32), (oop)&StaticSymbol_upTo_, NULL, (oop)&StaticSymbol__eq_eq, (oop)&StaticString_dbg_error_u32usage_75, (oop)&StaticSymbol_println, (oop)&StaticSymbol_false, (oop)&StaticSymbol_parseInt_, (oop)&StaticSymbol_break_at_ };
 static const struct CompiledMethod Method_Supervisor_Debugger_doBreak__compiled = {
     Method_Supervisor_Debugger_doBreak__insts, 59,
-    20, 1,
+    20, 1, 0,
     Method_Supervisor_Debugger_doBreak__consts, 11,
     0
 };
@@ -10257,7 +10257,7 @@ static const uint32_t Method_Supervisor_Debugger_doClear__insts[] = { 0x0002090A
 static const oop Method_Supervisor_Debugger_doClear__consts[] = { (oop)&StaticSymbol_ReadStream, (oop)&StaticSymbol_on_, TAG_SMI(32), (oop)&StaticSymbol_upTo_, NULL, (oop)&StaticSymbol__eq_eq, (oop)&StaticString_dbg_error_u32usage_75, (oop)&StaticSymbol_println, (oop)&StaticSymbol_false, (oop)&StaticSymbol_parseInt_, (oop)&StaticSymbol_clear_at_ };
 static const struct CompiledMethod Method_Supervisor_Debugger_doClear__compiled = {
     Method_Supervisor_Debugger_doClear__insts, 59,
-    20, 1,
+    20, 1, 0,
     Method_Supervisor_Debugger_doClear__consts, 11,
     0
 };
@@ -10270,7 +10270,7 @@ static const uint32_t Method_Supervisor_Debugger_onBreakContext__insts[] = { 0x0
 static const oop Method_Supervisor_Debugger_onBreakContext__consts[] = { (oop)&StaticSymbol_offsetOf_, NULL, (oop)&StaticSymbol__eq_eq, (oop)&StaticSymbol_methodOf_, TAG_SMI(0), TAG_SMI(1), (oop)&StaticSymbol__lt, (oop)&StaticSymbol_size, (oop)&StaticSymbol__lt_eq, (oop)&StaticSymbol_false, (oop)&StaticSymbol_at_, (oop)&StaticSymbol__eq, (oop)&StaticSymbol_WriteStream, (oop)&StaticSymbol_new, (oop)&StaticString_dbg_paused_u32break_u32_76, (oop)&StaticSymbol_nextPutAll_, (oop)&StaticSymbol_print_, (oop)&StaticString__u32_55, (oop)&StaticSymbol_contents, (oop)&StaticSymbol_println, (oop)&StaticSymbol_commandLoop, (oop)&StaticSymbol_depthOf_, (oop)&StaticSymbol_into, (oop)&StaticSymbol_true, (oop)&StaticSymbol_over, (oop)&StaticSymbol_out, (oop)&StaticSymbol_requestStep_, (oop)&StaticSymbol_methodIdOfCtx_, (oop)&StaticString_dbg_paused_u32step_u32_77 };
 static const struct CompiledMethod Method_Supervisor_Debugger_onBreakContext__compiled = {
     Method_Supervisor_Debugger_onBreakContext__insts, 191,
-    28, 1,
+    28, 1, 0,
     Method_Supervisor_Debugger_onBreakContext__consts, 29,
     0
 };
@@ -10283,7 +10283,7 @@ static const uint32_t Method_Supervisor_Debugger_depthOf__insts[] = { 0x00000500
 static const oop Method_Supervisor_Debugger_depthOf__consts[] = { TAG_SMI(0), NULL, (oop)&StaticSymbol__eq_eq, TAG_SMI(1), (oop)&StaticSymbol_senderOf_ };
 static const struct CompiledMethod Method_Supervisor_Debugger_depthOf__compiled = {
     Method_Supervisor_Debugger_depthOf__insts, 23,
-    11, 1,
+    11, 1, 0,
     Method_Supervisor_Debugger_depthOf__consts, 5,
     0
 };
@@ -10296,7 +10296,7 @@ static const uint32_t Method_Supervisor_Debugger_methodIdOfCtx__insts[] = { 0x00
 static const oop Method_Supervisor_Debugger_methodIdOfCtx__consts[] = { (oop)&StaticSymbol_buildRegistry, (oop)&StaticSymbol_methodOf_, TAG_SMI(1), (oop)&StaticSymbol_size, (oop)&StaticSymbol__lt_eq, (oop)&StaticSymbol_at_, (oop)&StaticSymbol__eq_eq, (oop)&StaticSymbol_false, NULL, TAG_SMI(0) };
 static const struct CompiledMethod Method_Supervisor_Debugger_methodIdOfCtx__compiled = {
     Method_Supervisor_Debugger_methodIdOfCtx__insts, 45,
-    17, 1,
+    17, 1, 0,
     Method_Supervisor_Debugger_methodIdOfCtx__consts, 10,
     0
 };
@@ -10309,7 +10309,7 @@ static const uint32_t Method_Supervisor_Debugger_doInspect__insts[] = { 0x00020F
 static const oop Method_Supervisor_Debugger_doInspect__consts[] = { (oop)&StaticSymbol_ReadStream, (oop)&StaticSymbol_on_, TAG_SMI(32), (oop)&StaticSymbol_upTo_, NULL, (oop)&StaticSymbol__eq_eq, TAG_SMI(0), (oop)&StaticSymbol_parseInt_, (oop)&StaticSymbol__lt, (oop)&StaticSymbol_false, (oop)&StaticSymbol_true, (oop)&StaticSymbol_senderOf_, TAG_SMI(1), (oop)&StaticString_dbg_error_u32no_subframe_78, (oop)&StaticSymbol_println, (oop)&Vtable_Supervisor_ContextMirror, (oop)&StaticSymbol_init_m_ctx_, (oop)&StaticSymbol_offset, (oop)&StaticSymbol_numRegisters, (oop)&StaticSymbol_WriteStream, (oop)&StaticSymbol_new, (oop)&StaticString_dbg_stack_u32off_eq_79, (oop)&StaticSymbol_nextPutAll_, (oop)&StaticSymbol_print_, (oop)&StaticString__u32r_80, (oop)&StaticString__eq_81, (oop)&StaticSymbol_registerAt_, (oop)&StaticSymbol_printString, (oop)&StaticSymbol_contents };
 static const struct CompiledMethod Method_Supervisor_Debugger_doInspect__compiled = {
     Method_Supervisor_Debugger_doInspect__insts, 144,
-    37, 1,
+    37, 1, 0,
     Method_Supervisor_Debugger_doInspect__consts, 29,
     0
 };
@@ -10322,7 +10322,7 @@ static const uint32_t Method_Supervisor_Debugger_initialLoop_insts[] = { 0x00000
 static const oop Method_Supervisor_Debugger_initialLoop_consts[] = { (oop)&StaticSymbol_true, (oop)&StaticSymbol_readLine, NULL, (oop)&StaticSymbol__eq_eq, (oop)&StaticSymbol_false, (oop)&StaticSymbol_verbOf_, (oop)&StaticString_dbg_methods_82, (oop)&StaticSymbol__eq, (oop)&StaticSymbol_listMethods, (oop)&StaticString_dbg_continue_83, (oop)&StaticString_dbg_run_84, (oop)&StaticString_dbg_break_85, (oop)&StaticSymbol_doBreak_, (oop)&StaticString_dbg_clear_86, (oop)&StaticSymbol_doClear_, (oop)&StaticString_dbg_error_u32unknown_87, (oop)&StaticSymbol_println };
 static const struct CompiledMethod Method_Supervisor_Debugger_initialLoop_compiled = {
     Method_Supervisor_Debugger_initialLoop_insts, 70,
-    20, 0,
+    20, 0, 0,
     Method_Supervisor_Debugger_initialLoop_consts, 17,
     0
 };
@@ -10335,7 +10335,7 @@ static const uint32_t Method_Supervisor_Debugger_commandLoop_insts[] = { 0x00000
 static const oop Method_Supervisor_Debugger_commandLoop_consts[] = { (oop)&StaticSymbol_true, (oop)&StaticSymbol_readLine, NULL, (oop)&StaticSymbol__eq_eq, (oop)&StaticSymbol_false, (oop)&StaticSymbol_verbOf_, (oop)&StaticString_dbg_continue_83, (oop)&StaticSymbol__eq, TAG_SMI(0), (oop)&StaticSymbol_requestStep_, (oop)&StaticString_dbg_methods_82, (oop)&StaticSymbol_listMethods, (oop)&StaticString_dbg_break_85, (oop)&StaticSymbol_doBreak_, (oop)&StaticString_dbg_clear_86, (oop)&StaticSymbol_doClear_, (oop)&StaticString_dbg_step_88, (oop)&StaticSymbol_into, TAG_SMI(1), (oop)&StaticString_dbg_over_89, (oop)&StaticSymbol_over, (oop)&StaticSymbol_depthOf_, (oop)&StaticString_dbg_out_90, (oop)&StaticSymbol_out, (oop)&StaticString_dbg_inspect_91, (oop)&StaticSymbol_doInspect_, (oop)&StaticString_dbg_error_u32unknown_87, (oop)&StaticSymbol_println };
 static const struct CompiledMethod Method_Supervisor_Debugger_commandLoop_compiled = {
     Method_Supervisor_Debugger_commandLoop_insts, 133,
-    28, 0,
+    28, 0, 0,
     Method_Supervisor_Debugger_commandLoop_consts, 28,
     0
 };
@@ -10348,7 +10348,7 @@ static const uint32_t Method_Supervisor_Debugger_verbOf__insts[] = { 0x0002070A,
 static const oop Method_Supervisor_Debugger_verbOf__consts[] = { (oop)&StaticSymbol_ReadStream, (oop)&StaticSymbol_on_, TAG_SMI(32), (oop)&StaticSymbol_upTo_, NULL, (oop)&StaticSymbol__eq_eq };
 static const struct CompiledMethod Method_Supervisor_Debugger_verbOf__compiled = {
     Method_Supervisor_Debugger_verbOf__insts, 21,
-    12, 1,
+    12, 1, 0,
     Method_Supervisor_Debugger_verbOf__consts, 6,
     0
 };
@@ -10361,7 +10361,7 @@ static const uint32_t Method_Supervisor_Debugger_init_m_io__insts[] = { 0x000101
 static const oop Method_Supervisor_Debugger_init_m_io__consts[] = { NULL };
 static const struct CompiledMethod Method_Supervisor_Debugger_init_m_io__compiled = {
     Method_Supervisor_Debugger_init_m_io__insts, 25,
-    5, 2,
+    5, 2, 0,
     Method_Supervisor_Debugger_init_m_io__consts, 1,
     0
 };
@@ -10374,7 +10374,7 @@ static const uint32_t Method_Block_Kernel_block1_value__insts[] = { 0xFF000215, 
 static const oop Method_Block_Kernel_block1_value__consts[] = { (oop)&StaticSymbol_valueHashOf_, (oop)&StaticSymbol_bitXor_, TAG_SMI(16777619), TAG_SMI(1073741823), (oop)&StaticSymbol_bitAnd_ };
 static const struct CompiledMethod Method_Block_Kernel_block1_value__compiled = {
     Method_Block_Kernel_block1_value__insts, 16,
-    10, 1,
+    10, 1, 0,
     Method_Block_Kernel_block1_value__consts, 5,
     0
 };
@@ -10387,7 +10387,7 @@ static const uint32_t Method_Block_Kernel_block2_value___insts[] = { 0xFF000315,
 static const oop Method_Block_Kernel_block2_value___consts[] = { (oop)&StaticSymbol_valueHashOf_, (oop)&StaticSymbol_bitXor_, TAG_SMI(16777619), TAG_SMI(1073741823), (oop)&StaticSymbol_bitAnd_ };
 static const struct CompiledMethod Method_Block_Kernel_block2_value___compiled = {
     Method_Block_Kernel_block2_value___insts, 30,
-    13, 2,
+    13, 2, 0,
     Method_Block_Kernel_block2_value___consts, 5,
     0
 };
@@ -10400,7 +10400,7 @@ static const uint32_t Method_Block_Kernel_Collection_block3_value___insts[] = { 
 static const oop Method_Block_Kernel_Collection_block3_value___consts[] = { TAG_SMI(1) };
 static const struct CompiledMethod Method_Block_Kernel_Collection_block3_value___compiled = {
     Method_Block_Kernel_Collection_block3_value___insts, 5,
-    7, 2,
+    7, 2, 0,
     Method_Block_Kernel_Collection_block3_value___consts, 1,
     0
 };
@@ -10413,7 +10413,7 @@ static const uint32_t Method_Block_Kernel_Collection_block4_value__insts[] = { 0
 static const oop Method_Block_Kernel_Collection_block4_value__consts[] = { (oop)&StaticSymbol_value_value_ };
 static const struct CompiledMethod Method_Block_Kernel_Collection_block4_value__compiled = {
     Method_Block_Kernel_Collection_block4_value__insts, 8,
-    7, 1,
+    7, 1, 0,
     Method_Block_Kernel_Collection_block4_value__consts, 1,
     0
 };
@@ -10426,7 +10426,7 @@ static const uint32_t Method_Block_Kernel_Collection_block5_value__insts[] = { 0
 static const oop Method_Block_Kernel_Collection_block5_value__consts[] = { (oop)&StaticSymbol_value_, (oop)&StaticSymbol_add_ };
 static const struct CompiledMethod Method_Block_Kernel_Collection_block5_value__compiled = {
     Method_Block_Kernel_Collection_block5_value__insts, 9,
-    8, 1,
+    8, 1, 0,
     Method_Block_Kernel_Collection_block5_value__consts, 2,
     0
 };
@@ -10439,7 +10439,7 @@ static const uint32_t Method_Block_Kernel_Collection_block6_value__insts[] = { 0
 static const oop Method_Block_Kernel_Collection_block6_value__consts[] = { (oop)&StaticSymbol_value_, (oop)&StaticSymbol_add_, (oop)&StaticSymbol_false };
 static const struct CompiledMethod Method_Block_Kernel_Collection_block6_value__compiled = {
     Method_Block_Kernel_Collection_block6_value__insts, 13,
-    8, 1,
+    8, 1, 0,
     Method_Block_Kernel_Collection_block6_value__consts, 3,
     0
 };
@@ -10452,7 +10452,7 @@ static const uint32_t Method_Block_Kernel_Collection_block7_value__insts[] = { 0
 static const oop Method_Block_Kernel_Collection_block7_value__consts[] = { (oop)&StaticSymbol_value_, (oop)&StaticSymbol_false, (oop)&StaticSymbol_add_ };
 static const struct CompiledMethod Method_Block_Kernel_Collection_block7_value__compiled = {
     Method_Block_Kernel_Collection_block7_value__insts, 13,
-    8, 1,
+    8, 1, 0,
     Method_Block_Kernel_Collection_block7_value__consts, 3,
     0
 };
@@ -10465,7 +10465,7 @@ static const uint32_t Method_Block_Kernel_Collection_block8_value___insts[] = { 
 static const oop Method_Block_Kernel_Collection_block8_value___consts[] = { (oop)&StaticSymbol_true, (oop)&StaticSymbol__eq };
 static const struct CompiledMethod Method_Block_Kernel_Collection_block8_value___compiled = {
     Method_Block_Kernel_Collection_block8_value___insts, 10,
-    8, 2,
+    8, 2, 0,
     Method_Block_Kernel_Collection_block8_value___consts, 2,
     0
 };
@@ -10478,7 +10478,7 @@ static const uint32_t Method_Block_Kernel_Collection_block9_value__insts[] = { 0
 static const oop Method_Block_Kernel_Collection_block9_value__consts[] = { (oop)&StaticSymbol_at_put_, TAG_SMI(1) };
 static const struct CompiledMethod Method_Block_Kernel_Collection_block9_value__compiled = {
     Method_Block_Kernel_Collection_block9_value__insts, 11,
-    7, 1,
+    7, 1, 0,
     Method_Block_Kernel_Collection_block9_value__consts, 2,
     0
 };
@@ -10491,7 +10491,7 @@ static const uint32_t Method_Block_Kernel_Collection_block10_value__insts[] = { 
 static const oop Method_Block_Kernel_Collection_block10_value__consts[] = { (oop)&StaticSymbol_not, (oop)&StaticSymbol_value_, (oop)&StaticSymbol_false, (oop)&StaticSymbol_true };
 static const struct CompiledMethod Method_Block_Kernel_Collection_block10_value__compiled = {
     Method_Block_Kernel_Collection_block10_value__insts, 19,
-    9, 1,
+    9, 1, 0,
     Method_Block_Kernel_Collection_block10_value__consts, 4,
     0
 };
@@ -10504,7 +10504,7 @@ static const uint32_t Method_Block_Kernel_Collection_block11_value_insts[] = { 0
 static const oop Method_Block_Kernel_Collection_block11_value_consts[] = { (oop)&StaticString_not_u32found_92, (oop)&StaticSymbol_error_ };
 static const struct CompiledMethod Method_Block_Kernel_Collection_block11_value_compiled = {
     Method_Block_Kernel_Collection_block11_value_insts, 6,
-    5, 0,
+    5, 0, 0,
     Method_Block_Kernel_Collection_block11_value_consts, 2,
     0
 };
@@ -10517,7 +10517,7 @@ static const uint32_t Method_Block_Kernel_Collection_block12_value__insts[] = { 
 static const oop Method_Block_Kernel_Collection_block12_value__consts[] = { (oop)&StaticSymbol_false, (oop)&StaticSymbol_value_ };
 static const struct CompiledMethod Method_Block_Kernel_Collection_block12_value__compiled = {
     Method_Block_Kernel_Collection_block12_value__insts, 11,
-    7, 1,
+    7, 1, 0,
     Method_Block_Kernel_Collection_block12_value__consts, 2,
     0
 };
@@ -10530,7 +10530,7 @@ static const uint32_t Method_Block_Kernel_Collection_block13_value__insts[] = { 
 static const oop Method_Block_Kernel_Collection_block13_value__consts[] = { (oop)&StaticSymbol_value_, (oop)&StaticSymbol_false };
 static const struct CompiledMethod Method_Block_Kernel_Collection_block13_value__compiled = {
     Method_Block_Kernel_Collection_block13_value__insts, 11,
-    7, 1,
+    7, 1, 0,
     Method_Block_Kernel_Collection_block13_value__consts, 2,
     0
 };
@@ -10543,7 +10543,7 @@ static const uint32_t Method_Block_Kernel_Collection_block14_value___insts[] = {
 static const oop Method_Block_Kernel_Collection_block14_value___consts[] = { (oop)&StaticSymbol_value_, TAG_SMI(1) };
 static const struct CompiledMethod Method_Block_Kernel_Collection_block14_value___compiled = {
     Method_Block_Kernel_Collection_block14_value___insts, 12,
-    9, 2,
+    9, 2, 0,
     Method_Block_Kernel_Collection_block14_value___consts, 2,
     0
 };
@@ -10556,7 +10556,7 @@ static const uint32_t Method_Block_Kernel_Collection_block15_value__insts[] = { 
 static const oop Method_Block_Kernel_Collection_block15_value__consts[] = { (oop)&StaticSymbol_false, (oop)&StaticSymbol_value, (oop)&StaticSymbol_value_ };
 static const struct CompiledMethod Method_Block_Kernel_Collection_block15_value__compiled = {
     Method_Block_Kernel_Collection_block15_value__insts, 14,
-    6, 1,
+    6, 1, 0,
     Method_Block_Kernel_Collection_block15_value__consts, 3,
     0
 };
@@ -10569,7 +10569,7 @@ static const uint32_t Method_Block_Kernel_Collection_block16_value__insts[] = { 
 static const oop Method_Block_Kernel_Collection_block16_value__consts[] = { TAG_SMI(1), (oop)&StaticSymbol_value_value_ };
 static const struct CompiledMethod Method_Block_Kernel_Collection_block16_value__compiled = {
     Method_Block_Kernel_Collection_block16_value__insts, 11,
-    7, 1,
+    7, 1, 0,
     Method_Block_Kernel_Collection_block16_value__consts, 2,
     0
 };
@@ -10582,7 +10582,7 @@ static const uint32_t Method_Block_Kernel_Collection_block17_value___insts[] = {
 static const oop Method_Block_Kernel_Collection_block17_value___consts[] = { TAG_SMI(0), (oop)&StaticSymbol__eq, (oop)&StaticSymbol_false };
 static const struct CompiledMethod Method_Block_Kernel_Collection_block17_value___compiled = {
     Method_Block_Kernel_Collection_block17_value___insts, 18,
-    10, 2,
+    10, 2, 0,
     Method_Block_Kernel_Collection_block17_value___consts, 3,
     0
 };
@@ -10595,7 +10595,7 @@ static const uint32_t Method_Block_Kernel_Collection_block18_value_insts[] = { 0
 static const oop Method_Block_Kernel_Collection_block18_value_consts[] = { (oop)&StaticString_not_u32found_92, (oop)&StaticSymbol_error_ };
 static const struct CompiledMethod Method_Block_Kernel_Collection_block18_value_compiled = {
     Method_Block_Kernel_Collection_block18_value_insts, 6,
-    5, 0,
+    5, 0, 0,
     Method_Block_Kernel_Collection_block18_value_consts, 2,
     0
 };
@@ -10608,7 +10608,7 @@ static const uint32_t Method_Block_Kernel_Collection_block19_value__insts[] = { 
 static const oop Method_Block_Kernel_Collection_block19_value__consts[] = { (oop)&StaticSymbol_value_, (oop)&StaticSymbol_not, (oop)&StaticSymbol_true, (oop)&StaticSymbol__gt, (oop)&StaticSymbol_false };
 static const struct CompiledMethod Method_Block_Kernel_Collection_block19_value__compiled = {
     Method_Block_Kernel_Collection_block19_value__insts, 26,
-    10, 1,
+    10, 1, 0,
     Method_Block_Kernel_Collection_block19_value__consts, 5,
     0
 };
@@ -10621,7 +10621,7 @@ static const uint32_t Method_Block_Kernel_Collection_block20_value__insts[] = { 
 static const oop Method_Block_Kernel_Collection_block20_value__consts[] = { TAG_SMI(0), (oop)&StaticSymbol_value_ };
 static const struct CompiledMethod Method_Block_Kernel_Collection_block20_value__compiled = {
     Method_Block_Kernel_Collection_block20_value__insts, 8,
-    8, 1,
+    8, 1, 0,
     Method_Block_Kernel_Collection_block20_value__consts, 2,
     0
 };
@@ -10634,7 +10634,7 @@ static const uint32_t Method_Block_Kernel_Collection_block21_value_insts[] = { 0
 static const oop Method_Block_Kernel_Collection_block21_value_consts[] = { (oop)&StaticString_not_u32found_92, (oop)&StaticSymbol_error_ };
 static const struct CompiledMethod Method_Block_Kernel_Collection_block21_value_compiled = {
     Method_Block_Kernel_Collection_block21_value_insts, 6,
-    5, 0,
+    5, 0, 0,
     Method_Block_Kernel_Collection_block21_value_consts, 2,
     0
 };
@@ -10647,7 +10647,7 @@ static const uint32_t Method_Block_Kernel_Collection_block22_value_insts[] = { 0
 static const oop Method_Block_Kernel_Collection_block22_value_consts[] = { (oop)&StaticString_not_u32found_92, (oop)&StaticSymbol_error_ };
 static const struct CompiledMethod Method_Block_Kernel_Collection_block22_value_compiled = {
     Method_Block_Kernel_Collection_block22_value_insts, 6,
-    5, 0,
+    5, 0, 0,
     Method_Block_Kernel_Collection_block22_value_consts, 2,
     0
 };
@@ -10660,7 +10660,7 @@ static const uint32_t Method_Block_Kernel_OrderedCollection_block23_value___inst
 static const oop Method_Block_Kernel_OrderedCollection_block23_value___consts[] = { (oop)&StaticSymbol_at_, (oop)&StaticSymbol_value_value_, (oop)&StaticSymbol_add_ };
 static const struct CompiledMethod Method_Block_Kernel_OrderedCollection_block23_value___compiled = {
     Method_Block_Kernel_OrderedCollection_block23_value___insts, 13,
-    12, 2,
+    12, 2, 0,
     Method_Block_Kernel_OrderedCollection_block23_value___consts, 3,
     0
 };
@@ -10673,7 +10673,7 @@ static const uint32_t Method_Block_Kernel_OrderedCollection_block24_value__insts
 static const oop Method_Block_Kernel_OrderedCollection_block24_value__consts[] = { (oop)&StaticSymbol_add_ };
 static const struct CompiledMethod Method_Block_Kernel_OrderedCollection_block24_value__compiled = {
     Method_Block_Kernel_OrderedCollection_block24_value__insts, 6,
-    6, 1,
+    6, 1, 0,
     Method_Block_Kernel_OrderedCollection_block24_value__consts, 1,
     0
 };
@@ -10686,7 +10686,7 @@ static const uint32_t Method_Block_Kernel_OrderedCollection_block25_value__insts
 static const oop Method_Block_Kernel_OrderedCollection_block25_value__consts[] = { (oop)&StaticSymbol_add_ };
 static const struct CompiledMethod Method_Block_Kernel_OrderedCollection_block25_value__compiled = {
     Method_Block_Kernel_OrderedCollection_block25_value__insts, 6,
-    6, 1,
+    6, 1, 0,
     Method_Block_Kernel_OrderedCollection_block25_value__consts, 1,
     0
 };
@@ -10699,7 +10699,7 @@ static const uint32_t Method_Block_Kernel_Set_block26_value__insts[] = { 0xFF000
 static const oop Method_Block_Kernel_Set_block26_value__consts[] = { (oop)&StaticSymbol_add_ };
 static const struct CompiledMethod Method_Block_Kernel_Set_block26_value__compiled = {
     Method_Block_Kernel_Set_block26_value__insts, 6,
-    6, 1,
+    6, 1, 0,
     Method_Block_Kernel_Set_block26_value__consts, 1,
     0
 };
@@ -10712,7 +10712,7 @@ static const uint32_t Method_Block_Kernel_Set_block27_value_insts[] = { 0xFF0001
 static const oop Method_Block_Kernel_Set_block27_value_consts[] = { (oop)&StaticString_element_u32not_u32found_93, (oop)&StaticSymbol_error_ };
 static const struct CompiledMethod Method_Block_Kernel_Set_block27_value_compiled = {
     Method_Block_Kernel_Set_block27_value_insts, 6,
-    5, 0,
+    5, 0, 0,
     Method_Block_Kernel_Set_block27_value_consts, 2,
     0
 };
@@ -10725,7 +10725,7 @@ static const uint32_t Method_Block_Kernel_Dictionary_block28_value_insts[] = { 0
 static const oop Method_Block_Kernel_Dictionary_block28_value_consts[] = { (oop)&StaticString_key_u32not_u32found_94, (oop)&StaticSymbol_error_ };
 static const struct CompiledMethod Method_Block_Kernel_Dictionary_block28_value_compiled = {
     Method_Block_Kernel_Dictionary_block28_value_insts, 6,
-    5, 0,
+    5, 0, 0,
     Method_Block_Kernel_Dictionary_block28_value_consts, 2,
     0
 };
@@ -10738,7 +10738,7 @@ static const uint32_t Method_Block_Kernel_Dictionary_block29_value_insts[] = { 0
 static const oop Method_Block_Kernel_Dictionary_block29_value_consts[] = { (oop)&StaticString_key_u32not_u32found_94, (oop)&StaticSymbol_error_ };
 static const struct CompiledMethod Method_Block_Kernel_Dictionary_block29_value_compiled = {
     Method_Block_Kernel_Dictionary_block29_value_insts, 6,
-    5, 0,
+    5, 0, 0,
     Method_Block_Kernel_Dictionary_block29_value_consts, 2,
     0
 };
@@ -10751,7 +10751,7 @@ static const uint32_t Method_Block_Kernel_List_block30_value__insts[] = { 0xFF00
 static const oop Method_Block_Kernel_List_block30_value__consts[] = { (oop)&StaticSymbol_value_value_ };
 static const struct CompiledMethod Method_Block_Kernel_List_block30_value__compiled = {
     Method_Block_Kernel_List_block30_value__insts, 8,
-    7, 1,
+    7, 1, 0,
     Method_Block_Kernel_List_block30_value__consts, 1,
     0
 };
@@ -10764,7 +10764,7 @@ static const uint32_t Method_Block_Kernel_List_block31_value__insts[] = { 0xFF00
 static const oop Method_Block_Kernel_List_block31_value__consts[] = { (oop)&StaticSymbol_not, (oop)&StaticSymbol_value_, (oop)&StaticSymbol_false, (oop)&StaticSymbol_true };
 static const struct CompiledMethod Method_Block_Kernel_List_block31_value__compiled = {
     Method_Block_Kernel_List_block31_value__insts, 17,
-    9, 1,
+    9, 1, 0,
     Method_Block_Kernel_List_block31_value__consts, 4,
     0
 };
@@ -10777,7 +10777,7 @@ static const uint32_t Method_Block_Meta_Kernel_List_block32_value__insts[] = { 0
 static const oop Method_Block_Meta_Kernel_List_block32_value__consts[] = { TAG_SMI(1), (oop)&StaticSymbol_at_put_ };
 static const struct CompiledMethod Method_Block_Meta_Kernel_List_block32_value__compiled = {
     Method_Block_Meta_Kernel_List_block32_value__insts, 11,
-    7, 1,
+    7, 1, 0,
     Method_Block_Meta_Kernel_List_block32_value__consts, 2,
     0
 };
@@ -10790,7 +10790,7 @@ static const uint32_t Method_Block_Kernel_Cbor_block33_value__insts[] = { 0xFF00
 static const oop Method_Block_Kernel_Cbor_block33_value__consts[] = { TAG_SMI(1), (oop)&StaticSymbol_encode_into_depth_ };
 static const struct CompiledMethod Method_Block_Kernel_Cbor_block33_value__compiled = {
     Method_Block_Kernel_Cbor_block33_value__insts, 10,
-    10, 1,
+    10, 1, 0,
     Method_Block_Kernel_Cbor_block33_value__consts, 2,
     0
 };
@@ -10803,7 +10803,7 @@ static const uint32_t Method_Block_Kernel_Cbor_block34_value___insts[] = { 0xFF0
 static const oop Method_Block_Kernel_Cbor_block34_value___consts[] = { (oop)&StaticSymbol_encodeEntry_value_keys_vals_depth_ };
 static const struct CompiledMethod Method_Block_Kernel_Cbor_block34_value___compiled = {
     Method_Block_Kernel_Cbor_block34_value___insts, 10,
-    11, 2,
+    11, 2, 0,
     Method_Block_Kernel_Cbor_block34_value___consts, 1,
     0
 };
@@ -10816,7 +10816,7 @@ static const uint32_t Method_Block_Kernel_Cbor_block35_value__insts[] = { 0xFF00
 static const oop Method_Block_Kernel_Cbor_block35_value__consts[] = { (oop)&StaticSymbol_add_ };
 static const struct CompiledMethod Method_Block_Kernel_Cbor_block35_value__compiled = {
     Method_Block_Kernel_Cbor_block35_value__insts, 6,
-    6, 1,
+    6, 1, 0,
     Method_Block_Kernel_Cbor_block35_value__consts, 1,
     0
 };
@@ -10829,7 +10829,7 @@ static const uint32_t Method_Block_Kernel_Cbor_block36_value_insts[] = { 0xFF000
 static const oop Method_Block_Kernel_Cbor_block36_value_consts[] = { TAG_SMI(0), TAG_SMI(1), (oop)&StaticSymbol_parse_at_depth_, TAG_SMI(2), (oop)&StaticSymbol_at_, (oop)&StaticSymbol__eq, (oop)&StaticSymbol_false, (oop)&StaticString_not_u32a_u32value_0, (oop)&StaticSymbol_failDecode_ };
 static const struct CompiledMethod Method_Block_Kernel_Cbor_block36_value_compiled = {
     Method_Block_Kernel_Cbor_block36_value_insts, 27,
-    10, 0,
+    10, 0, 0,
     Method_Block_Kernel_Cbor_block36_value_consts, 9,
     0
 };
@@ -10842,7 +10842,7 @@ static const uint32_t Method_Block_Kernel_Cbor_block37_value__insts[] = { 0xFF00
 static const oop Method_Block_Kernel_Cbor_block37_value__consts[] = { (oop)&StaticSymbol_tag, (oop)&StaticSymbol_cborInvalid, (oop)&StaticSymbol__eq };
 static const struct CompiledMethod Method_Block_Kernel_Cbor_block37_value__compiled = {
     Method_Block_Kernel_Cbor_block37_value__insts, 8,
-    6, 1,
+    6, 1, 0,
     Method_Block_Kernel_Cbor_block37_value__consts, 3,
     0
 };
@@ -10855,7 +10855,7 @@ static const uint32_t Method_Block_Kernel_Cbor_block38_block39_value_insts[] = {
 static const oop Method_Block_Kernel_Cbor_block38_block39_value_consts[] = { (oop)&StaticString_not_u32a_u32value_0 };
 static const struct CompiledMethod Method_Block_Kernel_Cbor_block38_block39_value_compiled = {
     Method_Block_Kernel_Cbor_block38_block39_value_insts, 3,
-    3, 0,
+    3, 0, 0,
     Method_Block_Kernel_Cbor_block38_block39_value_consts, 1,
     0
 };
@@ -10868,7 +10868,7 @@ static const uint32_t Method_Block_Kernel_Cbor_block38_value__insts[] = { 0xFF00
 static const oop Method_Block_Kernel_Cbor_block38_value__consts[] = { (oop)&StaticSymbol_text, (oop)&Method_Block_Kernel_Cbor_block38_block39_value_compiled, (oop)&StaticSymbol_at_ifAbsent_, (oop)&StaticSymbol_value_ };
 static const struct CompiledMethod Method_Block_Kernel_Cbor_block38_value__compiled = {
     Method_Block_Kernel_Cbor_block38_value__insts, 10,
-    9, 1,
+    9, 1, 0,
     Method_Block_Kernel_Cbor_block38_value__consts, 4,
     0
 };
@@ -10881,7 +10881,7 @@ static const uint32_t Method_Block_Kernel_SpanCapture_block40_value__insts[] = {
 static const oop Method_Block_Kernel_SpanCapture_block40_value__consts[] = { (oop)&StaticSymbol_apply_ };
 static const struct CompiledMethod Method_Block_Kernel_SpanCapture_block40_value__compiled = {
     Method_Block_Kernel_SpanCapture_block40_value__insts, 6,
-    6, 1,
+    6, 1, 0,
     Method_Block_Kernel_SpanCapture_block40_value__consts, 1,
     0
 };
@@ -10894,7 +10894,7 @@ static const uint32_t Method_Block_Kernel_SpanCapture_block41_value_insts[] = { 
 static const oop Method_Block_Kernel_SpanCapture_block41_value_consts[] = { (oop)&StaticSymbol_stopped };
 static const struct CompiledMethod Method_Block_Kernel_SpanCapture_block41_value_compiled = {
     Method_Block_Kernel_SpanCapture_block41_value_insts, 3,
-    3, 0,
+    3, 0, 0,
     Method_Block_Kernel_SpanCapture_block41_value_consts, 1,
     0
 };
@@ -10907,7 +10907,7 @@ static const uint32_t Method_Block_Kernel_SpanCapture_block42_value_insts[] = { 
 static const oop Method_Block_Kernel_SpanCapture_block42_value_consts[] = { (oop)&StaticSymbol_stopped };
 static const struct CompiledMethod Method_Block_Kernel_SpanCapture_block42_value_compiled = {
     Method_Block_Kernel_SpanCapture_block42_value_insts, 3,
-    3, 0,
+    3, 0, 0,
     Method_Block_Kernel_SpanCapture_block42_value_consts, 1,
     0
 };
@@ -10920,7 +10920,7 @@ static const uint32_t Method_Block_Kernel_NetBridge_block43_value__insts[] = { 0
 static const oop Method_Block_Kernel_NetBridge_block43_value__consts[] = { (oop)&StaticSymbol_encodeFor_, (oop)&StaticSymbol_sendTo_port_data_ };
 static const struct CompiledMethod Method_Block_Kernel_NetBridge_block43_value__compiled = {
     Method_Block_Kernel_NetBridge_block43_value__insts, 14,
-    10, 1,
+    10, 1, 0,
     Method_Block_Kernel_NetBridge_block43_value__consts, 2,
     0
 };
@@ -10933,7 +10933,7 @@ static const uint32_t Method_Block_Kernel_NetBridge_block44_value__insts[] = { 0
 static const oop Method_Block_Kernel_NetBridge_block44_value__consts[] = { (oop)&StaticSymbol_true, NULL };
 static const struct CompiledMethod Method_Block_Kernel_NetBridge_block44_value__compiled = {
     Method_Block_Kernel_NetBridge_block44_value__insts, 5,
-    4, 1,
+    4, 1, 0,
     Method_Block_Kernel_NetBridge_block44_value__consts, 2,
     0
 };
@@ -10946,7 +10946,7 @@ static const uint32_t Method_Block_Kernel_PortaBridge_block45_value__insts[] = {
 static const oop Method_Block_Kernel_PortaBridge_block45_value__consts[] = { (oop)&StaticSymbol_capture_value_ };
 static const struct CompiledMethod Method_Block_Kernel_PortaBridge_block45_value__compiled = {
     Method_Block_Kernel_PortaBridge_block45_value__insts, 7,
-    7, 1,
+    7, 1, 0,
     Method_Block_Kernel_PortaBridge_block45_value__consts, 1,
     0
 };
@@ -10959,7 +10959,7 @@ static const uint32_t Method_Block_Kernel_PortaBridge_block46_value__insts[] = {
 static const oop Method_Block_Kernel_PortaBridge_block46_value__consts[] = { (oop)&StaticSymbol_true, NULL };
 static const struct CompiledMethod Method_Block_Kernel_PortaBridge_block46_value__compiled = {
     Method_Block_Kernel_PortaBridge_block46_value__insts, 5,
-    4, 1,
+    4, 1, 0,
     Method_Block_Kernel_PortaBridge_block46_value__consts, 2,
     0
 };
@@ -10972,7 +10972,7 @@ static const uint32_t Method_Block_Kernel_PortaBridge_block47_value_insts[] = { 
 static const oop Method_Block_Kernel_PortaBridge_block47_value_consts[] = { NULL };
 static const struct CompiledMethod Method_Block_Kernel_PortaBridge_block47_value_compiled = {
     Method_Block_Kernel_PortaBridge_block47_value_insts, 3,
-    3, 0,
+    3, 0, 0,
     Method_Block_Kernel_PortaBridge_block47_value_consts, 1,
     0
 };
@@ -10984,7 +10984,7 @@ static const struct Closure Method_Block_Kernel_PortaBridge_block47_value_closur
 static const uint32_t Method_Block_Kernel_PortaBridge_block48_value_insts[] = { 0xFF000115, 0x00000318, 0x0306020A, 0x00000203 };
 static const struct CompiledMethod Method_Block_Kernel_PortaBridge_block48_value_compiled = {
     Method_Block_Kernel_PortaBridge_block48_value_insts, 4,
-    4, 0,
+    4, 0, 0,
     NULL, 0,
     0
 };
@@ -10997,7 +10997,7 @@ static const uint32_t Method_Block_Kernel_PortaBridge_block49_value__insts[] = {
 static const oop Method_Block_Kernel_PortaBridge_block49_value__consts[] = { (oop)&StaticSymbol_true, NULL };
 static const struct CompiledMethod Method_Block_Kernel_PortaBridge_block49_value__compiled = {
     Method_Block_Kernel_PortaBridge_block49_value__insts, 5,
-    4, 1,
+    4, 1, 0,
     Method_Block_Kernel_PortaBridge_block49_value__consts, 2,
     0
 };
@@ -11010,7 +11010,7 @@ static const uint32_t Method_Block_Kernel_PortaBridge_block50_value_insts[] = { 
 static const oop Method_Block_Kernel_PortaBridge_block50_value_consts[] = { NULL };
 static const struct CompiledMethod Method_Block_Kernel_PortaBridge_block50_value_compiled = {
     Method_Block_Kernel_PortaBridge_block50_value_insts, 3,
-    3, 0,
+    3, 0, 0,
     Method_Block_Kernel_PortaBridge_block50_value_consts, 1,
     0
 };
@@ -11023,7 +11023,7 @@ static const uint32_t Method_Block_Kernel_PortaBridge_block51_value_insts[] = { 
 static const oop Method_Block_Kernel_PortaBridge_block51_value_consts[] = { (oop)&StaticSymbol_error, (oop)&StaticString_ota_u32bad_u32record_47, (oop)&StaticSymbol_telLog_text_, NULL };
 static const struct CompiledMethod Method_Block_Kernel_PortaBridge_block51_value_compiled = {
     Method_Block_Kernel_PortaBridge_block51_value_insts, 8,
-    6, 0,
+    6, 0, 0,
     Method_Block_Kernel_PortaBridge_block51_value_consts, 4,
     0
 };
@@ -11036,7 +11036,7 @@ static const uint32_t Method_Block_Kernel_PortaBridge_block52_value_insts[] = { 
 static const oop Method_Block_Kernel_PortaBridge_block52_value_consts[] = { NULL };
 static const struct CompiledMethod Method_Block_Kernel_PortaBridge_block52_value_compiled = {
     Method_Block_Kernel_PortaBridge_block52_value_insts, 3,
-    3, 0,
+    3, 0, 0,
     Method_Block_Kernel_PortaBridge_block52_value_consts, 1,
     0
 };
@@ -11049,7 +11049,7 @@ static const uint32_t Method_Block_Kernel_PortaBridge_block53_value_insts[] = { 
 static const oop Method_Block_Kernel_PortaBridge_block53_value_consts[] = { NULL };
 static const struct CompiledMethod Method_Block_Kernel_PortaBridge_block53_value_compiled = {
     Method_Block_Kernel_PortaBridge_block53_value_insts, 3,
-    3, 0,
+    3, 0, 0,
     Method_Block_Kernel_PortaBridge_block53_value_consts, 1,
     0
 };
@@ -11062,7 +11062,7 @@ static const uint32_t Method_Block_Kernel_PortaBridge_block54_value_insts[] = { 
 static const oop Method_Block_Kernel_PortaBridge_block54_value_consts[] = { NULL };
 static const struct CompiledMethod Method_Block_Kernel_PortaBridge_block54_value_compiled = {
     Method_Block_Kernel_PortaBridge_block54_value_insts, 3,
-    3, 0,
+    3, 0, 0,
     Method_Block_Kernel_PortaBridge_block54_value_consts, 1,
     0
 };
@@ -11075,7 +11075,7 @@ static const uint32_t Method_Block_Kernel_PortaBridge_block55_value__insts[] = {
 static const oop Method_Block_Kernel_PortaBridge_block55_value__consts[] = { (oop)&StaticSymbol_true, NULL };
 static const struct CompiledMethod Method_Block_Kernel_PortaBridge_block55_value__compiled = {
     Method_Block_Kernel_PortaBridge_block55_value__insts, 5,
-    4, 1,
+    4, 1, 0,
     Method_Block_Kernel_PortaBridge_block55_value__consts, 2,
     0
 };
@@ -11088,7 +11088,7 @@ static const uint32_t Method_Block_Kernel_Channel_block56_value_insts[] = { 0xFF
 static const oop Method_Block_Kernel_Channel_block56_value_consts[] = { NULL };
 static const struct CompiledMethod Method_Block_Kernel_Channel_block56_value_compiled = {
     Method_Block_Kernel_Channel_block56_value_insts, 3,
-    3, 0,
+    3, 0, 0,
     Method_Block_Kernel_Channel_block56_value_consts, 1,
     0
 };
@@ -11101,7 +11101,7 @@ static const uint32_t Method_Block_Kernel_Channel_block57_value_insts[] = { 0xFF
 static const oop Method_Block_Kernel_Channel_block57_value_consts[] = { NULL };
 static const struct CompiledMethod Method_Block_Kernel_Channel_block57_value_compiled = {
     Method_Block_Kernel_Channel_block57_value_insts, 3,
-    3, 0,
+    3, 0, 0,
     Method_Block_Kernel_Channel_block57_value_consts, 1,
     0
 };
@@ -11114,7 +11114,7 @@ static const uint32_t Method_Block_Kernel_Space_block58_value_insts[] = { 0xFF00
 static const oop Method_Block_Kernel_Space_block58_value_consts[] = { (oop)&StaticString__4 };
 static const struct CompiledMethod Method_Block_Kernel_Space_block58_value_compiled = {
     Method_Block_Kernel_Space_block58_value_insts, 3,
-    3, 0,
+    3, 0, 0,
     Method_Block_Kernel_Space_block58_value_consts, 1,
     0
 };
@@ -11127,7 +11127,7 @@ static const uint32_t Method_Block_Kernel_Space_block59_value_insts[] = { 0xFF00
 static const oop Method_Block_Kernel_Space_block59_value_consts[] = { (oop)&StaticString__4 };
 static const struct CompiledMethod Method_Block_Kernel_Space_block59_value_compiled = {
     Method_Block_Kernel_Space_block59_value_insts, 3,
-    3, 0,
+    3, 0, 0,
     Method_Block_Kernel_Space_block59_value_consts, 1,
     0
 };
@@ -11140,7 +11140,7 @@ static const uint32_t Method_Block_Kernel_Supervisor_block60_value__insts[] = { 
 static const oop Method_Block_Kernel_Supervisor_block60_value__consts[] = { (oop)&StaticSymbol_noteProgress };
 static const struct CompiledMethod Method_Block_Kernel_Supervisor_block60_value__compiled = {
     Method_Block_Kernel_Supervisor_block60_value__insts, 5,
-    5, 1,
+    5, 1, 0,
     Method_Block_Kernel_Supervisor_block60_value__consts, 1,
     0
 };
@@ -11153,7 +11153,7 @@ static const uint32_t Method_Block_Kernel_Supervisor_block61_value__insts[] = { 
 static const oop Method_Block_Kernel_Supervisor_block61_value__consts[] = { (oop)&StaticSymbol_handleCrash_ };
 static const struct CompiledMethod Method_Block_Kernel_Supervisor_block61_value__compiled = {
     Method_Block_Kernel_Supervisor_block61_value__insts, 6,
-    6, 1,
+    6, 1, 0,
     Method_Block_Kernel_Supervisor_block61_value__consts, 1,
     0
 };
@@ -11166,7 +11166,7 @@ static const uint32_t Method_Block_Kernel_Supervisor_block62_value__insts[] = { 
 static const oop Method_Block_Kernel_Supervisor_block62_value__consts[] = { (oop)&StaticSymbol_rootPath, (oop)&StaticSymbol__eq };
 static const struct CompiledMethod Method_Block_Kernel_Supervisor_block62_value__compiled = {
     Method_Block_Kernel_Supervisor_block62_value__insts, 8,
-    6, 1,
+    6, 1, 0,
     Method_Block_Kernel_Supervisor_block62_value__consts, 2,
     0
 };
@@ -11179,7 +11179,7 @@ static const uint32_t Method_Block_Kernel_Supervisor_block63_value_insts[] = { 0
 static const oop Method_Block_Kernel_Supervisor_block63_value_consts[] = { NULL };
 static const struct CompiledMethod Method_Block_Kernel_Supervisor_block63_value_compiled = {
     Method_Block_Kernel_Supervisor_block63_value_insts, 3,
-    3, 0,
+    3, 0, 0,
     Method_Block_Kernel_Supervisor_block63_value_consts, 1,
     0
 };
@@ -11192,7 +11192,7 @@ static const uint32_t Method_Block_Kernel_Supervisor_block64_value_insts[] = { 0
 static const oop Method_Block_Kernel_Supervisor_block64_value_consts[] = { NULL };
 static const struct CompiledMethod Method_Block_Kernel_Supervisor_block64_value_compiled = {
     Method_Block_Kernel_Supervisor_block64_value_insts, 3,
-    3, 0,
+    3, 0, 0,
     Method_Block_Kernel_Supervisor_block64_value_consts, 1,
     0
 };
@@ -11205,7 +11205,7 @@ static const uint32_t Method_Block_Kernel_Supervisor_block65_value__insts[] = { 
 static const oop Method_Block_Kernel_Supervisor_block65_value__consts[] = { (oop)&StaticSymbol_addresses_ };
 static const struct CompiledMethod Method_Block_Kernel_Supervisor_block65_value__compiled = {
     Method_Block_Kernel_Supervisor_block65_value__insts, 6,
-    6, 1,
+    6, 1, 0,
     Method_Block_Kernel_Supervisor_block65_value__consts, 1,
     0
 };
@@ -11218,7 +11218,7 @@ static const uint32_t Method_Block_Kernel_Supervisor_block66_value_insts[] = { 0
 static const oop Method_Block_Kernel_Supervisor_block66_value_consts[] = { NULL };
 static const struct CompiledMethod Method_Block_Kernel_Supervisor_block66_value_compiled = {
     Method_Block_Kernel_Supervisor_block66_value_insts, 3,
-    3, 0,
+    3, 0, 0,
     Method_Block_Kernel_Supervisor_block66_value_consts, 1,
     0
 };
@@ -11231,7 +11231,7 @@ static const uint32_t Method_Block_Kernel_Protocol_block67_value_insts[] = { 0xF
 static const oop Method_Block_Kernel_Protocol_block67_value_consts[] = { NULL };
 static const struct CompiledMethod Method_Block_Kernel_Protocol_block67_value_compiled = {
     Method_Block_Kernel_Protocol_block67_value_insts, 3,
-    3, 0,
+    3, 0, 0,
     Method_Block_Kernel_Protocol_block67_value_consts, 1,
     0
 };
@@ -11244,7 +11244,7 @@ static const uint32_t Method_Block_Kernel_Protocol_block68_value_insts[] = { 0xF
 static const oop Method_Block_Kernel_Protocol_block68_value_consts[] = { NULL };
 static const struct CompiledMethod Method_Block_Kernel_Protocol_block68_value_compiled = {
     Method_Block_Kernel_Protocol_block68_value_insts, 3,
-    3, 0,
+    3, 0, 0,
     Method_Block_Kernel_Protocol_block68_value_consts, 1,
     0
 };
@@ -11257,7 +11257,7 @@ static const uint32_t Method_Block_Kernel_Protocol_block69_value_insts[] = { 0xF
 static const oop Method_Block_Kernel_Protocol_block69_value_consts[] = { NULL };
 static const struct CompiledMethod Method_Block_Kernel_Protocol_block69_value_compiled = {
     Method_Block_Kernel_Protocol_block69_value_insts, 3,
-    3, 0,
+    3, 0, 0,
     Method_Block_Kernel_Protocol_block69_value_consts, 1,
     0
 };
@@ -11270,7 +11270,7 @@ static const uint32_t Method_Block_Kernel_Protocol_block70_block71_value__insts[
 static const oop Method_Block_Kernel_Protocol_block70_block71_value__consts[] = { (oop)&StaticSymbol_target, (oop)&StaticSymbol_containsKey_, (oop)&StaticSymbol_true, (oop)&StaticSymbol_false, (oop)&StaticString_unknown_u32state_95, (oop)&StaticSymbol_error_ };
 static const struct CompiledMethod Method_Block_Kernel_Protocol_block70_block71_value__compiled = {
     Method_Block_Kernel_Protocol_block70_block71_value__insts, 26,
-    10, 1,
+    10, 1, 0,
     Method_Block_Kernel_Protocol_block70_block71_value__consts, 6,
     0
 };
@@ -11283,7 +11283,7 @@ static const uint32_t Method_Block_Kernel_Protocol_block70_value__insts[] = { 0x
 static const oop Method_Block_Kernel_Protocol_block70_value__consts[] = { (oop)&Method_Block_Kernel_Protocol_block70_block71_value__compiled, (oop)&StaticSymbol_do_ };
 static const struct CompiledMethod Method_Block_Kernel_Protocol_block70_value__compiled = {
     Method_Block_Kernel_Protocol_block70_value__insts, 6,
-    6, 1,
+    6, 1, 0,
     Method_Block_Kernel_Protocol_block70_value__consts, 2,
     0
 };
@@ -11296,7 +11296,7 @@ static const uint32_t Method_Block_Kernel_Protocol_block72_value_insts[] = { 0xF
 static const oop Method_Block_Kernel_Protocol_block72_value_consts[] = { NULL };
 static const struct CompiledMethod Method_Block_Kernel_Protocol_block72_value_compiled = {
     Method_Block_Kernel_Protocol_block72_value_insts, 3,
-    3, 0,
+    3, 0, 0,
     Method_Block_Kernel_Protocol_block72_value_consts, 1,
     0
 };
@@ -11309,7 +11309,7 @@ static const uint32_t Method_Block_Kernel_Timers_block73_value_insts[] = { 0xFF0
 static const oop Method_Block_Kernel_Timers_block73_value_consts[] = { NULL };
 static const struct CompiledMethod Method_Block_Kernel_Timers_block73_value_compiled = {
     Method_Block_Kernel_Timers_block73_value_insts, 3,
-    3, 0,
+    3, 0, 0,
     Method_Block_Kernel_Timers_block73_value_consts, 1,
     0
 };
@@ -11322,7 +11322,7 @@ static const uint32_t Method_Block_Kernel_Timers_block74_value_insts[] = { 0xFF0
 static const oop Method_Block_Kernel_Timers_block74_value_consts[] = { NULL };
 static const struct CompiledMethod Method_Block_Kernel_Timers_block74_value_compiled = {
     Method_Block_Kernel_Timers_block74_value_insts, 3,
-    3, 0,
+    3, 0, 0,
     Method_Block_Kernel_Timers_block74_value_consts, 1,
     0
 };
@@ -11335,7 +11335,7 @@ static const uint32_t Method_Block_Kernel_Timers_block75_value_insts[] = { 0xFF0
 static const oop Method_Block_Kernel_Timers_block75_value_consts[] = { NULL };
 static const struct CompiledMethod Method_Block_Kernel_Timers_block75_value_compiled = {
     Method_Block_Kernel_Timers_block75_value_insts, 3,
-    3, 0,
+    3, 0, 0,
     Method_Block_Kernel_Timers_block75_value_consts, 1,
     0
 };
@@ -11348,7 +11348,7 @@ static const uint32_t Method_Block_Supervisor_block76_value__insts[] = { 0xFF000
 static const oop Method_Block_Supervisor_block76_value__consts[] = { (oop)&StaticSymbol_onBreakContext_ };
 static const struct CompiledMethod Method_Block_Supervisor_block76_value__compiled = {
     Method_Block_Supervisor_block76_value__insts, 6,
-    6, 1,
+    6, 1, 0,
     Method_Block_Supervisor_block76_value__consts, 1,
     0
 };

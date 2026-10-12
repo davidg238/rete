@@ -487,6 +487,8 @@ the MagTag is recaptured over its UART header (`layoutdump/prj_esp32s2.conf`).
 was deleted, so its size went from 28 to 24 and no other offset moved. This was checked rather than assumed: `_Static_assert`s on
 `sizeof` and every `offsetof` of the edited struct, against `src/oevm.h`, passed under the SDK's RV32 (ilp32), ARM
 (Cortex-M33) and both Xtensa compilers. A recapture should reproduce the files byte for byte.
+**A second hand edit, 2026-10-12 (rete#37 L6):** `CompiledMethod.num_arguments` narrowed to 16 bits and `shape` took
+the other half (offset 14); size and every other offset are unchanged. Checked the same way, under the same four compilers.
 
 **Capturing on a board whose console is its own USB (the dongle) takes three things that
 a UART target does not need**, all of them in `layoutdump/prj_dongle.conf` and

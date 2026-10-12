@@ -1,0 +1,17 @@
+oevm: build-id host
+oevm: program sha256 06045c8df6ee60e3364a92928f527c9f96d6ba28af4470bc5a231dc722d38192
+Bounce: 182
+List: 311
+Permute: 302
+Storage: 402
+Richards: 321
+Queens: 295
+Sieve: 164
+Towers: 254
+Mandelbrot: 1036
+NBody: 3226
+CD: 141
+DeltaBlue: 112
+Json: 268
+verified: true
+done

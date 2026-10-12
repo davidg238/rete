@@ -793,6 +793,28 @@ const char *oevm_inst_check(const struct CompiledMethod *m, size_t i, uint32_t i
 
 /* Control may not run past the last instruction: it must be OP_RET or OP_JMP
    (the compiler appends an OP_RET to every method). */
+/* rete#37 L6: the method's shape is a claim the send acts on without running the method, so it is
+   proved here, once: the instructions must be exactly what the shape stands for. */
+static const char *oevm_shape_check(const struct CompiledMethod *m) {
+    unsigned kind = METHOD_SHAPE_KIND(m->shape), slot = METHOD_SHAPE_SLOT(m->shape);
+    const uint32_t *p = cm_instructions((struct CompiledMethod *)m);
+    uint8_t op0 = p[0] & 0xFF, d0 = (uint8_t)(p[0] >> 8), s1 = (uint8_t)(p[0] >> 16), s2 = (uint8_t)(p[0] >> 24);
+    uint8_t op1 = m->instruction_count > 1 ? (p[1] & 0xFF) : 0xFF, d1 = (uint8_t)(p[1 % m->instruction_count] >> 8);
+    switch (kind) {
+    case SHAPE_ORDINARY: return slot == 0 ? NULL : "an ordinary shape carries a slot";
+    case SHAPE_GETTER:
+        return (op0 == OP_LD_SLOT && s2 == 0 && s1 == slot && op1 == OP_RET && d1 == d0)
+               ? NULL : "the getter shape does not match the instructions";
+    case SHAPE_SETTER:
+        return (op0 == OP_ST_SLOT && s2 == 0 && d0 == 1 && s1 == slot && op1 == OP_RET && d1 == 0
+                && m->num_arguments == 1)
+               ? NULL : "the setter shape does not match the instructions";
+    case SHAPE_SELF:
+        return (op0 == OP_RET && d0 == 0 && slot == 0) ? NULL : "the self shape does not match the instructions";
+    default: return "unknown method shape";
+    }
+}
+
 const char *oevm_method_check(struct CompiledMethod *m) {
     size_t n = m->instruction_count;
     if (n == 0) return "no instructions";
@@ -802,7 +824,8 @@ const char *oevm_method_check(struct CompiledMethod *m) {
         if (why) return why;
     }
     uint8_t last = p[n - 1] & 0xFF;
-    return (last == OP_RET || last == OP_JMP) ? NULL : "the last instruction is not OP_RET or OP_JMP";
+    if (last != OP_RET && last != OP_JMP) return "the last instruction is not OP_RET or OP_JMP";
+    return oevm_shape_check(m);
 }
 
 /* rete#37: the arithmetic the dispatch loop's SMI fast paths leave: SMI overflow, LargeInteger
@@ -904,6 +927,37 @@ static OEVM_HOT struct MethodContext *push_frame(oop closure, oop receiver, int 
     for (int i = ncopy + 1; i < m->num_registers; i++) ctx->regs[i] = NULL;
     current_frame = ctx;
     return ctx;
+}
+
+/* rete#37 L6: a send whose target is a getter, a setter or `^ self` (its shape, proved at load by
+   oevm_method_check) is answered here with no frame, as Toit's INVOKE_VIRTUAL_GET/SET does. Answers 1
+   with the result in *out, or 0 when the frame must be pushed after all: a receiver LD_SLOT/ST_SLOT
+   would refuse (they abort, and the frame path keeps that diagnostic), an image object a setter may
+   not mutate, a setter sent no argument (the frame would store NULL), or a debugger that must see the activation (a breakpoint or a step). */
+/* Called from send_resolve (dispatch.c), never from the loop: a test at each of the loop's send
+   sites cost ~10-20 % on rows with no accessor at all (host, Sieve 1.18x), through gcc's register
+   allocation across run_interpreter (the L2 lesson). From send_resolve the loop is unchanged: a
+   frameless answer comes back as a primitive's does, with no method to push. */
+OEVM_HOT int frameless_send(const struct CompiledMethod *m, oop rcvr, int argc, oop *args, oop *out) {
+#ifndef OEVM_NO_DEBUG_HOOKS
+    if (g_bp_count > 0 || g_single_step) return 0;
+#endif
+    unsigned kind = METHOD_SHAPE_KIND(m->shape);
+    if (kind == SHAPE_SELF) { *out = rcvr; goto done; }
+    if (rcvr == NULL || IS_SMI(rcvr)) return 0;
+    struct ObjectInstance *o = (struct ObjectInstance *)rcvr;
+    if (kind == SHAPE_GETTER) {
+        *out = instance_slot(o, METHOD_SHAPE_SLOT(m->shape));
+    } else {
+        if (argc < 1 || is_in_blob(o)) return 0;
+        o->slots[METHOD_SHAPE_SLOT(m->shape)] = args[0];
+        *out = rcvr;
+    }
+done:
+#ifdef OEVM_METHOD_PROFILE
+    mprof_bump((const void *)m);   /* the activation still counts: a profile must not lose accessors */
+#endif
+    return 1;
 }
 
 /* Decode a home_ctx discriminator value (frame_abi.h Option B) to the home
@@ -1997,7 +2051,7 @@ oop primitive_patch(oop text, int argc, oop *args) {
     why = "out of memory";
     m = oevm_malloc(sizeof *m);
     if (m == NULL) goto bad;
-    *m = (struct CompiledMethod){insts, ninst, (int)nregs, (int)nargs, consts, ncon};
+    *m = (struct CompiledMethod){insts, ninst, (int)nregs, (uint16_t)nargs, SHAPE_ORDINARY, consts, ncon};
     if ((why = oevm_method_check(m)) != NULL) goto bad;   /* rete#37: the loop trusts it from here */
     oop cl = gc_allocate(BytecodeClosureVtable, sizeof(struct Closure));
     struct Closure *c = (struct Closure *)cl;
