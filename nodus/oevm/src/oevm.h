@@ -518,7 +518,7 @@ oop vm_on_do(oop protBlock, oop predBlock, oop handlerBlock);
 oop vm_ensure(oop protBlock, oop cleanupBlock);
 void vm_raise(oop condition);
 extern oop g_raised_condition;
-extern oop g_kernel_instance;   /* Milestone E Task 1: Kernel module instance, captured at main:args: entry */
+extern oop g_kernel_instance;   /* Milestone E Task 1: Kernel module instance, set by the boot paths at app launch */
 
 int boundclass_is(oop o);
 oop make_closure(oop method);

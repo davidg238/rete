@@ -170,3 +170,12 @@ on the C6 and loses 2–4 % on the WeAct, so it is dropped, and L3 with it: the 
 and adds a test where the field is read. The destination register stored at send time trades the return's load and shift for a store
 at the send, so it was not tried. **Next: L5**, the `send_resolve` preamble behind the cache.
 
+## Addendum, 2026-10-12: L5 lands (Opt #16)
+
+`docs/results/2026-10-12-37-l5/`. Two parts of the preamble came out: the per-send `main:args:` test (the Kernel
+instance is set by the launch sites) and the repeated vtable reads (one, at the top). AWFY C6 0.985, WeAct 0.963. The
+capability compares, the `Symbol =` gate and the primitive id load remain ahead of the probe; folding them into
+entries the cache returns, as this design proposed, is the rest of L5 and is not started. A finding to keep: the first
+cut's +844 B came from `-Os` copying the primitive block for a known receiver vtable, and that copy was itself worth
+~1.5 %, which says a primitive test placed after the probe could be worth more than its instructions suggest.
+

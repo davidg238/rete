@@ -339,12 +339,14 @@ oop oimg_bootstrap(oop entry_vtable) {
 
         oop dbg_flag = platform_debug_enabled() ? TAG_SMI(1) : TAG_SMI(0);   /* rete#311 */
         oop run_args[4] = { inst, kernel_inst, TAG_SMI(0), dbg_flag };
+        g_kernel_instance = kernel_inst;   /* the raise prims' route to Record (vm.c) */
         oop res = send(supervisor_inst, oimg_resolve(img_supervisor_run_sel_ref), 4, run_args);
         gc_temp_roots_clear();
         return res;
     } else {
         /* pre-v5 image: original direct launch */
         oop main_args[2] = { kernel_inst, TAG_SMI(0) };
+        g_kernel_instance = kernel_inst;   /* the raise prims' route to Record (vm.c) */
         oop res = send(inst, oimg_resolve(img_main_sel_ref), 2, main_args);
         gc_temp_roots_clear();
         return res;

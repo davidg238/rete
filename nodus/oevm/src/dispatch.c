@@ -1130,8 +1130,8 @@ static oop make_string(const char *bytes, size_t len) {
 }
 
 /* Milestone E Task 1 (v2): build the in-flight crash Record via the captured
-   Kernel module instance (g_kernel_instance, stashed in send_resolve at the first
-   main:args: send) and raise it. The Kernel instance is the ONLY object that
+   Kernel module instance (g_kernel_instance, set by the boot paths at app launch)
+   and raise it. The Kernel instance is the ONLY object that
    reaches the `Record` class from any context — an app receiver cannot (the v1
    BLOCKED finding) — so we send it the public accessor `crashRecordTag:text:`,
    which answers `Record tag: aTag with: #text -> aText`. Then vm_raise longjmps to
@@ -1245,26 +1245,16 @@ static oop build_and_raise_default(oop text) {
 OEVM_HOT oop send_resolve(oop receiver, oop selector, int argc, oop *args,
                  oop *out_method, oop *out_recv, int *out_argc) {
     *out_method = NULL;
-    /* Milestone E Task 1: capture the Kernel module instance once, at the first
-       `main:args:` send. Both boot paths (oimg_loader.c and the solidified
-       run_solidified_entry_point) launch the app as `entry main: kernel_inst
-       args: 0`, so arg 0 IS the Kernel instance — the only object that reaches
-       the `Record` class from any context. The error:/error:tag: raise prims
-       need it to build the crash Record (an app receiver cannot reach Record
-       lexically — the v1 BLOCKED finding). The `== NULL` guard makes this a
-       one-shot; it runs before any app code, so g_kernel_instance is always set
-       before any error can fire. */
-    if (g_kernel_instance == NULL && selector != NULL && !IS_SMI(selector) &&
-        SymbolVtable != NULL && obj_vtable(selector) == SymbolVtable && argc >= 1 &&
-        strcmp(symbol_name((struct Symbol *)selector), "main:args:") == 0) {
-        g_kernel_instance = args[0];
-    }
+    /* rete#37 L5: the receiver's vtable, read once; the special receivers below and the
+       method lookup all test it. NULL for nil and, until just before the lookup, for an
+       SMI: an IntegerVtable arm here let -Os thread that constant through the primitive
+       block below and copy it (send_resolve +844 B on Cortex-M4). */
+    oop receiver_vtable = (receiver != NULL && !IS_SMI(receiver)) ? obj_vtable(receiver) : NULL;
     // BoundClass receiver: ANY send constructs the nested instance (see
     // BoundClassVtable). Must precede primitive interception so a construction
     // selector that happens to collide with a primitive name (e.g. `size`) still
     // constructs rather than running the primitive.
-    if (receiver != NULL && !IS_SMI(receiver) && boundclass_vtable_initialized &&
-        obj_vtable(receiver) == (oop)&BoundClassVtable) {
+    if (receiver_vtable == (oop)&BoundClassVtable) {
         return boundclass_construct(receiver, selector, argc, args);
     }
     /* tuvm#75 — Symbol `=` is VALUE-based (name bytes), not identity.
@@ -1280,8 +1270,7 @@ OEVM_HOT oop send_resolve(oop receiver, oop selector, int argc, oop *args,
        #75 for why interning (making the two agree) is the durable fix.
        Gated on the receiver vtable first, a single pointer compare, so this hot
        path costs ~nothing on the overwhelmingly common non-Symbol receiver. */
-    if (receiver != NULL && !IS_SMI(receiver) && SymbolVtable != NULL &&
-        obj_vtable(receiver) == SymbolVtable && argc == 1 &&
+    if (receiver_vtable == SymbolVtable && receiver_vtable != NULL && argc == 1 &&
         selector != NULL && !IS_SMI(selector) &&
         obj_vtable(selector) == SymbolVtable &&
         strcmp(symbol_name((struct Symbol *)selector), "=") == 0) {
@@ -2032,31 +2021,22 @@ OEVM_HOT oop send_resolve(oop receiver, oop selector, int argc, oop *args,
         }
     }
 
-    // Determine the receiver's Vtable
-    oop receiver_vtable;
-    if (IS_SMI(receiver)) {
-        receiver_vtable = IntegerVtable;
-    } else if (receiver == NULL) {
-        // Safe fallback for null/nil references
-        receiver_vtable = NULL;
-    } else {
-        receiver_vtable = obj_vtable(receiver);
-        if (receiver_vtable == BytecodeClosureVtable) {
-            if (SymbolVtable != NULL && obj_vtable(selector) == SymbolVtable) {
-                struct Symbol *sym = (struct Symbol *)selector;
-                const char *sname = symbol_name(sym);
-                if (strncmp(sname, "value", 5) == 0) {
-                    int colons = 0;
-                    for (const char *p = sname; *p; p++) {
-                        if (*p == ':') colons++;
-                    }
-                    /* Reflective block invoke: hand the closure back as a
-                       bytecode target (frame push / re-entrant run). */
-                    *out_method = receiver;
-                    *out_recv = receiver;
-                    *out_argc = colons;
-                    return NULL;
+    if (IS_SMI(receiver)) receiver_vtable = IntegerVtable;
+    if (receiver_vtable == BytecodeClosureVtable) {
+        if (SymbolVtable != NULL && obj_vtable(selector) == SymbolVtable) {
+            struct Symbol *sym = (struct Symbol *)selector;
+            const char *sname = symbol_name(sym);
+            if (strncmp(sname, "value", 5) == 0) {
+                int colons = 0;
+                for (const char *p = sname; *p; p++) {
+                    if (*p == ':') colons++;
                 }
+                /* Reflective block invoke: hand the closure back as a
+                   bytecode target (frame push / re-entrant run). */
+                *out_method = receiver;
+                *out_recv = receiver;
+                *out_argc = colons;
+                return NULL;
             }
         }
     }
