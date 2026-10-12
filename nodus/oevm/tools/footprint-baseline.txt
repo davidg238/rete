@@ -1,4 +1,16 @@
-# T0.3 footprint baseline — HOST config. Re-banked 2026-10-07 for rete#358 (David: yes).
+# T0.3 footprint baseline — HOST config. Re-banked 2026-10-11 for rete#37 (lean dispatch; revert if unwanted).
+#
+#  +1049 B  master 75214 -> 76263, drift since 2026-10-07 inside the 2 %: #412, #233, Opt #7-#9
+#           (attributed per merge in footprint-mcu-baseline.txt), not split further on the host.
+#   +864 B  rete#37 lean dispatch + load-time verifier (37-lean-dispatch, measured against master
+#           on msi-7d43): vm.o +411 (oevm_inst_check/oevm_method_check, net of the dispatch loop
+#           losing pc_end, the LD_CONST/LD_REG operand checks and the abort default);
+#           oimg_loader.o +453 (the v11 method-cluster walk and its bounds checks).
+#           Bought: the per-instruction checks leave the hot loop (C6 spike: 12-24 % every row).
+#   = 77127 total host text.
+#
+# Superseded header (2026-10-07, rete#358):
+#  T0.3 footprint baseline — HOST config. Re-banked 2026-10-07 for rete#358 (David: yes).
 #
 #  +2003 B  2026-08-26 .. #367 (master 6b1af5d and after): the #310 program region
 #           (`ota_sha256` made public, +316), the #311/#312 debug and profile work.
@@ -45,24 +57,25 @@
 # handles.c, and timer_posix.o — which was compiled and then omitted from its own
 # `size -t` line), of which only +8 B was real drift.
    text	   data	    bss	    dec	    hex	filename
-  15841	     20	   1192	  17053	   429d	vm.o
-  17624	   1333	 132832	 151789	  250ed	dispatch.o
-   4745	     24	17048448	17053217	1043621	gc.o
+  16466	     20	   1192	  17678	   450e	vm.o
+  17938	   1357	 132832	 152127	  2523f	dispatch.o
+   5049	     24	17048480	17053553	1043771	gc.o
     605	   1072	      4	   1681	    691	kernel_boot.o
-  13048	     28	   1032	  14108	   371c	platform.o
+  13148	     28	   1032	  14208	   3780	platform.o
     510	      0	     88	    598	    256	serial.o
     939	      0	     88	   1027	    403	udp.o
     474	      0	      0	    474	    1da	http.o
    2703	      4	    400	   3107	    c23	http_core.o
    1916	      0	     88	   2004	    7d4	mirror.o
-   2185	      0	    320	   2505	    9c9	oimg_loader.o
-   3203	      0	   9024	  12227	   2fc3	space.o
+   2638	      0	    320	   2958	    b8e	oimg_loader.o
+   3238	      0	  16448	  19686	   4ce6	space.o
     602	      0	    544	   1146	    47a	handles.o
-   4564	      0	      0	   4564	   11d4	ota.o
+   4601	      0	    176	   4777	   12a9	ota.o
     613	      0	    800	   1413	    585	span.o
-   1971	      8	    560	   2539	    9eb	platform_posix.o
+   1983	      8	    560	   2551	    9f7	platform_posix.o
     336	      0	   4128	   4464	   1170	serial_posix.o
-   1135	      0	      0	   1135	    46f	udp_posix.o
+   1168	      0	      0	   1168	    490	udp_posix.o
    1059	      4	      0	   1063	    427	http_posix.o
    1141	      4	   1056	   2201	    899	timer_posix.o
-  75214	   2497	17200604	17278315	107a56b	(TOTALS)
+  77127	   2521	17208236	17287884	107cacc	(TOTALS)
+data+bss (host proxy for MCU static RAM): 17210757

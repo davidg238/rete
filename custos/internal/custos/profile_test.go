@@ -27,7 +27,7 @@ type echoNode struct{ onLine func(string) }
 func (e echoNode) Send(line string) error {
 	go func() {
 		e.onLine("mprof[window]: methods=1 activations=5 overflow=0 cap=256")
-		e.onLine("mprof: 4088 5")
+		e.onLine("mprof: 4096 5")
 		e.onLine("mprof[window]: end")
 	}()
 	return nil
