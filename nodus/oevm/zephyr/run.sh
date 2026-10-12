@@ -507,13 +507,13 @@ export OEVM_HEAP_SIZE METHOD_CACHE_SIZE="${METHOD_CACHE_SIZE:-256}" \
 # both; only the export was missing.
 export OEVM_FLOAT_ARENA_SLAB_CELLS="${OEVM_FLOAT_ARENA_SLAB_CELLS:-512}" \
        OEVM_FLOAT_ARENA_SLAB_BUDGET="${OEVM_FLOAT_ARENA_SLAB_BUDGET:-4}"
-# OEVM_IRAM_HOT is Xtensa-only: zephyr/CMakeLists.txt:141-145 gates it on
-# CONFIG_XTENSA and FATAL_ERRORs if it is set on a non-Xtensa target. Stated as an
-# ALLOWLIST of the Xtensa parts rather than a list of the boards to unset it for:
+# OEVM_IRAM_HOT is an ESP32 knob (the Xtensa parts and, since rete#37, the C6):
+# zephyr/CMakeLists.txt gates it and FATAL_ERRORs if it is set on any other target. Stated as an
+# ALLOWLIST of those parts rather than a list of the boards to unset it for:
 # the deny-list shape meant every new non-Xtensa board (esp32c6, now nrf52840dk)
 # had to remember to add itself, and the failure mode is a FATAL_ERROR at configure
 # time on a board nobody has built yet.
-case "$BOARD_ID" in esp32|esp32s2) ;; *) unset OEVM_IRAM_HOT ;; esac
+case "$BOARD_ID" in esp32|esp32s2|esp32c6) ;; *) unset OEVM_IRAM_HOT ;; esac
 
 # src/solidified_image.c is TRACKED (the MethodCallTest fixture). A Model A bake
 # dirties it; restore on exit so it is never committed by accident. (A Model A
@@ -772,7 +772,7 @@ if [ "$BUILD_RC" = 0 ]; then
   HOT_SYM_ADDR=$(CCPATH=$(grep -o -m1 '[^" ]*-gcc' "$ZDIR/$BUILD_DIR/compile_commands.json" | head -1); \
     [ -n "$CCPATH" ] && "${CCPATH%-gcc}-nm" "$ZDIR/$BUILD_DIR/zephyr/zephyr.elf" 2>/dev/null | awk '$3=="run_interpreter"{print $1}')
   case "$BOARD_ID:${HOT_SYM_ADDR:0:4}" in
-    rpi_pico2:2000|weact_rp2350b:2000|feather_rp2040:2000|esp32*:4008|esp32*:4037|esp32*:4002)
+    rpi_pico2:2000|weact_rp2350b:2000|feather_rp2040:2000|esp32*:4008|esp32*:4037|esp32*:4002|esp32c6:4080|esp32c6:4081|esp32c6:4082|esp32c6:4083|esp32c6:4084|esp32c6:4085|esp32c6:4086|esp32c6:4087)
       echo "[build] hot path: SRAM (run_interpreter @ 0x$HOT_SYM_ADDR)" ;;
     rpi_pico2:*|weact_rp2350b:*|feather_rp2040:*|esp32*:*)
       echo "[build] hot path: FLASH (run_interpreter @ 0x${HOT_SYM_ADDR:-?}) — the XIP cache cliff, ZEPHYR_LESSONS §11; OEVM_HOT is not landing in RAM" >&2 ;;

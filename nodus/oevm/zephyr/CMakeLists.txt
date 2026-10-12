@@ -355,14 +355,20 @@ endif()
 if(CONFIG_XTENSA AND NOT "$ENV{OEVM_IRAM_HOT}" STREQUAL "0")
   target_compile_definitions(app PRIVATE OEVM_HOT_SECTION_IRAM=1)
   target_compile_options(app PRIVATE -mtext-section-literals)
+elseif(CONFIG_SOC_SERIES_ESP32C6 AND NOT "$ENV{OEVM_IRAM_HOT}" STREQUAL "0")
+  # rete#37: the C6 (RISC-V, no literal pools) collects .iram.text into SRAM the same way
+  # (soc/espressif/esp32c6/default.ld). In flash, any edit moved rows it did not touch by
+  # 2-8 % (L6, docs/results/2026-10-12-37-l6/). DEFAULT ON; OEVM_IRAM_HOT=0 opts out.
+  target_compile_definitions(app PRIVATE OEVM_HOT_SECTION_IRAM=1)
+  message(STATUS "oevm: hot path in SRAM (.iram.text, rete#37)")
 elseif(CONFIG_SOC_FAMILY_RPI_PICO AND NOT "$ENV{OEVM_RAM_HOT}" STREQUAL "0")
   # rete#403: the RP2350 is an XIP part too — the same placement, through Zephyr's
   # .ramfunc. Measured 2026-10-10 on a WeAct RP2350B: 6106 -> 3111 ms per Hanoi run.
   # Export OEVM_RAM_HOT=0 to keep the hot path in flash (the 2026-10-01 arrangement).
   target_compile_definitions(app PRIVATE OEVM_HOT_SECTION_RAMFUNC=1)
   message(STATUS "oevm: hot path in SRAM (.ramfunc, rete#403)")
-elseif(NOT CONFIG_XTENSA AND "$ENV{OEVM_IRAM_HOT}" STREQUAL "1")
-  message(FATAL_ERROR "OEVM_IRAM_HOT is an ESP32/Xtensa knob; unset it for this target")
+elseif(NOT CONFIG_XTENSA AND NOT CONFIG_SOC_SERIES_ESP32C6 AND "$ENV{OEVM_IRAM_HOT}" STREQUAL "1")
+  message(FATAL_ERROR "OEVM_IRAM_HOT is an ESP32 knob (Xtensa, C6); unset it for this target")
 endif()
 
 # Experiment (2026-07-17): OEOM native-substitution Hanoi spike. OFF by default.
