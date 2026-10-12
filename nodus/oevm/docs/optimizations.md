@@ -36,7 +36,7 @@ measured, whether or not it lands. The numbers and the reasoning live in the rec
 | 10-12 | L3-lite: `push_frame` and the return read the frame globals once into locals; `ctx` from `push_frame` | against L4(c): C6 AWFY 1.000, STIC 0.999; WeAct AWFY 1.024, STIC 1.037 | **dead end** on the WeAct (the L2 pattern) | same |
 | 10-12 | L5 with the SMI arm before the lookup (no copy) | AWFY: C6 0.985, WeAct 0.963; STIC: C6 0.987, WeAct 0.978; MCU text −11 B | merged first, then superseded by the row below | `docs/results/2026-10-12-37-l5/` |
 | 10-12 | L5: `send_resolve`'s head — the kernel instance set at launch, the receiver's vtable read once (SMI arm at the top) | AWFY: C6 0.978, WeAct 0.949; STIC: C6 0.980, WeAct 0.969; MCU text +860 B over the first merge, banked | kept, Opt #16 (David: give the ratchet the memory) | same |
-| 10-12 | the arena header in one word (size + mark bit; a free block's link in its payload) | level on every board (1.000 ± 0.002); −8 B per object on the boards | open: a memory lever, branch `37-alloc-hdr` | same |
+| 10-12 | the arena header in one word (size + mark bit; a free block's link in its payload) | level on every board (1.000 ± 0.002); −8 B per object on the boards; the smallest arena that verifies −12 % (board profile, Storage) to −19 % (Json) | kept, Opt #17 (a memory lever) | `docs/results/2026-10-12-37-alloc-hdr/` |
 | — | the jump table's bound check (`cmp`/`bhi`) | GCC 12 keeps it despite `__builtin_unreachable()` | open: only computed goto removes it; untried | Opt #11 |
 
 Open levers, not yet tried: the frame and send cost (next), GC performance (pause, throughput, heap high-water),
@@ -804,6 +804,14 @@ the vtable is read once. **AWFY C6 0.985, WeAct 0.963; STIC C6 0.987, WeAct 0.97
 (`docs/results/2026-10-12-37-l5/`), with the SMI arm before the lookup. With the arm at the top, `-Os` copies the
 primitive block for a known vtable: **AWFY C6 0.978, WeAct 0.949; STIC C6 0.980, WeAct 0.969**, for 860 B of MCU text.
 David chose the speed: the arm is at the top and the bank paid for it (`tools/footprint-mcu-baseline.txt`).
+
+## Opt #17 — the arena header in one word (rete#37, 2026-10-12)
+
+`struct HeapHeader` was three words (`next`, `size`, `marked`) before every arena object. The free-list link now lives
+in a free block's first payload word and the mark in bit 0 of the size: 12 → 4 B per object on the boards, 24 → 8 on
+the host, all inside `gc.c`. Speed level on every board (1.000 ± 0.002); it is a memory lever. **The smallest arena
+that verifies, board layout: AWFY board profile 154 → 136 KB, Storage 350 → 308 KB, Json 430 → 350 KB**
+(`docs/results/2026-10-12-37-alloc-hdr/`). Storage and Json still do not fit the boards' 256 KB.
 
 ## Known weaknesses / tracked gaps (snapshot 2026-06-18)
 

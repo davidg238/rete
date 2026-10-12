@@ -1,0 +1,3 @@
+board: 154 KB
+storage: 350 KB
+json: 430 KB

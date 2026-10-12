@@ -24,7 +24,7 @@ it at first (David: fix the footprint, then merge), then restored (David: give t
 **The one-word arena header** (`38c9b557`, branch `37-alloc-hdr`, `run1/`): `struct HeapHeader` from three words to
 one (the size with the mark in bit 0; a free block's link in its payload), 8 B less per object on the boards. Speed
 level on every board (1.000 ± 0.002): the board profile's 256 KB arena hardly ever collects and leaves Storage out, so
-the saving cannot show as time here. Not merged with L5; it is a memory lever, decided separately.
+the saving cannot show as time here. Not merged with L5; it is a memory lever, decided separately: kept as Opt #17 on a heap census, `../2026-10-12-37-alloc-hdr/`.
 
 Gates (msi, `aad8a67b`): nsl 298/0, every aux gate PASS (footprint included), PORTA SYNC OK. Revisions: master
 `c075cab1` (L4(c) merged). Builds `board_build.sh` on msi; runs `board_ab.sh` on opti7040, c6spare, c6b, WeActs usb
