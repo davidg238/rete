@@ -68,7 +68,8 @@ class OimgWriter:
                      supervisor_vtable_ref=0, supervisor_init_sel_ref=0,
                      supervisor_run_sel_ref=0, supervisor_nslots=0,
                      net_on_sel_ref=0,
-                     classnames_ref=0, classnames_count=0):
+                     classnames_ref=0, classnames_count=0,
+                     methods_ref=0, methods_count=0):
         # ---- .oimg header byte layout (CONTRACT — mirror in oevm/src/oimg_loader.c) ----
         # All multi-byte scalars little-endian. W = oop_size (8 on 64-bit, 4 on 32-bit).
         # Ref-words (root/init/main/kernel_vtable/kernel_init_sel) are W-wide, W-aligned.
@@ -92,9 +93,16 @@ class OimgWriter:
         # and classnames_count (u16) @a+14W. The DNU abort path uses it to name
         # an app-class receiver; nothing else reads it.
         #
+        # format_version 11 (rete#37): the METHOD cluster's descriptor follows —
+        # methods_ref (app ref-word to the first CompiledMethod) @a+15W and
+        # methods_count (u32) @a+16W. The cluster is dense, one record per
+        # ALIGN-rounded sizeof(CompiledMethod), so the loader can verify every
+        # method once at load (oimg_loader.c oevm_method_check) and the dispatch
+        # loop runs without per-instruction bound checks.
+        #
         #   off  width  field
         #   0    4      magic "OIMG"
-        #   4    2      format_version (u16: 10 when Kernel descriptor present;
+        #   4    2      format_version (u16: 11 when Kernel descriptor present;
         #                1 for a kernel-less minimal blob — header ends at the
         #                entry descriptor; serializer unit tests only)
         #   6    2      flags (u16, =0)
@@ -147,7 +155,7 @@ class OimgWriter:
                                       or net_on_sel_ref):
             raise ValueError("v9 header: serial/supervisor/net descriptors "
                              "require the Kernel descriptor")
-        version = 10 if kernel_vtable_ref else self.version
+        version = 11 if kernel_vtable_ref else self.version
         h = self.MAGIC
         h += self.u16(version) + self.u16(0)               # flags = 0
         h += self.u32(self.registry_version)
@@ -200,6 +208,11 @@ class OimgWriter:
             # v10: classnames section descriptor (rete#247).
             h += self.word(classnames_ref)
             h += self.u16(classnames_count)
+            if len(h) % W:
+                h += b"\x00" * (W - (len(h) % W))
+            # v11: the METHOD cluster descriptor (rete#37).
+            h += self.word(methods_ref)
+            h += self.u32(methods_count)
             if len(h) % W:
                 h += b"\x00" * (W - (len(h) % W))
         return h
@@ -601,6 +614,12 @@ class OimgSerializer:
                 cursor = _align(cursor)
                 self.offset[key] = cursor
                 cursor += size
+        # v11 CONTRACT (rete#37): the loader walks the METHOD cluster as a dense
+        # array of ALIGN-rounded records from methods_ref; hold it to that.
+        mstride = _align(self.structs["CompiledMethod"]["size"])
+        for i, key in enumerate(objs["METHOD"]):
+            assert self.offset[key] == self.offset[objs["METHOD"][0]] + i * mstride, \
+                f"METHOD cluster not dense at {key}"
 
         # trailing arrays
         def reserve(key, nbytes):
@@ -771,7 +790,10 @@ class OimgSerializer:
                                      net_on_sel_ref=net_on_sel_ref,
                                      classnames_ref=(self._aref("classnames")
                                                      if classname_vts else 0),
-                                     classnames_count=len(classname_vts))
+                                     classnames_count=len(classname_vts),
+                                     methods_ref=(self._aref(objs["METHOD"][0])
+                                                  if objs["METHOD"] else 0),
+                                     methods_count=len(objs["METHOD"]))
         assert len(header) == header_len, \
             f"header size mismatch: precomputed {header_len}, emitted {len(header)}"
         buf[0:len(header)] = header

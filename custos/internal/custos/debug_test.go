@@ -33,7 +33,7 @@ func (v *stubVM) Send(line string) error {
 	case strings.HasPrefix(line, "dbg:clear "):
 		reply = "dbg:ok clear"
 	case line == "dbg:backtrace":
-		reply = "dbg:frames 27544@1 4088@10"
+		reply = "dbg:frames 27488@1 4096@10"
 	case strings.HasPrefix(line, "dbg:inspect"):
 		reply = "dbg:stack off=1 r0=a Fixture r1=7"
 	}
@@ -144,7 +144,7 @@ func TestTheLongPollWakesOnAStop(t *testing.T) {
 	got := make(chan debug.State, 1)
 	go func() { got <- getState(t, fmt.Sprintf("%s/debug/state?after=%d", srv.URL, seq)) }()
 	time.Sleep(50 * time.Millisecond)
-	s.OnLine("dbg:paused break 27544 1")
+	s.OnLine("dbg:paused break 27488 1")
 	select {
 	case st := <-got:
 		if st.Run != "stopped" || st.Stop == nil || st.Stop.Line != 21 {

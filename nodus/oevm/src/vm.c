@@ -702,7 +702,7 @@ oop primitive_object_equals(oop receiver, int argc, oop *args) {
    home_ctx (capacity is permanently fixed — Milestone A), fresh generation
    tag, regs[0]=receiver, regs[1..argc]=args, remaining regs NULL. Advances
    vm_stack_ptr. Does NOT allocate (no GC hazard). The caller reloads
-   ctx/method/pc/pc_end from current_frame and continues the flat loop; OP_RET
+   ctx/method/pc from current_frame and continues the flat loop; OP_RET
    later pops this frame and delivers its result into the caller's dest register. */
 
 /* Milestone A Task 7: the stack is fixed-capacity (VM_STACK_INIT_WORDS) and never
@@ -717,6 +717,50 @@ static void stack_overflow_abort(size_t need, size_t cap) {
 #ifndef OEVM_NO_DEBUG_HOOKS
 static void apply_restart(struct MethodContext *ctx);   /* rete#313 */
 #endif
+
+/* rete#37: what the dispatch loop no longer checks per instruction, checked once
+   instead — at load for every image method, by the patch primitive for the
+   method it builds, by method:instructionAt:put: for the word it writes. Model A
+   methods are compiled into the firmware and are as trusted as its C. Answers
+   NULL, or why the instruction could not run as written. */
+const char *oevm_inst_check(const struct CompiledMethod *m, size_t i, uint32_t inst) {
+    uint8_t op = inst & 0xFF, a = (inst >> 8) & 0xFF, b = (inst >> 16) & 0xFF;
+    long target;
+    switch (op) {
+        case OP_LD_CONST:
+            return (b < m->constant_count && a < m->num_registers) ? NULL : "LD_CONST operand out of range";
+        case OP_LD_REG:
+            return (a < m->num_registers && b < m->num_registers) ? NULL : "LD_REG operand out of range";
+        case OP_JMP:
+            target = (long)i + 1 + (int16_t)(inst >> 8);
+            break;
+        case OP_JMP_IF_FALSE:
+        case OP_ITER_AT:
+            target = (long)i + 1 + (int16_t)(inst >> 16);
+            break;
+#ifdef OEVM_NO_DEBUG_HOOKS
+        case OP_BREAK:
+            return "OP_BREAK in a build without the debug hooks";
+#endif
+        default:
+            return op <= OP_IS_VT ? NULL : "unknown opcode";
+    }
+    return (target >= 0 && (size_t)target < m->instruction_count) ? NULL : "jump target outside the method";
+}
+
+/* Control may not run past the last instruction: it must be OP_RET or OP_JMP
+   (the compiler appends an OP_RET to every method). */
+const char *oevm_method_check(struct CompiledMethod *m) {
+    size_t n = m->instruction_count;
+    if (n == 0) return "no instructions";
+    const uint32_t *p = cm_instructions(m);
+    for (size_t i = 0; i < n; i++) {
+        const char *why = oevm_inst_check(m, i, p[i]);
+        if (why) return why;
+    }
+    uint8_t last = p[n - 1] & 0xFF;
+    return (last == OP_RET || last == OP_JMP) ? NULL : "the last instruction is not OP_RET or OP_JMP";
+}
 
 static OEVM_HOT struct MethodContext *push_frame(oop closure, oop receiver, int argc, oop *args) {
     struct Closure *cl = (struct Closure *)closure;
@@ -881,9 +925,12 @@ OEVM_HOT oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
     }
 
     const uint32_t *pc = cm_instructions(method);
-    const uint32_t *pc_end = pc + method->instruction_count;
     oop return_val = NULL;
-    while (pc < pc_end) {
+    /* rete#37: the loop trusts the method — its opcodes, its LD_CONST/LD_REG operands, its
+       jump targets, and that its last instruction is OP_RET or OP_JMP. oevm_method_check
+       (above) proved all of it once, at load or at patch, so nothing here re-checks
+       it per instruction: on the C6 that was 12-24 % of every blockcost row. */
+    for (;;) {
         /* C-assisted breakpoint match (Task 7). Gated: when no breakpoints are set
            this is a single predicted-not-taken branch per instruction. On a match
            fire debugger_hook exactly like the OP_BREAK path, but pause BEFORE pc
@@ -917,7 +964,6 @@ OEVM_HOT oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
                 pc = ctx->saved_pc;              /* unchanged -> fall through, execute pc */
                 /* rete#313: the hook may have restarted this frame into another method. */
                 method = (struct CompiledMethod *)closure_entry((struct Closure *)ctx->closure);
-                pc_end = cm_instructions(method) + method->instruction_count;
             }
         }
 #endif /* !OEVM_NO_DEBUG_HOOKS */
@@ -953,7 +999,6 @@ OEVM_HOT oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
                 pc = ctx->saved_pc;
                 /* rete#313: the hook may have restarted this frame into another method. */
                 method = (struct CompiledMethod *)closure_entry((struct Closure *)ctx->closure);
-                pc_end = cm_instructions(method) + method->instruction_count;
                 continue;
             } else {
                 pc++;
@@ -968,16 +1013,17 @@ OEVM_HOT oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
         uint8_t src2 = (inst >> 24) & 0xFF;
 
         switch (op) {
-            case OP_LD_CONST:
-                if (src1 < method->constant_count && dest < method->num_registers) {
-                    ctx->regs[dest] = oevm_int_demote(cm_const_at(method, src1)); /* canonicalize boxed int constants (https://github.com/davidg238/nsl-tuvm/issues/4) */
-                }
+            case OP_LD_CONST: {
+                /* canonicalize boxed int constants (nsl-tuvm#4): an image ref-word holds a 30-bit
+                   SMI and the VM's SMI is 31, so a literal in between ships as a LargeInteger and
+                   is demoted here. The SMI test is inline because nearly every constant is one. */
+                oop c = cm_const_at(method, src1);
+                ctx->regs[dest] = IS_SMI(c) ? c : oevm_int_demote(c);
                 break;
+            }
 
             case OP_LD_REG:
-                if (src1 < method->num_registers && dest < method->num_registers) {
-                    ctx->regs[dest] = ctx->regs[src1];
-                }
+                ctx->regs[dest] = ctx->regs[src1];
                 break;
 
             case OP_LD_SELF:
@@ -1175,7 +1221,6 @@ OEVM_HOT oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
                     ctx = current_frame;
                     method = (struct CompiledMethod *)closure_entry((struct Closure *)ctx->closure);
                     pc = cm_instructions(method);
-                    pc_end = pc + method->instruction_count;
                     continue;
                 }
                 OEVM_TRACE_PRINT("SEND END: selector=%s, receiver_reg=%d, result=%p\n", symbol_name((struct Symbol*)selector), src2, (void*)result);
@@ -1206,7 +1251,6 @@ OEVM_HOT oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
                     ctx = current_frame;
                     method = (struct CompiledMethod *)closure_entry((struct Closure *)ctx->closure);
                     pc = cm_instructions(method);
-                    pc_end = pc + method->instruction_count;
                     continue;
                 }
                 /* Fallback: an ordinary send (e.g. Association>>value). */
@@ -1220,7 +1264,6 @@ OEVM_HOT oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
                     ctx = current_frame;
                     method = (struct CompiledMethod *)closure_entry((struct Closure *)ctx->closure);
                     pc = cm_instructions(method);
-                    pc_end = pc + method->instruction_count;
                     continue;
                 }
 
@@ -1432,7 +1475,6 @@ OEVM_HOT oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
                         ctx = current_frame;
                         method = (struct CompiledMethod *)closure_entry((struct Closure *)ctx->closure);
                         pc = cm_instructions(method);
-                        pc_end = pc + method->instruction_count;
                         continue;
                     }
                 } else {
@@ -1446,7 +1488,6 @@ OEVM_HOT oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
                         ctx = current_frame;
                         method = (struct CompiledMethod *)closure_entry((struct Closure *)ctx->closure);
                         pc = cm_instructions(method);
-                        pc_end = pc + method->instruction_count;
                         continue;
                     }
                 }
@@ -1477,7 +1518,6 @@ OEVM_HOT oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
                     ctx = current_frame;
                     method = (struct CompiledMethod *)closure_entry((struct Closure *)ctx->closure);
                     pc = cm_instructions(method);
-                    pc_end = pc + method->instruction_count;
                     continue;
                 }
 
@@ -1487,8 +1527,7 @@ OEVM_HOT oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
             }
 
             default:
-                fprintf(stderr, "VM Error: Unknown opcode %d\n", op);
-                abort();
+                __builtin_unreachable();   /* rete#37: oevm_inst_check refuses any other opcode */
         }
 
         /* Normal instruction completion falls through to the step hook. The
@@ -1510,7 +1549,6 @@ OEVM_HOT oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
             ctx = caller;
             method = (struct CompiledMethod *)closure_entry((struct Closure *)ctx->closure);
             pc = ctx->saved_pc;
-            pc_end = cm_instructions(method) + method->instruction_count;
             uint8_t rdst = ((uint32_t)*(ctx->saved_pc - 1) >> 24) & 0xFF;
             ctx->regs[rdst] = return_val;
         }
@@ -1554,7 +1592,6 @@ OEVM_HOT oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
                 pc = ctx->saved_pc;
                 /* rete#313: the hook may have restarted this frame into another method. */
                 method = (struct CompiledMethod *)closure_entry((struct Closure *)ctx->closure);
-                pc_end = cm_instructions(method) + method->instruction_count;
             }
         }
 #endif /* !OEVM_NO_DEBUG_HOOKS */
@@ -1954,6 +1991,7 @@ oop primitive_patch(oop text, int argc, oop *args) {
     m = oevm_malloc(sizeof *m);
     if (m == NULL) goto bad;
     *m = (struct CompiledMethod){insts, ninst, (int)nregs, (int)nargs, consts, ncon, (int)access};
+    if ((why = oevm_method_check(m)) != NULL) goto bad;   /* rete#37: the loop trusts it from here */
     oop cl = gc_allocate(BytecodeClosureVtable, sizeof(struct Closure));
     struct Closure *c = (struct Closure *)cl;
     c->home_ctx = NULL;          /* a method closure homes to its own frame (push_frame) */
@@ -2128,6 +2166,16 @@ oop primitive_compiled_method_set_instruction_at(oop receiver, int argc, oop *ar
 
     if (idx < 0 || (size_t)idx >= cm->instruction_count) {
         fprintf(stderr, "VM Error: instructionAt:put: index %d out of bounds (max %zu)\n", idx, cm->instruction_count);
+        abort();
+    }
+    /* rete#37: the dispatch loop trusts what it runs, so the word must pass the load-time
+       check, and the last instruction must stay one control cannot run past. */
+    const char *why = oevm_inst_check(cm, (size_t)idx, bytecode);
+    if (why == NULL && (size_t)idx == cm->instruction_count - 1 &&
+        (bytecode & 0xFF) != OP_RET && (bytecode & 0xFF) != OP_JMP)
+        why = "the last instruction must stay OP_RET or OP_JMP";
+    if (why) {
+        fprintf(stderr, "VM Error: instructionAt:put: %s\n", why);
         abort();
     }
 

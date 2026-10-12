@@ -18,6 +18,11 @@ int oimg_load_blob(const uint8_t *base, size_t size);
    classnames section, or NULL. Used by the DNU abort path. */
 const char *oimg_vtable_name(oop vt);
 
+/* rete#37: the load-time verifier (vm.c, beside the loop that trusts it) — NULL, or why the dispatch loop
+   could not run the method / the instruction at index i as written. */
+const char *oevm_method_check(struct CompiledMethod *m);
+const char *oevm_inst_check(const struct CompiledMethod *m, size_t i, uint32_t inst);
+
 /* BUILTIN_COUNT: derived from builtins.def via X-macro counter so it stays
  * in lockstep automatically when new rows are appended to the .def file.
  * Defined as an enum constant so it can be used as a C array size. */

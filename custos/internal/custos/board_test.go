@@ -211,13 +211,13 @@ func TestABoardOnACableIsCollectedAndItsVerbsSubscribe(t *testing.T) {
 	if got := <-port.sent; got != "profile 10\n" {
 		t.Fatalf("sent %q", got)
 	}
-	w.Write([]byte("mprof[window]: methods=1 activations=5 overflow=0 cap=256\nmprof: 4088 5\nmprof[window]: end\n"))
+	w.Write([]byte("mprof[window]: methods=1 activations=5 overflow=0 cap=256\nmprof: 4096 5\nmprof[window]: end\n"))
 	if code := <-done; code != 200 {
 		t.Fatalf("capture: %d", code)
 	}
 
 	data, _ := os.ReadFile(day)
-	for _, want := range []string{"@@rete-console@@ collector started", " oevm: build-id B1\n", " dbg:ready\n", " mprof: 4088 5\n"} {
+	for _, want := range []string{"@@rete-console@@ collector started", " oevm: build-id B1\n", " dbg:ready\n", " mprof: 4096 5\n"} {
 		if !strings.Contains(string(data), want) {
 			t.Errorf("the day log lacks %q:\n%s", want, data)
 		}
