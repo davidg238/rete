@@ -1,4 +1,10 @@
-# T0.3 footprint baseline — HOST config. Re-banked 2026-10-12 for rete#37 Opt #11 (David: yes, the drift is small).
+# T0.3 footprint baseline — HOST config. Re-banked 2026-10-12 (later) for rete#37 Opt #12 (David: lock in L1).
+#
+#   -872 B  77801 -> 76929: L1, the access mechanism deleted (check_access_allowed and its helpers,
+#           trigger_access_violation, CompiledMethod.access_modifier, builtin #14), measured on msi-7d43 at 78a4920d.
+#           Lowered so the ratchet holds the saving. Bought: AWFY C6 0.936, WeAct 0.961, host 0.963.
+#
+# Previous header (2026-10-12): Re-banked 2026-10-12 for rete#37 Opt #11 (David: yes, the drift is small).
 #
 #   +674 B  77127 -> 77801: the dispatch head (per-case operand decode, the SMI fast paths, arith_slow
 #           with Float first), measured on msi-7d43 at 532a2391. Bought: WeAct STIC every row 0.7-24 %.
@@ -63,17 +69,17 @@
 # handles.c, and timer_posix.o — which was compiled and then omitted from its own
 # `size -t` line), of which only +8 B was real drift.
    text	   data	    bss	    dec	    hex	filename
-  17140	     20	   1192	  18352	   47b0	vm.o
-  17938	   1357	 132832	 152127	  2523f	dispatch.o
-   5049	     24	17048480	17053553	1043771	gc.o
-    605	   1072	      4	   1681	    691	kernel_boot.o
+  16727	     20	   1192	  17939	   4613	vm.o
+  17519	   1357	 132832	 151708	  2509c	dispatch.o
+   5037	     24	17048480	17053541	1043765	gc.o
+    577	   1008	      4	   1589	    635	kernel_boot.o
   13148	     28	   1032	  14208	   3780	platform.o
     510	      0	     88	    598	    256	serial.o
     939	      0	     88	   1027	    403	udp.o
     474	      0	      0	    474	    1da	http.o
    2703	      4	    400	   3107	    c23	http_core.o
    1916	      0	     88	   2004	    7d4	mirror.o
-   2638	      0	    320	   2958	    b8e	oimg_loader.o
+   2638	      0	    312	   2950	    b86	oimg_loader.o
    3238	      0	  16448	  19686	   4ce6	space.o
     602	      0	    544	   1146	    47a	handles.o
    4601	      0	    176	   4777	   12a9	ota.o
@@ -83,5 +89,5 @@
    1168	      0	      0	   1168	    490	udp_posix.o
    1059	      4	      0	   1063	    427	http_posix.o
    1141	      4	   1056	   2201	    899	timer_posix.o
-  77801	   2521	17208236	17288558	107cd6e	(TOTALS)
-data+bss (host proxy for MCU static RAM): 17210757
+  76929	   2457	17208228	17287614	107c9be	(TOTALS)
+data+bss (host proxy for MCU static RAM): 17210685
