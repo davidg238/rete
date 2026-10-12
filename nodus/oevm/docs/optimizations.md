@@ -10,6 +10,30 @@ improvements are traceable.
 bottleneck), [block-inlining](topics.md#block-inlining) and
 [scope-vs-frame](topics.md#scope-vs-frame) (the structural fix in progress).
 
+## Ledger: every attempt, kept or not (from 2026-10-10)
+
+One row per thing tried, including the dead ends, so "why did you …" has an answer. Add a row whenever an attempt is
+measured, whether or not it lands. The numbers and the reasoning live in the record named in each row.
+
+| date | attempt | result | verdict | record |
+|---|---|---|---|---|
+| 10-10 | hot path in SRAM on the RP2350 (`OEVM_HOT`), the image left in flash | XIP fetches cost 2–2.7× once the image outgrew the 16 KB cache; 8.4 KB in SRAM gave it back | kept (#403, #412) | `docs/results/2026-10-10-296-image-in-sram.md` |
+| 10-10 | the image itself in SRAM (a second, RAM-heavy build for speed) | 0–5 % | **dead end**: no RAM split for speed (#296 §7) | same |
+| 10-11 | caching the method lookup harder | a send is ~707 cycles on the C6, the lookup ~85 of them | **dead end**: the cost is the frame, not the lookup | `docs/spikes/2026-10-11-37-c6-send-cost/` on branch `37-c6-send-cost-spike` |
+| 10-11 | `oc do:` lowered by hand, without a fused iterate step | does not reach MicroPython | **dead end**; the fused step became Opt #7 | `docs/spikes/2026-10-11-37-ocdo-lowered/` |
+| 10-11 | `OP_ITER_AT`, the kernel's `do:` in one dispatch per element | ocDo 7668 → 5594 ms (WeAct) | kept, Opt #7 | Opt #7 below |
+| 10-11 | literal iterator blocks inlined behind a class guard (`OP_IS_VT`) | collectionIterate 100.8 → 15.8 s | kept, Opt #8 | `docs/spikes/2026-10-11-37-do-inline/`, Opt #8 |
+| 10-11 | the send levers (fast opcodes in kernel collections, prim 163) | arrayWrite 67.7 → 22.9 s | kept, Opt #9 | `docs/spikes/2026-10-11-37-send-levers/`, Opt #9 |
+| 10-11 | per-instruction checks removed, a load-time verifier added | every row 2.4–17.8 %; the verifier costs 7–11 ms a boot | kept, Opt #10 | `docs/results/2026-10-11-37-lean-dispatch/` |
+| 10-11 | `oevm_int_demote` moved to image build | impossible: image SMIs are 30-bit, the VM's 31 | **dead end**; the SMI test is inline instead | Opt #10 |
+| 10-11 | operands decoded per case; SMI + − × on tagged words | every row 0.7–24 % | kept, Opt #11 | `docs/results/2026-10-11-37-dispatch-head/` |
+| 10-11 | the arithmetic slow path inlined in the loop | floatMath fixed, every other row +2–3 % (register pressure) | **dead end**: out of line, Float first | same |
+| 10-11 | peephole result forwarding (`op t; LD_REG v,t` → `op v`) | integerMath −2.3 %, alloc/dictionaryWrite +2 %, fixture churn | **dead end** for now | same, branch `37-dispatch-head` |
+| — | the jump table's bound check (`cmp`/`bhi`) | GCC 12 keeps it despite `__builtin_unreachable()` | open: only computed goto removes it; untried | Opt #11 |
+
+Open levers, not yet tried: the frame and send cost (next), GC performance (pause, throughput, heap high-water),
+compiler bytecodes (fused compare-branch, add-immediate), Dictionary as a prim, unboxed floats (W2b).
+
 ## Method
 
 - **Benchmark:** `./bench.sh <test.ns> [runs]` compiles the `.ns` via the canonical

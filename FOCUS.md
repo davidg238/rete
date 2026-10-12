@@ -12,8 +12,8 @@ blocks are in `docs/status/focus-history.md`; live state is in the issues and `d
 - **Second thread, opti7040: #37 (RP2350 first, then what fits smaller parts).** Opt #11 merged 2026-10-12 (`5596ca03`): per-case
   operand decode, SMI arithmetic on the tagged words; WeAct STIC every row 0.7–24 %; C6 cross-VM: nsl beats Toit on 5/8 STIC rows, Toit
   6–7× on Richards/DeltaBlue (`docs/results/2026-10-12-37-c6-cross-vm/`). **Starts with (David, 2026-10-12): the frame and send cost**
-  (~500 cycles a round trip): a design step. Draft in `docs/design/`, measure on Richards on c6spare. Then the S2 verifier boot cost (MagTag
-  in hand), compiler bytecodes (fused cmp-branch, add-imm), Dictionary as a prim. No RAM split for speed (#296 §7).
+  (~500 cycles a round trip): a design step. Draft in `docs/design/`, measure on Richards on c6spare. Bench: Are We Fast Yet (plan on #37). Then GC performance,
+  the S2 verifier boot cost (MagTag in hand), compiler bytecodes, Dictionary as a prim. Every attempt gets a row in optimizations.md's Ledger. No RAM split for speed (#296 §7).
 - **Awaiting David:** #368's last item, the history rewrite (private names, force-push); close #314; #396;
   read E draft 4 and L; #175's memo; the dongle reflash from master (#402); the RP2 remote-BOOTSEL design (#413).
 - **Bench:** the bell `c6` is on the WALL (never flash). `c6spare` on opti7040 USB (`/dev/ttyUSB1`, CP2102N `…d2e21074…`; msi's `console-c6spare.env` still names it there), holds MicroPython 1.29.0 (the cross-VM run; driver `docs/results/2026-10-12-37-c6-cross-vm/run_all.sh`). MagTag
