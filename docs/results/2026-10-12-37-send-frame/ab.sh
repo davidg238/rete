@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # rete#37 send/frame levers: AWFY on the host, nsl revision A against revision B, interleaved (README.md beside this
 # file). Each revision is built from its own tree (its compiler and its -O2 image VM, since a lever may change both);
-# both run the same host-scaled awfy.nsl (the counts of docs/results/2026-10-12-37-awfy-soup/run_all.sh).
+# both run the same awfy.nsl, at awfy_counts.py's host profile.
 # Usage: ab.sh REV_A REV_B RUNS OUT
 set -euo pipefail
 A=$1 B=$2 RUNS=$3
@@ -10,16 +10,7 @@ OUT=$(mkdir -p "$4/logs" && cd "$4" && pwd)
 W=$(mktemp -d /tmp/awfy-ab-XXXXXX)
 trap 'git -C "$REPO" worktree remove --force "$W/a" 2>/dev/null; git -C "$REPO" worktree remove --force "$W/b" 2>/dev/null; rm -rf "$W"' EXIT
 
-sed -E \
-  -e "s/(bench: Bounce new +inner: )1\)/\1300)/"       -e "s/(bench: List new +inner: )1\)/\1100)/" \
-  -e "s/(bench: Permute new +inner: )1\)/\1200)/"      -e "s/(bench: Storage new +inner: )1\)/\1200)/" \
-  -e "s/(bench: Richards new +inner: )1\)/\15)/"       -e "s/(bench: Queens new +inner: )1\)/\1200)/" \
-  -e "s/(bench: Sieve new +inner: )1\)/\1300)/"        -e "s/(bench: Towers new +inner: )1\)/\160)/" \
-  -e "s/(bench: NBody new +inner: )1\)/\1250000)/"     -e "s/(bench: DeltaBlue new +inner: )100\)/\12000)/" \
-  -e "s/(bench: Json new +inner: )1\)/\120)/" \
-  "$REPO/nodus/tests/00_perf/awfy.nsl" > "$W/awfy-host.nsl"
-[ "$(diff "$REPO/nodus/tests/00_perf/awfy.nsl" "$W/awfy-host.nsl" | grep -c '^>')" = 11 ] \
-  || { echo "ab: awfy.nsl's runAll moved; update the counts" >&2; exit 1; }
+python3 "$REPO/nodus/tests/00_perf/awfy_counts.py" host > "$W/awfy-host.nsl"   # the host profile: counts in one place
 
 build() {  # build <tag> <rev>
   local t=$W/$1 P=posix
