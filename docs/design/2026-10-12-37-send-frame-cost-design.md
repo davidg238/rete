@@ -181,3 +181,11 @@ cut's +844 B came from `-Os` copying the primitive block for a known receiver vt
 Later the same evening (David): the 844 B were given to the ratchet, and the SMI arm went back to the top: L5 stands at
 AWFY C6 0.978, WeAct 0.949.
 
+## Addendum, 2026-10-12 (night): the rest of L5 (Opt #18)
+
+`docs/results/2026-10-12-37-l5-rest/`. Not by cache entries, as proposed above: each remaining test went where its
+case already lives. `Symbol =` into the `=` prim's case; the capabilities to the lookup miss (their vtables are
+empty); the selector's Symbol-ness proved at load, leaving one `prim_id` load ahead of the probe. AWFY C6 0.918, WeAct
+0.926 against Opt #16; the selector check was the large part, because `obj_vtable` on an image literal is a blob test
+and an `oimg_resolve`, not a load. The ~85-cycle bound this design put on L5 was the lookup's; the preamble ahead of
+it was not inside that bound.

@@ -37,6 +37,10 @@ measured, whether or not it lands. The numbers and the reasoning live in the rec
 | 10-12 | L5 with the SMI arm before the lookup (no copy) | AWFY: C6 0.985, WeAct 0.963; STIC: C6 0.987, WeAct 0.978; MCU text −11 B | merged first, then superseded by the row below | `docs/results/2026-10-12-37-l5/` |
 | 10-12 | L5: `send_resolve`'s head — the kernel instance set at launch, the receiver's vtable read once (SMI arm at the top) | AWFY: C6 0.978, WeAct 0.949; STIC: C6 0.980, WeAct 0.969; MCU text +860 B over the first merge, banked | kept, Opt #16 (David: give the ratchet the memory) | same |
 | 10-12 | the arena header in one word (size + mark bit; a free block's link in its payload) | level on every board (1.000 ± 0.002); −8 B per object on the boards; the smallest arena that verifies −12 % (board profile, Storage) to −19 % (Json) | kept, Opt #17 (a memory lever) | `docs/results/2026-10-12-37-alloc-hdr/` |
+| 10-12 | L5 rest R1: Symbol `=` inside the `=` prim's case; `platform_object()` resolved once | AWFY C6 0.977, WeAct 0.984; STIC C6 0.979, WeAct 0.986; MCU text +940 B (`-Os` copies the prim block with the arm in it) | kept, part of Opt #18 | `docs/results/2026-10-12-37-l5-rest/` |
+| 10-12 | L5 rest R2: the capability receivers tested on the lookup miss (empty vtables) | cumulative AWFY C6 0.970, WeAct 0.966; STIC C6 0.982, WeAct 0.974; MCU text −384 B | kept, part of Opt #18 | same |
+| 10-12 | L5 rest R3: a send's selector proved a Symbol at load, the prim test one `prim_id` load | cumulative AWFY C6 0.918, WeAct 0.926; STIC C6 0.941, WeAct 0.939; MCU text +890 B over master, inside the 2 % | kept, Opt #18 | same |
+| 10-12 | Symbol `=` out of line (`noinline`), to shrink R1's copy | MCU text +44 B worse | **dead end** | same |
 | — | the jump table's bound check (`cmp`/`bhi`) | GCC 12 keeps it despite `__builtin_unreachable()` | open: only computed goto removes it; untried | Opt #11 |
 
 Open levers, not yet tried: the frame and send cost (next), GC performance (pause, throughput, heap high-water),
@@ -812,6 +816,16 @@ in a free block's first payload word and the mark in bit 0 of the size: 12 → 4
 the host, all inside `gc.c`. Speed level on every board (1.000 ± 0.002); it is a memory lever. **The smallest arena
 that verifies, board layout: AWFY board profile 154 → 136 KB, Storage 350 → 308 KB, Json 430 → 350 KB**
 (`docs/results/2026-10-12-37-alloc-hdr/`). Storage and Json still do not fit the boards' 256 KB.
+
+## Opt #18 — nothing ahead of the probe but the prim id (rete#37 L5, 2026-10-12)
+
+After Opt #16 every send still tested, before the method cache probe, the `Symbol =` gate, three capability
+receivers, and the selector (NULL, SMI, its vtable — on an image literal a blob check and an `oimg_resolve`). The
+`Symbol =` arm moved into the `=` prim's case, the capabilities to the lookup miss (their vtables are empty), and the
+loader now proves every send instruction's selector constant is a Symbol (`oevm_inst_check`), so the prim test is one
+load of `prim_id`; `send()` checks its C callers. **AWFY C6 0.918, WeAct 0.926; STIC C6 0.941, WeAct 0.939**
+(`docs/results/2026-10-12-37-l5-rest/`); the sending rows gain 8–19 %, the rest are level. MCU text +890 B, inside the
+ratchet's 2 % (40 B left). A prim selector sent to a capability is now answered by the prim instead of aborting.
 
 ## Known weaknesses / tracked gaps (snapshot 2026-06-18)
 
