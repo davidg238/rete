@@ -11,16 +11,15 @@ blocks are in `docs/status/focus-history.md`; live state is in the issues and `d
   get the stub runner — move it to `prj_esp32s2.conf` (check storage vs the slots), add the slots-without-settings guard in `runner.c`;
   (2) the S2 recipe at `OEVM_SPACE_MAX_CHANNELS=16`, `OEVM_MPROF_SLOTS` default — one BOOT0+RESET flash, read `space:`;
   (3) the bell over Thread (daylight, `flash-bell.sh`); then #398.
-- **Second thread, opti7040: #37.** Opt #8 merged (literal iterator blocks inlined behind `OP_IS_VT`; STIC collection iterate
-  100.8 → 15.9 s WeAct, 122.6 → 22.2 s ESP32). Send-lever spikes on `37-send-levers-spike` (pushed, not merged; record
-  `docs/spikes/2026-10-11-37-send-levers/`). **Starts with Q1–4, all approved (David, 2026-10-11: "yes to 1-4"):** (1) land the levers (tests for prim
-  163 + stored hashes, msi gates, Opt #9); (2) STIC with them on c6spare only (David: "do all on c6spare", "esp32 too painful": no more WROOM-32 runs; c6spare's probe may be overwritten);
-  (3) push the STIC README (`cc35e88`, local on msi `~/workspaceToit/stic`); (4) measure send cost on the board before any design.
+- **Second thread, opti7040: #37.** Opt #9 (the send levers) merged `173211b5`; STIC on c6spare `docs/results/2026-10-11-37-stic-c6/`.
+  Q4 measured (spike `37-c6-send-cost-spike`, `docs/spikes/2026-10-11-37-c6-send-cost/`): code placement is not the cost on the C6;
+  a send ~707 cycles = lookup ~85 + frame/entry/return ~620; ~60–75 cycles per instruction (estimated). **Starts with:** count the
+  instructions each blockcost row dispatches (host + c6spare), then split one instruction with `rdcycle` — before any design.
 - **Awaiting David:** #368's last item, the history rewrite (private names, force-push); close #314; #396;
-  read E draft 4 and L; #175's memo; the dongle reflash from master (#402); the RP2 remote-BOOTSEL design (#413).
-- **Bench:** the bell `c6` is on the WALL (never flash). `c6spare` now on opti7040 USB (`/dev/ttyUSB1`, CP2102N `…d2e21074…`; msi's `console-c6spare.env` still names it there). MagTag
+  read E draft 4 and L; #175's memo; the MCU footprint re-bank to 44252 (#37, revert if unwanted); the dongle reflash from master (#402); the RP2 remote-BOOTSEL design (#413).
+- **Bench:** the bell `c6` is on the WALL (never flash). `c6spare` on opti7040 USB (`/dev/ttyUSB1`, CP2102N `…d2e21074…`; msi's `console-c6spare.env` still names it there), holds the blockcost IRAM spike image. MagTag
   `7cdfa11aaaaa` on the extender, build `…T140328` + program v2 (slot b, confirmed); enumerates only in BOOT0+RESET.
-  **opti7040: both RP2350s parked in BOOTSEL** (WeAct `1-7`: the levers STIC image; Zero `1-3`); a UF2 on the volume boots them; build on msi.
+  **opti7040: both RP2350s parked in BOOTSEL** (WeAct `1-7`: the levers STIC image; Zero `1-3`); msi build worktree `~/rete-37c6`; a UF2 on the volume boots them; build on msi.
   The plain ESP32 (WROOM-32, CP2104 `/dev/ttyUSB0`) is retired from #37 work (David: too painful).
 - **Decided — do not re-litigate:** custos = nsl peer, porta language-neutral (D1–D2); share only `protocol/` (#338); agent first,
   HTTP the only agent surface (D11–D12); D13–D19; hot patch debug-build only (#313); one suite lock (#314); no third node (#384);
@@ -28,6 +27,6 @@ blocks are in `docs/status/focus-history.md`; live state is in the issues and `d
   OTA: code-push design §10 T1–T10 (in-channel on the S2, registry a knob, run.sh: the caller's value wins); XIP hot path in RAM,
   `-O2` on RP2350 (#403); `OEVM_HOT` + peephole on (#412); **one licence, Apache-2.0, porta and devsdk included; third-party
   code keeps its headers (#368, README §License, 2026-10-11)**; modifying a collection inside its own `do:` is undefined, no fail-fast (dialect row 33); `OP_ITER_AT` kernel-only (#37 design D3);
-  iterator inlining: both receivers, slots by name, off in debug, land (#37 do-inline design); collection initial capacity stays 8.
+  iterator inlining: both receivers, slots by name, off in debug, land (#37 do-inline design); collection initial capacity stays 8; stored hashes compare with `=` (Opt #9).
 - **Weekly review, not scheduled:** #175, #280, #282–#287, #290, #291, #298, #299, #303, #304, #306–#309, #315–#322, #324–#328,
   #331–#335, #345–#357, #359–#361, #363, #366, #369–#374, #378, #382–#397, #399–#401, #404–#411, #413–#415, #417.
