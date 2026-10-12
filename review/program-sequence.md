@@ -2670,6 +2670,22 @@ hacks for benchmarks; every lever kept removes work any program pays.
 Record: `nodus/oevm/docs/optimizations.md` (Opt #7–#19, the ledger, the deferred fronts);
 `docs/design/2026-10-12-37-send-frame-cost-design.md`; `docs/results/2026-10-12-37-c6-cross-vm/`.
 
+## Method visibility, enforced as Newspeak defines it — 2026-10-12, #372
+
+**`public`/`protected`/`private` are enforced; an unmarked member is `protected`.** An ordinary send answers DNU where
+it finds a protected method (a subclass that narrows a selector hides it) and passes a private one by; a send to self,
+an implicit send, `outer` and `super` reach protected methods, virtually; a private method is lexical, settled by the
+compiler. Nothing is checked on a cache hit: the level is a header field read at a fill. David ruled visibility a
+mandatory language feature; capability security needs naming an object not to hand over everything inside it.
+
+1. **The corpus kept every send that worked:** unmarked slots became `private` (on master they had no accessor), and
+   unmarked methods and classes some explicit send names became `public`. Protected accessors no send names are not built.
+2. **Cost on c6spare: AWFY 1.018, STIC 1.010 against master** (David: merge, record). The board earned the private
+   send's cache (uncached: AWFY 1.034); the two remaining fronts are deferred with what would earn them.
+
+Record: `nodus/nsl/docs/NEWSPEAK_DIALECT.md` row 25; `nodus/oevm/docs/optimizations.md` ("A cost, not a lever");
+`docs/design/2026-10-12-372-method-visibility-design.md`; `docs/results/2026-10-12-372-visibility-board/`.
+
 ## Known stale docs (do not treat as current)
 
 `nodus/oevm/docs/archive/ROADMAP.md` (oevm-era backlog; prime directive still valid, task list superseded),
