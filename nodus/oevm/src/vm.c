@@ -766,6 +766,14 @@ const char *oevm_method_check(struct CompiledMethod *m) {
    and Float operands, and `/` (exact on SMIs, so never a fast path). One body for the four
    opcodes, out of the loop. */
 static OEVM_HOT oop arith_slow(uint8_t op, oop op1, oop op2) {
+    if (!IS_SMI(op1) && !IS_SMI(op2) && obj_vtable(op1) == FloatVtable && obj_vtable(op2) == FloatVtable
+        && op != OP_DIV) {
+        /* Float with Float, the common case here, before the integer tests. */
+        double v1 = ((struct Float *)op1)->value, v2 = ((struct Float *)op2)->value;
+        struct Float *f_obj = (struct Float *)float_alloc(FloatVtable);
+        f_obj->value = (op == OP_ADD) ? v1 + v2 : (op == OP_SUB) ? v1 - v2 : v1 * v2;
+        return (oop)f_obj;
+    }
     if (op == OP_DIV && IS_SMI(op1) && IS_SMI(op2)) {
         intptr_t v1 = UNTAG_SMI(op1);
         intptr_t v2 = UNTAG_SMI(op2);
