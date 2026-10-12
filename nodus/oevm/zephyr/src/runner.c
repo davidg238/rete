@@ -19,6 +19,13 @@
  * The whole state is the manifest below, in settings under "ota/"; every change is
  * saved before the decision it records is acted on. */
 
+/* A board with program slots and no settings compiled the stub below, booted, said "no program
+ * to run" and idled — twice (the C6 in #412, the S2 in #233). The slots are the board's
+ * promise of a runner, so the missing backend is a build error, not a quiet stub. */
+#if FIXED_PARTITION_EXISTS(program_a) && FIXED_PARTITION_EXISTS(program_b) && !defined(CONFIG_SETTINGS)
+#error "program_a/program_b exist but CONFIG_SETTINGS is off: the runner's manifest needs it (the board's prj_*.conf)"
+#endif
+
 #if FIXED_PARTITION_EXISTS(program_a) && FIXED_PARTITION_EXISTS(program_b) && defined(CONFIG_SETTINGS)
 #include <zephyr/settings/settings.h>
 #include <spi_flash_mmap.h>
