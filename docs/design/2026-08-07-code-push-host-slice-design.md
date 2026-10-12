@@ -357,7 +357,8 @@ only `backend/zephyr/ota_zephyr.c` stops being inert, and `main.c` gains the run
   reboots), and a boot that is not a timer wake never strikes (`hwinfo`: `RESET_LOW_POWER_WAKE` is a
   timer wake, `RESET_SOFTWARE` is the runner's reboot; the record stays valid, the clock loses one
   awake window until the next watch-end sync). The structural fix, the arena in PSRAM (~38 KB), is
-  rete#400, earned by a measured slowdown. `prj_esp32s2_ota.conf` carries the five settings lines.
+  rete#400, earned by a measured slowdown. The five settings lines are in `prj_esp32s2.conf` (2026-10-11:
+  every S2 build has the slots, so every one needs the runner's manifest, as the C6 learned in #412).
 
   *T10 as built (2026-10-10, branch `233-magtag`):* `CONFIG_OEVM_OTA_INCHANNEL` (Kconfig, set only by
   `prj_esp32s2_ota.conf`) makes `ota_stage` run the fetch on the caller's thread and answer 1 or −1,
