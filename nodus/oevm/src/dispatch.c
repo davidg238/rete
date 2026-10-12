@@ -1270,11 +1270,11 @@ OEVM_HOT oop send_resolve(oop receiver, oop selector, int argc, oop *args,
     }
 #endif
     // Intercept reflection & Array primitives
-    if (selector != NULL && !IS_SMI(selector)) {
-        struct Symbol *sym = (struct Symbol *)selector;
-        int pid;
-        if (SymbolVtable != NULL && obj_vtable((oop)sym) == SymbolVtable &&
-            (pid = selector_prim_id(sym)) != PRIM_NONE) {
+    /* rete#37 L5: the selector is a Symbol — proved at load for every send instruction
+       (oevm_inst_check), checked in send() for the C callers — so its prim id is a load. */
+    {
+        int pid = ((struct Symbol *)selector)->prim_id;
+        if (pid != PRIM_NONE) {
             // --- std-lib step 1: real indexable raw accessors. Distinct
             //     selectors (basic*) from the mock's at:/size, so the
             //     conformance mock is untouched. Fires only for the real
@@ -2068,6 +2068,10 @@ OEVM_HOT oop send_resolve(oop receiver, oop selector, int argc, oop *args,
    / primitive C code that sends. The hot method/block-send path in the flat
    interpreter calls send_resolve directly and pushes a frame instead. */
 oop send(oop receiver, oop selector, int argc, oop *args) {
+    if (selector == NULL || IS_SMI(selector) || SymbolVtable == NULL || obj_vtable(selector) != SymbolVtable) {
+        fprintf(stderr, "VM Error: send() with a selector that is not a Symbol\n");
+        abort();
+    }
     oop method = NULL, recv = NULL;
     int rargc = 0;
     oop result = send_resolve(receiver, selector, argc, args,
