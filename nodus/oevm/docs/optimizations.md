@@ -775,6 +775,13 @@ untouched rows ±2–4 %), host 0.972. **STIC:** WeAct 0.984, C6 1.016. On the C
 the cache, so code placement moves rows that L6 does not touch. The WeAct runs its hot path from SRAM and is the
 control. MCU text 45,109 B (+507), host 77,680 (+751).
 
+## Opt #14 — the C6 hot path in SRAM (rete#37, 2026-10-12)
+
+The C6 was the last XIP target running the interpreter from flash; `OEVM_HOT` now places the hot path in `.iram.text`
+there too (default on). **C6 AWFY 0.951, STIC 0.997** (`docs/results/2026-10-12-37-c6-sram/`): Towers −15 %, CD −17 %,
+DeltaBlue −12 %. Beyond the speed, it ends the placement roulette that made L6's untouched rows move 2–8 % on the C6:
+every XIP target now runs its hot path from RAM, and `run.sh`'s placement report says so after each build.
+
 ## Known weaknesses / tracked gaps (snapshot 2026-06-18)
 
 Captured after the sober-reference benchmark exercise (see

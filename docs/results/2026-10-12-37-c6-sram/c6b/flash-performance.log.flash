@@ -1,0 +1,48 @@
+esptool v5.5.0
+Serial port /dev/ttyUSB0:
+Connecting....
+Connected to ESP32-C6 on /dev/ttyUSB0:
+Chip type:          ESP32-C6 (QFN40) (revision v0.0)
+Features:           Wi-Fi 6, BT 5 (LE), IEEE802.15.4, Single Core + LP Core, 160MHz, Unknown Embedded Flash
+Crystal frequency:  40MHz
+MAC:                40:4c:ca:ff:fe:45:47:a4
+BASE MAC:           40:4c:ca:45:47:a4
+MAC_EXT:            ff:fe
+
+Uploading stub flasher...
+Running stub flasher...
+Stub flasher running.
+Changing baud rate to 921600...
+Changed.
+
+Configuring flash size...
+
+Writing '/tmp/claude-1000/-home-david-workspace-rete/7cff7681-1820-4064-8015-4846831b7471/scratchpad/board-sram/img/c6-flash-performance.bin' at 0x00000000...
+Flash will be erased from 0x00000000 to 0x00048fff...
+Compressed 298996 bytes to 159329...
+Writing at 0x00005dd8 ━━━                             10.3% 16.00kB/155.59kB [0s] 
+Writing at 0x0000c41b ━━━━━━                          20.6% 32.00kB/155.59kB [0s] 
+Writing at 0x00020a6f ━━━━━━━━━                       30.8% 48.00kB/155.59kB [0s] 
+Writing at 0x00026b0e ━━━━━━━━━━━━                    41.1% 64.00kB/155.59kB [1s] 
+Writing at 0x0002d175 ━━━━━━━━━━━━━━━                 51.4% 80.00kB/155.59kB [1s] 
+Writing at 0x00033345 ━━━━━━━━━━━━━━━━━━╸             61.7% 96.00kB/155.59kB [1s] 
+Writing at 0x00039119 ━━━━━━━━━━━━━━━━━━━━━╸          72.0% 112.00kB/155.59kB [1s] 
+Writing at 0x0003f2cb ━━━━━━━━━━━━━━━━━━━━━━━━╸       82.3% 128.00kB/155.59kB [1s] 
+Writing at 0x000450a0 ━━━━━━━━━━━━━━━━━━━━━━━━━━━╸    92.5% 144.00kB/155.59kB [2s] 
+Writing at 0x00048ff4 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100.0% 155.59kB/155.59kB [2s] 
+Wrote 298996 bytes (159329 compressed) at 0x00000000 in 2.4 seconds (999.6 kbit/s).
+Verifying written data...
+Hash of data verified.
+
+Writing '/tmp/claude-1000/-home-david-workspace-rete/7cff7681-1820-4064-8015-4846831b7471/scratchpad/board-sram/img/c6-flash-performance.oimg' at 0x00220000...
+Flash will be erased from 0x00220000 to 0x00246fff...
+Compressed 157856 bytes to 51418...
+Writing at 0x002306ec ━━━━━━━━━╸                      31.9% 16.00kB/50.21kB [0s] 
+Writing at 0x0023aa82 ━━━━━━━━━━━━━━━━━━━             63.7% 32.00kB/50.21kB [0s] 
+Writing at 0x00245092 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━╸   95.6% 48.00kB/50.21kB [0s] 
+Writing at 0x002468a0 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100.0% 50.21kB/50.21kB [0s] 
+Wrote 157856 bytes (51418 compressed) at 0x00220000 in 0.9 seconds (1330.1 kbit/s).
+Verifying written data...
+Hash of data verified.
+
+Staying in bootloader.
