@@ -1910,6 +1910,9 @@ int main(void) {
 
 #ifdef OEVM_MODEL_B
     kernel_boot();   /* ONCE, before load/bootstrap — the order src/oevm_image_main.c uses */
+    /* rete#37: the load walks every method once (the verifier the dispatch loop trusts), and
+       every deep-sleep wake is a boot, so its cost is printed rather than guessed. */
+    uint32_t load_c0 = k_cycle_get_32();
 #if FIXED_PARTITION_EXISTS(program_a)
     const uint8_t *prog = NULL;
     size_t prog_size = 0;
@@ -1917,11 +1920,14 @@ int main(void) {
         printk("oevm: no program to run (runner); the console stays up\n");
         return 0;
     }
-    if (oimg_load_blob(prog, prog_size) != 0) {
+    load_c0 = k_cycle_get_32();
+    int load_rc = oimg_load_blob(prog, prog_size);
 #else
-    if (oimg_load_blob(oevm_blob_start,
-                       (size_t)(oevm_blob_end - oevm_blob_start)) != 0) {
+    int load_rc = oimg_load_blob(oevm_blob_start, (size_t)(oevm_blob_end - oevm_blob_start));
 #endif
+    printk("oevm: image loaded and verified (%u us)\n",
+           (unsigned)k_cyc_to_us_floor32(k_cycle_get_32() - load_c0));
+    if (load_rc != 0) {
         /* Loud: never boot a bad blob silently. The specific check that failed
            was just printed to stderr by the loader. */
         printk("oevm: oimg_load_blob failed\n");
