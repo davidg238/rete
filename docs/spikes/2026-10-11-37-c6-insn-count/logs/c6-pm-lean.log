@@ -1,0 +1,126 @@
+19:55:05 < ESP-ROM:esp32c6-20220919
+19:55:05 < Build:Sep 19 2022
+19:55:05 < rst:0x1 (POWERON),boot:0xc (SPI_FAST_FLASH_BOOT)
+19:55:05 < SPIWP:0xee
+19:55:05 < mode:DIO, clock div:2
+19:55:05 < load:0x40800000,len:0xc9b8
+19:55:05 < load:0x4080c9d0,len:0x23b8
+19:55:05 < SHA-256 comparison failed:
+19:55:05 < Calculated: 465a52afcb4d886d075764b898b7d4746dbf43f181c5bb0526254a6bd37c4ab4
+19:55:05 < Expected: 0000000050120000000000000000000000000000000000000000000000000000
+19:55:05 < Attempting to boot anyway...
+19:55:05 < entry 0x408031da
+19:55:05 < I (55) soc_init: ESP Simple boot
+19:55:05 < I (56) soc_init: compile time Oct 11 2026 19:54:45
+19:55:05 < I (56) soc_init: chip revision: v0.0
+19:55:05 < I (56) flash_init: SPI Speed      : 80MHz
+19:55:05 < I (59) flash_init: SPI Mode       : DIO
+19:55:05 < I (62) flash_init: SPI Flash Size : 8MB
+19:55:05 < I (66) boot: DRAM: lma 0x00000020 vma 0x40800000 len 0xc9b8   (51640)
+19:55:05 < I (72) boot: DRAM: lma 0x0000c9e0 vma 0x4080c9d0 len 0x23b8   (9144)
+19:55:05 < I (78) boot: IRAM: lma 0x0000eda8 vma 0x00000000 len 0x1250   (4688)
+19:55:05 < I (84) boot: IMAP: lma 0x00010000 vma 0x42800000 len 0x5bb8   (23480)
+19:55:05 < I (90) boot: IRAM: lma 0x00015bc0 vma 0x00000000 len 0xa438   (42040)
+19:55:05 < I (96) boot: IMAP: lma 0x00020000 vma 0x42000000 len 0x28dd4  (167380)
+19:55:05 < I (103) boot: Image with 6 segments
+19:55:05 < I (106) boot: IROM segment: paddr=00020000h, vaddr=42000000h, size=28DD4h (167380) map
+19:55:05 < I (113) boot: DROM segment: paddr=00010000h, vaddr=42800000h, size=05BC0h ( 23488) map
+19:55:05 < I (132) boot: libc heap size 230 kB.
+19:55:05 < I (133) spi_flash: detected chip: gd
+19:55:05 < I (133) spi_flash: flash io: dio
+19:55:05 < E: Couldn't set control register.
+19:55:05 < E: Failed to init settings.
+19:55:05 < *** Booting Zephyr OS build v4.2.0-12-gbc47c6fab9cc ***
+19:55:05 < oevm: build-id porta-v1-final-1601-g440dbe7-20261011T195439
+19:55:05 < logudp: not built in (no OEVM_LOG_UDP6) — console is UART only
+19:55:05 < oevm: observer armed (slack=8 tick=1000ms backstop=30000ms hw=yes)
+19:55:05 < I: 8 Sectors of 4096 bytes
+19:55:05 < I: alloc wra: 3, d30
+19:55:05 < I: data wra: 3, 7c8
+19:55:06 < runner: exec a hash=0bec087a4542426b… cable
+19:55:06 < oevm: program sha256 0bec087a4542426b866638dea273b0ebc9d7e15065010d80224dd0bd623dd127 (94 ms)
+19:55:08 < [pm ev 0 n 347245902 ms 2171]
+19:55:08 < baseLoop: 2171
+19:55:14 < [pm ev 1 n 748322306 ms 5750]
+19:55:14 < blockValue: 5750
+19:55:20 < [pm ev 2 n 32011998 ms 6279]
+19:55:20 < methodSend: 6279
+19:55:26 < [pm ev 3 n 0 ms 6391]
+19:55:26 < blockCapture: 6391
+19:55:30 < [pm ev 5 n 77495939 ms 3422]
+19:55:30 < closureMake: 3422
+19:55:30 < [pm ev 9 n 3602153 ms 826]
+19:55:30 < ocDo: 826
+19:55:41 < [pm ev 0 n 1652811701 ms 10330]
+19:55:41 < ocAt: 10330
+19:55:43 < [pm ev 1 n 287114451 ms 2170]
+19:55:43 < baseLoop: 2170
+19:55:49 < [pm ev 2 n 21248352 ms 5894]
+19:55:49 < blockValue: 5894
+19:55:55 < [pm ev 3 n 0 ms 6279]
+19:55:55 < methodSend: 6279
+19:56:01 < [pm ev 5 n 154378194 ms 6418]
+19:56:01 < blockCapture: 6418
+19:56:05 < [pm ev 9 n 16744837 ms 3389]
+19:56:05 < closureMake: 3389
+19:56:06 < [pm ev 0 n 132191291 ms 826]
+19:56:06 < ocDo: 826
+19:56:16 < [pm ev 1 n 1303246359 ms 10330]
+19:56:16 < ocAt: 10330
+19:56:18 < [pm ev 2 n 4004296 ms 2171]
+19:56:18 < baseLoop: 2171
+19:56:24 < [pm ev 3 n 0 ms 5819]
+19:56:24 < blockValue: 5819
+19:56:30 < [pm ev 5 n 155066238 ms 6279]
+19:56:30 < methodSend: 6279
+19:56:37 < [pm ev 9 n 29911511 ms 6462]
+19:56:37 < blockCapture: 6462
+19:56:40 < [pm ev 0 n 548903755 ms 3431]
+19:56:40 < closureMake: 3431
+19:56:41 < [pm ev 1 n 111244606 ms 826]
+19:56:41 < ocDo: 826
+19:56:51 < [pm ev 2 n 45719890 ms 10330]
+19:56:51 < ocAt: 10330
+19:56:53 < [pm ev 3 n 0 ms 2170]
+19:56:53 < baseLoop: 2170
+19:56:59 < [pm ev 5 n 141885522 ms 5827]
+19:56:59 < blockValue: 5827
+19:57:06 < [pm ev 9 n 31015679 ms 6279]
+19:57:06 < methodSend: 6279
+19:57:12 < [pm ev 0 n 1040122999 ms 6501]
+19:57:12 < blockCapture: 6501
+19:57:16 < [pm ev 1 n 446233650 ms 3468]
+19:57:16 < closureMake: 3468
+19:57:16 < [pm ev 2 n 701612 ms 826]
+19:57:16 < ocDo: 826
+19:57:27 < [pm ev 3 n 0 ms 10330]
+19:57:27 < ocAt: 10330
+19:57:29 < [pm ev 5 n 35022572 ms 2170]
+19:57:29 < baseLoop: 2171
+19:57:35 < [pm ev 9 n 29499755 ms 5764]
+19:57:35 < blockValue: 5764
+19:57:41 < [pm ev 0 n 1004673131 ms 6280]
+19:57:41 < methodSend: 6280
+19:57:48 < [pm ev 1 n 832957845 ms 6409]
+19:57:48 < blockCapture: 6409
+19:57:51 < [pm ev 2 n 19185306 ms 3496]
+19:57:51 < closureMake: 3496
+19:57:52 < [pm ev 3 n 0 ms 826]
+19:57:52 < ocDo: 826
+19:58:02 < [pm ev 5 n 226407805 ms 10330]
+19:58:02 < ocAt: 10330
+19:58:05 < [pm ev 9 n 8005391 ms 2171]
+19:58:05 < baseLoop: 2171
+19:58:11 < [pm ev 0 n 958999948 ms 5993]
+19:58:11 < blockValue: 5993
+19:58:17 < [pm ev 1 n 803334784 ms 6279]
+19:58:17 < methodSend: 6279
+19:58:23 < [pm ev 2 n 23262111 ms 6510]
+19:58:23 < blockCapture: 6510
+19:58:27 < [pm ev 3 n 0 ms 3473]
+19:58:27 < closureMake: 3473
+19:58:28 < [pm ev 5 n 16408126 ms 826]
+19:58:28 < ocDo: 826
+19:58:38 < [pm ev 9 n 49025993 ms 10330]
+19:58:38 < ocAt: 10330
+19:58:38 < done
