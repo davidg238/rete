@@ -82,11 +82,12 @@ Per-benchmark notes:
   and ~7.9 MB on the host; the stock 16 MB host arena fails by fragmentation (the GC does not move
   objects) and it ran at 64 MB (16.4 s, debug VM). It needs a host-only row and a larger host heap.
 
-## First host comparison (2026-10-12, opti7040, nsl `-O2 -DOEVM_NO_DEBUG_HOOKS` vs Soup ReleaseHost)
+## Host comparison against Soup
 
-nsl ÷ Soup, host-scaled `inner:` counts, one sequential run each: List 4.95, Storage 2.38, Json 1.69,
-Towers 1.67, Permute 1.63, NBody 1.53, DeltaBlue 1.41, Queens 1.37, Richards 0.99, Sieve 0.85,
-Bounce 0.84, Mandelbrot 0.62, CD 0.47. Geomean ~1.31× slower. The full table is on #37.
+The record is `docs/results/2026-10-12-37-awfy-soup/` (`run_all.sh` scales the counts, builds an `-O2` VM and runs
+both VMs). At rete `33cb0e16` on opti7040, median of three: nsl ÷ Soup is List 4.14, Storage 1.95, Json 1.77,
+Towers 1.75, DeltaBlue 1.72, NBody 1.46, Permute 1.37, Queens 1.26, Richards 0.95, Sieve 0.87, Mandelbrot 0.63,
+Bounce 0.62, CD 0.56. Geomean 1.26× slower.
 
 ## Found while porting: compiler and VM bugs (#420)
 
