@@ -822,10 +822,7 @@ static OEVM_HOT oop arith_slow(uint8_t op, oop op1, oop op2) {
     return (oop)f_obj;
 }
 
-/* Push the frame for `closure` and make it current_frame; answer its method, so a send site
-   does not compute it again (rete#37 L2). The one frame push: run_interpreter's entry frame
-   goes through here too. */
-static inline OEVM_HOT struct CompiledMethod *push_frame(oop closure, oop receiver, int argc, oop *args) {
+static OEVM_HOT struct MethodContext *push_frame(oop closure, oop receiver, int argc, oop *args) {
     struct Closure *cl = (struct Closure *)closure;
     struct CompiledMethod *m = (struct CompiledMethod *)closure_entry(cl);
 #ifdef OEVM_METHOD_PROFILE
@@ -858,7 +855,7 @@ static inline OEVM_HOT struct CompiledMethod *push_frame(oop closure, oop receiv
     for (int i = 0; i < ncopy; i++) ctx->regs[i + 1] = args[i];
     for (int i = ncopy + 1; i < m->num_registers; i++) ctx->regs[i] = NULL;
     current_frame = ctx;
-    return m;
+    return ctx;
 }
 
 /* Decode a home_ctx discriminator value (frame_abi.h Option B) to the home
@@ -924,11 +921,51 @@ OEVM_HOT oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
         static const char valueName[] = "value";
         Symbol_value = symbol_new(valueName, sizeof valueName - 1);   /* rete#226 */
     }
-    /* The caller's frame, restored to current_frame at exit_frame; held as a base-relative
-       link so nested pushes and pops leave it valid. */
-    oop entry_prev_link = frame_link_encode(vm_stack, current_frame);
-    struct CompiledMethod *method = push_frame(closure, receiver, argc, args);
-    struct MethodContext *ctx = current_frame;
+    struct Closure *cl = (struct Closure *)closure;
+    struct CompiledMethod *method = (struct CompiledMethod *)closure_entry(cl);
+
+    // Allocate stack frame sequentially (Fast Path: vtable starts as NULL)
+    size_t frame_words = sizeof(struct MethodContext) / sizeof(oop) + method->num_registers;
+    /* Fixed-capacity stack (Task 7): bounds-check the push against the hard cap.
+       The stack never moves, so `args` stays valid — no rebase. */
+    if (vm_stack_ptr + frame_words > ((struct Stack *)g_active_stack)->capacity)
+        stack_overflow_abort(vm_stack_ptr + frame_words,
+                             ((struct Stack *)g_active_stack)->capacity);
+    // Save previous frame pointer to restore on exit
+    struct MethodContext *prev_ctx = current_frame;
+    /* prev_ctx (the caller frame) is restored to current_frame at exit_frame; held
+       as a base-relative link so nested pushes/pops leave it valid. */
+    oop entry_prev_link = frame_link_encode(vm_stack, prev_ctx);
+
+    struct MethodContext *ctx = (struct MethodContext *)&vm_stack[vm_stack_ptr];
+    size_t saved_stack_ptr = vm_stack_ptr;
+    vm_stack_ptr += frame_words;
+    // Initialize frame layout
+    ctx->vtable = NULL; 
+    ctx->prev_frame = frame_link_encode(vm_stack, prev_ctx);  /* L0 relative dynamic link */
+    ctx->saved_pc = NULL; // Updated dynamically if calling nested sends
+    ctx->closure = closure;
+    
+    // Lexical Link: nested closure -> inherited relative SMI; method closure -> self,
+    // encoded relative (growth-ready).
+    ctx->home_ctx = cl->home_ctx ? cl->home_ctx
+                                 : home_link_encode_relative(vm_stack, ctx);
+    ctx->gen_tag.tag32 = ++current_generation_tag;
+
+    // Initialize registers (R0 = receiver, R1.. = args)
+    ctx->regs[0] = receiver;
+    for (int i = 0; i < argc; i++) {
+        if (i + 1 < method->num_registers) {
+            ctx->regs[i + 1] = args[i];
+        }
+    }
+    // Initialize local registers to NULL
+    for (int i = argc + 1; i < method->num_registers; i++) {
+        ctx->regs[i] = NULL;
+    }
+
+    // Set current active frame
+    current_frame = ctx;
     /* The frame THIS invocation pushed. The flat loop bottoms out (returns to the
        C caller) only when OP_RET pops back to entry_ctx — that is the
        fiber/main entry for the hot path, or the re-entry frame for the cold F4
@@ -1242,8 +1279,9 @@ OEVM_HOT oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
                 if (m_out != NULL) {
                     /* Bytecode/value-family target: push its frame and run it in
                        this loop. OP_RET delivers the result back into R(src2). */
-                    method = push_frame(m_out, r_out, argc_out, send_args);
+                    push_frame(m_out, r_out, argc_out, send_args);
                     ctx = current_frame;
+                    method = (struct CompiledMethod *)closure_entry((struct Closure *)ctx->closure);
                     pc = cm_instructions(method);
                     continue;
                 }
@@ -1271,8 +1309,9 @@ OEVM_HOT oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
                     /* Fast path: invoke the block — push its frame in this loop.
                        The selector const is only needed by the fallback send, so
                        it is not loaded here. */
-                    method = push_frame(target, target, send_argc, send_args);
+                    push_frame(target, target, send_argc, send_args);
                     ctx = current_frame;
+                    method = (struct CompiledMethod *)closure_entry((struct Closure *)ctx->closure);
                     pc = cm_instructions(method);
                     continue;
                 }
@@ -1283,8 +1322,9 @@ OEVM_HOT oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
                 oop result = send_resolve(target, selector, send_argc, send_args,
                                           &m_out, &r_out, &argc_out);
                 if (m_out != NULL) {
-                    method = push_frame(m_out, r_out, argc_out, send_args);
+                    push_frame(m_out, r_out, argc_out, send_args);
                     ctx = current_frame;
+                    method = (struct CompiledMethod *)closure_entry((struct Closure *)ctx->closure);
                     pc = cm_instructions(method);
                     continue;
                 }
@@ -1447,8 +1487,9 @@ OEVM_HOT oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
                     result = send_resolve(rcvr, selector, send_argc, send_args,
                                           &m_out, &r_out, &argc_out);
                     if (m_out != NULL) {
-                        method = push_frame(m_out, r_out, argc_out, send_args);
+                        push_frame(m_out, r_out, argc_out, send_args);
                         ctx = current_frame;
+                        method = (struct CompiledMethod *)closure_entry((struct Closure *)ctx->closure);
                         pc = cm_instructions(method);
                         continue;
                     }
@@ -1459,8 +1500,9 @@ OEVM_HOT oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
                         result = func(resolved_rcvr, send_argc, send_args);
                     } else {
                         // Bytecode target: push its frame and run it in this loop.
-                        method = push_frame(target_method, resolved_rcvr, send_argc, send_args);
+                        push_frame(target_method, resolved_rcvr, send_argc, send_args);
                         ctx = current_frame;
+                        method = (struct CompiledMethod *)closure_entry((struct Closure *)ctx->closure);
                         pc = cm_instructions(method);
                         continue;
                     }
@@ -1488,8 +1530,9 @@ OEVM_HOT oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
                 if (m_out != NULL) {
                     // Bytecode super target: push its frame. Result delivered to
                     // R(src2) by OP_RET (src2 == c, the same field OP_SEND uses).
-                    method = push_frame(m_out, r_out, argc_out, send_args);
+                    push_frame(m_out, r_out, argc_out, send_args);
                     ctx = current_frame;
+                    method = (struct CompiledMethod *)closure_entry((struct Closure *)ctx->closure);
                     pc = cm_instructions(method);
                     continue;
                 }
@@ -1580,7 +1623,7 @@ exit_frame:
        anymore (Tasks 5–6), so a nested run_interpreter always returns with
        current_frame back at this value — the post-send reload blocks were dead
        and have been removed. */
-    vm_stack_ptr = entry_off;
+    vm_stack_ptr = saved_stack_ptr;
     current_frame = frame_link_decode(vm_stack, entry_prev_link);
     return return_val;
 }
