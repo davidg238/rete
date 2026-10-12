@@ -6,7 +6,7 @@ blocks are in `docs/status/focus-history.md`; live state is in the issues and `d
 - **0.1 (David, 2026-10-09): one node, every verb — load, debug, patch, profile — through porta, over the radio, while it sleeps.**
   Demos: the ship's bell twice, wall C6 always-on (#380) and MagTag deep-sleep (#379). Lifecycle table: #26.
 - **FOCUS (David, 2026-10-12): performance, #37.** Merged today: Opt #15 L4(c) `gen_tag` dropped (AWFY C6 0.988, WeAct 0.981), Opt #16
-  L5 the `send_resolve` head (C6 0.985, WeAct 0.963); L3 dropped. Day on c6spare: Richards 0.819, DeltaBlue 0.699; Toit ~4.8× on both.
+  L5 the `send_resolve` head (C6 0.978, WeAct 0.949; 860 B banked); L3 dropped. Day on c6spare: Richards 0.819, DeltaBlue 0.699; Toit ~4.8× on both.
   **Next session starts with (David):** 1) branch `37-alloc-hdr` (`38c9b557`, the one-word arena header, −8 B/object, speed level): msi
   gates + a heap census, then merge; 2) the allocator fast path (List, Storage); 3) the rest of L5 (capability, `Symbol =`, prim-id tests
   ahead of the probe). Then VM prims (String `copyFrom:to:`, `sin`/`cos`, Float→Integer); GC (#421); Dictionary as a prim.
@@ -14,7 +14,7 @@ blocks are in `docs/status/focus-history.md`; live state is in the issues and `d
 - **Parked: #233** (program OTA). Next there: the S2 recipe at `OEVM_SPACE_MAX_CHANNELS=16`, the bell over Thread, #398. The network
   (bell, MagTag, dongle) is reflashed once #37 reaches "reasonable gains" (David, 2026-10-12), not per lever.
 - **Awaiting David:** #368's history rewrite (force-push); close #314; #396; read E draft 4 and L; #175's memo; the dongle reflash
-  (#402); the RP2 remote-BOOTSEL design (#413); L5's 844 B for ~1.5 % (re-bank the ratchet, or not; Opt #16).
+  (#402); the RP2 remote-BOOTSEL design (#413).
 - **Bench (opti7040):** `c6spare` `/dev/ttyUSB1`, `c6b` `/dev/ttyUSB0` (agree to the ms). WeActs usb `1-5`, `1-7` parked in BOOTSEL. The bell `c6`
   is on the WALL (never flash); MagTag `7cdfa11aaaaa` on the extender. msi: `~/stic-harness.patch` (rebased 2026-10-12).
 - **Decided — do not re-litigate:** custos = nsl peer, porta language-neutral (D1–D2); share only `protocol/` (#338); agent first (D11–D12);

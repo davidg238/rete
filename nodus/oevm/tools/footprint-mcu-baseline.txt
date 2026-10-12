@@ -1,11 +1,23 @@
 # T0.3 footprint baseline — MCU config (arm-zephyr-eabi, cortex-m4).
+# Re-banked 2026-10-12 (evening) for rete#37 Opt #16 (David: give the ratchet the memory for L5's ~1.5 %).
+#
+#  +1328 B  text, 44602 -> 45930, measured on msi-7d43 at the 37-l5-rebank head (FOOTPRINT_CONFIG=mcu):
+#           +507  Opt #13 (L6, frameless accessor sends), inside the 2 %, never re-banked;
+#            -28  Opt #15 (L4(c), gen_tag dropped);
+#            -11  Opt #16 as first merged (aad8a67b, the SMI arm before the lookup);
+#           +860  the SMI arm back at the top of send_resolve: with the receiver's vtable known, -Os copies
+#                 the primitive block. Bought: AWFY C6 0.978 against 0.985, WeAct 0.949 against 0.963;
+#                 STIC C6 0.980 against 0.987, WeAct 0.969 against 0.978 (docs/results/2026-10-12-37-l5/).
+#    -4 B  data+bss, 73596 -> 73592, from master; not attributed.
+#
+# Previous bank:
 # Re-banked 2026-10-12 (later) for rete#37 Opt #12 (David: lower the bank to lock in L1's saving).
 #
 #   -754 B  text, 45356 -> 44602, measured on msi-7d43 at 78a4920d (FOOTPRINT_CONFIG=mcu): L1, the access
 #           mechanism deleted (the per-send check and its helpers, the violation path, CompiledMethod.access_modifier,
 #           builtin #14 accessViolation:). data+bss 73604 -> 73596. Bought: AWFY C6 0.936, WeAct 0.961.
 #
-# Previous bank:
+# Superseded header (2026-10-11, late):
 # Re-banked 2026-10-11 (late) for rete#37 (Opt #11 put the ratchet over its 2 %: 45356 vs 44252).
 #
 #  +1104 B  text, 44252 -> 45356, measured per commit on msi-7d43 (FOOTPRINT_CONFIG=mcu):
@@ -89,5 +101,5 @@
 #  what was broken was footprint.sh's un-SKIP instruction, which named a deleted
 #  path. That bank split 34488 -> 38872 into +3108 B of enrolment (ota.c + span.c)
 #  and +1276 B of real drift.
-text 44602
-data_bss 73596
+text 45930
+data_bss 73592
