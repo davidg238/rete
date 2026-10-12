@@ -446,6 +446,10 @@ struct OevmCount {
     uint64_t frame;   /* frames pushed: sends and block invokes that run bytecode */
     uint64_t block;   /* OP_BLOCK_INVOKE's fast path (a BytecodeClosure invoked as a block) */
     uint64_t regs;    /* sum of num_registers over pushed frames */
+    /* Frames whose method is a frameless candidate, by its first two instructions (count_shape in vm.c): */
+    uint64_t get;     /* a getter: LD_SLOT r <- self.slot; RET r */
+    uint64_t set;     /* a setter: ST_SLOT self.slot <- arg1; RET self */
+    uint64_t k;       /* returns a constant or self at once: LD_CONST r; RET r, or RET self */
 };
 extern struct OevmCount g_count;
 void oevm_count_start(void);

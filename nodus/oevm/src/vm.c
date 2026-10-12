@@ -662,12 +662,29 @@ static const char *count_u64(char *buf, uint64_t v) {
 }
 
 void oevm_count_stop(void) {
-    char b[7][22];
-    printf("count: insn=%s send=%s impl=%s scan=%s frame=%s block=%s regs=%s\n",
+    char b[10][22];
+    printf("count: insn=%s send=%s impl=%s scan=%s frame=%s block=%s regs=%s get=%s set=%s k=%s\n",
            count_u64(b[0], g_count.insn), count_u64(b[1], g_count.send),
            count_u64(b[2], g_count.impl), count_u64(b[3], g_count.scan),
            count_u64(b[4], g_count.frame), count_u64(b[5], g_count.block),
-           count_u64(b[6], g_count.regs));
+           count_u64(b[6], g_count.regs), count_u64(b[7], g_count.get),
+           count_u64(b[8], g_count.set), count_u64(b[9], g_count.k));
+}
+
+/* The frameless candidates (Toit's INVOKE_VIRTUAL_GET/SET, #37): a method whose body is one slot
+   access or one constant and a return could run inside the send, with no frame. The shapes are the
+   compiler's synthesised accessors (ns_compile_oevm.py); a hand-written `( ^ x )` that compiles to
+   the same two instructions counts too. Every method ends in OP_RET or OP_JMP (oevm_method_check), so
+   reading two words is in bounds unless the method is one OP_RET, which the first test catches. */
+static void count_shape(const struct CompiledMethod *m) {
+    const uint32_t *i = cm_instructions((struct CompiledMethod *)m);
+    uint8_t op0 = i[0] & 0xFF, d0 = (uint8_t)(i[0] >> 8), s2 = (uint8_t)(i[0] >> 24);
+    if (op0 == OP_RET) { if (d0 == 0) g_count.k++; return; }
+    uint8_t op1 = i[1] & 0xFF, d1 = (uint8_t)(i[1] >> 8);
+    if (op1 != OP_RET) return;
+    if (op0 == OP_LD_SLOT && s2 == 0 && d1 == d0) g_count.get++;
+    else if (op0 == OP_ST_SLOT && s2 == 0 && d0 == 1 && d1 == 0) g_count.set++;
+    else if (op0 == OP_LD_CONST && d1 == d0) g_count.k++;
 }
 #endif /* OEVM_COUNT */
 
@@ -858,6 +875,9 @@ static OEVM_HOT struct MethodContext *push_frame(oop closure, oop receiver, int 
 #endif
     OEVM_COUNT_ADD(frame, 1);
     OEVM_COUNT_ADD(regs, m->num_registers);
+#ifdef OEVM_COUNT
+    count_shape(m);
+#endif
     size_t frame_words = sizeof(struct MethodContext) / sizeof(oop) + m->num_registers;
     /* Fixed-capacity stack (Task 7): bounds-check the push against the hard cap.
        The stack never moves, so `args`/current_frame/vm_stack stay valid — no rebase. */

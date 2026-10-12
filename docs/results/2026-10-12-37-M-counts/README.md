@@ -59,6 +59,31 @@ them, which prints a `count:` line before each row line. `board_build.sh` takes 
   compares are under 1 % of its 3 G cycles. Not a lever on these benchmarks; it would be on code that sends to
   `self` implicitly in a hot loop through a deep class.
 
+## The frameless candidates (added the same day, after reading the Toit VM)
+
+Toit runs a send whose target is a field accessor without a frame (`INVOKE_VIRTUAL_GET/SET`, `interpreter_run.cc`
+:721-776). The counting build now classifies every pushed frame's method by its first two instructions
+(`count_shape`, vm.c): a getter (`LD_SLOT r <- self.slot; RET r`, the compiler's synthesised accessor or a
+hand-written `( ^ x )`), a setter (`ST_SLOT self.slot <- arg; RET self`), or a method that returns a constant or
+`self` at once.
+
+| row | frames | getters | setters | const/self | share of frames |
+|---|---:|---:|---:|---:|---:|
+| Bounce | 7035 | 1 | 0 | 0 | 0 % |
+| List | 80746 | 38206 | 31 | 36811 | 93 % |
+| Permute | 18746 | 1 | 0 | 0 | 0 % |
+| Richards | 1103063 | 402219 | 219514 | 0 | 56 % |
+| Queens | 12205 | 40 | 0 | 0 | 0 % |
+| Towers | 89809 | 24346 | 16396 | 16268 | 64 % |
+| CD | 2100603 | 1195860 | 76340 | 102556 | 65 % |
+| DeltaBlue | 112793 | 33368 | 17546 | 1084 | 46 % |
+
+**Half or more of the frames on Richards, CD, Towers and List, and 46 % on DeltaBlue, run a method that is one slot
+access or one constant.** At ~640 cycles a frame that is ~400 M cycles of Richards' 1.07 G (about 2.5 s of 6.7 s), an
+upper bound: an accessor's frame may cost less than the average one. Running these inside the send (classify the
+method once, at load or cache fill, and do the slot access where the frame would be pushed) is the lever this points
+to first; it touches the loop body, so it is measured on a board first.
+
 ## Files
 
 - `board-count.log`: the counting run of the board profile (host, `vm-count`).

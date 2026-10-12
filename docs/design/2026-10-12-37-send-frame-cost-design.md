@@ -138,3 +138,9 @@ fill is small and the overlapping frame stays "not now"; and **the frame is not 
 instructions alone cost ~2.3 s at the base 36 cycles each, twice Toit's whole run. Dispatch cost (fewer and cheaper
 instructions, and where the loop executes from on the C6) is the second front. The implicit send's linear method scan
 was found by the counts and is negligible (under 1 %).
+
+**Then, the frameless candidates** (same record, after reading the Toit VM, which runs field-accessor sends without a
+frame): **56 % of Richards' frames, 46 % of DeltaBlue's and 64-93 % of CD's, Towers' and List's run a method that is a
+single slot access or constant.** That is up to ~2.5 s of Richards' 6.7 s, so a new lever ranks first, ahead of L3:
+**L6, frameless accessor sends**, where a getter, setter or constant method is recognised once (at load or cache fill)
+and run inside the send with no frame. Board-first, like L3.
