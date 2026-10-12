@@ -15,7 +15,7 @@ LAYOUT = json.loads('''{"oop_size":8,"structs":{
  "Binding":{"size":16,"fields":{"symbol":{"offset":0,"is_ref":true,"is_ptr":false},
    "method":{"offset":8,"is_ref":true,"is_ptr":false}}},
  "CompiledMethod":{"size":40,"fields":{"instructions":{"offset":0,"is_ref":false,"is_ptr":true},
-   "instruction_count":{"offset":8,"is_ref":false,"is_ptr":false},"num_registers":{"offset":16,"is_ref":false,"is_ptr":false},
+   "instruction_count":{"offset":8,"is_ref":false,"is_ptr":false},"num_registers":{"offset":16,"is_ref":false,"is_ptr":false},"access":{"offset":18,"is_ref":false,"is_ptr":false},
    "num_arguments":{"offset":20,"is_ref":false,"is_ptr":false},"shape":{"offset":22,"is_ref":false,"is_ptr":false},"constants":{"offset":24,"is_ref":false,"is_ptr":true},
    "constant_count":{"offset":32,"is_ref":false,"is_ptr":false}}},
  "Closure":{"size":24,"fields":{"base.vtable":{"offset":0,"is_ref":true,"is_ptr":false},
@@ -100,7 +100,7 @@ class GraphWithConstRefs:
       - SMI:<n>            -> SMI ref-word (tag 0b10)
       - plain symbol name  -> app-offset ref to the symbol record
     The block method id follows _method_block_id():
-      METHOD:BlkA:at:put: -> Method_Block_BlkA_at_put_ (via _sanitize)
+      METHOD:BlkA:at:put: -> Method_Block_BlkA_at_cput_c (via _sanitize)
     """
     symbols = {"increment": "Symbol_increment"}
     vtables = {"HostVtable": {"delegate": None,
@@ -117,8 +117,8 @@ class GraphWithConstRefs:
          ],
          "instructions": [0x0000010C]},
         # block method referenced by METHOD:BlkA:at:put:
-        # _method_block_id("METHOD:BlkA:at:put:") = "Method_Block_BlkA_at_put_"
-        {"id": "Method_Block_BlkA_at_put_", "num_registers": 2, "num_arguments": 2,
+        # _method_block_id("METHOD:BlkA:at:put:") = "Method_Block_BlkA_at_cput_c"
+        {"id": "Method_Block_BlkA_at_cput_c", "num_registers": 2, "num_arguments": 2,
          "constants": [],
          "instructions": [0x00000304]},
     ]
@@ -141,8 +141,8 @@ def test_const_ref_branches():
 
     # -- METHOD:BlkA:at:put: -> app-offset pointing at the cm: record
     # _method_block_id splits on ':': parts=['METHOD','BlkA','at','put','']
-    # blk='BlkA', sel='at:put:', _sanitize('at:put:') -> 'at_put_'
-    block_cm_key = "cm:Method_Block_BlkA_at_put_"
+    # blk='BlkA', sel='at:put:', _sanitize('at:put:') -> 'at_cput_c'
+    block_cm_key = "cm:Method_Block_BlkA_at_cput_c"
     block_cm_off = ser.offset[block_cm_key]
     expected_method_ref = RefWord.app_offset(block_cm_off)
 
