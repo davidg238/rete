@@ -99,6 +99,11 @@
           "is_ref": false,
           "is_ptr": false
         },
+        "shape": {
+          "offset": 14,
+          "is_ref": false,
+          "is_ptr": false
+        },
         "constants": {
           "offset": 16,
           "is_ref": false,
