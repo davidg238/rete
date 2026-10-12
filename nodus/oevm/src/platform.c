@@ -1434,6 +1434,9 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
 #ifdef OEVM_METHOD_PROFILE
         mprof_start();
 #endif
+#ifdef OEVM_COUNT
+        oevm_count_start();
+#endif
         *out = platform_object(); return 1;
     }
     case PRIM_pf_profileStop: {
@@ -1442,6 +1445,9 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
            here routes it. */
 #ifdef OEVM_METHOD_PROFILE
         mprof_stop();
+#endif
+#ifdef OEVM_COUNT
+        oevm_count_stop();
 #endif
         *out = platform_object(); return 1;
     }

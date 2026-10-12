@@ -1,0 +1,30 @@
+oevm: build-id host
+oevm: program sha256 d3a8b979c2ec42dac6deffabec56a7defa725d845f2f3285f2cbe3140fb819ce
+count: insn=66180625 send=1892104 impl=428100 scan=1286851 frame=2109603 block=30001 regs=27348620
+Bounce: 191
+count: insn=44460225 send=8358804 impl=0 scan=45 frame=8074303 block=1 regs=31012020
+List: 337
+count: insn=99448225 send=5480804 impl=200 scan=2816 frame=3748603 block=1 regs=53922020
+Permute: 321
+count: insn=72906825 send=7919404 impl=273000 scan=4096255 frame=5461403 block=1092001 regs=42324220
+Storage: 431
+count: insn=51064040 send=8260429 impl=45 scan=2708 frame=5515303 block=1 regs=32559440
+Richards: 339
+count: insn=88309025 send=6172404 impl=8000 scan=128029 frame=2440403 block=1 regs=30972820
+Queens: 301
+count: insn=95330725 send=2104 impl=300 scan=4055 frame=1803 block=1 regs=17120
+Sieve: 175
+count: insn=49801465 send=5887624 impl=0 scan=118 frame=5388363 block=1 regs=34360460
+Towers: 290
+count: insn=233756670 send=8946055 impl=0 scan=84 frame=5 block=1 regs=65
+Mandelbrot: 1063
+count: insn=507501744 send=74000178 impl=40 scan=130351 frame=71500204 block=1 regs=224500827
+NBody: 3992
+count: insn=19504249 send=2953101 impl=376066 scan=3946909 frame=2100603 block=10680 regs=14574797
+CD: 164
+count: insn=20732677 send=2635033 impl=18019 scan=1567444 frame=2212411 block=338239 regs=12846649
+DeltaBlue: 123
+count: insn=46432145 send=7411184 impl=15160 scan=116856 frame=2503983 block=1 regs=23110800
+Json: 268
+verified: true
+done

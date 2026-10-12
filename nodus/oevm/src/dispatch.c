@@ -370,6 +370,7 @@ oop lookup(oop receiver_vtable, oop selector) {
 #endif
         struct Binding *bs = vtable_bindings((oop)vt);
         for (size_t i = 0; i < vt->size; i++) {
+            OEVM_COUNT_ADD(scan, 1);
             if (binding_symbol(&bs[i]) == selector) {
                 return binding_method(&bs[i]);
             }
@@ -394,6 +395,7 @@ oop lookup_defining_vtable(oop receiver_vtable, oop selector, oop *out_method) {
 #endif
         struct Binding *bs = vtable_bindings((oop)vt);
         for (size_t i = 0; i < vt->size; i++) {
+            OEVM_COUNT_ADD(scan, 1);
             if (binding_symbol(&bs[i]) == selector) {
                 if (out_method != NULL) {
                     *out_method = binding_method(&bs[i]);

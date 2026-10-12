@@ -7,18 +7,21 @@
 # AWFY is nodus/tests/00_perf/awfy_counts.py's board profile from THIS script's tree, applied to REV's awfy.nsl, so
 # every revision runs the same rows. TREE is a worktree this script owns (checked out -f, cleaned).
 # Usage: board_build.sh REV TAG [OUT]   (env: TREE ~/rete-board, HARNESS ~/stic-harness.patch)
+#   env COUNT=1: the counting build (OEVM_COUNT, send/frame design §M) and AWFY with awfy_counts.py --count, so each
+#                row prints a `count:` line; its times are not timings. REV must carry OEVM_COUNT.
 set -euo pipefail
 REV=$1 TAG=$2 OUT=${3:-$HOME/board-ab}
 HERE=$(cd "$(dirname "$0")" && pwd)
 COUNTS=$HERE/../../../nodus/tests/00_perf/awfy_counts.py
 TREE=${TREE:-$HOME/rete-board} HARNESS=${HARNESS:-$HOME/stic-harness.patch}
+CFLAG=; [ "${COUNT:-}" = 1 ] && { CFLAG=--count; export OEVM_COUNT=1; }
 source ~/zephyr-esp32/.venv/bin/activate; export ZEPHYR_BASE=$HOME/zephyr-esp32/zephyr
 mkdir -p "$OUT"
 [ -d "$TREE" ] || { git -C ~/workspace/rete worktree add -q --detach "$TREE" "$REV"
                     ln -sfn ~/workspace/rete/nodus/nsl/grammar/node_modules "$TREE/nodus/nsl/grammar/node_modules"; }
 P=$TREE/nodus/tests/00_perf Z=$TREE/nodus/oevm/zephyr
 checkout() { git -C "$TREE" checkout -q -f --detach "$REV"; git -C "$TREE" clean -qfd nodus/tests nodus/oevm/zephyr/src
-             python3 "$COUNTS" board "$P/awfy.nsl" > "$P/awfy-board.nsl"; }
+             python3 "$COUNTS" board $CFLAG "$P/awfy.nsl" > "$P/awfy-board.nsl"; }
 
 checkout
 for n in awfy-board performance; do

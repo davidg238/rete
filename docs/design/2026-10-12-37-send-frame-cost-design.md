@@ -126,3 +126,15 @@ inlined slow path). The board A/B now takes about 15 minutes for four revisions 
 board-first is cheap. L3 (frame state in locals) is exactly a loop-body change, so it goes to the board first. M (the
 counting build) still decides whether the frame or something else is Toit's lead.
 
+
+## Addendum, 2026-10-12 (M, step 1): the counts
+
+`docs/results/2026-10-12-37-M-counts/` (the `OEVM_COUNT` build, AWFY's board profile counted on the host and paired
+with c6spare's L1 times). **A frame costs ~520–730 C6 cycles and is 61–72 % of Richards, Towers, DeltaBlue and List**
+(Richards: 1.10 M frames, one every 9.3 instructions, ~640 cycles each, 66 %). That is over this design's one-third
+bar, so the send stays the first target and the lever order stands: L3 (board-first), then L4 and L5, which step 2
+(the `rdcycle` split) will rank. Two corrections to the plan's picture: registers per frame are only 4–7, so the NULL
+fill is small and the overlapping frame stays "not now"; and **the frame is not all of Toit's lead**, since Richards'
+instructions alone cost ~2.3 s at the base 36 cycles each, twice Toit's whole run. Dispatch cost (fewer and cheaper
+instructions, and where the loop executes from on the C6) is the second front. The implicit send's linear method scan
+was found by the counts and is negligible (under 1 %).

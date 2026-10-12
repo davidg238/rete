@@ -645,6 +645,32 @@ static uint32_t mprof_count(const void *m) {
 }
 #endif /* OEVM_METHOD_PROFILE */
 
+#ifdef OEVM_COUNT
+/* rete#37 M: the counting build's window (oevm.h). start = zero; stop = report. The
+   counters run outside a window too, unread. One line per window, on stdout beside the
+   bench's own row line, so a reader pairs them by order. */
+struct OevmCount g_count;
+
+void oevm_count_start(void) { memset(&g_count, 0, sizeof g_count); }
+
+/* No %llu: Zephyr's minimal printf may not carry it. */
+static const char *count_u64(char *buf, uint64_t v) {
+    char *p = buf + 21;
+    *p = '\0';
+    do { *--p = (char)('0' + v % 10); v /= 10; } while (v);
+    return p;
+}
+
+void oevm_count_stop(void) {
+    char b[7][22];
+    printf("count: insn=%s send=%s impl=%s scan=%s frame=%s block=%s regs=%s\n",
+           count_u64(b[0], g_count.insn), count_u64(b[1], g_count.send),
+           count_u64(b[2], g_count.impl), count_u64(b[3], g_count.scan),
+           count_u64(b[4], g_count.frame), count_u64(b[5], g_count.block),
+           count_u64(b[6], g_count.regs));
+}
+#endif /* OEVM_COUNT */
+
 static void bp_add(oop method, long off) {
     int i;
     for (i = 0; i < g_bp_count; i++) {
@@ -830,6 +856,8 @@ static OEVM_HOT struct MethodContext *push_frame(oop closure, oop receiver, int 
        key costs nothing to obtain -- this is a hash, a probe and an increment. */
     mprof_bump((const void *)m);
 #endif
+    OEVM_COUNT_ADD(frame, 1);
+    OEVM_COUNT_ADD(regs, m->num_registers);
     size_t frame_words = sizeof(struct MethodContext) / sizeof(oop) + m->num_registers;
     /* Fixed-capacity stack (Task 7): bounds-check the push against the hard cap.
        The stack never moves, so `args`/current_frame/vm_stack stay valid — no rebase. */
@@ -924,6 +952,8 @@ OEVM_HOT oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
     struct Closure *cl = (struct Closure *)closure;
     struct CompiledMethod *method = (struct CompiledMethod *)closure_entry(cl);
 
+    OEVM_COUNT_ADD(frame, 1);
+    OEVM_COUNT_ADD(regs, method->num_registers);
     // Allocate stack frame sequentially (Fast Path: vtable starts as NULL)
     size_t frame_words = sizeof(struct MethodContext) / sizeof(oop) + method->num_registers;
     /* Fixed-capacity stack (Task 7): bounds-check the push against the hard cap.
@@ -1030,6 +1060,7 @@ OEVM_HOT oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
 
         uint32_t inst = *pc;
         uint8_t op = inst & 0xFF;
+        OEVM_COUNT_ADD(insn, 1);
 
 #ifndef OEVM_NO_DEBUG_HOOKS
         if (op == OP_BREAK) {
@@ -1255,6 +1286,7 @@ OEVM_HOT oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
 
             case OP_SEND:
             do_send: {
+                OEVM_COUNT_ADD(send, 1);
                 // Constants[src1] = Selector Symbol
                 // Registers[src2] = Target Receiver
                 // dest = Start index of argument registers
@@ -1309,6 +1341,7 @@ OEVM_HOT oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
                     /* Fast path: invoke the block — push its frame in this loop.
                        The selector const is only needed by the fallback send, so
                        it is not loaded here. */
+                    OEVM_COUNT_ADD(block, 1);
                     push_frame(target, target, send_argc, send_args);
                     ctx = current_frame;
                     method = (struct CompiledMethod *)closure_entry((struct Closure *)ctx->closure);
@@ -1316,6 +1349,7 @@ OEVM_HOT oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
                     continue;
                 }
                 /* Fallback: an ordinary send (e.g. Association>>value). */
+                OEVM_COUNT_ADD(send, 1);
                 oop selector = cm_const_at(method, SRC1);
                 oop m_out = NULL, r_out = NULL;
                 int argc_out = 0;
@@ -1430,6 +1464,7 @@ OEVM_HOT oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
             }
 
             case OP_SEND_IMPLICIT: {
+                OEVM_COUNT_ADD(impl, 1);
                 oop selector = cm_const_at(method, SRC1);
                 oop rcvr = ctx->regs[SRC2];
                 int send_argc = DEST;
@@ -1447,6 +1482,7 @@ OEVM_HOT oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
                     if (vt != NULL && !IS_SMI((oop)vt)) {
                         struct Binding *bs = vtable_bindings((oop)vt);
                         for (size_t i = 0; i < vt->size; i++) {
+                            OEVM_COUNT_ADD(scan, 1);
                             if (binding_symbol(&bs[i]) == selector) {
                                 target_method = binding_method(&bs[i]);
                                 break;
@@ -1514,6 +1550,7 @@ OEVM_HOT oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
             }
 
             case OP_SEND_SUPER: {
+                OEVM_COUNT_ADD(send, 1);
                 // Register layout at src2(c): [c]=start vtable, [c+1]=self,
                 // [c+2..]=args. dest(a)=argc, src1(b)=selector const.
                 oop start_vt = ctx->regs[SRC2];

@@ -1,0 +1,22 @@
+oevm: build-id host
+oevm: program sha256 21f454f83ab9ba116cdd446ebce32d0731a857dacaef7c0d8a5bd4d65a447292
+count: insn=220627 send=6311 impl=1427 scan=4440 frame=7035 block=101 regs=91182
+Bounce: 1
+count: insn=444627 send=83592 impl=0 scan=45 frame=80746 block=1 regs=310140
+List: 3
+count: insn=497266 send=27408 impl=1 scan=30 frame=18746 block=1 regs=269630
+Permute: 2
+count: insn=10212828 send=1652089 impl=9 scan=796 frame=1103063 block=1 regs=6511904
+Richards: 69
+count: insn=441570 send=30866 impl=40 scan=669 frame=12205 block=1 regs=154884
+Queens: 1
+count: insn=317794 send=11 impl=1 scan=24 frame=9 block=1 regs=77
+Sieve: 1
+count: insn=830049 send=98131 impl=0 scan=59 frame=89809 block=1 regs=572694
+Towers: 5
+count: insn=19504249 send=2953101 impl=376066 scan=3946759 frame=2100603 block=10680 regs=14574797
+CD: 164
+count: insn=1059912 send=134456 impl=919 scan=80763 frame=112793 block=17139 regs=655659
+DeltaBlue: 7
+verified: true
+done

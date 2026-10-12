@@ -432,6 +432,28 @@ oop primitive_calls_of(oop receiver, int argc, oop *args);
 oop primitive_calls_stats(oop receiver, int argc, oop *args);
 oop primitive_calls_reset(oop receiver, int argc, oop *args);
 #endif
+/* rete#37 M: the counting build (-DOEVM_COUNT, never shipped; send/frame design §M). Five
+   cumulative counters, windowed by the same profileStart/profileStop prims as #165, so no
+   prim id is consumed and an app runs unchanged on any build. 64-bit: a host AWFY row
+   passes 2^32 instructions. Not combined with OEVM_METHOD_PROFILE in a measurement. */
+#ifdef OEVM_COUNT
+struct OevmCount {
+    uint64_t insn;    /* instructions dispatched by run_interpreter */
+    uint64_t send;    /* explicit sends executed (OP_SEND, OP_SEND_SUPER, a block invoke's fallback) */
+    uint64_t impl;    /* implicit sends executed (OP_SEND_IMPLICIT) */
+    uint64_t scan;    /* bindings compared by a linear method scan: OP_SEND_IMPLICIT's lexical walk, lookup() and
+                         lookup_defining_vtable() (super sends, method-cache misses) */
+    uint64_t frame;   /* frames pushed: sends and block invokes that run bytecode */
+    uint64_t block;   /* OP_BLOCK_INVOKE's fast path (a BytecodeClosure invoked as a block) */
+    uint64_t regs;    /* sum of num_registers over pushed frames */
+};
+extern struct OevmCount g_count;
+void oevm_count_start(void);
+void oevm_count_stop(void);
+#define OEVM_COUNT_ADD(f, n) (g_count.f += (n))
+#else
+#define OEVM_COUNT_ADD(f, n) ((void)0)
+#endif
 /* #165: per-method profile window control. Present only in a profile build. */
 #ifdef OEVM_METHOD_PROFILE
 void mprof_start(void);

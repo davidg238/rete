@@ -401,6 +401,12 @@ if("$ENV{OEVM_METHOD_PROFILE}" STREQUAL "1")
   endif()
 endif()
 
+# rete#37 M: the counting build (oevm.h OEVM_COUNT). Never shipped; a count run's times
+# are not timings.
+if("$ENV{OEVM_COUNT}" STREQUAL "1")
+  target_compile_definitions(app PRIVATE OEVM_COUNT=1)
+endif()
+
 # Production default (accepted 2026-07-17): the three per-bytecode debugger
 # checks (oevm.h OEVM_NO_DEBUG_HOOKS) are compiled OUT of Zephyr builds —
 # no on-target debugger transport exists, and the checks cost 10-16% per

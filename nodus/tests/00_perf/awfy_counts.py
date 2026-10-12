@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """The AWFY run profiles (rete#37): awfy.nsl with its runAll counts set for where it runs.
 
-    python3 awfy_counts.py PROFILE [source.nsl] > out.nsl
+    python3 awfy_counts.py PROFILE [--count] [source.nsl] > out.nsl
 
 awfy.nsl's own counts are the reference sizes AWFY verifies. A profile changes a row's `inner:` count or drops the
 row; nothing else in the source changes. Every driver that runs AWFY (the host baseline and A/B, the board A/B) goes
@@ -12,6 +12,10 @@ through here, so a count is set in one place.
   Dropped: Storage and Json, whose live sets do not fit 256 KB (the C6 aborts out of memory); Mandelbrot and NBody,
   which are soft-float on these parts and verify only at sizes that take minutes (Mandelbrot 500: 180 s on the C6)
   or almost nothing (NBody 1: 4 ms).
+
+--count brackets each row's timed block with `platform profileStart`/`profileStop`, for the counting build
+(OEVM_COUNT, send/frame design §M): it prints a `count:` line before each row's `<name>: <ms>` line. A count run's
+times are not timings; a non-counting build ignores the two prims, so only the count run uses the switch.
 """
 import re
 import sys
@@ -22,6 +26,7 @@ PROFILES = {
              "Sieve": 300, "Towers": 60, "NBody": 250000, "DeltaBlue": 2000, "Json": 20},
     "board": {"Storage": None, "Json": None, "Mandelbrot": None, "NBody": None},
 }
+CLOCK = "    t0:: 0 millis.\n    aBlock value.\n"
 ROW = re.compile(r"^    \(run: '(\w+)'\s+bench: \w+ new\s+inner: (\d+)\)\s*ifFalse: \[ ok:: false \]\.\n", re.M)
 
 
@@ -44,8 +49,18 @@ def apply(src: str, profile: dict) -> str:
     return out
 
 
+def count(src: str) -> str:
+    if src.count(CLOCK) != 1:
+        sys.exit("awfy_counts: millisecondsToRun: moved, update CLOCK")
+    return src.replace(CLOCK, "    platform profileStart.\n" + CLOCK + "    platform profileStop.\n")
+
+
 if __name__ == "__main__":
-    if len(sys.argv) < 2 or sys.argv[1] not in PROFILES:
-        sys.exit(f"usage: awfy_counts.py {{{'|'.join(PROFILES)}}} [source.nsl]")
-    src = Path(sys.argv[2] if len(sys.argv) > 2 else Path(__file__).with_name("awfy.nsl")).read_text()
-    sys.stdout.write(apply(src, PROFILES[sys.argv[1]]))
+    args = sys.argv[1:]
+    counting = "--count" in args
+    args = [a for a in args if a != "--count"]
+    if not args or args[0] not in PROFILES:
+        sys.exit(f"usage: awfy_counts.py {{{'|'.join(PROFILES)}}} [--count] [source.nsl]")
+    src = Path(args[1] if len(args) > 1 else Path(__file__).with_name("awfy.nsl")).read_text()
+    out = apply(src, PROFILES[args[0]])
+    sys.stdout.write(count(out) if counting else out)
