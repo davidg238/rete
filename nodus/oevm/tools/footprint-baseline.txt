@@ -1,4 +1,10 @@
-# T0.3 footprint baseline — HOST config. Re-banked 2026-10-11 for rete#37 (lean dispatch; revert if unwanted).
+# T0.3 footprint baseline — HOST config. Re-banked 2026-10-12 for rete#37 Opt #11 (David: yes, the drift is small).
+#
+#   +674 B  77127 -> 77801: the dispatch head (per-case operand decode, the SMI fast paths, arith_slow
+#           with Float first), measured on msi-7d43 at 532a2391. Bought: WeAct STIC every row 0.7-24 %.
+#
+# Superseded header (2026-10-11, rete#37 Opt #10):
+# Re-banked 2026-10-11 for rete#37 (lean dispatch; revert if unwanted).
 #
 #  +1049 B  master 75214 -> 76263, drift since 2026-10-07 inside the 2 %: #412, #233, Opt #7-#9
 #           (attributed per merge in footprint-mcu-baseline.txt), not split further on the host.
@@ -57,7 +63,7 @@
 # handles.c, and timer_posix.o — which was compiled and then omitted from its own
 # `size -t` line), of which only +8 B was real drift.
    text	   data	    bss	    dec	    hex	filename
-  16466	     20	   1192	  17678	   450e	vm.o
+  17140	     20	   1192	  18352	   47b0	vm.o
   17938	   1357	 132832	 152127	  2523f	dispatch.o
    5049	     24	17048480	17053553	1043771	gc.o
     605	   1072	      4	   1681	    691	kernel_boot.o
@@ -77,5 +83,5 @@
    1168	      0	      0	   1168	    490	udp_posix.o
    1059	      4	      0	   1063	    427	http_posix.o
    1141	      4	   1056	   2201	    899	timer_posix.o
-  77127	   2521	17208236	17287884	107cacc	(TOTALS)
+  77801	   2521	17208236	17288558	107cd6e	(TOTALS)
 data+bss (host proxy for MCU static RAM): 17210757

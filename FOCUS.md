@@ -26,6 +26,6 @@ blocks are in `docs/status/focus-history.md`; live state is in the issues and `d
   OTA: code-push design §10 T1–T10 (in-channel on the S2, registry a knob, run.sh: the caller's value wins); XIP hot path in RAM,
   `-O2` on RP2350 (#403); `OEVM_HOT` + peephole on (#412); **one licence, Apache-2.0, porta and devsdk included; third-party
   code keeps its headers (#368, README §License, 2026-10-11)**; modifying a collection inside its own `do:` is undefined, no fail-fast (dialect row 33); `OP_ITER_AT` kernel-only (#37 design D3);
-  iterator inlining: both receivers, slots by name, off in debug, land (#37 do-inline design); collection initial capacity stays 8; stored hashes compare with `=` (Opt #9); footprint re-banks kept, MCU 44252 / host 77127 (David, 2026-10-11); the loop trusts its methods, checked once at load and patch (Opt #10); arithmetic slow path out of line, not inlined (Opt #11).
+  iterator inlining: both receivers, slots by name, off in debug, land (#37 do-inline design); collection initial capacity stays 8; stored hashes compare with `=` (Opt #9); footprint re-banked, MCU 45356 / host 77801 (David, 2026-10-12); the loop trusts its methods, checked once at load and patch (Opt #10); arithmetic slow path out of line, not inlined (Opt #11).
 - **Weekly review, not scheduled:** #175, #280, #282–#287, #290, #291, #298, #299, #303, #304, #306–#309, #315–#322, #324–#328,
   #331–#335, #345–#357, #359–#361, #363, #366, #369–#374, #378, #382–#397, #399–#401, #404–#411, #413–#415, #417–#419.
