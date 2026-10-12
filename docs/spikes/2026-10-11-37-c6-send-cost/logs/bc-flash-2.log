@@ -1,0 +1,49 @@
+16:37:35 < ESP-ROM:esp32c6-20220919
+16:37:35 < Build:Sep 19 2022
+16:37:35 < rst:0x1 (POWERON),boot:0x4c (SPI_FAST_FLASH_BOOT)
+16:37:35 < SPIWP:0xee
+16:37:35 < mode:DIO, clock div:2
+16:37:35 < load:0x40800000,len:0xc9b8
+16:37:35 < load:0x4080c9d0,len:0x23b8
+16:37:35 < SHA-256 comparison failed:
+16:37:35 < Calculated: a4c622811e46a10781ec73369c6af996a579933ef9ace1e0c2d03ed71061a0e7
+16:37:35 < Expected: 0000000050120000000000000000000000000000000000000000000000000000
+16:37:35 < Attempting to boot anyway...
+16:37:35 < entry 0x408031da
+16:37:35 < I (55) soc_init: ESP Simple boot
+16:37:35 < I (56) soc_init: compile time Oct 11 2026 16:10:41
+16:37:35 < I (56) soc_init: chip revision: v0.0
+16:37:35 < I (56) flash_init: SPI Speed      : 80MHz
+16:37:35 < I (59) flash_init: SPI Mode       : DIO
+16:37:35 < I (62) flash_init: SPI Flash Size : 8MB
+16:37:35 < I (66) boot: DRAM: lma 0x00000020 vma 0x40800000 len 0xc9b8   (51640)
+16:37:35 < I (72) boot: DRAM: lma 0x0000c9e0 vma 0x4080c9d0 len 0x23b8   (9144)
+16:37:35 < I (78) boot: IRAM: lma 0x0000eda8 vma 0x00000000 len 0x1250   (4688)
+16:37:35 < I (84) boot: IMAP: lma 0x00010000 vma 0x42800000 len 0x5bb8   (23480)
+16:37:35 < I (90) boot: IRAM: lma 0x00015bc0 vma 0x00000000 len 0xa438   (42040)
+16:37:35 < I (96) boot: IMAP: lma 0x00020000 vma 0x42000000 len 0x28d8c  (167308)
+16:37:35 < I (103) boot: Image with 6 segments
+16:37:35 < I (106) boot: IROM segment: paddr=00020000h, vaddr=42000000h, size=28D8Ah (167306) map
+16:37:35 < I (114) boot: DROM segment: paddr=00010000h, vaddr=42800000h, size=05BC0h ( 23488) map
+16:37:35 < I (132) boot: libc heap size 230 kB.
+16:37:35 < I (133) spi_flash: detected chip: gd
+16:37:35 < I (133) spi_flash: flash io: dio
+16:37:35 < E: Couldn't set control register.
+16:37:35 < E: Failed to init settings.
+16:37:35 < *** Booting Zephyr OS build v4.2.0-12-gbc47c6fab9cc ***
+16:37:35 < oevm: build-id porta-v1-final-1598-g0249a94-20261011T161039
+16:37:35 < logudp: not built in (no OEVM_LOG_UDP6) — console is UART only
+16:37:35 < oevm: observer armed (slack=8 tick=1000ms backstop=30000ms hw=yes)
+16:37:35 < I: 8 Sectors of 4096 bytes
+16:37:35 < I: alloc wra: 3, d38
+16:37:35 < I: data wra: 3, 7a8
+16:37:35 < runner: exec a hash=9fe6d83e1a443d75… cable
+16:37:35 < oevm: program sha256 9fe6d83e1a443d75b6666795c0fe33051dd676b77cf6307320d1900a4bbbdf7d (97 ms)
+16:38:04 < baseLoop: 28535
+16:39:11 < blockValue: 67440
+16:40:24 < methodSend: 72736
+16:41:39 < blockCapture: 74607
+16:42:18 < closureMake: 39037
+16:42:28 < ocDo: 10169
+16:44:30 < ocAt: 122339
+16:44:30 < done
