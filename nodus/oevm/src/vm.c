@@ -763,10 +763,25 @@ static void apply_restart(struct MethodContext *ctx);   /* rete#313 */
    method it builds, by method:instructionAt:put: for the word it writes. Model A
    methods are compiled into the firmware and are as trusted as its C. Answers
    NULL, or why the instruction could not run as written. */
+/* rete#37 L5: the constant a send names as its selector is a Symbol, so send_resolve reads its prim id
+   unchecked. In a blob method an app reference must also land inside the blob. */
+static int selector_const_ok(const struct CompiledMethod *m, unsigned b) {
+    if (b >= m->constant_count) return 0;
+    oop c = cm_const_at((struct CompiledMethod *)m, b);
+    if (is_in_blob(m)) {
+        uintptr_t w = ((const uintptr_t *)(oimg_blob_base + ((uintptr_t)m->constants >> 2)))[b];
+        if (OIMG_TAG(w) == OIMG_TAG_APP && !is_in_blob(c)) return 0;
+    }
+    return c != NULL && !IS_SMI(c) && SymbolVtable != NULL && obj_vtable(c) == SymbolVtable;
+}
+
 const char *oevm_inst_check(const struct CompiledMethod *m, size_t i, uint32_t inst) {
     uint8_t op = inst & 0xFF, a = (inst >> 8) & 0xFF, b = (inst >> 16) & 0xFF;
     long target;
     switch (op) {
+        case OP_SEND: case OP_SEND_IMPLICIT: case OP_SEND_SUPER: case OP_BLOCK_INVOKE:
+        case OP_LT: case OP_LE: case OP_GT: case OP_GE: case OP_AT: case OP_AT_PUT:
+            return selector_const_ok(m, b) ? NULL : "a send's selector constant is not a Symbol";
         case OP_LD_CONST:
             return (b < m->constant_count && a < m->num_registers) ? NULL : "LD_CONST operand out of range";
         case OP_LD_REG:

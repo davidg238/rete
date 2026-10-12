@@ -1,0 +1,276 @@
+[flash] BOOTSEL volume /dev/sdc1
+[flash] mounted at /run/media/david/RP23501; copying weact-m-awfy.uf2 (940544 B)
+[flash] copied; waiting for the volume to go away
+[flash] done
+[412] m-awfy run 1 then=bootsel
+13:19:11 open /dev/serial/by-path/pci-0000:00:14.0-usb-0:7:1.0
+13:19:11 > flash
+13:19:12 > flash
+13:19:13 > flash
+13:19:13 < *** Booting Zephyr OS build v4.2.0-12-gbc47c6fab9cc ***
+13:19:13 < oevm: build-id porta-v1-final-1662-g336a2a2-dirty-20261012T131619
+13:19:13 < spike296: no retained death note
+13:19:13 < logudp: not built in (no OEVM_LOG_UDP6) — console is UART only
+13:19:13 < oevm: observer armed (slack=8 tick=1000ms backstop=30000ms hw=yes)
+13:19:13 < spike296: arm? sram|flash|bootsel|reboot (default flash, 6000 ms) boot#1
+13:19:14 > flash
+13:19:14 < spike296: arm=flash
+13:19:14 < spike296: blob base 0x10023000 (flash), hot path sram
+13:19:14 < oevm: image loaded and verified (18863 us)
+13:19:14 < Bounce: 75
+13:19:14 < List: 323
+13:19:15 < Permute: 176
+13:19:21 < Richards: 5943
+13:19:21 < Queens: 171
+13:19:21 < Sieve: 65
+13:19:21 < Towers: 439
+13:19:39 < CD: 17311
+13:19:39 < DeltaBlue: 636
+13:19:39 < verified: true
+13:19:39 < done
+13:19:39 < spike296: parked; bootsel|reboot
+13:19:40 > bootsel
+[412] run 1 exit 0
+[412] m-awfy done
+[weact-1-7] m awfy rc 0
+[flash] BOOTSEL volume /dev/sdb1
+[flash] mounted at /run/media/david/RP2350; copying weact-m-performance.uf2 (683008 B)
+[flash] copied; waiting for the volume to go away
+[flash] done
+[412] m-performance run 1 then=bootsel
+13:19:47 open /dev/serial/by-path/pci-0000:00:14.0-usb-0:7:1.0
+13:19:47 > flash
+13:19:48 > flash
+13:19:49 > flash
+13:19:49 < *** Booting Zephyr OS build v4.2.0-12-gbc47c6fab9cc ***
+13:19:49 < oevm: build-id porta-v1-final-1662-g336a2a2-dirty-20261012T131631
+13:19:49 < spike296: no retained death note
+13:19:49 < logudp: not built in (no OEVM_LOG_UDP6) — console is UART only
+13:19:49 < oevm: observer armed (slack=8 tick=1000ms backstop=30000ms hw=yes)
+13:19:49 < spike296: arm? sram|flash|bootsel|reboot (default flash, 6000 ms) boot#1
+13:19:50 > flash
+13:19:50 < spike296: arm=flash
+13:19:50 < spike296: blob base 0x10023000 (flash), hot path sram
+13:19:50 < oevm: image loaded and verified (11484 us)
+13:20:03 < alloc: 13469
+13:20:20 < arrayWrite: 16578
+13:20:26 < dictionaryWrite: 5919
+13:20:50 < floatMath: 24076
+13:20:53 < integerMath: 2883
+13:21:05 < collectionIterate: 12833
+13:21:20 < collectionWrite: 14343
+13:21:22 < stringCompare: 2541
+13:21:22 < hanoi8: 1
+13:21:22 < done
+13:21:22 < spike296: parked; bootsel|reboot
+13:21:23 > bootsel
+[412] run 1 exit 0
+[412] m-performance done
+[weact-1-7] m performance rc 0
+[flash] BOOTSEL volume /dev/sdb1
+[flash] mounted at /run/media/david/RP2350; copying weact-r1-awfy.uf2 (943104 B)
+[flash] copied; waiting for the volume to go away
+[flash] done
+[412] r1-awfy run 1 then=bootsel
+13:21:31 open /dev/serial/by-path/pci-0000:00:14.0-usb-0:7:1.0
+13:21:31 > flash
+13:21:32 > flash
+13:21:33 > flash
+13:21:33 < *** Booting Zephyr OS build v4.2.0-12-gbc47c6fab9cc ***
+13:21:33 < oevm: build-id porta-v1-final-1663-g5a7b3d0-dirty-20261012T131705
+13:21:33 < spike296: no retained death note
+13:21:33 < logudp: not built in (no OEVM_LOG_UDP6) — console is UART only
+13:21:33 < oevm: observer armed (slack=8 tick=1000ms backstop=30000ms hw=yes)
+13:21:33 < spike296: arm? sram|flash|bootsel|reboot (default flash, 6000 ms) boot#1
+13:21:33 > flash
+13:21:34 < spike296: arm=flash
+13:21:34 < spike296: blob base 0x10023000 (flash), hot path sram
+13:21:34 < oevm: image loaded and verified (18828 us)
+13:21:34 < Bounce: 74
+13:21:34 < List: 315
+13:21:34 < Permute: 174
+13:21:40 < Richards: 5825
+13:21:40 < Queens: 163
+13:21:40 < Sieve: 66
+13:21:41 < Towers: 429
+13:21:58 < CD: 17075
+13:21:58 < DeltaBlue: 636
+13:21:58 < verified: true
+13:21:58 < done
+13:21:58 < spike296: parked; bootsel|reboot
+13:21:59 > bootsel
+[412] run 1 exit 0
+[412] r1-awfy done
+[weact-1-7] r1 awfy rc 0
+[flash] BOOTSEL volume /dev/sdb1
+[flash] mounted at /run/media/david/RP2350; copying weact-r1-performance.uf2 (686080 B)
+[flash] copied; waiting for the volume to go away
+[flash] done
+[412] r1-performance run 1 then=bootsel
+13:22:06 open /dev/serial/by-path/pci-0000:00:14.0-usb-0:7:1.0
+13:22:06 > flash
+13:22:07 > flash
+13:22:08 > flash
+13:22:08 < *** Booting Zephyr OS build v4.2.0-12-gbc47c6fab9cc ***
+13:22:08 < oevm: build-id porta-v1-final-1663-g5a7b3d0-dirty-20261012T131716
+13:22:08 < spike296: no retained death note
+13:22:08 < logudp: not built in (no OEVM_LOG_UDP6) — console is UART only
+13:22:08 < oevm: observer armed (slack=8 tick=1000ms backstop=30000ms hw=yes)
+13:22:08 < spike296: arm? sram|flash|bootsel|reboot (default flash, 6000 ms) boot#1
+13:22:09 > flash
+13:22:09 < spike296: arm=flash
+13:22:09 < spike296: blob base 0x10023000 (flash), hot path sram
+13:22:09 < oevm: image loaded and verified (11489 us)
+13:22:22 < alloc: 13225
+13:22:39 < arrayWrite: 16532
+13:22:44 < dictionaryWrite: 5798
+13:23:08 < floatMath: 24068
+13:23:11 < integerMath: 2875
+13:23:24 < collectionIterate: 12693
+13:23:38 < collectionWrite: 14075
+13:23:41 < stringCompare: 2448
+13:23:41 < hanoi8: 2
+13:23:41 < done
+13:23:41 < spike296: parked; bootsel|reboot
+13:23:41 > bootsel
+[412] run 1 exit 0
+[412] r1-performance done
+[weact-1-7] r1 performance rc 0
+[flash] BOOTSEL volume /dev/sdb1
+[flash] mounted at /run/media/david/RP2350; copying weact-r2-awfy.uf2 (944128 B)
+[flash] copied; waiting for the volume to go away
+[flash] done
+[412] r2-awfy run 1 then=bootsel
+13:23:49 open /dev/serial/by-path/pci-0000:00:14.0-usb-0:7:1.0
+13:23:49 > flash
+13:23:50 > flash
+13:23:51 > flash
+13:23:51 < *** Booting Zephyr OS build v4.2.0-12-gbc47c6fab9cc ***
+13:23:51 < oevm: build-id porta-v1-final-1664-g7c04f9a-dirty-20261012T131750
+13:23:51 < spike296: no retained death note
+13:23:51 < logudp: not built in (no OEVM_LOG_UDP6) — console is UART only
+13:23:51 < oevm: observer armed (slack=8 tick=1000ms backstop=30000ms hw=yes)
+13:23:51 < spike296: arm? sram|flash|bootsel|reboot (default flash, 6000 ms) boot#1
+13:23:52 > flash
+13:23:52 < spike296: arm=flash
+13:23:52 < spike296: blob base 0x10023000 (flash), hot path sram
+13:23:52 < oevm: image loaded and verified (18867 us)
+13:23:52 < Bounce: 73
+13:23:52 < List: 307
+13:23:52 < Permute: 171
+13:23:58 < Richards: 5651
+13:23:58 < Queens: 160
+13:23:58 < Sieve: 66
+13:23:59 < Towers: 420
+13:24:15 < CD: 16762
+13:24:16 < DeltaBlue: 622
+13:24:16 < verified: true
+13:24:16 < done
+13:24:16 < spike296: parked; bootsel|reboot
+13:24:16 > bootsel
+[412] run 1 exit 0
+[412] r2-awfy done
+[weact-1-7] r2 awfy rc 0
+[flash] BOOTSEL volume /dev/sdb1
+[flash] mounted at /run/media/david/RP2350; copying weact-r2-performance.uf2 (687104 B)
+[flash] copied; waiting for the volume to go away
+[flash] done
+[412] r2-performance run 1 then=bootsel
+13:24:24 open /dev/serial/by-path/pci-0000:00:14.0-usb-0:7:1.0
+13:24:24 > flash
+13:24:25 > flash
+13:24:25 > flash
+13:24:26 < *** Booting Zephyr OS build v4.2.0-12-gbc47c6fab9cc ***
+13:24:26 < oevm: build-id porta-v1-final-1664-g7c04f9a-dirty-20261012T131801
+13:24:26 < spike296: no retained death note
+13:24:26 < logudp: not built in (no OEVM_LOG_UDP6) — console is UART only
+13:24:26 < oevm: observer armed (slack=8 tick=1000ms backstop=30000ms hw=yes)
+13:24:26 < spike296: arm? sram|flash|bootsel|reboot (default flash, 6000 ms) boot#1
+13:24:26 > flash
+13:24:26 < spike296: arm=flash
+13:24:26 < spike296: blob base 0x10023000 (flash), hot path sram
+13:24:27 < oevm: image loaded and verified (11532 us)
+13:24:39 < alloc: 12988
+13:24:56 < arrayWrite: 16498
+13:25:02 < dictionaryWrite: 5647
+13:25:26 < floatMath: 24114
+13:25:29 < integerMath: 2919
+13:25:42 < collectionIterate: 12840
+13:25:55 < collectionWrite: 13707
+13:25:58 < stringCompare: 2325
+13:25:58 < hanoi8: 2
+13:25:58 < done
+13:25:58 < spike296: parked; bootsel|reboot
+13:25:58 > bootsel
+[412] run 1 exit 0
+[412] r2-performance done
+[weact-1-7] r2 performance rc 0
+[flash] BOOTSEL volume /dev/sdb1
+[flash] mounted at /run/media/david/RP2350; copying weact-r3-awfy.uf2 (950272 B)
+[flash] copied; waiting for the volume to go away
+[flash] done
+[412] r3-awfy run 1 then=bootsel
+13:26:06 open /dev/serial/by-path/pci-0000:00:14.0-usb-0:7:1.0
+13:26:06 > flash
+13:26:07 > flash
+13:26:08 > flash
+13:26:08 < *** Booting Zephyr OS build v4.2.0-12-gbc47c6fab9cc ***
+13:26:08 < oevm: build-id porta-v1-final-1665-ge2fa47e-dirty-20261012T131837
+13:26:08 < spike296: no retained death note
+13:26:08 < logudp: not built in (no OEVM_LOG_UDP6) — console is UART only
+13:26:08 < oevm: observer armed (slack=8 tick=1000ms backstop=30000ms hw=yes)
+13:26:08 < spike296: arm? sram|flash|bootsel|reboot (default flash, 6000 ms) boot#1
+13:26:09 > flash
+13:26:09 < spike296: arm=flash
+13:26:09 < spike296: blob base 0x100239b0 (flash), hot path sram
+13:26:09 < oevm: image loaded and verified (26860 us)
+13:26:09 < Bounce: 72
+13:26:09 < List: 287
+13:26:09 < Permute: 166
+13:26:15 < Richards: 5182
+13:26:15 < Queens: 153
+13:26:15 < Sieve: 66
+13:26:15 < Towers: 394
+13:26:31 < CD: 15534
+13:26:31 < DeltaBlue: 620
+13:26:31 < verified: true
+13:26:31 < done
+13:26:31 < spike296: parked; bootsel|reboot
+13:26:32 > bootsel
+[412] run 1 exit 0
+[412] r3-awfy done
+[weact-1-7] r3 awfy rc 0
+[flash] BOOTSEL volume /dev/sdb1
+[flash] mounted at /run/media/david/RP2350; copying weact-r3-performance.uf2 (692736 B)
+[flash] copied; waiting for the volume to go away
+[flash] done
+[412] r3-performance run 1 then=bootsel
+13:26:39 open /dev/serial/by-path/pci-0000:00:14.0-usb-0:7:1.0
+13:26:39 > flash
+13:26:40 > flash
+13:26:41 > flash
+13:26:41 < *** Booting Zephyr OS build v4.2.0-12-gbc47c6fab9cc ***
+13:26:41 < oevm: build-id porta-v1-final-1665-ge2fa47e-dirty-20261012T131849
+13:26:41 < spike296: no retained death note
+13:26:41 < logudp: not built in (no OEVM_LOG_UDP6) — console is UART only
+13:26:41 < oevm: observer armed (slack=8 tick=1000ms backstop=30000ms hw=yes)
+13:26:41 < spike296: arm? sram|flash|bootsel|reboot (default flash, 6000 ms) boot#1
+13:26:42 > flash
+13:26:42 < spike296: arm=flash
+13:26:42 < spike296: blob base 0x100239b0 (flash), hot path sram
+13:26:42 < oevm: image loaded and verified (16236 us)
+13:26:54 < alloc: 12667
+13:27:11 < arrayWrite: 16579
+13:27:16 < dictionaryWrite: 5409
+13:27:41 < floatMath: 24075
+13:27:43 < integerMath: 2884
+13:27:56 < collectionIterate: 12833
+13:28:09 < collectionWrite: 12490
+13:28:11 < stringCompare: 2053
+13:28:11 < hanoi8: 1
+13:28:11 < done
+13:28:11 < spike296: parked; bootsel|reboot
+13:28:11 > bootsel
+[412] run 1 exit 0
+[412] r3-performance done
+[weact-1-7] r3 performance rc 0
