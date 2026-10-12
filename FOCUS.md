@@ -5,30 +5,27 @@ blocks are in `docs/status/focus-history.md`; live state is in the issues and `d
 
 - **0.1 (David, 2026-10-09): one node, every verb — load, debug, patch, profile — through porta, over the radio, while it sleeps.**
   Demos: the ship's bell twice, wall C6 always-on (#380) and MagTag deep-sleep (#379). Lifecycle table: #26.
-- **FOCUS: #233 — program OTA through porta.** The MagTag took its first push over WiFi (2026-10-10; design §10 "T10 as built").
-  The S2 settings gap is closed (every S2 build carries the runner's settings; slots without settings is an `#error`). **Next:**
-  (1) the S2 recipe at `OEVM_SPACE_MAX_CHANNELS=16`, `OEVM_MPROF_SLOTS` default — one BOOT0+RESET flash, read `space:`;
-  (2) the bell over Thread (daylight, `flash-bell.sh`); then #398. Found-during: #418 (the WiFi fragment's own recipe overflows dram0).
-- **Second thread, opti7040: #37 (RP2350 first, then what fits smaller parts).** Are We Fast Yet is ported
-  (`nodus/tests/00_perf/awfy.nsl`, 13 rows; `AWFY.md`) and runs on Primordial Soup (`awfy-soup.py`): host nsl -O2 ÷ Soup
-  geomean ~1.31×, worst List 4.95× / Storage 2.38× (calls, allocation); table on #37. **Next (David, 2026-10-12):** commit a
-  results record in `docs/results/`; then L1 (delete the per-send access check) + L2 (one inlined `push_frame`) per
-  `docs/design/2026-10-12-37-send-frame-cost-design.md`, measured host vs Soup then c6spare; VM prims for String
-  `copyFrom:to:`, `sin`/`cos`, Float→Integer. Then GC performance (Havlak shows fragmentation), compiler bytecodes,
-  Dictionary as a prim. Every attempt gets a row in optimizations.md's Ledger. No RAM split for speed (#296 §7).
-- **Awaiting David:** #368's last item, the history rewrite (private names, force-push); close #314; #396;
-  read E draft 4 and L; #175's memo; the dongle reflash from master (#402); the RP2 remote-BOOTSEL design (#413).
-- **Bench:** the bell `c6` is on the WALL (never flash). `c6spare` on opti7040 USB (`/dev/ttyUSB1`, CP2102N `…d2e21074…`; msi's `console-c6spare.env` still names it there), holds MicroPython 1.29.0 (the cross-VM run; driver `docs/results/2026-10-12-37-c6-cross-vm/run_all.sh`). MagTag
-  `7cdfa11aaaaa` on the extender, build `…T140328` + program v2 (slot b, confirmed); enumerates only in BOOT0+RESET.
-  **opti7040: both RP2350s parked in BOOTSEL** (WeAct `1-7`: the Opt #11 STIC image, driver `run_412.sh`; Zero `1-3`); msi worktree `~/rete-37head` (STIC harness applied uncommitted, `~/37h-build.sh`), `~/rete-37c6` (`~/37-c6sum-build.sh`); opti7040 worktree `~/rete-37head`; a UF2 on the volume boots them; build on msi.
-  The plain ESP32 (WROOM-32, CP2104 `/dev/ttyUSB0`) is retired from #37 work (David: too painful).
+- **FOCUS (David, 2026-10-12): performance, #37.** L1 merged (Opt #12; AWFY L1 ÷ base C6 0.936, WeAct 0.961); L2 reverted (won on
+  the host, lost on both boards). **Next, queued on #37 (2026-10-12 comment):** (1) M, the counting build (send/frame design §M) on
+  c6spare + host: is the frame Toit's 6–7× Richards/DeltaBlue lead? (2) the lever M points to (L3/L4/L5), board-first;
+  (3) VM prims: String `copyFrom:to:`, `sin`/`cos`, Float→Integer; (4) GC performance (Havlak fragmentation, #421); (5) compiler
+  bytecodes, Dictionary as a prim. Board A/B: `docs/results/2026-10-12-37-send-frame/board_build.sh` (msi) + `board_ab.sh`
+  (opti7040), ~15 min for four revisions; host A/B `ab.sh`; AWFY counts only via `awfy_counts.py`. A ledger row per attempt.
+- **Parked: #233** (program OTA). Next there: the S2 recipe at `OEVM_SPACE_MAX_CHANNELS=16` (one BOOT0+RESET flash), the bell over
+  Thread, #398. **Registry version 6 since `124ab677`: every board needs a reflash from master before OTA work.**
+- **Awaiting David:** #368's history rewrite (force-push); close #314; #396; read E draft 4 and L; #175's memo; the dongle reflash
+  (#402); the RP2 remote-BOOTSEL design (#413); re-bank the MCU footprint at 44602 (bank 45356) and host at 76929 (bank 77801)?
+- **Bench (opti7040):** `c6spare` `/dev/ttyUSB1` (CP2102N `d2e21074…`) and `c6b` `/dev/ttyUSB0` (`ac2dce6f…`, from the gateway) — both
+  C6 QFN40 v0.0, agree within 2 ms. WeAct usb `1-7` good (BOOTSEL via `weact_bootsel.py`); WeAct `1-5` wedged, needs BOOTSEL+RESET.
+  The Zero is off the bus. The bell `c6` is on the WALL (never flash). MagTag `7cdfa11aaaaa` on the extender (BOOT0+RESET only).
+  msi: `~/rete-board` (board_build's worktree), STIC harness `~/stic-harness.patch` (uncommitted, applied per build). Build on msi.
 - **Decided — do not re-litigate:** custos = nsl peer, porta language-neutral (D1–D2); share only `protocol/` (#338); agent first,
   HTTP the only agent surface (D11–D12); D13–D19; hot patch debug-build only (#313); one suite lock (#314); no third node (#384);
-  debug goal = whole set, sha-gated (#375–#377); WiFi node addresses porta by IPv6 (#379); bell = classes by CRC (#380);
-  OTA: code-push design §10 T1–T10 (in-channel on the S2, registry a knob, run.sh: the caller's value wins); XIP hot path in RAM,
-  `-O2` on RP2350 (#403); `OEVM_HOT` + peephole on (#412); **one licence, Apache-2.0, porta and devsdk included; third-party
-  code keeps its headers (#368, README §License, 2026-10-11)**; modifying a collection inside its own `do:` is undefined, no fail-fast (dialect row 33); `OP_ITER_AT` kernel-only (#37 design D3);
-  iterator inlining: both receivers, slots by name, off in debug, land (#37 do-inline design); collection initial capacity stays 8; stored hashes compare with `=` (Opt #9); footprint re-banked, MCU 45356 / host 77801 (David, 2026-10-12); the loop trusts its methods, checked once at load and patch (Opt #10); arithmetic slow path out of line, not inlined (Opt #11); AWFY is the #37 bench, Havlak host-only; visibility deferred but
-  ultimately mandatory (send/frame design, 2026-10-12).
+  debug goal = whole set, sha-gated (#375–#377); WiFi node → porta by IPv6 (#379); bell = classes by CRC (#380); OTA: code-push
+  §10 T1–T10; XIP hot path in RAM, `-O2` on RP2350 (#403); `OEVM_HOT` + peephole (#412); Apache-2.0 everywhere (#368); dialect
+  row 33; `OP_ITER_AT` kernel-only; iterator inlining (#37 do-inline design); stored hashes compare with `=` (Opt #9); the loop
+  trusts its methods (Opt #10); arithmetic slow path out of line (Opt #11); no RAM split for speed (#296 §7); AWFY is the #37
+  bench, Havlak host-only; no access mechanism until visibility is designed, then checked at compile time or cache fill (Opt #12,
+  dialect row 25); **a lever that changes the loop body is measured on a board first** (send/frame design, addendum 2026-10-12).
 - **Weekly review, not scheduled:** #175, #280, #282–#287, #290, #291, #298, #299, #303, #304, #306–#309, #315–#322, #324–#328,
-  #331–#335, #345–#357, #359–#361, #363, #366, #369–#374, #378, #382–#397, #399–#401, #404–#411, #413–#415, #417–#420.
+  #331–#335, #345–#357, #359–#361, #363, #366, #369–#374, #378, #382–#397, #399–#401, #404–#411, #413–#415, #417–#421.
