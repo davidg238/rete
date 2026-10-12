@@ -1,0 +1,52 @@
+src/vm.c:714:12: warning: ‘bp_hit’ defined but not used [-Wunused-function]
+  714 | static int bp_hit(oop method, long off) {
+      |            ^~~~~~
+src/gc.c: In function ‘float_alloc’:
+src/gc.c:428:27: warning: dereferencing type-punned pointer will break strict-aliasing rules [-Wstrict-aliasing]
+  428 |         float_freelist = *(struct Float **)&f->value;
+      |                           ^~~~~~~~~~~~~~~~~~~~~~~~~~
+src/gc.c:438:39: warning: dereferencing type-punned pointer will break strict-aliasing rules [-Wstrict-aliasing]
+  438 |                     float_freelist = *(struct Float **)&r->value;
+      |                                       ^~~~~~~~~~~~~~~~~~~~~~~~~~
+src/gc.c:470:43: warning: dereferencing type-punned pointer will break strict-aliasing rules [-Wstrict-aliasing]
+  470 |                         float_freelist = *(struct Float **)&r->value;
+      |                                           ^~~~~~~~~~~~~~~~~~~~~~~~~~
+src/gc.c: In function ‘float_arena_free_count’:
+src/gc.c:512:15: warning: dereferencing type-punned pointer will break strict-aliasing rules [-Wstrict-aliasing]
+  512 |          p = *(struct Float **)&p->value) n++;
+      |               ^~~~~~~~~~~~~~~~~~~~~~~~~~
+src/gc.c: In function ‘float_is_live’:
+src/gc.c:520:15: warning: dereferencing type-punned pointer will break strict-aliasing rules [-Wstrict-aliasing]
+  520 |          p = *(struct Float **)&p->value) {
+      |               ^~~~~~~~~~~~~~~~~~~~~~~~~~
+src/gc.c: In function ‘float_sweep’:
+src/gc.c:570:18: warning: dereferencing type-punned pointer will break strict-aliasing rules [-Wstrict-aliasing]
+  570 |                 *(struct Float **)&cell->value = float_freelist;
+      |                  ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/platform.c:164:54: warning: ‘/*’ within comment [-Wcomment]
+  164 |    they read. Conditional compilation in a shared src/*.c rather than a new backend
+src/platform.c: In function ‘platform_dispatch’:
+src/platform.c:1187:13: warning: this ‘for’ clause does not guard... [-Wmisleading-indentation]
+ 1187 |             for(int s=3;s>=0;s--) buf[4-s]=(uint8_t)(arg>>(8*s)); n=5; }
+      |             ^~~
+src/platform.c:1187:67: note: ...this statement, but the latter is misleadingly indented as if it were guarded by the ‘for’
+ 1187 |             for(int s=3;s>=0;s--) buf[4-s]=(uint8_t)(arg>>(8*s)); n=5; }
+      |                                                                   ^
+src/platform.c:1189:13: warning: this ‘for’ clause does not guard... [-Wmisleading-indentation]
+ 1189 |             for(int s=7;s>=0;s--) buf[8-s]=(uint8_t)(arg>>(8*s)); n=9; }
+      |             ^~~
+src/platform.c:1189:67: note: ...this statement, but the latter is misleadingly indented as if it were guarded by the ‘for’
+ 1189 |             for(int s=7;s>=0;s--) buf[8-s]=(uint8_t)(arg>>(8*s)); n=9; }
+      |                                                                   ^
+src/platform.c:1204:13: warning: this ‘for’ clause does not guard... [-Wmisleading-indentation]
+ 1204 |             for(int s=3;s>=0;s--) buf[4-s]=(uint8_t)(uu>>(8*s)); n=5; }
+      |             ^~~
+src/platform.c:1204:66: note: ...this statement, but the latter is misleadingly indented as if it were guarded by the ‘for’
+ 1204 |             for(int s=3;s>=0;s--) buf[4-s]=(uint8_t)(uu>>(8*s)); n=5; }
+      |                                                                  ^
+src/platform.c:1206:13: warning: this ‘for’ clause does not guard... [-Wmisleading-indentation]
+ 1206 |             for(int s=7;s>=0;s--) buf[8-s]=(uint8_t)(uu>>(8*s)); n=9; }
+      |             ^~~
+src/platform.c:1206:66: note: ...this statement, but the latter is misleadingly indented as if it were guarded by the ‘for’
+ 1206 |             for(int s=7;s>=0;s--) buf[8-s]=(uint8_t)(uu>>(8*s)); n=9; }
+      |                                                                  ^
