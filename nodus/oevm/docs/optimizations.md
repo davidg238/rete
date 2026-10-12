@@ -29,6 +29,9 @@ measured, whether or not it lands. The numbers and the reasoning live in the rec
 | 10-11 | operands decoded per case; SMI + − × on tagged words | every row 0.7–24 % | kept, Opt #11 | `docs/results/2026-10-11-37-dispatch-head/` |
 | 10-11 | the arithmetic slow path inlined in the loop | floatMath fixed, every other row +2–3 % (register pressure) | **dead end**: out of line, Float first | same |
 | 10-11 | peephole result forwarding (`op t; LD_REG v,t` → `op v`) | integerMath −2.3 %, alloc/dictionaryWrite +2 %, fixture churn | **dead end** for now | same, branch `37-dispatch-head` |
+| 10-12 | L1: the access mechanism deleted (check, field, builtin #14, patch line) | AWFY host geomean 0.963; DeltaBlue −8.5 %, List −7.5 % | kept (branch `37-send-frame`) | `docs/results/2026-10-12-37-send-frame/` |
+| 10-12 | L2: `push_frame` answers its method, one prologue, gcc left to inline | 1.051 against L1: gcc inlined 3 of 7 sites, Sieve +19 % | **dead end** as written | same |
+| 10-12 | L2 with `push_frame` always inlined | 0.983 against L1; L1 + L2 0.943 against base (DeltaBlue, Towers, List −11–12 %); x86 `vm.o` text +1.7 KB | kept on the host; board and footprint pending | same |
 | — | the jump table's bound check (`cmp`/`bhi`) | GCC 12 keeps it despite `__builtin_unreachable()` | open: only computed goto removes it; untried | Opt #11 |
 
 Open levers, not yet tried: the frame and send cost (next), GC performance (pause, throughput, heap high-water),
