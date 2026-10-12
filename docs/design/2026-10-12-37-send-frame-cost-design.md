@@ -96,6 +96,11 @@ the MCU footprint (a lever that grows it says so in its row).
    store on every call. The question is whether anything still reads the number to refuse a stale home (nsl has
    no non-local return since Milestone A, which was the main reader). If nothing does, it is dead weight. This
    is a code question for me to answer, not a decision for David; I will check before L4.
+   **Answered (2026-10-12, L4):** nothing reads it. Every reference is a write (the stamp in `push_frame` and
+   `run_interpreter`, the copies in `make_closure` and `OP_MK_CONTEXT`, the image layout and serializer). The
+   stale-home guard it was meant to be was never written, so removing it changes no behaviour; that passes the
+   Milestone A plan's own test ("only written, removing it is safe"). L4(c) deletes the frame word, both
+   `home_generation` fields and the global.
 4. **Bench (answered: AWFY first).** The per-lever gate becomes AWFY on c6spare and on the host against Soup,
    with blockcost for the per-mechanism split.
 
