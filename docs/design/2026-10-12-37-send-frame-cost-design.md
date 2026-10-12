@@ -149,7 +149,7 @@ and run inside the send with no frame. Board-first, like L3.
 
 `docs/results/2026-10-12-37-l6/`. Frameless accessor sends: WeAct AWFY 0.941 (Richards 0.866), C6 0.988. The gain is
 about 40 % of the M upper bound (Richards' accessor frames were priced at the average frame, ~640 cycles; they save
-~250 each), because the accessor's own frame is the cheapest kind and the `send_resolve` call stays. On the C6, rows
+~230 each on the C6), because the accessor's own frame is the cheapest kind and the `send_resolve` call stays. On the C6, rows
 that L6 does not touch move 2–8 %, which is code placement in flash. **Next:** the C6 hot path in SRAM (the
 `OEVM_HOT_SECTION_IRAM` mechanism the ESP32/S2 use, unset for the C6 in run.sh), which stabilises every later C6
 measurement and tests how much of the 36-cycle base instruction is cache misses. Then L3 and L4.
