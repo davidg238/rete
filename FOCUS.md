@@ -16,7 +16,7 @@ blocks are in `docs/status/focus-history.md`; live state is in the issues and `d
 - **Awaiting David:** #368's history rewrite (force-push); close #314; #396; read E draft 4 and L; #175's memo; the dongle reflash
   (#402); the RP2 remote-BOOTSEL design (#413); re-bank the MCU footprint at 44602 (bank 45356) and host at 76929 (bank 77801)?
 - **Bench (opti7040):** `c6spare` `/dev/ttyUSB1` (CP2102N `d2e21074…`) and `c6b` `/dev/ttyUSB0` (`ac2dce6f…`, from the gateway) — both
-  C6 QFN40 v0.0, agree within 2 ms. WeAct usb `1-7` good (BOOTSEL via `weact_bootsel.py`); WeAct `1-5` wedged, needs BOOTSEL+RESET.
+  C6 QFN40 v0.0, agree within 2 ms. WeActs usb `1-5` and `1-7` both parked in BOOTSEL (2026-10-12 10:18); `weact_bootsel.py` parks a running one.
   The Zero is off the bus. The bell `c6` is on the WALL (never flash). MagTag `7cdfa11aaaaa` on the extender (BOOT0+RESET only).
   msi: `~/rete-board` (board_build's worktree), STIC harness `~/stic-harness.patch` (uncommitted, applied per build). Build on msi.
 - **Decided — do not re-litigate:** custos = nsl peer, porta language-neutral (D1–D2); share only `protocol/` (#338); agent first,
