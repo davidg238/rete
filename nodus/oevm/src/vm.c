@@ -762,6 +762,66 @@ const char *oevm_method_check(struct CompiledMethod *m) {
     return (last == OP_RET || last == OP_JMP) ? NULL : "the last instruction is not OP_RET or OP_JMP";
 }
 
+/* rete#37: the arithmetic the dispatch loop's SMI fast paths leave: SMI overflow, LargeInteger
+   and Float operands, and `/` (exact on SMIs, so never a fast path). One body for the four
+   opcodes, out of the loop. */
+static OEVM_HOT oop arith_slow(uint8_t op, oop op1, oop op2) {
+    if (!IS_SMI(op1) && !IS_SMI(op2) && obj_vtable(op1) == FloatVtable && obj_vtable(op2) == FloatVtable
+        && op != OP_DIV) {
+        /* Float with Float, the common case here, before the integer tests. */
+        double v1 = ((struct Float *)op1)->value, v2 = ((struct Float *)op2)->value;
+        struct Float *f_obj = (struct Float *)float_alloc(FloatVtable);
+        f_obj->value = (op == OP_ADD) ? v1 + v2 : (op == OP_SUB) ? v1 - v2 : v1 * v2;
+        return (oop)f_obj;
+    }
+    if (op == OP_DIV && IS_SMI(op1) && IS_SMI(op2)) {
+        intptr_t v1 = UNTAG_SMI(op1);
+        intptr_t v2 = UNTAG_SMI(op2);
+        if (v2 == 0) {
+            fprintf(stderr, "VM Error: Division by zero\n");
+            abort();
+        }
+        /* Smalltalk `/` is EXACT division: an Integer when it divides evenly, otherwise a
+           rational. With no Fraction type we yield a Float for the inexact case (e.g.
+           mandelbrot's `2 * y / size`). Flooring integer division is the separate `//` prim. */
+        if (v1 % v2 == 0) return TAG_SMI(v1 / v2);
+        struct Float *f_obj = (struct Float *)float_alloc(FloatVtable);
+        f_obj->value = (double)v1 / (double)v2;
+        return (oop)f_obj;
+    }
+    if (oevm_is_integer(op1) && oevm_is_integer(op2)) {
+        /* An SMI result that overflowed, or a LargeInteger operand: the int_* ops normalise. */
+        if (op == OP_ADD) return oevm_int_add(op1, op2);
+        if (op == OP_SUB) return oevm_int_sub(op1, op2);
+        if (op == OP_MUL) return oevm_int_mul(op1, op2);
+        /* Exact `/` on large integers isn't exercised; yield a Float of the ratio (lossy)
+           rather than a Fraction. */
+        double d2 = oevm_int_to_double(op2);
+        if (d2 == 0.0) { fprintf(stderr, "VM Error: Division by zero\n"); abort(); }
+        struct Float *f_obj = (struct Float *)float_alloc(FloatVtable);
+        f_obj->value = oevm_int_to_double(op1) / d2;
+        return (oop)f_obj;
+    }
+    double v1 = IS_SMI(op1) ? (double)UNTAG_SMI(op1)
+        : (obj_vtable(op1) == LargeIntegerVtable ? oevm_int_to_double(op1) : ((struct Float *)op1)->value);
+    double v2 = IS_SMI(op2) ? (double)UNTAG_SMI(op2)
+        : (obj_vtable(op2) == LargeIntegerVtable ? oevm_int_to_double(op2) : ((struct Float *)op2)->value);
+    double res = 0.0;
+    if (op == OP_ADD) res = v1 + v2;
+    else if (op == OP_SUB) res = v1 - v2;
+    else if (op == OP_MUL) res = v1 * v2;
+    else {
+        if (v2 == 0.0) {
+            fprintf(stderr, "VM Error: Division by zero\n");
+            abort();
+        }
+        res = v1 / v2;
+    }
+    struct Float *f_obj = (struct Float *)float_alloc(FloatVtable);
+    f_obj->value = res;
+    return (oop)f_obj;
+}
+
 static OEVM_HOT struct MethodContext *push_frame(oop closure, oop receiver, int argc, oop *args) {
     struct Closure *cl = (struct Closure *)closure;
     struct CompiledMethod *m = (struct CompiledMethod *)closure_entry(cl);
@@ -1008,28 +1068,30 @@ OEVM_HOT oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
 #endif /* !OEVM_NO_DEBUG_HOOKS */
 
         pc++;
-        uint8_t dest = (inst >> 8) & 0xFF;
-        uint8_t src1 = (inst >> 16) & 0xFF;
-        uint8_t src2 = (inst >> 24) & 0xFF;
+        /* rete#37: each case decodes the operand fields it reads, where it reads them, rather than
+           all three up front for every opcode. */
+#define DEST ((uint8_t)(inst >> 8))
+#define SRC1 ((uint8_t)(inst >> 16))
+#define SRC2 ((uint8_t)(inst >> 24))
 
         switch (op) {
             case OP_LD_CONST: {
                 /* canonicalize boxed int constants (nsl-tuvm#4): an image ref-word holds a 30-bit
                    SMI and the VM's SMI is 31, so a literal in between ships as a LargeInteger and
                    is demoted here. The SMI test is inline because nearly every constant is one. */
-                oop c = cm_const_at(method, src1);
-                ctx->regs[dest] = IS_SMI(c) ? c : oevm_int_demote(c);
+                oop c = cm_const_at(method, SRC1);
+                ctx->regs[DEST] = IS_SMI(c) ? c : oevm_int_demote(c);
                 break;
             }
 
             case OP_LD_REG:
-                ctx->regs[dest] = ctx->regs[src1];
+                ctx->regs[DEST] = ctx->regs[SRC1];
                 break;
 
             case OP_LD_SELF:
                 /* self-migration: enclosing self, snapshotted on the running block's
                    closure — fiber-independent (no home_ctx walk). */
-                ctx->regs[dest] = ((struct Closure *)ctx->closure)->captured_self;
+                ctx->regs[DEST] = ((struct Closure *)ctx->closure)->captured_self;
                 break;
 
             case OP_LD_LEXICAL: {
@@ -1037,15 +1099,15 @@ OEVM_HOT oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
                    start at the running receiver/closure, walk home `depth` times via
                    the SAME prim, then read register `idx`. */
                 oop cur = ctx->regs[0];
-                for (uint8_t d = 0; d < src1; d++) cur = primitive_closure_home(cur, 0, NULL);
-                oop idx = TAG_SMI(src2);
-                ctx->regs[dest] = primitive_method_context_reg_at(cur, 1, &idx);
+                for (uint8_t d = 0; d < SRC1; d++) cur = primitive_closure_home(cur, 0, NULL);
+                oop idx = TAG_SMI(SRC2);
+                ctx->regs[DEST] = primitive_method_context_reg_at(cur, 1, &idx);
                 break;
             }
             case OP_ST_LEXICAL: {
                 oop cur = ctx->regs[0];
-                for (uint8_t d = 0; d < src1; d++) cur = primitive_closure_home(cur, 0, NULL);
-                oop putargs[2] = { TAG_SMI(src2), ctx->regs[dest] };
+                for (uint8_t d = 0; d < SRC1; d++) cur = primitive_closure_home(cur, 0, NULL);
+                oop putargs[2] = { TAG_SMI(SRC2), ctx->regs[DEST] };
                 primitive_method_context_reg_at_put(cur, 2, putargs);
                 break;
             }
@@ -1060,7 +1122,7 @@ OEVM_HOT oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
                    than the stack home_ctx. NULL when the creating frame has no
                    Context (capture-free frame: that register is nil-seeded). */
                 ((struct Closure *)cl)->captured_env = ctx->regs[method->num_arguments + 1];
-                ctx->regs[dest] = cl;
+                ctx->regs[DEST] = cl;
                 break;
             }
             /* De-recursify deferred-lift Phase 1, Task 2: temp-vector (Context)
@@ -1075,27 +1137,27 @@ OEVM_HOT oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
                captured-local access through it; the VM here is stateless about
                *why* that register holds what it holds. */
             case OP_MK_CONTEXT: {
-                uint8_t num_slots = src1;
-                oop outer = (src2 == 0xFF)
+                uint8_t num_slots = SRC1;
+                oop outer = (SRC2 == 0xFF)
                     ? ((struct Closure *)ctx->closure)->captured_env   /* block: chain to enclosing */
                     : NULL;                                             /* method root: no outer */
-                ctx->regs[dest] = context_alloc(num_slots, outer, ctx->gen_tag.tag32);
+                ctx->regs[DEST] = context_alloc(num_slots, outer, ctx->gen_tag.tag32);
                 break;
             }
             case OP_LD_CTX: {
                 struct Context *cur = (struct Context *)ctx->regs[method->num_arguments + 1];
-                for (uint8_t d = 0; d < src1; d++) cur = (struct Context *)cur->outer;
-                ctx->regs[dest] = cur->slots[src2];
+                for (uint8_t d = 0; d < SRC1; d++) cur = (struct Context *)cur->outer;
+                ctx->regs[DEST] = cur->slots[SRC2];
                 break;
             }
             case OP_ST_CTX: {
                 struct Context *cur = (struct Context *)ctx->regs[method->num_arguments + 1];
-                for (uint8_t d = 0; d < src1; d++) cur = (struct Context *)cur->outer;
-                cur->slots[src2] = ctx->regs[dest];
+                for (uint8_t d = 0; d < SRC1; d++) cur = (struct Context *)cur->outer;
+                cur->slots[SRC2] = ctx->regs[DEST];
                 break;
             }
             case OP_LD_SENDER: {
-                ctx->regs[dest] = primitive_method_context_sender(ctx->regs[src1], 0, NULL);
+                ctx->regs[DEST] = primitive_method_context_sender(ctx->regs[SRC1], 0, NULL);
                 break;
             }
 
@@ -1106,8 +1168,8 @@ OEVM_HOT oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
             case OP_LE:
             case OP_GT:
             case OP_GE: {
-                oop a = ctx->regs[src2];
-                oop b = ctx->regs[src2 + 1];
+                oop a = ctx->regs[SRC2];
+                oop b = ctx->regs[SRC2 + 1];
                 if (IS_SMI(a) && IS_SMI(b)) {
                     intptr_t v1 = UNTAG_SMI(a);
                     intptr_t v2 = UNTAG_SMI(b);
@@ -1115,14 +1177,14 @@ OEVM_HOT oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
                           : (op == OP_LE) ? (v1 <= v2)
                           : (op == OP_GT) ? (v1 > v2)
                           :                 (v1 >= v2);
-                    ctx->regs[src2] = t ? (oop)&true_sym_obj : (oop)&false_sym_obj;
+                    ctx->regs[SRC2] = t ? (oop)&true_sym_obj : (oop)&false_sym_obj;
                     break;
                 }
                 goto do_send;   /* Float/LargeInteger/other: prim path, unchanged */
             }
             case OP_AT: {
-                oop r = ctx->regs[src2];
-                oop i = ctx->regs[src2 + 1];
+                oop r = ctx->regs[SRC2];
+                oop i = ctx->regs[SRC2 + 1];
                 /* Shape gate == PRIM_ix_basicAt's: non-SMI instance whose slot0
                    is an SMI length. Emitter discipline (kernel-internal
                    basicAt: on known Arrays) is what makes the gate sound —
@@ -1133,7 +1195,7 @@ OEVM_HOT oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
                     intptr_t n = UNTAG_SMI(instance_slot(ix, 0));
                     intptr_t idx = UNTAG_SMI(i);
                     if (idx >= 1 && idx <= n) {
-                        ctx->regs[src2] = instance_slot(ix, (size_t)idx);
+                        ctx->regs[SRC2] = instance_slot(ix, (size_t)idx);
                         break;
                     }
                     /* out of bounds: fall to the send -> prim -> its exact
@@ -1145,9 +1207,9 @@ OEVM_HOT oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
                 /* rete#37, see oevm.h. Emitted only from kernel source, whose discipline (basicAt: on
                    kernel Arrays, limit <= size at entry) makes these shapes sound: a miss is a
                    compiler bug, so it aborts by name rather than falling back to a send. */
-                oop k = ctx->regs[dest];
-                oop lim = ctx->regs[dest + 1];
-                oop r = ctx->regs[dest + 2];
+                oop k = ctx->regs[DEST];
+                oop lim = ctx->regs[DEST + 1];
+                oop r = ctx->regs[DEST + 2];
                 if (!IS_SMI(k) || !IS_SMI(lim) || r == NULL || IS_SMI(r) ||
                     !IS_SMI(instance_slot((struct ObjectInstance *)r, 0))) {
                     fprintf(stderr, "VM Error: OP_ITER_AT shape\n");
@@ -1163,28 +1225,28 @@ OEVM_HOT oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
                     fprintf(stderr, "VM Error: OP_ITER_AT index %ld out of bounds\n", (long)idx);
                     abort();
                 }
-                ctx->regs[dest + 3] = instance_slot(ix, (size_t)idx);
-                ctx->regs[dest] = TAG_SMI(idx + 1);
+                ctx->regs[DEST + 3] = instance_slot(ix, (size_t)idx);
+                ctx->regs[DEST] = TAG_SMI(idx + 1);
                 break;
             }
             case OP_IS_VT: {
                 /* rete#37 spike, see oevm.h. */
-                oop o = ctx->regs[src2];
-                ctx->regs[dest] = (o != NULL && !IS_SMI(o) && obj_vtable(o) == cm_const_at(method, src1))
+                oop o = ctx->regs[SRC2];
+                ctx->regs[DEST] = (o != NULL && !IS_SMI(o) && obj_vtable(o) == cm_const_at(method, SRC1))
                                 ? (oop)&true_sym_obj : (oop)&false_sym_obj;
                 break;
             }
             case OP_AT_PUT: {
-                oop r = ctx->regs[src2];
-                oop i = ctx->regs[src2 + 1];
+                oop r = ctx->regs[SRC2];
+                oop i = ctx->regs[SRC2 + 1];
                 if (r != NULL && !IS_SMI(r) && IS_SMI(i) &&
                     IS_SMI(instance_slot((struct ObjectInstance *)r, 0))) {
                     struct ObjectInstance *ix = (struct ObjectInstance *)r;
                     intptr_t n = UNTAG_SMI(instance_slot(ix, 0));
                     intptr_t idx = UNTAG_SMI(i);
                     if (idx >= 1 && idx <= n) {
-                        ix->slots[idx] = ctx->regs[src2 + 2];
-                        ctx->regs[src2] = ctx->regs[src2 + 2];  /* result = stored value */
+                        ix->slots[idx] = ctx->regs[SRC2 + 2];
+                        ctx->regs[SRC2] = ctx->regs[SRC2 + 2];  /* result = stored value */
                         break;
                     }
                 }
@@ -1197,19 +1259,19 @@ OEVM_HOT oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
                 // Registers[src2] = Target Receiver
                 // dest = Start index of argument registers
                 // (Argument count is decoded from the instruction stream or method metadata)
-                oop selector = cm_const_at(method, src1);
-                oop target = ctx->regs[src2];
+                oop selector = cm_const_at(method, SRC1);
+                oop target = ctx->regs[SRC2];
 
                 // Let's deduce argc from instruction dest field
-                int send_argc = dest;
-                oop *send_args = (send_argc > 0) ? &ctx->regs[src2 + 1] : NULL;
+                int send_argc = DEST;
+                oop *send_args = (send_argc > 0) ? &ctx->regs[SRC2 + 1] : NULL;
 
                 // Save PC return address in context before dispatching. saved_pc
                 // points JUST AFTER this send (pc was already advanced), so
                 // saved_pc-1 IS this instruction — OP_RET decodes src2 from it.
                 ctx->saved_pc = pc;
 
-                OEVM_TRACE_PRINT("SEND START: selector=%s, receiver_reg=%d, value=%p\n", symbol_name((struct Symbol*)selector), src2, (void*)target);
+                OEVM_TRACE_PRINT("SEND START: selector=%s, receiver_reg=%d, value=%p\n", symbol_name((struct Symbol*)selector), SRC2, (void*)target);
                 oop m_out = NULL, r_out = NULL;
                 int argc_out = 0;
                 oop result = send_resolve(target, selector, send_argc, send_args,
@@ -1223,14 +1285,14 @@ OEVM_HOT oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
                     pc = cm_instructions(method);
                     continue;
                 }
-                OEVM_TRACE_PRINT("SEND END: selector=%s, receiver_reg=%d, result=%p\n", symbol_name((struct Symbol*)selector), src2, (void*)result);
+                OEVM_TRACE_PRINT("SEND END: selector=%s, receiver_reg=%d, result=%p\n", symbol_name((struct Symbol*)selector), SRC2, (void*)result);
 
                 /* Fixed stack (Task 7): a primitive (incl. a nested run_interpreter,
                    which restores current_frame at exit_frame) never moves frames, so
                    ctx == current_frame here — the former grow-recovery reload is dead
                    and removed. Same at OP_BLOCK_INVOKE/OP_SEND_IMPLICIT/OP_SEND_SUPER. */
                 // Save send result in R(src2)
-                ctx->regs[src2] = result;
+                ctx->regs[SRC2] = result;
                 break;
             }
 
@@ -1238,9 +1300,9 @@ OEVM_HOT oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
                 // Layout identical to OP_SEND. Fast-path: a BytecodeClosure is
                 // invoked as a block (still recursive in Phase 1); any other
                 // receiver falls back to a normal send (e.g. Association>>value).
-                oop target = ctx->regs[src2];
-                int send_argc = dest;
-                oop *send_args = (send_argc > 0) ? &ctx->regs[src2 + 1] : NULL;
+                oop target = ctx->regs[SRC2];
+                int send_argc = DEST;
+                oop *send_args = (send_argc > 0) ? &ctx->regs[SRC2 + 1] : NULL;
 
                 ctx->saved_pc = pc;
                 if (target != NULL && obj_vtable(target) == BytecodeClosureVtable) {
@@ -1254,7 +1316,7 @@ OEVM_HOT oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
                     continue;
                 }
                 /* Fallback: an ordinary send (e.g. Association>>value). */
-                oop selector = cm_const_at(method, src1);
+                oop selector = cm_const_at(method, SRC1);
                 oop m_out = NULL, r_out = NULL;
                 int argc_out = 0;
                 oop result = send_resolve(target, selector, send_argc, send_args,
@@ -1268,94 +1330,45 @@ OEVM_HOT oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
                 }
 
                 /* Fixed stack (Task 7): ctx == current_frame; reload removed. */
-                ctx->regs[src2] = result;
+                ctx->regs[SRC2] = result;
                 break;
             }
 
             case OP_RET:
-                return_val = (dest < method->num_registers) ? ctx->regs[dest] : NULL;
+                return_val = (DEST < method->num_registers) ? ctx->regs[DEST] : NULL;
                 goto do_ret_deliver;
 
-            case OP_ADD:
-            case OP_SUB:
-            case OP_MUL:
-            case OP_DIV: {
-                oop op1 = ctx->regs[src1];
-                oop op2 = ctx->regs[src2];
-                if (IS_SMI(op1) && IS_SMI(op2)) {
-                    intptr_t v1 = UNTAG_SMI(op1);
-                    intptr_t v2 = UNTAG_SMI(op2);
-                    if (op == OP_DIV) {
-                        if (v2 == 0) {
-                            fprintf(stderr, "VM Error: Division by zero\n");
-                            abort();
-                        }
-                        // Smalltalk `/` is EXACT division: an Integer when it
-                        // divides evenly, otherwise a rational. With no Fraction
-                        // type we yield a Float for the inexact case (e.g.
-                        // mandelbrot's `2 * y / size`). Flooring integer
-                        // division is the separate `//` primitive.
-                        if (v1 % v2 == 0) {
-                            ctx->regs[dest] = TAG_SMI(v1 / v2);
-                        } else {
-                            struct Float *f_obj = (struct Float *)float_alloc(FloatVtable);
-                            f_obj->value = (double)v1 / (double)v2;
-                            ctx->regs[dest] = (oop)f_obj;
-                        }
-                    } else {
-                        // SMI +/-/*: detect overflow and promote to LargeInteger.
-                        // Even without C-level overflow the result can exceed the
-                        // tagged SMI range, so normalise via int_from_intptr.
-                        intptr_t res = 0;
-                        int of = (op == OP_ADD) ? __builtin_add_overflow(v1, v2, &res)
-                               : (op == OP_SUB) ? __builtin_sub_overflow(v1, v2, &res)
-                               : __builtin_mul_overflow(v1, v2, &res);
-                        if (of) {
-                            ctx->regs[dest] = (op == OP_ADD) ? oevm_int_add(op1, op2)
-                                            : (op == OP_SUB) ? oevm_int_sub(op1, op2)
-                                            : oevm_int_mul(op1, op2);
-                        } else {
-                            oop tagged = TAG_SMI(res);
-                            ctx->regs[dest] = (UNTAG_SMI(tagged) == res)
-                                            ? tagged : int_from_intptr(res);
-                        }
-                    }
-                } else if (oevm_is_integer(op1) && oevm_is_integer(op2)) {
-                    // At least one operand is a LargeInteger; both are integral.
-                    if (op == OP_ADD) ctx->regs[dest] = oevm_int_add(op1, op2);
-                    else if (op == OP_SUB) ctx->regs[dest] = oevm_int_sub(op1, op2);
-                    else if (op == OP_MUL) ctx->regs[dest] = oevm_int_mul(op1, op2);
-                    else {
-                        // Exact `/` on large integers isn't exercised; yield a
-                        // Float of the ratio (lossy) rather than a Fraction.
-                        double d2 = oevm_int_to_double(op2);
-                        if (d2 == 0.0) { fprintf(stderr, "VM Error: Division by zero\n"); abort(); }
-                        struct Float *f_obj = (struct Float *)float_alloc(FloatVtable);
-                        f_obj->value = oevm_int_to_double(op1) / d2;
-                        ctx->regs[dest] = (oop)f_obj;
-                    }
-                } else {
-                    double v1 = IS_SMI(op1) ? (double)UNTAG_SMI(op1)
-                        : (obj_vtable(op1) == LargeIntegerVtable ? oevm_int_to_double(op1) : ((struct Float *)op1)->value);
-                    double v2 = IS_SMI(op2) ? (double)UNTAG_SMI(op2)
-                        : (obj_vtable(op2) == LargeIntegerVtable ? oevm_int_to_double(op2) : ((struct Float *)op2)->value);
-                    double res = 0.0;
-                    if (op == OP_ADD) res = v1 + v2;
-                    else if (op == OP_SUB) res = v1 - v2;
-                    else if (op == OP_MUL) res = v1 * v2;
-                    else if (op == OP_DIV) {
-                        if (v2 == 0.0) {
-                            fprintf(stderr, "VM Error: Division by zero\n");
-                            abort();
-                        }
-                        res = v1 / v2;
-                    }
-                    struct Float *f_obj = (struct Float *)float_alloc(FloatVtable);
-                    f_obj->value = res;
-                    ctx->regs[dest] = (oop)f_obj;
-                }
+            /* rete#37: SMI +, -, * on the tagged words. An SMI is the word 2v+1 and its payload is
+               the whole word less the tag, so the word's own overflow is exactly "no longer an SMI":
+               a + (b-1) = 2(x+y)+1, a - (b-1) = 2(x-y)+1, (a-1)*y = 2xy. Everything else (an
+               overflow, a LargeInteger, a Float, and every `/`) is arith_slow's. */
+            case OP_ADD: {
+                oop a = ctx->regs[SRC1], b = ctx->regs[SRC2];
+                intptr_t r;
+                ctx->regs[DEST] = ((uintptr_t)a & (uintptr_t)b & 1)
+                                  && !__builtin_add_overflow((intptr_t)a, (intptr_t)b - 1, &r)
+                                ? (oop)r : arith_slow(OP_ADD, a, b);
                 break;
             }
+            case OP_SUB: {
+                oop a = ctx->regs[SRC1], b = ctx->regs[SRC2];
+                intptr_t r;
+                ctx->regs[DEST] = ((uintptr_t)a & (uintptr_t)b & 1)
+                                  && !__builtin_sub_overflow((intptr_t)a, (intptr_t)b - 1, &r)
+                                ? (oop)r : arith_slow(OP_SUB, a, b);
+                break;
+            }
+            case OP_MUL: {
+                oop a = ctx->regs[SRC1], b = ctx->regs[SRC2];
+                intptr_t r;
+                ctx->regs[DEST] = ((uintptr_t)a & (uintptr_t)b & 1)
+                                  && !__builtin_mul_overflow((intptr_t)a - 1, UNTAG_SMI(b), &r)
+                                ? (oop)(r | 1) : arith_slow(OP_MUL, a, b);
+                break;
+            }
+            case OP_DIV:
+                ctx->regs[DEST] = arith_slow(OP_DIV, ctx->regs[SRC1], ctx->regs[SRC2]);
+                break;
 
             case OP_JMP: {
                 int16_t offset = (int16_t)(inst >> 8);
@@ -1367,8 +1380,11 @@ OEVM_HOT oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
                 // Phase A runtime no-op: the only emitted OP_JMP_IF_FALSE (unwindTo:value: in the
                 // compiler) is fed by ==, whose primitive returns the true_sym_obj/false_sym_obj
                 // boolean symbols; is_truthy matches them by name. Conformance gate holds.
-                oop cond = ctx->regs[dest];
-                if (!is_truthy(cond)) {
+                oop cond = ctx->regs[DEST];
+                /* The comparison fast paths and prims yield exactly these two statics, so the
+                   identity tests decide nearly every branch without the call. */
+                if (cond == (oop)&false_sym_obj
+                    || (cond != (oop)&true_sym_obj && !is_truthy(cond))) {
                     int16_t offset = (int16_t)(inst >> 16);
                     pc += offset;
                 }
@@ -1376,18 +1392,18 @@ OEVM_HOT oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
             }
 
             case OP_LD_SLOT: {
-                oop obj = ctx->regs[src2];
+                oop obj = ctx->regs[SRC2];
                 if (obj == NULL || IS_SMI(obj)) {
                     fprintf(stderr, "VM Error: Invalid receiver for LD_SLOT\n");
                     abort();
                 }
                 struct ObjectInstance *inst_obj = (struct ObjectInstance *)obj;
-                ctx->regs[dest] = instance_slot(inst_obj, src1);
+                ctx->regs[DEST] = instance_slot(inst_obj, SRC1);
                 break;
             }
 
             case OP_ST_SLOT: {
-                oop obj = ctx->regs[src2];
+                oop obj = ctx->regs[SRC2];
                 if (obj == NULL || IS_SMI(obj)) {
                     fprintf(stderr, "VM Error: Invalid receiver for ST_SLOT\n");
                     abort();
@@ -1397,27 +1413,27 @@ OEVM_HOT oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
                     fprintf(stderr, "VM Error: attempt to mutate immutable image object %p\n", (void*)inst_obj);
                     abort();
                 }
-                oop val = ctx->regs[dest];
-                inst_obj->slots[src1] = val;
+                oop val = ctx->regs[DEST];
+                inst_obj->slots[SRC1] = val;
                 break;
             }
 
             case OP_NEW: {
-                oop vt = ctx->regs[src1];
-                int slot_count = src2;
+                oop vt = ctx->regs[SRC1];
+                int slot_count = SRC2;
                 struct ObjectInstance *new_obj = (struct ObjectInstance *)gc_allocate(vt, sizeof(struct ObjectInstance) + slot_count * sizeof(oop));
                 for (int i = 0; i < slot_count; i++) {
                     new_obj->slots[i] = NULL;
                 }
-                ctx->regs[dest] = (oop)new_obj;
+                ctx->regs[DEST] = (oop)new_obj;
                 break;
             }
 
             case OP_SEND_IMPLICIT: {
-                oop selector = cm_const_at(method, src1);
-                oop rcvr = ctx->regs[src2];
-                int send_argc = dest;
-                oop *send_args = (send_argc > 0) ? &ctx->regs[src2 + 1] : NULL;
+                oop selector = cm_const_at(method, SRC1);
+                oop rcvr = ctx->regs[SRC2];
+                int send_argc = DEST;
+                oop *send_args = (send_argc > 0) ? &ctx->regs[SRC2 + 1] : NULL;
 
                 ctx->saved_pc = pc;
 
@@ -1493,18 +1509,18 @@ OEVM_HOT oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
                 }
 
                 /* Fixed stack (Task 7): ctx == current_frame; reload removed. */
-                ctx->regs[src2] = result;
+                ctx->regs[SRC2] = result;
                 break;
             }
 
             case OP_SEND_SUPER: {
                 // Register layout at src2(c): [c]=start vtable, [c+1]=self,
                 // [c+2..]=args. dest(a)=argc, src1(b)=selector const.
-                oop start_vt = ctx->regs[src2];
-                oop self_rcvr = ctx->regs[src2 + 1];
-                oop selector = cm_const_at(method, src1);
-                int send_argc = dest;
-                oop *send_args = (send_argc > 0) ? &ctx->regs[src2 + 2] : NULL;
+                oop start_vt = ctx->regs[SRC2];
+                oop self_rcvr = ctx->regs[SRC2 + 1];
+                oop selector = cm_const_at(method, SRC1);
+                int send_argc = DEST;
+                oop *send_args = (send_argc > 0) ? &ctx->regs[SRC2 + 2] : NULL;
 
                 ctx->saved_pc = pc;
                 oop m_out = NULL, r_out = NULL;
@@ -1522,13 +1538,17 @@ OEVM_HOT oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
                 }
 
                 /* Fixed stack (Task 7): ctx == current_frame; reload removed. */
-                ctx->regs[src2] = result;
+                ctx->regs[SRC2] = result;
                 break;
             }
 
             default:
                 __builtin_unreachable();   /* rete#37: oevm_inst_check refuses any other opcode */
         }
+
+#undef DEST
+#undef SRC1
+#undef SRC2
 
         /* Normal instruction completion falls through to the step hook. The
            return-delivery label below is reached only via goto. */

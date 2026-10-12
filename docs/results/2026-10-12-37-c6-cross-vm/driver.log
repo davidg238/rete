@@ -1,0 +1,27 @@
+[c6] nsl
+done
+rc 0
+done
+rc 0
+done
+rc 0
+done
+rc 0
+done
+rc 0
+[c6] toit
+flash rc 0
+done
+rc 0
+flash rc 0
+done
+rc 0
+flash rc 0
+done
+rc 0
+[c6] micropython
+flash rc 0
+rc 0
+rc 0
+rc 0
+[c6] all done

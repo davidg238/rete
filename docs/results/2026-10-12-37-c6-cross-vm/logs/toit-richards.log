@@ -1,0 +1,17 @@
+23:49:42 < ESP-ROM:esp32c6-20220919
+23:49:42 < Build:Sep 19 2022
+23:49:42 < rst:0x1 (POWERON),boot:0x4c (SPI_FAST_FLASH_BOOT)
+23:49:42 < SPIWP:0xee
+23:49:42 < mode:DIO, clock div:2
+23:49:42 < load:0x40875720,len:0x9c
+23:49:42 < load:0x4086c110,len:0xba0
+23:49:42 < load:0x4086e610,len:0x2548
+23:49:42 < entry 0x4086c110
+23:49:42 < [toit] INFO: starting <v2.0.0-alpha.194>
+23:49:42 < [toit] DEBUG: clearing RTC memory: invalid checksum
+23:49:42 < [toit] INFO: running on ESP32C6 - revision 0.0
+23:49:43 < richards: 1178
+23:49:44 < richards: 1179
+23:49:46 < richards: 1177
+23:49:46 < verified: true
+23:49:46 < done

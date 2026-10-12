@@ -1,0 +1,19 @@
+esptool v5.5.0
+Serial port /dev/ttyUSB1:
+Connecting....
+Connected to ESP32-C6 on /dev/ttyUSB1:
+Chip type:          ESP32-C6 (QFN40) (revision v0.0)
+Features:           Wi-Fi 6, BT 5 (LE), IEEE802.15.4, Single Core + LP Core, 160MHz, Unknown Embedded Flash
+Crystal frequency:  40MHz
+MAC:                40:4c:ca:ff:fe:44:6e:60
+BASE MAC:           40:4c:ca:44:6e:60
+MAC_EXT:            ff:fe
+
+Uploading stub flasher...
+Running stub flasher...
+Stub flasher running.
+
+Erasing flash memory (this may take a while)...
+Flash memory erased successfully in 3.1 seconds.
+
+Hard resetting via RTS pin...

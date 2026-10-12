@@ -1,0 +1,16 @@
+Starting STIC benchmark...
+... test run 1
+... test run 2
+... test run 3
+STIC benchmark ---------------------------
+   (smaller numbers are better)
+alloc               13.19
+array write         41.50
+dictionary write    0.98
+float math          48.97
+integer math        17.61
+collection iterate  35.26
+collection write    6.42
+string compare      3.96
+hanoi               0.72
+-------------------------------------------

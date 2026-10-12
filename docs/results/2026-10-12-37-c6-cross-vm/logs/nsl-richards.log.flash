@@ -1,0 +1,48 @@
+esptool v5.5.0
+Serial port /dev/ttyUSB1:
+Connecting....
+Connected to ESP32-C6 on /dev/ttyUSB1:
+Chip type:          ESP32-C6 (QFN40) (revision v0.0)
+Features:           Wi-Fi 6, BT 5 (LE), IEEE802.15.4, Single Core + LP Core, 160MHz, Unknown Embedded Flash
+Crystal frequency:  40MHz
+MAC:                40:4c:ca:ff:fe:44:6e:60
+BASE MAC:           40:4c:ca:44:6e:60
+MAC_EXT:            ff:fe
+
+Uploading stub flasher...
+Running stub flasher...
+Stub flasher running.
+Changing baud rate to 921600...
+Changed.
+
+Configuring flash size...
+
+Writing '/tmp/claude-1000/-home-david-workspace-rete/c5dabc79-5acf-4ea5-88fb-f294bc120f3b/scratchpad/c6sum/c6-nsl-richards.bin' at 0x00000000...
+Flash will be erased from 0x00000000 to 0x00049fff...
+Compressed 299592 bytes to 159862...
+Writing at 0x00005dec ━━━                             10.2% 16.00kB/156.12kB [0s] 
+Writing at 0x0000c43f ━━━━━━                          20.5% 32.00kB/156.12kB [0s] 
+Writing at 0x00020a78 ━━━━━━━━━                       30.7% 48.00kB/156.12kB [0s] 
+Writing at 0x00026b00 ━━━━━━━━━━━━                    41.0% 64.00kB/156.12kB [1s] 
+Writing at 0x0002d139 ━━━━━━━━━━━━━━━                 51.2% 80.00kB/156.12kB [1s] 
+Writing at 0x0003326e ━━━━━━━━━━━━━━━━━━              61.5% 96.00kB/156.12kB [1s] 
+Writing at 0x000390a9 ━━━━━━━━━━━━━━━━━━━━━╸          71.7% 112.00kB/156.12kB [1s] 
+Writing at 0x0003f23e ━━━━━━━━━━━━━━━━━━━━━━━━╸       82.0% 128.00kB/156.12kB [2s] 
+Writing at 0x00044ff7 ━━━━━━━━━━━━━━━━━━━━━━━━━━━╸    92.2% 144.00kB/156.12kB [2s] 
+Writing at 0x00049248 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100.0% 156.12kB/156.12kB [2s] 
+Wrote 299592 bytes (159862 compressed) at 0x00000000 in 2.5 seconds (955.0 kbit/s).
+Verifying written data...
+Hash of data verified.
+
+Writing '/tmp/claude-1000/-home-david-workspace-rete/c5dabc79-5acf-4ea5-88fb-f294bc120f3b/scratchpad/c6sum/c6-nsl-richards.oimg' at 0x00220000...
+Flash will be erased from 0x00220000 to 0x0024afff...
+Compressed 173912 bytes to 54125...
+Writing at 0x002328d9 ━━━━━━━━━                       30.3% 16.00kB/52.86kB [0s] 
+Writing at 0x0023ceeb ━━━━━━━━━━━━━━━━━━              60.5% 32.00kB/52.86kB [0s] 
+Writing at 0x0024796a ━━━━━━━━━━━━━━━━━━━━━━━━━━━     90.8% 48.00kB/52.86kB [0s] 
+Writing at 0x0024a758 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100.0% 52.86kB/52.86kB [0s] 
+Wrote 173912 bytes (54125 compressed) at 0x00220000 in 1.2 seconds (1175.3 kbit/s).
+Verifying written data...
+Hash of data verified.
+
+Staying in bootloader.

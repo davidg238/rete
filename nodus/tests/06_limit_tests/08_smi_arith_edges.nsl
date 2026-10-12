@@ -1,0 +1,48 @@
+(*
+expect:
+4611686018427387904
+4611686018427387903
+-4611686018427387905
+4611686018427387904
+-9223372036854775808
+1073741824
+-1073741825
+1073741824
+1152921502459363329
+-2147483646
+-2
+-12
+1073741824
+-4611686018427387903
+true
+true
+*)
+(* rete#37: OP_ADD/SUB/MUL compute on the tagged words and take the word's overflow as "no
+   longer an SMI". Every edge of both SMI ranges (63-bit payload on a 64-bit host, 31-bit on
+   the MCU and under -m32) must cross into a LargeInteger and back with the right value. *)
+class SmiArithEdgesTest packageUsing: manifest = () (
+public main: platform args: args = (
+  | a b c d |
+  a:: 4611686018427387903.                 (* 2^62 - 1, the 64-bit SMI max *)
+  b:: -4611686018427387904.                (* -2^62, the 64-bit SMI min *)
+  c:: 1073741823.                          (* 2^30 - 1, the 32-bit SMI max *)
+  d:: -1073741824.                         (* -2^30, the 32-bit SMI min *)
+  ((a + 1) printString) println.
+  ((a + 1 - 1) printString) println.
+  ((b - 1) printString) println.
+  ((b * -1) printString) println.
+  ((b + b) printString) println.
+  ((c + 1) printString) println.
+  ((d - 1) printString) println.
+  ((d * -1) printString) println.
+  ((c * c) printString) println.
+  ((c * -2) printString) println.
+  ((3 - 5) printString) println.
+  ((-3 * 4) printString) println.
+  ((0 - d) printString) println.
+  ((a * -1) printString) println.
+  (((c + 1) - 1) = c) printString println.
+  (((a + 1) - 1) = a) printString println.
+)
+) : (
+)

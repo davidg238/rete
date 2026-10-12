@@ -1,0 +1,27 @@
+23:40:07 < ESP-ROM:esp32c6-20220919
+23:40:07 < Build:Sep 19 2022
+23:40:07 < rst:0x1 (POWERON),boot:0x4c (SPI_FAST_FLASH_BOOT)
+23:40:07 < SPIWP:0xee
+23:40:07 < mode:DIO, clock div:2
+23:40:07 < load:0x40875720,len:0x9c
+23:40:07 < load:0x4086c110,len:0xba0
+23:40:07 < load:0x4086e610,len:0x2548
+23:40:07 < entry 0x4086c110
+23:40:07 < [toit] INFO: starting <v2.0.0-alpha.194>
+23:40:07 < [toit] DEBUG: clearing RTC memory: invalid checksum
+23:40:07 < [toit] INFO: running on ESP32C6 - revision 0.0
+23:40:07 < Starting STIC benchmark...
+23:40:07 < Full GC count 1
+23:43:01 < Full GC count 2
+23:46:06 < Full GC count 3
+23:49:17 < STIC benchmark for Toit v2.0.0-alpha.194 ---------------------------
+23:49:17 <    (smaller numbers are better)
+23:49:17 < alloc               28.0
+23:49:17 < array write         25.9
+23:49:17 < dictionary write    5.5
+23:49:17 < float math          78.7
+23:49:17 < integer math        13.8
+23:49:17 < collection iterate  17.1
+23:49:17 < collection write    12.1
+23:49:17 < string compare      1.9
+23:49:17 < hanoi               0.0
