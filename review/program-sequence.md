@@ -2653,6 +2653,23 @@ same partition are #233's. Built on `310-oimg-flash-region` (`5097f6e`), awaitin
 Record: `protocol/IMAGE-ARTIFACTS.md` §2a; `nodus/oevm/docs/vm.md` § Images and deployment;
 `docs/overview.md` first hour step 5; the peer design's §6a step 5 addendum.
 
+## Performance closed for 0.1: the send path, measured on the boards — 2026-10-10/12, #37
+
+**On the C6 (c6spare, the stic sources) nsl runs Richards in 5,080 ms and DeltaBlue in 336 ms; Toit takes 1,178 and 77,
+MicroPython 7,471 and 326–359. On the host, AWFY's geomean is level with Primordial Soup (1.01).** Opt #7–#19: the
+iterate and inlined-block opcodes, per-instruction checks moved to a load-time verifier, frameless accessor sends,
+`gen_tag` dropped, the hot path in RAM on every XIP target, nothing ahead of the method cache probe but the prim id, a
+one-word arena header (the smallest arena that verifies −12 to −19 %). David closed it for 0.1 as "good enough": no
+hacks for benchmarks; every lever kept removes work any program pays.
+
+1. **Measured on a board first, never at the loop's send sites** (L2, L3, L6): a test there lost 2–20 % on the boards
+   while the host said otherwise.
+2. **Not done:** Toit's remaining ~4.3× is mostly instruction dispatch (~36 C6 cycles a base instruction); the
+   allocator (List, Storage) and per-site inline caches are the other fronts. Deferred past 0.1, with their evidence.
+
+Record: `nodus/oevm/docs/optimizations.md` (Opt #7–#19, the ledger, the deferred fronts);
+`docs/design/2026-10-12-37-send-frame-cost-design.md`; `docs/results/2026-10-12-37-c6-cross-vm/`.
+
 ## Known stale docs (do not treat as current)
 
 `nodus/oevm/docs/archive/ROADMAP.md` (oevm-era backlog; prime directive still valid, task list superseded),
