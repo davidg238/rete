@@ -1258,22 +1258,6 @@ OEVM_HOT oop send_resolve(oop receiver, oop selector, int argc, oop *args,
     if (receiver_vtable == (oop)&BoundClassVtable) {
         return boundclass_construct(receiver, selector, argc, args);
     }
-    /* Native capabilities: serial / net-UDP / mirror. Receiver-identity gates;
-       each does its own selector matching, adding nothing to PRIM_NAMES
-       (std-lib 3c-3b, Task 2, mirror step). The three singletons live at fixed
-       static addresses, so resolve them once and gate on cached pointers —
-       the *_object() accessors are cross-TU calls that sat on every send. */
-    {
-        static oop cap_serial, cap_udp, cap_mirror;
-        if (cap_serial == NULL) {
-            cap_serial = serial_object();
-            cap_udp = udp_object();
-            cap_mirror = mirror_object();
-        }
-        if (receiver == cap_serial) return serial_dispatch(selector, argc, args);
-        if (receiver == cap_udp) return udp_dispatch(selector, argc, args);
-        if (receiver == cap_mirror) return mirror_dispatch(selector, argc, args);
-    }
 #ifdef OEVM_HANOI_NATIVE
     /* Experiment: acquisition + lazy wiring of the native Hanoi method. Sent to the
        HanoiAB instance (self); returns the native receiver. strcmp-gated so it needs
@@ -2042,6 +2026,19 @@ OEVM_HOT oop send_resolve(oop receiver, oop selector, int argc, oop *args,
     oop defining_vt = NULL;
     lookup_method_cached(receiver_vtable, selector, &method, &defining_vt);
     if (defining_vt == NULL || method == NULL) {
+        /* Native capabilities: serial / net-UDP / mirror. Each singleton's vtable is
+           empty, so every send to one misses here, and each dispatch does its own
+           selector matching (none of them a prim name), adding nothing to PRIM_NAMES.
+           rete#37 L5: tested on the miss, not ahead of every send. */
+        static oop cap_serial, cap_udp, cap_mirror;
+        if (cap_serial == NULL) {
+            cap_serial = serial_object();
+            cap_udp = udp_object();
+            cap_mirror = mirror_object();
+        }
+        if (receiver == cap_serial) return serial_dispatch(selector, argc, args);
+        if (receiver == cap_udp) return udp_dispatch(selector, argc, args);
+        if (receiver == cap_mirror) return mirror_dispatch(selector, argc, args);
         return does_not_understand(receiver, selector, argc, args);
     }
 
