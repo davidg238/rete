@@ -345,13 +345,23 @@ enum Opcode {
        false. The class guard in front of a literal `do:` lowered at the call site (draft
        docs/design/2026-10-11-37-do-inline-design.md P1); emitted only under NSL_DO_INLINE. */
     OP_IS_VT = 0x20,
+    /* rete#372: OP_SEND's layout. `self foo`: a protected method answers, and the method cache keys
+       the entry apart from an ordinary send's (selector | 1), so the cache never hands it outside. */
+    OP_SEND_SELF = 0x21,
+    /* rete#372: OP_SEND_SUPER's layout, [c] = the defining class's vtable. A send the compiler found
+       private in the sender's class or a lexically enclosing one, so the lookup starts there and takes any level. */
+    OP_SEND_PRIVATE = 0x22,
 };
 
 /* Compiled method structure wrapping instruction stream and constants */
 struct CompiledMethod {
     const uint32_t *instructions;
     size_t instruction_count;
-    int num_registers;
+    uint16_t num_registers;
+    /* rete#372: who may send to this method, a MethodAccess. Read by a lookup only when the selector
+       matches (a cache fill, never a hit). Half of what num_registers was: every other offset is
+       unchanged, and a method built without it (the VM's own, a primitive's) reads as public. */
+    uint16_t access;
     uint16_t num_arguments;
     /* rete#37 L6: what the send may do instead of pushing a frame. METHOD_SHAPE_KIND(shape) is a
        MethodShape; METHOD_SHAPE_SLOT(shape) is the getter's or setter's slot index. The image
@@ -367,6 +377,17 @@ enum MethodShape {
     SHAPE_GETTER   = 1,   /* LD_SLOT r <- self.slot; RET r      : answer self.slot */
     SHAPE_SETTER   = 2,   /* ST_SLOT self.slot <- arg1; RET self : store, answer self */
     SHAPE_SELF     = 3,   /* RET self                           : answer self */
+};
+enum MethodAccess {
+    ACCESS_PUBLIC    = 0,   /* any send */
+    ACCESS_PROTECTED = 1,   /* a send to self, implicit, outer or super; an ordinary send answers DNU */
+    ACCESS_PRIVATE   = 2,   /* only OP_SEND_PRIVATE, which the compiler emits from the defining class */
+};
+/* What a lookup is for (rete#372), and so which levels it may answer. */
+enum LookupRule {
+    LOOKUP_ORDINARY = 0,    /* an explicit receiver: public only; protected stops the walk with DNU */
+    LOOKUP_SELF     = 1,    /* self, implicit, outer, super: public and protected */
+    LOOKUP_ANY      = 2,    /* OP_SEND_PRIVATE, a hot patch, a mirror: every level */
 };
 #define METHOD_SHAPE_KIND(s) ((s) & 0xFFu)
 #define METHOD_SHAPE_SLOT(s) ((s) >> 8)
@@ -528,11 +549,12 @@ oop send(oop receiver, oop selector, int argc, oop *args);
    returns NULL; otherwise services the send inline and returns the value (out
    method left NULL). See dispatch.c. */
 oop send_resolve(oop receiver, oop selector, int argc, oop *args,
-                 oop *out_method, oop *out_recv, int *out_argc);
+                 oop *out_method, oop *out_recv, int *out_argc, int rule);
 oop send_super_resolve(oop start_vtable, oop receiver, oop selector, int argc, oop *args,
-                       oop *out_method, oop *out_recv, int *out_argc);
+                       oop *out_method, oop *out_recv, int *out_argc, int rule);
 oop send_super(oop start_vtable, oop receiver, oop selector, int argc, oop *args);
-oop lookup_defining_vtable(oop receiver_vtable, oop selector, oop *out_method);
+oop lookup_defining_vtable(oop receiver_vtable, oop selector, oop *out_method, int rule);
+oop lookup(oop receiver_vtable, oop selector, int rule);
 
 /* rete#313: a method replaced at runtime, over a vtable's own binding (dispatch.c).
    A debug facility: compiled out with the hooks (OEVM_NO_DEBUG_HOOKS). */
@@ -549,7 +571,7 @@ extern struct MethodPatch method_patches[METHOD_PATCHES_MAX];
 extern int method_patch_count;
 /* Global method lookup cache (src/dispatch.c). RAM-resident, direct-mapped. */
 struct MethodCacheStats { unsigned long hits, misses, fills, collisions, flushes; };
-oop lookup_method_cached(oop receiver_vtable, oop selector, oop *out_method, oop *out_defining_vt);
+oop lookup_method_cached(oop receiver_vtable, oop selector, oop *out_method, oop *out_defining_vt, int rule);
 void method_cache_flush(void);
 #ifdef OEVM_CACHE_STATS
 struct MethodCacheStats method_cache_stats(void);

@@ -49,17 +49,21 @@ unmarked slots private), which is the worse trade.
 | ordinary (explicit receiver, `perform:`) | yes | DNU at once | no (skipped, so the lookup goes on up) |
 | `self`, implicit, `outer`, `super` | yes, virtual | yes, virtual | only in the sender's class or a lexically enclosing one, settled by the compiler |
 
-1. **Bindings are ordered by level.** The image writer emits each vtable's bindings public, then protected, then
-   private, and the vtable records `n_public` and `n_visible` (public + protected). Every run-time lookup loops to
-   `n_visible` instead of `size`, so it never sees a private binding. An ordinary send (`OP_SEND`, the fast ops'
-   fallback, `perform:`) that matches at an index at or past `n_public` has found a protected method, and stops there
-   with DNU, as Soup does (Q5): a subclass that narrows a public selector to `protected` hides it, and does not
-   quietly hand outsiders its superclass's version. The self-ish sends (`OP_SEND_IMPLICIT`'s walk, `super`) take the
-   match. That index compare runs once per cache fill, never on a hit, so **a cache hit is unchanged**.
+1. **The level is a header field, like the method's shape (L6).** `CompiledMethod.num_registers` narrows to
+   `uint16_t` and the freed half becomes `access` (public 0, protected 1, private 2). Every other offset is unchanged,
+   and a primitive or a VM-built method reads as public. A run-time lookup reads the level only when the selector
+   matches. A private match is skipped and the walk goes on up the delegate chain. An ordinary send (`OP_SEND`, the
+   fast ops' fallback, `perform:`) that matches a protected method stops there with DNU, as Soup does (Q5): a
+   subclass that narrows a public selector to `protected` hides it, and does not quietly hand outsiders its
+   superclass's version. The self-ish sends (`OP_SEND_IMPLICIT`'s walk, `super`) take a protected match. On the
+   cached path the read happens once, at fill, so **a cache hit is unchanged**. The uncached implicit and super sends
+   pay a load and a compare on the match. (An earlier draft ordered each vtable's bindings by level and bounded the
+   scans with two counts. The field is one mechanism instead of three, and a patched method carries its level with
+   it.)
 2. **An explicit send to `self` gets its own opcode, `OP_SEND_SELF`.** `self foo` compiles to `OP_SEND` today and
    shares the method cache with ordinary sends, so a protected method cached by `self foo` would be handed to an
-   outside send of `foo` to the same class. `OP_SEND_SELF` has `OP_SEND`'s layout and handler, but looks up to
-   `n_visible` and keys the cache on `selector | 1` (symbols are aligned, so the bit is free). The tag is a constant
+   outside send of `foo` to the same class. `OP_SEND_SELF` has `OP_SEND`'s layout and handler, but takes a protected
+   match and keys the cache on `selector | 1` (symbols are aligned, so the bit is free). The tag is a constant
    of the opcode, so it costs nothing per send. This is the one mechanism `protected` costs.
 3. **Private is resolved at compile time.** A self, implicit or outer send whose selector is private in the
    sender's class, or in a lexically enclosing one, is known to the compiler, along with the defining class and the
@@ -75,14 +79,14 @@ unmarked slots private), which is the worse trade.
    `doesNotUnderstand:` (a forwarding proxy, `tests/04_somns_basic/03_does_not_understand.nsl`) answers any selector,
    so the send is legal. The run-time lookup is the one guarantee. The same scan, run once as a throwaway migration
    tool, lists the ~130 sites to be marked `public`.
-6. **Hot patch and mirrors.** The override table (`method_override_install`) gains the binding's level, so a patched
-   method keeps its reach. Mirrors and the debugger read every binding. The patch format gets back the `access`
-   field L1 deleted, now with three values.
+6. **Hot patch and mirrors.** A patch replaces a method's body, not its declaration, so the patched method takes
+   the level of the method it replaces. A patch that adds a new selector gets the default, `protected`. The override
+   table and the patch format do not change. Mirrors and the debugger read every binding, whatever its level.
 7. **Slots and classes follow the same rule.** A slot's accessors take the slot's level, and so does a nested class's
    synthesised accessor. Internal slot access stays `OP_LD_SLOT`/`OP_ST_SLOT`.
 
-What this costs per send: **nothing on the cached path.** Two opcodes (`OP_SEND_SELF`, `OP_SEND_PRIVATE`), two vtable
-counts, one ordering rule in the image writer. The VM never checks access, so there is nothing to bypass.
+What this costs per send: **nothing on the cached path.** Two opcodes (`OP_SEND_SELF`, `OP_SEND_PRIVATE`) and one
+header field (`access`), hand-edited into the five board layouts the way L6's `shape` was. The VM never checks access, so there is nothing to bypass.
 
 ## Found during this (to be filed P3 `found-during #372`)
 
@@ -94,11 +98,11 @@ counts, one ordering rule in the image writer. The VM never checks access, so th
 ## Steps
 
 1. Grammar and parser: unmarked = `protected`; the level reaches the image for methods, slots and classes.
-2. Compiler: bindings ordered by level, `n_public`/`n_visible` written; `OP_SEND_SELF` for `self foo`;
+2. Compiler and image writer: `access` written for every method and synthesised accessor; `OP_SEND_SELF` for `self foo`;
    `OP_SEND_PRIVATE` for private self, implicit and outer sends. Then the migration: the throwaway scan (step 5)
    lists the explicit sends to selectors with no public definition, each target is marked `public`, and the suite
    is the check.
-3. VM: the loop bounds, the two handlers, the tagged key; `oevm_inst_check` and the image loader taught both opcodes.
+3. VM: the level read at a match in `lookup` and `lookup_defining_vtable`, the two handlers, the tagged key; `oevm_inst_check` and the image loader taught both opcodes.
 4. Tests: an explicit send to a private method and to a protected one → DNU; a protected method overridden in a
    subclass and reached through `self`; a subclass that narrows a public selector to `protected` → DNU; a private method that shadows a public one in a superclass; a private send
    through `outer`; a `doesNotUnderstand:` proxy; a hot patch to a private method; a mirror listing every level.

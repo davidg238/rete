@@ -723,7 +723,6 @@ static int bp_hit(oop method, long off) {
 typedef oop (*PrimitiveFunc)(oop receiver, int argc, oop *args);
 
 /* Forward declarations */
-extern oop lookup(oop receiver_vtable, oop selector);
 extern oop send(oop receiver, oop selector, int argc, oop *args);
 
 /*
@@ -780,6 +779,7 @@ const char *oevm_inst_check(const struct CompiledMethod *m, size_t i, uint32_t i
     long target;
     switch (op) {
         case OP_SEND: case OP_SEND_IMPLICIT: case OP_SEND_SUPER: case OP_BLOCK_INVOKE:
+        case OP_SEND_SELF: case OP_SEND_PRIVATE:
         case OP_LT: case OP_LE: case OP_GT: case OP_GE: case OP_AT: case OP_AT_PUT:
             return selector_const_ok(m, b) ? NULL : "a send's selector constant is not a Symbol";
         case OP_LD_CONST:
@@ -798,7 +798,7 @@ const char *oevm_inst_check(const struct CompiledMethod *m, size_t i, uint32_t i
             return "OP_BREAK in a build without the debug hooks";
 #endif
         default:
-            return op <= OP_IS_VT ? NULL : "unknown opcode";
+            return op <= OP_SEND_PRIVATE ? NULL : "unknown opcode";
     }
     return (target >= 0 && (size_t)target < m->instruction_count) ? NULL : "jump target outside the method";
 }
@@ -1035,6 +1035,7 @@ OEVM_HOT oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
     }
     struct Closure *cl = (struct Closure *)closure;
     struct CompiledMethod *method = (struct CompiledMethod *)closure_entry(cl);
+    int send_rule;   /* rete#372: the LookupRule of the send being dispatched, set per opcode */
 
     OEVM_COUNT_ADD(frame, 1);
     OEVM_COUNT_ADD(regs, method->num_registers);
@@ -1366,8 +1367,13 @@ OEVM_HOT oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
                 goto do_send;
             }
 
+            case OP_SEND_SELF:
+                send_rule = LOOKUP_SELF;
+                goto send_ruled;
             case OP_SEND:
-            do_send: {
+            do_send:
+                send_rule = LOOKUP_ORDINARY;
+            send_ruled: {
                 OEVM_COUNT_ADD(send, 1);
                 // Constants[src1] = Selector Symbol
                 // Registers[src2] = Target Receiver
@@ -1389,7 +1395,7 @@ OEVM_HOT oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
                 oop m_out = NULL, r_out = NULL;
                 int argc_out = 0;
                 oop result = send_resolve(target, selector, send_argc, send_args,
-                                          &m_out, &r_out, &argc_out);
+                                          &m_out, &r_out, &argc_out, send_rule);
                 if (m_out != NULL) {
                     /* Bytecode/value-family target: push its frame and run it in
                        this loop. OP_RET delivers the result back into R(src2). */
@@ -1436,7 +1442,7 @@ OEVM_HOT oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
                 oop m_out = NULL, r_out = NULL;
                 int argc_out = 0;
                 oop result = send_resolve(target, selector, send_argc, send_args,
-                                          &m_out, &r_out, &argc_out);
+                                          &m_out, &r_out, &argc_out, LOOKUP_ORDINARY);
                 if (m_out != NULL) {
                     push_frame(m_out, r_out, argc_out, send_args);
                     ctx = current_frame;
@@ -1566,7 +1572,12 @@ OEVM_HOT oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
                         for (size_t i = 0; i < vt->size; i++) {
                             OEVM_COUNT_ADD(scan, 1);
                             if (binding_symbol(&bs[i]) == selector) {
-                                target_method = binding_method(&bs[i]);
+                                /* rete#372: a private method here is not the sender's (the compiler
+                                   sends those with OP_SEND_PRIVATE), so the walk passes it by. */
+                                oop m = binding_method(&bs[i]);
+                                if (obj_vtable(m) != BytecodeClosureVtable ||
+                                    ((struct CompiledMethod *)closure_entry((struct Closure *)m))->access != ACCESS_PRIVATE)
+                                    target_method = m;
                                 break;
                             }
                         }
@@ -1590,7 +1601,7 @@ OEVM_HOT oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
                     resolved_rcvr = rcvr;
                     oop receiver_vtable = IS_SMI(rcvr) ? IntegerVtable : (rcvr ? obj_vtable(rcvr) : NULL);
                     if (receiver_vtable != NULL) {
-                        target_method = lookup(receiver_vtable, selector);
+                        target_method = lookup(receiver_vtable, selector, LOOKUP_SELF);
                     }
                 }
 
@@ -1603,7 +1614,7 @@ OEVM_HOT oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
                     oop m_out = NULL, r_out = NULL;
                     int argc_out = 0;
                     result = send_resolve(rcvr, selector, send_argc, send_args,
-                                          &m_out, &r_out, &argc_out);
+                                          &m_out, &r_out, &argc_out, LOOKUP_SELF);
                     if (m_out != NULL) {
                         push_frame(m_out, r_out, argc_out, send_args);
                         ctx = current_frame;
@@ -1631,7 +1642,12 @@ OEVM_HOT oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
                 break;
             }
 
-            case OP_SEND_SUPER: {
+            case OP_SEND_PRIVATE:
+                send_rule = LOOKUP_ANY;
+                goto super_ruled;
+            case OP_SEND_SUPER:
+                send_rule = LOOKUP_SELF;
+            super_ruled: {
                 OEVM_COUNT_ADD(send, 1);
                 // Register layout at src2(c): [c]=start vtable, [c+1]=self,
                 // [c+2..]=args. dest(a)=argc, src1(b)=selector const.
@@ -1645,7 +1661,7 @@ OEVM_HOT oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
                 oop m_out = NULL, r_out = NULL;
                 int argc_out = 0;
                 oop result = send_super_resolve(start_vt, self_rcvr, selector, send_argc, send_args,
-                                                &m_out, &r_out, &argc_out);
+                                                &m_out, &r_out, &argc_out, send_rule);
                 if (m_out != NULL) {
                     // Bytecode super target: push its frame. Result delivered to
                     // R(src2) by OP_RET (src2 == c, the same field OP_SEND uses).
@@ -2057,10 +2073,16 @@ oop primitive_patch(oop text, int argc, oop *args) {
     oop vt = oimg_resolve((uintptr_t)vt_w), sel = oimg_resolve((uintptr_t)sel_w);
     why = "vtable or selector does not resolve";
     if (vt == NULL || sel == NULL || obj_vtable(sel) != SymbolVtable) goto bad;
+    /* rete#372: a patch replaces a method's body, not its declaration, so it keeps the level of the
+       method it replaces; a new selector takes the language's default. */
+    oop prev = lookup(vt, sel, LOOKUP_ANY);
+    uint16_t access = prev == NULL ? ACCESS_PROTECTED
+                    : obj_vtable(prev) == BytecodeClosureVtable
+                    ? ((struct CompiledMethod *)closure_entry((struct Closure *)prev))->access : ACCESS_PUBLIC;
     why = "out of memory";
     m = oevm_malloc(sizeof *m);
     if (m == NULL) goto bad;
-    *m = (struct CompiledMethod){insts, ninst, (int)nregs, (uint16_t)nargs, SHAPE_ORDINARY, consts, ncon};
+    *m = (struct CompiledMethod){insts, ninst, (uint16_t)nregs, access, (uint16_t)nargs, SHAPE_ORDINARY, consts, ncon};
     if ((why = oevm_method_check(m)) != NULL) goto bad;   /* rete#37: the loop trusts it from here */
     oop cl = gc_allocate(BytecodeClosureVtable, sizeof(struct Closure));
     struct Closure *c = (struct Closure *)cl;
@@ -2068,7 +2090,6 @@ oop primitive_patch(oop text, int argc, oop *args) {
     c->entry_point = m;
     c->captured_env = NULL;
     c->captured_self = NULL;
-    oop prev = lookup(vt, sel);
     if (method_patch_count == METHOD_PATCHES_MAX || method_override_install(vt, sel, cl) != 0) {
         fprintf(stderr, "patch: the patch tables are full\n");
         return TAG_SMI(0);

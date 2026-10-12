@@ -356,49 +356,43 @@ int method_override_install(oop vt, oop selector, oop method) {
 }
 #endif /* !OEVM_NO_DEBUG_HOOKS: hot patching is a debug facility (rete#313) */
 
-/* Walk Vtable hierarchy to resolve selector lookup */
-oop lookup(oop receiver_vtable, oop selector) {
-    oop current = receiver_vtable;
-    while (current != NULL) {
-        struct Vtable *vt = (struct Vtable *)current;
-#ifndef OEVM_NO_DEBUG_HOOKS
-        if (method_override_count) {
-            oop o = override_of(current, selector);
-            if (o != NULL) return o;
-        }
-#endif
-        struct Binding *bs = vtable_bindings((oop)vt);
-        for (size_t i = 0; i < vt->size; i++) {
-            OEVM_COUNT_ADD(scan, 1);
-            if (binding_symbol(&bs[i]) == selector) {
-                return binding_method(&bs[i]);
-            }
-        }
-        current = vtable_delegate((oop)vt);
-    }
-    return NULL;
+/* rete#372: may a lookup under `rule` answer this method? 1 yes; 0 no, so the walk goes on up (a
+   private method is invisible to it); -1 no, and the walk stops with DNU (an ordinary send that
+   meets a protected method: the class narrowed the selector, so a superclass's version must not
+   answer instead). Read only when the selector matches, so on the cached path only at a fill. */
+static inline int access_admits(oop method, int rule) {
+    if (rule == LOOKUP_ANY || obj_vtable(method) != BytecodeClosureVtable) return 1;
+    unsigned a = ((const struct CompiledMethod *)closure_entry((struct Closure *)method))->access;
+    if (a == ACCESS_PUBLIC) return 1;
+    if (a == ACCESS_PRIVATE) return 0;
+    return rule == LOOKUP_SELF ? 1 : -1;
 }
 
-oop lookup_defining_vtable(oop receiver_vtable, oop selector, oop *out_method) {
+/* Walk the delegate chain from receiver_vtable for selector, under `rule`. Answers the defining
+   vtable (the method in *out_method), or NULL. */
+oop lookup_defining_vtable(oop receiver_vtable, oop selector, oop *out_method, int rule) {
     oop current = receiver_vtable;
     while (current != NULL && !IS_SMI(current)) {
         struct Vtable *vt = (struct Vtable *)current;
+        oop found = NULL;
 #ifndef OEVM_NO_DEBUG_HOOKS
-        if (method_override_count) {
-            oop o = override_of(current, selector);
-            if (o != NULL) {
-                if (out_method != NULL) *out_method = o;
-                return current;
+        if (method_override_count) found = override_of(current, selector);
+#endif
+        if (found == NULL) {
+            struct Binding *bs = vtable_bindings((oop)vt);
+            for (size_t i = 0; i < vt->size; i++) {
+                OEVM_COUNT_ADD(scan, 1);
+                if (binding_symbol(&bs[i]) == selector) {
+                    found = binding_method(&bs[i]);
+                    break;
+                }
             }
         }
-#endif
-        struct Binding *bs = vtable_bindings((oop)vt);
-        for (size_t i = 0; i < vt->size; i++) {
-            OEVM_COUNT_ADD(scan, 1);
-            if (binding_symbol(&bs[i]) == selector) {
-                if (out_method != NULL) {
-                    *out_method = binding_method(&bs[i]);
-                }
+        if (found != NULL) {
+            int admits = access_admits(found, rule);
+            if (admits < 0) break;
+            if (admits > 0) {
+                if (out_method != NULL) *out_method = found;
                 return current;
             }
         }
@@ -407,16 +401,24 @@ oop lookup_defining_vtable(oop receiver_vtable, oop selector, oop *out_method) {
     return NULL;
 }
 
+oop lookup(oop receiver_vtable, oop selector, int rule) {
+    oop method = NULL;
+    return lookup_defining_vtable(receiver_vtable, selector, &method, rule) != NULL ? method : NULL;
+}
+
 /* Cached front-end to lookup_defining_vtable. Caller guarantees
-   receiver_vtable != NULL. Misses (does-not-understand) are never cached. */
+   receiver_vtable != NULL. Misses (does-not-understand) are never cached. rete#372: a send to self
+   keys its entry on selector | 1 (a Symbol is aligned, so the bit is free, and the hash drops it),
+   so a protected method it found is never handed to an ordinary send of the same selector. */
 OEVM_HOT oop lookup_method_cached(oop receiver_vtable, oop selector,
-                         oop *out_method, oop *out_defining_vt) {
+                         oop *out_method, oop *out_defining_vt, int rule) {
+    oop key = (oop)((uintptr_t)selector | (uintptr_t)(rule == LOOKUP_SELF));
 #ifdef OEVM_CACHE_STATS
     method_cache_register_report();
 #endif
-    size_t h = method_cache_hash(receiver_vtable, selector);
+    size_t h = method_cache_hash(receiver_vtable, key);
     struct MethodCacheEntry *e = &method_cache[h];
-    if (e->vtable == receiver_vtable && e->selector == selector) {
+    if (e->vtable == receiver_vtable && e->selector == key) {
         CACHE_STAT_INC(hits);
         *out_method = e->method;
         *out_defining_vt = e->defining_vt;
@@ -424,16 +426,16 @@ OEVM_HOT oop lookup_method_cached(oop receiver_vtable, oop selector,
     }
     CACHE_STAT_INC(misses);
     oop method = NULL;
-    oop defining_vt = lookup_defining_vtable(receiver_vtable, selector, &method);
+    oop defining_vt = lookup_defining_vtable(receiver_vtable, selector, &method, rule);
     if (defining_vt != NULL && method != NULL) {
 #ifdef OEVM_CACHE_STATS
         if (e->vtable != NULL &&
-            (e->vtable != receiver_vtable || e->selector != selector)) {
+            (e->vtable != receiver_vtable || e->selector != key)) {
             CACHE_STAT_INC(collisions);
         }
 #endif
         e->vtable = receiver_vtable;
-        e->selector = selector;
+        e->selector = key;
         e->method = method;
         e->defining_vt = defining_vt;
         CACHE_STAT_INC(fills);
@@ -631,7 +633,7 @@ static oop run_method_on(oop method, oop self, int argc, oop *args) {
     return run_interpreter(method, self, argc, args);
 }
 
-static oop boundclass_construct(oop bc, oop selector, int argc, oop *args) {
+static oop boundclass_construct(oop bc, oop selector, int argc, oop *args, int rule) {
     extern oop gc_allocate(oop vtable, size_t size);
     struct ObjectInstance *bci = (struct ObjectInstance *)bc;
     oop nested_vtable = bci->slots[0];
@@ -668,7 +670,7 @@ static oop boundclass_construct(oop bc, oop selector, int argc, oop *args) {
     oop meta = obj_vtable(nested_vtable);
     if (meta != NULL && !IS_SMI(meta)) {
         oop method = NULL;
-        lookup_defining_vtable(meta, selector, &method);
+        lookup_defining_vtable(meta, selector, &method, rule);
         if (method != NULL) {
             return run_method_on(method, bc, argc, args);
         }
@@ -1243,7 +1245,7 @@ static oop build_and_raise_default(oop text) {
    run_interpreter (the send() wrapper). The returned oop is meaningful only when
    out method is NULL. */
 OEVM_HOT oop send_resolve(oop receiver, oop selector, int argc, oop *args,
-                 oop *out_method, oop *out_recv, int *out_argc) {
+                 oop *out_method, oop *out_recv, int *out_argc, int rule) {
     *out_method = NULL;
     /* rete#37 L5: the receiver's vtable, read once; the special receivers below and the
        method lookup all test it. NULL for nil. The SMI arm is here on purpose: with the
@@ -1256,7 +1258,7 @@ OEVM_HOT oop send_resolve(oop receiver, oop selector, int argc, oop *args,
     // selector that happens to collide with a primitive name (e.g. `size`) still
     // constructs rather than running the primitive.
     if (receiver_vtable == (oop)&BoundClassVtable) {
-        return boundclass_construct(receiver, selector, argc, args);
+        return boundclass_construct(receiver, selector, argc, args, rule);
     }
 #ifdef OEVM_HANOI_NATIVE
     /* Experiment: acquisition + lazy wiring of the native Hanoi method. Sent to the
@@ -2024,7 +2026,7 @@ OEVM_HOT oop send_resolve(oop receiver, oop selector, int argc, oop *args,
     // Lookup method closure and its defining Vtable
     oop method = NULL;
     oop defining_vt = NULL;
-    lookup_method_cached(receiver_vtable, selector, &method, &defining_vt);
+    lookup_method_cached(receiver_vtable, selector, &method, &defining_vt, rule);
     if (defining_vt == NULL || method == NULL) {
         /* Native capabilities: serial / net-UDP / mirror. Each singleton's vtable is
            empty, so every send to one misses here, and each dispatch does its own
@@ -2075,7 +2077,7 @@ oop send(oop receiver, oop selector, int argc, oop *args) {
     oop method = NULL, recv = NULL;
     int rargc = 0;
     oop result = send_resolve(receiver, selector, argc, args,
-                              &method, &recv, &rargc);
+                              &method, &recv, &rargc, LOOKUP_ORDINARY);
     if (method != NULL) {
         return run_interpreter(method, recv, rargc, args);
     }
@@ -2085,21 +2087,20 @@ oop send(oop receiver, oop selector, int argc, oop *args) {
 /* Super-send dispatch: look up `selector` starting at `start_vtable` (the
    defining class's delegate/superclass) rather than at the receiver's own
    vtable, then invoke with the unchanged `receiver` (self). This is how
-   `super foo` reaches an overridden method on the superclass. Access checks are
-   skipped — a super-send is statically bound to the enclosing class, so it is
-   inherently authorised. */
+   `super foo` reaches an overridden method on the superclass. `rule` is
+   LOOKUP_SELF for a super send and LOOKUP_ANY for OP_SEND_PRIVATE (rete#372). */
 /* Resolve a super-send without invoking a bytecode target (de-recursify Phase 2).
    Mirrors send_resolve: services the inline cases (DNU, primitive closure) and
    returns their value with out method NULL; for a bytecode target sets the
    out-params (method, recv, argc) and returns NULL. */
 oop send_super_resolve(oop start_vtable, oop receiver, oop selector, int argc, oop *args,
-                       oop *out_method, oop *out_recv, int *out_argc) {
+                       oop *out_method, oop *out_recv, int *out_argc, int rule) {
     *out_method = NULL;
     if (start_vtable == NULL || IS_SMI(start_vtable)) {
         return does_not_understand(receiver, selector, argc, args);
     }
     oop method = NULL;
-    oop defining_vt = lookup_defining_vtable(start_vtable, selector, &method);
+    oop defining_vt = lookup_defining_vtable(start_vtable, selector, &method, rule);
     if (defining_vt == NULL || method == NULL) {
         return does_not_understand(receiver, selector, argc, args);
     }
@@ -2118,7 +2119,7 @@ oop send_super(oop start_vtable, oop receiver, oop selector, int argc, oop *args
     oop method = NULL, recv = NULL;
     int rargc = 0;
     oop result = send_super_resolve(start_vtable, receiver, selector, argc, args,
-                                    &method, &recv, &rargc);
+                                    &method, &recv, &rargc, LOOKUP_SELF);
     if (method != NULL) {
         return run_interpreter(method, recv, rargc, args);
     }

@@ -74,7 +74,7 @@ def pc_after_first_send(name, argc):
     for i in range(n):
         w = struct.unpack_from("<I", blob, ins + 4 * i)[0]
         op, d = w & 0xFF, (w >> 8) & 0xFF
-        if op in (2, 13, 15) and d == argc:      # OP_SEND, OP_SEND_IMPLICIT, OP_SEND_SUPER
+        if op in (2, 13, 15, 0x21, 0x22) and d == argc:   # OP_SEND, _IMPLICIT, _SUPER, _SELF, _PRIVATE
             return i + 1
     raise AssertionError(f"no {argc}-arg send in {name}")
 

@@ -59,6 +59,11 @@ OP_AT     = 0x1D       # basicAt:
 OP_AT_PUT = 0x1E       # basicAt:put:
 OP_ITER_AT = 0x1F      # one step of a kernel do: (rete#37); emitted by compile_iter_at only
 OP_IS_VT = 0x20        # R(a) = R(c)'s vtable is constant b: the class guard of an inlined iterator (rete#37)
+OP_SEND_SELF = 0x21    # `self foo`: OP_SEND's layout; a protected method answers (rete#372)
+OP_SEND_PRIVATE = 0x22 # a private send, settled here: OP_SEND_SUPER's layout, [c] = the defining vtable (rete#372)
+# rete#372: who may send to a member (oevm.h enum MethodAccess). An unmarked member takes the default.
+ACCESS_LEVEL = {"public": 0, "protected": 1, "private": 2}
+DEFAULT_VISIBILITY = "public"
 # rete#37 (docs/design/2026-10-11-37-do-inline-design.md): a literal block passed to a kernel iterator is
 # inlined at the call site behind a class guard. Off in a debug build (Q3): a board's debug build is chosen
 # with OEVM_DEBUG_HOOKS=1, which run.sh's caller also hands this compiler.
@@ -372,9 +377,9 @@ class MethodCompiler:
         if op in (OP_LT, OP_LE, OP_GT, OP_GE):     return ({s2, s2 + 1}, {s2})
         if op == OP_AT:            return ({s2, s2 + 1}, {s2})
         if op == OP_AT_PUT:        return ({s2, s2 + 1, s2 + 2}, {s2})
-        if op in (OP_SEND, OP_SEND_IMPLICIT, OP_BLOCK_INVOKE):
+        if op in (OP_SEND, OP_SEND_SELF, OP_SEND_IMPLICIT, OP_BLOCK_INVOKE):
             return (set(range(s2, s2 + d + 1)), {s2})
-        if op == OP_SEND_SUPER:    return (set(range(s2, s2 + d + 2)), {s2})
+        if op in (OP_SEND_SUPER, OP_SEND_PRIVATE): return (set(range(s2, s2 + d + 2)), {s2})
         if op == OP_JMP:           return (set(), set())
         if op == OP_JMP_IF_FALSE:  return ({d}, set())
         if op == OP_ITER_AT:       return ({d, d + 1, d + 2}, {d, d + 3})
@@ -393,7 +398,8 @@ class MethodCompiler:
         return None
 
     def _peep_is_send(self, inst):
-        return self._peep_decode(inst)[0] in (OP_SEND, OP_SEND_IMPLICIT, OP_SEND_SUPER, OP_BLOCK_INVOKE)
+        return self._peep_decode(inst)[0] in (OP_SEND, OP_SEND_SELF, OP_SEND_IMPLICIT, OP_SEND_SUPER,
+                                              OP_SEND_PRIVATE, OP_BLOCK_INVOKE)
 
     def _peep_jump_target(self, i, inst):
         op = inst & 0xFF
@@ -1296,6 +1302,42 @@ class MethodCompiler:
         # 5. Implicit send fallback (lowercase self-sends; or no platform handed)
         return ("implicit_send", name)
             
+    def private_home(self, selector, lexical):
+        """rete#372: where a send to self of `selector` from here lands when it is private: (hops, the
+        defining class), or None when it is not private. Private is lexical, not virtual: the class that
+        holds this code, or (`lexical`, an implicit send) the nearest enclosing class that defines the
+        selector. A class-side send is not resolved here."""
+        if self.class_side_qname is not None:
+            return None
+        for hops, qname in enumerate(reversed(self.parent.class_stack)):
+            vis = self.parent.member_visibility(qname, selector)
+            if vis is not None:
+                return (hops, qname) if vis == "private" else None
+            if not lexical:
+                return None
+        return None
+
+    def emit_vtable_send(self, op, vt_qname, hops, selector, args, target_reg):
+        """A send that names the vtable its lookup starts at: OP_SEND_SUPER (the defining class's
+        delegate) or OP_SEND_PRIVATE (the class defining the private method, rete#372). Layout
+        [base] = the vtable constant, [base+1] = self walked `hops` outers out, [base+2..] = args."""
+        saved_free = self.next_free_reg
+        self_src = self.get_self_reg()
+        base = self.alloc_reg()
+        self.emit_ABx(OP_LD_CONST, base, self.add_constant(f"VTABLE:{self.parent.vt_id(vt_qname)}"))
+        rcvr = self.alloc_reg()
+        self.emit_ABC(OP_LD_REG, rcvr, self_src, 0)        # [base+1] = self
+        for _ in range(hops):
+            self.emit_ABC(OP_LD_SLOT, rcvr, 0, rcvr)       # ... walked out: outer = slot 0
+        self.next_free_reg = rcvr + 1
+        for arg in args:
+            areg = self.alloc_reg()
+            self.compile_expr(arg, areg)
+            self.next_free_reg = areg + 1                  # keep args contiguous
+        self.emit_ABC(op, len(args), self.add_constant(selector), base)
+        self.emit_ABC(OP_LD_REG, target_reg, base, 0)      # result is in [base]
+        self.next_free_reg = saved_free
+
     def get_self_reg(self):
         if "_block" in self.name:
             # De-recursify Phase 2 (self-migration, Approach B): a block's self is its
@@ -1462,6 +1504,9 @@ class MethodCompiler:
                 self.emit_ABC(OP_LD_SLOT, target_reg, slot_idx, prev_reg)
                 self.next_free_reg -= hops
                 self.free_self_reg(base_reg)
+            elif res[0] == "implicit_send" and self.private_home(name, lexical=True) is not None:
+                hops, home = self.private_home(name, lexical=True)
+                self.emit_vtable_send(OP_SEND_PRIVATE, home, hops, name, [], target_reg)
             elif res[0] == "implicit_send":
                 cidx = self.add_constant(name)
                 rcvr_reg = self.alloc_reg()
@@ -1674,22 +1719,7 @@ class MethodCompiler:
                 defining = self.parent.class_stack[-1] if self.parent.class_stack else None
                 deleg = self.parent.delegate_qname(defining) if defining else None
                 if deleg is not None:
-                    saved_free = self.next_free_reg
-                    self_src = self.get_self_reg()
-                    base = self.alloc_reg()
-                    vt_cidx = self.add_constant(f"VTABLE:{self.parent.vt_id(deleg)}")
-                    self.emit_ABx(OP_LD_CONST, base, vt_cidx)       # [base] = start vtable
-                    self_reg = self.alloc_reg()
-                    self.emit_ABC(OP_LD_REG, self_reg, self_src, 0)  # [base+1] = self
-                    self.next_free_reg = self_reg + 1
-                    for arg in args:
-                        areg = self.alloc_reg()
-                        self.compile_expr(arg, areg)
-                        self.next_free_reg = areg + 1                # keep args contiguous
-                    cidx = self.add_constant(selector)
-                    self.emit_ABC(OP_SEND_SUPER, len(args), cidx, base)
-                    self.emit_ABC(OP_LD_REG, target_reg, base, 0)    # result is in [base]
-                    self.next_free_reg = saved_free
+                    self.emit_vtable_send(OP_SEND_SUPER, deleg, 0, selector, args, target_reg)
                     return
 
             # Phase B: if-family and and:/or: are ALWAYS lowered to branch +
@@ -1756,6 +1786,10 @@ class MethodCompiler:
             # Resolved lexically/by inheritance at runtime via OP_SEND_IMPLICIT,
             # with `self` as the starting receiver.
             if receiver["type"] == "implicitReceiver":
+                home = self.private_home(selector, lexical=True)
+                if home is not None:
+                    self.emit_vtable_send(OP_SEND_PRIVATE, home[1], home[0], selector, args, target_reg)
+                    return
                 rcvr_reg = self.alloc_reg()
                 # Inside a block, the implicit receiver is the HOME method's self,
                 # not the running block closure (whose R0 is the closure itself).
@@ -1929,6 +1963,24 @@ class MethodCompiler:
                 self.next_free_reg = old_free
                 return
             
+            # rete#372: a send to self (`self foo`, or `outer C foo` — C's enclosing instance) may reach a
+            # protected method, and a private one is settled here, in the class that defines it.
+            self_ish = False
+            if self.class_side_qname is None and receiver["type"] == "varRef" and receiver.get("name") == "self":
+                home = self.private_home(selector, lexical=False)
+                if home is not None:
+                    self.emit_vtable_send(OP_SEND_PRIVATE, home[1], 0, selector, args, target_reg)
+                    return
+                self_ish = True
+            elif (self.class_side_qname is None and receiver["type"] == "send" and not receiver.get("args")
+                    and receiver["receiver"].get("type") == "varRef" and receiver["receiver"].get("name") == "outer"
+                    and self.parent.resolve_class_ref(receiver["selector"]) is not None):
+                c_qname, c_hops, _ = self.parent.resolve_class_ref(receiver["selector"])
+                if self.parent.member_visibility(c_qname, selector) == "private":
+                    self.emit_vtable_send(OP_SEND_PRIVATE, c_qname, max(c_hops - 1, 0), selector, args, target_reg)
+                    return
+                self_ish = True
+
             # Normal send: evaluate receiver
             rcvr_reg = self.alloc_reg()
             self.compile_expr(receiver, rcvr_reg)
@@ -1948,6 +2000,8 @@ class MethodCompiler:
 
             cidx = self.add_constant(selector)
             send_op = OP_BLOCK_INVOKE if self._is_block_value_selector(selector) else send_op_for(selector)
+            if self_ish and send_op == OP_SEND:
+                send_op = OP_SEND_SELF
             # rete#37 send-levers spike: an Array's at:/at:put:/size at an app call site, behind IS_VT. AT and
             # AT_PUT carry the selector, so an index out of bounds still falls back to the send and its error.
             if (ITER_INLINE and selector in ("at:", "at:put:", "size")
@@ -2081,6 +2135,7 @@ class OevmCompiler:
         # object) from `Class factorySelector` (instantiate).
         self.class_side_methods = {}
         self.class_stack = []
+        self._member_vis = {}        # rete#372: qname -> {selector: visibility} (member_visibility)
         self.block_count = 0
         self.block_methods = []
         self.all_classes = {}
@@ -2250,6 +2305,26 @@ class OevmCompiler:
                 if child_qname.rsplit(".", 1)[-1] == name:
                     return (child_qname, hops, container_qname)
         return None
+
+    def member_visibility(self, cls_qname, selector):
+        """rete#372: the visibility of the instance-side member `selector` that class `cls_qname` itself
+        defines (a method, a slot's accessor or a nested class's accessor; inherited members are not
+        counted), with the default applied. None when the class defines no such member."""
+        table = self._member_vis.get(cls_qname)
+        if table is None:
+            node = self.all_classes.get(cls_qname) or {}
+            table = {}
+            for c in node.get("classes", []):
+                table[c["name"]] = c.get("visibility") or DEFAULT_VISIBILITY
+            for sl in node.get("slots", []):
+                v = sl.get("visibility") or DEFAULT_VISIBILITY
+                table[sl["name"]] = v
+                if sl.get("mutable"):
+                    table[sl["name"] + ":"] = v
+            for m in node.get("methods", []):
+                table[m["selector"]] = m.get("visibility") or DEFAULT_VISIBILITY
+            self._member_vis[cls_qname] = table
+        return table.get(selector)
 
     def super_qname(self, cls_qname):
         """Resolve a class's superclass to a qname, or None. Only resolves
@@ -2462,7 +2537,8 @@ class OevmCompiler:
                 num_registers=compiler.max_regs_used,
                 num_arguments=len(m["params"]),
                 constants=compiler.constants,
-                instructions=compiler.instructions
+                instructions=compiler.instructions,
+                access=ACCESS_LEVEL[m.get("visibility") or DEFAULT_VISIBILITY]
             )
             self.register_source_map(f"{vt}>>{selector}", compiler.source_map)
             self.register_method_compiler(f"{vt}>>{selector}", compiler)
@@ -2489,7 +2565,8 @@ class OevmCompiler:
                 num_registers=compiler.max_regs_used,
                 num_arguments=len(m["params"]),
                 constants=compiler.constants,
-                instructions=compiler.instructions
+                instructions=compiler.instructions,
+                access=ACCESS_LEVEL[m.get("visibility") or DEFAULT_VISIBILITY]
             )
             self.register_source_map(f"{meta_vt}>>{selector}", compiler.source_map)
             self.register_method_compiler(f"{meta_vt}>>{selector}", compiler)
@@ -2506,6 +2583,7 @@ class OevmCompiler:
         for s in node.get("slots", []):
             if s.get("visibility") not in ("public", "protected"):
                 continue
+            access = ACCESS_LEVEL[s["visibility"]]
             slot_idx = slots.index(s["name"])
             getter = s["name"]
             if getter not in defined:
@@ -2514,7 +2592,7 @@ class OevmCompiler:
                 mc.emit_ABC(OP_LD_SLOT, r, slot_idx, 0)
                 mc.emit_ABC(OP_RET, r, 0, 0)
                 self.solidify.add_method(vt, getter, mc.max_regs_used, 0,
-                                         mc.constants, mc.instructions)
+                                         mc.constants, mc.instructions, access)
                 defined.add(getter)
             if s.get("mutable"):
                 setter = f"{getter}:"
@@ -2523,7 +2601,7 @@ class OevmCompiler:
                     mc.emit_ABC(OP_ST_SLOT, 1, slot_idx, 0)  # self.slots[idx] = arg
                     mc.emit_ABC(OP_RET, 0, 0, 0)             # return self
                     self.solidify.add_method(vt, setter, mc.max_regs_used, 1,
-                                             mc.constants, mc.instructions)
+                                             mc.constants, mc.instructions, access)
                     defined.add(setter)
 
         # Synthesise nested-class accessors: for each directly-nested class C,
@@ -2552,8 +2630,8 @@ class OevmCompiler:
             sel_cidx = mc.add_constant("__boundOuter:slotCount:")
             mc.emit_ABC(OP_SEND, 2, sel_cidx, rcvr)        # rcvr <- BoundClass
             mc.emit_ABC(OP_RET, rcvr, 0, 0)
-            self.solidify.add_method(vt, bare, mc.max_regs_used, 0,
-                                     mc.constants, mc.instructions)
+            self.solidify.add_method(vt, bare, mc.max_regs_used, 0, mc.constants, mc.instructions,
+                                     ACCESS_LEVEL[nested.get("visibility") or DEFAULT_VISIBILITY])
             defined.add(bare)
 
         # Compile initializer method `init_<ctor_sig>`
