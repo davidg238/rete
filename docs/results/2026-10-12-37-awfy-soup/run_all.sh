@@ -1,14 +1,16 @@
 #!/usr/bin/env bash
 # rete#37: Are We Fast Yet on the host, nsl against Primordial Soup (README.md beside this file).
 # Builds an -O2 image VM, scales awfy.nsl's board-sized inner: counts up to host size, and runs the same
-# source on both VMs, sequentially, RUNS times each. Logs go to logs/. Usage: run_all.sh [RUNS]
+# source on both VMs, sequentially, RUNS times each. Logs and table.md go to OUT (default: beside this file).
+# Usage: run_all.sh [RUNS [OUT]]
 set -euo pipefail
 RUNS=${1:-3}
 HERE=$(cd "$(dirname "$0")" && pwd)
+OUT=$(mkdir -p "${2:-$HERE}" && cd "${2:-$HERE}" && pwd)
 REPO=$(cd "$HERE/../../.." && pwd)
 OEVM=$REPO/nodus/oevm
 W=$(mktemp -d /tmp/awfy-soup-XXXXXX)
-mkdir -p "$HERE/logs"
+mkdir -p "$OUT/logs"
 
 # The board counts in awfy.nsl's runAll, scaled so each row runs ~0.2-5 s on a desktop host.
 # Mandelbrot (500) and CD (10) keep theirs: those are problem sizes AWFY verifies, and the host ones are not.
@@ -39,17 +41,17 @@ B=posix
     src/backend/$B/platform_$B.c src/backend/$B/serial_$B.c src/backend/$B/udp_$B.c \
     src/backend/$B/pulse_$B.c src/backend/$B/timer_$B.c src/backend/$B/span_$B.c src/backend/$B/http_$B.c \
     src/backend/$B/sensor_$B.c src/backend/$B/ota_$B.c \
-    src/oimg_loader.c src/kernel_boot.c oevm_image_main.c -o "$W/oevm_img_o2" -lm ) 2> "$HERE/logs/build.log"
+    src/oimg_loader.c src/kernel_boot.c oevm_image_main.c -o "$W/oevm_img_o2" -lm ) 2> "$OUT/logs/build.log"
 python3 "$REPO/nodus/nsl/tools/ns_compile_oevm.py" "$W/awfy-host.nsl" "$W/awfy.oimg" \
   --format=oimg --layout="$W/oevm_layout.json" > /dev/null
 
 { echo "host: $(hostname)  rete: $(git -C "$REPO" rev-parse --short HEAD)  soup: $(git -C ~/workspace/primordialsoup rev-parse --short HEAD 2>/dev/null || echo '?')"
   echo "cpu: $(grep -m1 'model name' /proc/cpuinfo | cut -d: -f2-)"
-  gcc --version | head -1; } > "$HERE/logs/env.txt"
+  gcc --version | head -1; } > "$OUT/logs/env.txt"
 
 for i in $(seq 1 "$RUNS"); do
-  "$W/oevm_img_o2" "$W/awfy.oimg" > "$HERE/logs/nsl-$i.log" 2>&1
-  python3 "$REPO/nodus/tests/00_perf/awfy-soup.py" "$W/soup" "$W/awfy-host.nsl" > "$HERE/logs/soup-$i.log" 2>&1
+  "$W/oevm_img_o2" "$W/awfy.oimg" > "$OUT/logs/nsl-$i.log" 2>&1
+  python3 "$REPO/nodus/tests/00_perf/awfy-soup.py" "$W/soup" "$W/awfy-host.nsl" > "$OUT/logs/soup-$i.log" 2>&1
 done
-python3 "$HERE/table.py" "$HERE/logs" | tee "$HERE/table.md"
+python3 "$HERE/table.py" "$OUT/logs" | tee "$OUT/table.md"
 rm -rf "$W"
