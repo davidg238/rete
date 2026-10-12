@@ -62,7 +62,6 @@ int main(void) {
 
     struct Closure *cl = (struct Closure *)gc_allocate(BytecodeClosureVtable, sizeof(struct Closure));
     cl->home_ctx = NULL;
-    cl->home_generation = 0;
     cl->entry_point = method;
     cl->captured_env = NULL;
 

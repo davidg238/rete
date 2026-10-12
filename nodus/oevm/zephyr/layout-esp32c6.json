@@ -117,7 +117,7 @@
       }
     },
     "Closure": {
-      "size": 24,
+      "size": 20,
       "fields": {
         "base.vtable": {
           "offset": 0,
@@ -129,13 +129,8 @@
           "is_ref": true,
           "is_ptr": false
         },
-        "home_generation": {
-          "offset": 8,
-          "is_ref": false,
-          "is_ptr": false
-        },
         "entry_point": {
-          "offset": 12,
+          "offset": 8,
           "is_ref": false,
           "is_ptr": true
         }

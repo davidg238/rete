@@ -76,7 +76,6 @@ static inline struct MethodContext *home_link_decode_frame(oop *stack_base, oop 
  * ordinary heap object. */
 struct Context {
     struct Object base;        /* vtable = ContextVtable (L1); GC-traced as heap obj */
-    uint32_t home_generation;  /* stale-home-frame generation tag for the boxed frame */
     uint32_t num_slots;        /* number of boxed outer variables */
     oop      outer;            /* enclosing lexical link: Context | TAG_SMI | NULL */
     oop      slots[];          /* the boxed outer variables */

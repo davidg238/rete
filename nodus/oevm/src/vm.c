@@ -330,9 +330,6 @@ oop  g_boot_inflight_receiver = NULL;
 oop *g_boot_inflight_args = NULL;
 int  g_boot_inflight_argc = 0;
 
-/* Monotonic generation counter for lifecycle protection */
-uint32_t current_generation_tag = 0;
-
 /* Symbol singletons */
 oop Symbol_value = NULL;
 
@@ -918,7 +915,6 @@ static OEVM_HOT struct MethodContext *push_frame(oop closure, oop receiver, int 
        inherited home_ctx is already a relative SMI — pass it through. */
     ctx->home_ctx = cl->home_ctx ? cl->home_ctx
                                  : home_link_encode_relative(vm_stack, ctx);
-    ctx->gen_tag.tag32 = ++current_generation_tag;
     ctx->regs[0] = receiver;
     /* Clamp once instead of bounds-checking every arg; excess args (a caller
        bug the old per-arg check tolerated silently) are still dropped. */
@@ -1054,7 +1050,6 @@ OEVM_HOT oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
     // encoded relative (growth-ready).
     ctx->home_ctx = cl->home_ctx ? cl->home_ctx
                                  : home_link_encode_relative(vm_stack, ctx);
-    ctx->gen_tag.tag32 = ++current_generation_tag;
 
     // Initialize registers (R0 = receiver, R1.. = args)
     ctx->regs[0] = receiver;
@@ -1246,7 +1241,7 @@ OEVM_HOT oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
                 oop outer = (SRC2 == 0xFF)
                     ? ((struct Closure *)ctx->closure)->captured_env   /* block: chain to enclosing */
                     : NULL;                                             /* method root: no outer */
-                ctx->regs[DEST] = context_alloc(num_slots, outer, ctx->gen_tag.tag32);
+                ctx->regs[DEST] = context_alloc(num_slots, outer);
                 break;
             }
             case OP_LD_CTX: {
@@ -2056,7 +2051,6 @@ oop primitive_patch(oop text, int argc, oop *args) {
     oop cl = gc_allocate(BytecodeClosureVtable, sizeof(struct Closure));
     struct Closure *c = (struct Closure *)cl;
     c->home_ctx = NULL;          /* a method closure homes to its own frame (push_frame) */
-    c->home_generation = 0;
     c->entry_point = m;
     c->captured_env = NULL;
     c->captured_self = NULL;

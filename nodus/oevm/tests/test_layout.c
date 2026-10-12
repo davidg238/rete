@@ -25,14 +25,10 @@ int main(void) {
     printf("Offset 4 (closure): Expected %zu, Got %zu\n", 4 * oop_size, offsetof(struct MethodContext, closure));
     assert(offsetof(struct MethodContext, closure) == 4 * oop_size);
 
-    printf("Offset 5 (gen_tag): Expected %zu, Got %zu\n", 5 * oop_size, offsetof(struct MethodContext, gen_tag));
-    assert(offsetof(struct MethodContext, gen_tag) == 5 * oop_size);
-
-    /* cleanup_cl (formerly offset 6) was deleted in the de-recursify refactor
-       (fiber_derecursify_core_design.md 6b), before this fork; regs shifted
-       down to fill its slot. */
-    printf("Offset 6 (regs): Expected %zu, Got %zu\n", 6 * oop_size, offsetof(struct MethodContext, regs));
-    assert(offsetof(struct MethodContext, regs) == 6 * oop_size);
+    /* cleanup_cl (de-recursify 6b) and gen_tag (rete#37 L4) were deleted; regs shifted down
+       to fill their slots. */
+    printf("Offset 5 (regs): Expected %zu, Got %zu\n", 5 * oop_size, offsetof(struct MethodContext, regs));
+    assert(offsetof(struct MethodContext, regs) == 5 * oop_size);
 
     // Layout compatibility checks
     printf("Verifying layout compatibility between Object and MethodContext...\n");

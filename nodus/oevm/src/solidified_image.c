@@ -1850,7 +1850,7 @@ static const struct CompiledMethod Method_MethodCallTest_main_args__compiled = {
     0
 };
 static const struct Closure Method_MethodCallTest_main_args__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_MethodCallTest_main_args__compiled
 };
 
@@ -1863,7 +1863,7 @@ static const struct CompiledMethod Method_MethodCallTest_MethodCall_compiled = {
     0
 };
 static const struct Closure Method_MethodCallTest_MethodCall_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_MethodCallTest_MethodCall_compiled
 };
 
@@ -1876,7 +1876,7 @@ static const struct CompiledMethod Method_MethodCallTest_init_manifest__compiled
     0
 };
 static const struct Closure Method_MethodCallTest_init_manifest__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_MethodCallTest_init_manifest__compiled
 };
 
@@ -1889,7 +1889,7 @@ static const struct CompiledMethod Method_MethodCallTest_MethodCall_test_compile
     0
 };
 static const struct Closure Method_MethodCallTest_MethodCall_test_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_MethodCallTest_MethodCall_test_compiled
 };
 
@@ -1902,7 +1902,7 @@ static const struct CompiledMethod Method_MethodCallTest_MethodCall_test2_compil
     0
 };
 static const struct Closure Method_MethodCallTest_MethodCall_test2_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_MethodCallTest_MethodCall_test2_compiled
 };
 
@@ -1914,7 +1914,7 @@ static const struct CompiledMethod Method_MethodCallTest_MethodCall_init_new_com
     0
 };
 static const struct Closure Method_MethodCallTest_MethodCall_init_new_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_MethodCallTest_MethodCall_init_new_compiled
 };
 
@@ -1927,7 +1927,7 @@ static const struct CompiledMethod Method_Kernel_serialOn__compiled = {
     0
 };
 static const struct Closure Method_Kernel_serialOn__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_serialOn__compiled
 };
 
@@ -1940,7 +1940,7 @@ static const struct CompiledMethod Method_Kernel_netOn__compiled = {
     0
 };
 static const struct Closure Method_Kernel_netOn__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_netOn__compiled
 };
 
@@ -1953,7 +1953,7 @@ static const struct CompiledMethod Method_Kernel_rankOf__compiled = {
     0
 };
 static const struct Closure Method_Kernel_rankOf__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_rankOf__compiled
 };
 
@@ -1966,7 +1966,7 @@ static const struct CompiledMethod Method_Kernel_isValueObject__compiled = {
     0
 };
 static const struct Closure Method_Kernel_isValueObject__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_isValueObject__compiled
 };
 
@@ -1979,7 +1979,7 @@ static const struct CompiledMethod Method_Kernel_depthOf__compiled = {
     0
 };
 static const struct Closure Method_Kernel_depthOf__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_depthOf__compiled
 };
 
@@ -1992,7 +1992,7 @@ static const struct CompiledMethod Method_Kernel_checkValue__compiled = {
     0
 };
 static const struct Closure Method_Kernel_checkValue__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_checkValue__compiled
 };
 
@@ -2005,7 +2005,7 @@ static const struct CompiledMethod Method_Kernel_checkDepth__compiled = {
     0
 };
 static const struct Closure Method_Kernel_checkDepth__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_checkDepth__compiled
 };
 
@@ -2018,7 +2018,7 @@ static const struct CompiledMethod Method_Kernel_checkPath__compiled = {
     0
 };
 static const struct Closure Method_Kernel_checkPath__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_checkPath__compiled
 };
 
@@ -2031,7 +2031,7 @@ static const struct CompiledMethod Method_Kernel_valueCompare_with__compiled = {
     0
 };
 static const struct Closure Method_Kernel_valueCompare_with__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_valueCompare_with__compiled
 };
 
@@ -2044,7 +2044,7 @@ static const struct CompiledMethod Method_Kernel_byteCompare_with__compiled = {
     0
 };
 static const struct Closure Method_Kernel_byteCompare_with__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_byteCompare_with__compiled
 };
 
@@ -2057,7 +2057,7 @@ static const struct CompiledMethod Method_Kernel_bytesCompare_with__compiled = {
     0
 };
 static const struct Closure Method_Kernel_bytesCompare_with__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_bytesCompare_with__compiled
 };
 
@@ -2070,7 +2070,7 @@ static const struct CompiledMethod Method_Kernel_listCompare_with__compiled = {
     0
 };
 static const struct Closure Method_Kernel_listCompare_with__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_listCompare_with__compiled
 };
 
@@ -2083,7 +2083,7 @@ static const struct CompiledMethod Method_Kernel_mapCompare_with__compiled = {
     0
 };
 static const struct Closure Method_Kernel_mapCompare_with__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_mapCompare_with__compiled
 };
 
@@ -2096,7 +2096,7 @@ static const struct CompiledMethod Method_Kernel_recordCompare_with__compiled = 
     0
 };
 static const struct Closure Method_Kernel_recordCompare_with__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_recordCompare_with__compiled
 };
 
@@ -2109,7 +2109,7 @@ static const struct CompiledMethod Method_Kernel_value_equals__compiled = {
     0
 };
 static const struct Closure Method_Kernel_value_equals__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_value_equals__compiled
 };
 
@@ -2122,7 +2122,7 @@ static const struct CompiledMethod Method_Kernel_valueHashOf__compiled = {
     0
 };
 static const struct Closure Method_Kernel_valueHashOf__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_valueHashOf__compiled
 };
 
@@ -2135,7 +2135,7 @@ static const struct CompiledMethod Method_Kernel_readLine_compiled = {
     0
 };
 static const struct Closure Method_Kernel_readLine_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_readLine_compiled
 };
 
@@ -2148,7 +2148,7 @@ static const struct CompiledMethod Method_Kernel_protectedFire_value__compiled =
     0
 };
 static const struct Closure Method_Kernel_protectedFire_value__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_protectedFire_value__compiled
 };
 
@@ -2161,7 +2161,7 @@ static const struct CompiledMethod Method_Kernel_valueRank__compiled = {
     0
 };
 static const struct Closure Method_Kernel_valueRank__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_valueRank__compiled
 };
 
@@ -2174,7 +2174,7 @@ static const struct CompiledMethod Method_Kernel_spaceDropReactionsOwnedBy__comp
     0
 };
 static const struct Closure Method_Kernel_spaceDropReactionsOwnedBy__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_spaceDropReactionsOwnedBy__compiled
 };
 
@@ -2187,7 +2187,7 @@ static const struct CompiledMethod Method_Kernel_spaceOverruns__compiled = {
     0
 };
 static const struct Closure Method_Kernel_spaceOverruns__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_spaceOverruns__compiled
 };
 
@@ -2200,7 +2200,7 @@ static const struct CompiledMethod Method_Kernel_sysStats_compiled = {
     0
 };
 static const struct Closure Method_Kernel_sysStats_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_sysStats_compiled
 };
 
@@ -2213,7 +2213,7 @@ static const struct CompiledMethod Method_Kernel_timerAfter_token__compiled = {
     0
 };
 static const struct Closure Method_Kernel_timerAfter_token__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_timerAfter_token__compiled
 };
 
@@ -2226,7 +2226,7 @@ static const struct CompiledMethod Method_Kernel_timerEvery_token__compiled = {
     0
 };
 static const struct Closure Method_Kernel_timerEvery_token__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_timerEvery_token__compiled
 };
 
@@ -2239,7 +2239,7 @@ static const struct CompiledMethod Method_Kernel_timerCancel__compiled = {
     0
 };
 static const struct Closure Method_Kernel_timerCancel__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_timerCancel__compiled
 };
 
@@ -2252,7 +2252,7 @@ static const struct CompiledMethod Method_Kernel_monotonicMillis_compiled = {
     0
 };
 static const struct Closure Method_Kernel_monotonicMillis_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_monotonicMillis_compiled
 };
 
@@ -2265,7 +2265,7 @@ static const struct CompiledMethod Method_Kernel_advanceMillis__compiled = {
     0
 };
 static const struct Closure Method_Kernel_advanceMillis__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_advanceMillis__compiled
 };
 
@@ -2278,7 +2278,7 @@ static const struct CompiledMethod Method_Kernel_gpioPin_edge_post_on__compiled 
     0
 };
 static const struct Closure Method_Kernel_gpioPin_edge_post_on__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_gpioPin_edge_post_on__compiled
 };
 
@@ -2291,7 +2291,7 @@ static const struct CompiledMethod Method_Kernel_gpioFire__compiled = {
     0
 };
 static const struct Closure Method_Kernel_gpioFire__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_gpioFire__compiled
 };
 
@@ -2304,7 +2304,7 @@ static const struct CompiledMethod Method_Kernel_gpioSet_to__compiled = {
     0
 };
 static const struct Closure Method_Kernel_gpioSet_to__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_gpioSet_to__compiled
 };
 
@@ -2317,7 +2317,7 @@ static const struct CompiledMethod Method_Kernel_gpioLevel__compiled = {
     0
 };
 static const struct Closure Method_Kernel_gpioLevel__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_gpioLevel__compiled
 };
 
@@ -2330,7 +2330,7 @@ static const struct CompiledMethod Method_Kernel_displayClear_compiled = {
     0
 };
 static const struct Closure Method_Kernel_displayClear_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_displayClear_compiled
 };
 
@@ -2343,7 +2343,7 @@ static const struct CompiledMethod Method_Kernel_displayAt_col_put__compiled = {
     0
 };
 static const struct Closure Method_Kernel_displayAt_col_put__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_displayAt_col_put__compiled
 };
 
@@ -2356,7 +2356,7 @@ static const struct CompiledMethod Method_Kernel_displayRefresh_compiled = {
     0
 };
 static const struct Closure Method_Kernel_displayRefresh_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_displayRefresh_compiled
 };
 
@@ -2369,7 +2369,7 @@ static const struct CompiledMethod Method_Kernel_displayRefreshRow__compiled = {
     0
 };
 static const struct Closure Method_Kernel_displayRefreshRow__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_displayRefreshRow__compiled
 };
 
@@ -2382,7 +2382,7 @@ static const struct CompiledMethod Method_Kernel_bellStrike__compiled = {
     0
 };
 static const struct Closure Method_Kernel_bellStrike__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_bellStrike__compiled
 };
 
@@ -2395,7 +2395,7 @@ static const struct CompiledMethod Method_Kernel_ntpSyncTz__compiled = {
     0
 };
 static const struct Closure Method_Kernel_ntpSyncTz__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_ntpSyncTz__compiled
 };
 
@@ -2408,7 +2408,7 @@ static const struct CompiledMethod Method_Kernel_ntpDate_compiled = {
     0
 };
 static const struct Closure Method_Kernel_ntpDate_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_ntpDate_compiled
 };
 
@@ -2421,7 +2421,7 @@ static const struct CompiledMethod Method_Kernel_rtcValid_compiled = {
     0
 };
 static const struct Closure Method_Kernel_rtcValid_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_rtcValid_compiled
 };
 
@@ -2434,7 +2434,7 @@ static const struct CompiledMethod Method_Kernel_rtcGet__compiled = {
     0
 };
 static const struct Closure Method_Kernel_rtcGet__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_rtcGet__compiled
 };
 
@@ -2447,7 +2447,7 @@ static const struct CompiledMethod Method_Kernel_rtcPut_value__compiled = {
     0
 };
 static const struct Closure Method_Kernel_rtcPut_value__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_rtcPut_value__compiled
 };
 
@@ -2460,7 +2460,7 @@ static const struct CompiledMethod Method_Kernel_deepSleep__compiled = {
     0
 };
 static const struct Closure Method_Kernel_deepSleep__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_deepSleep__compiled
 };
 
@@ -2473,7 +2473,7 @@ static const struct CompiledMethod Method_Kernel_wallClock_compiled = {
     0
 };
 static const struct Closure Method_Kernel_wallClock_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_wallClock_compiled
 };
 
@@ -2486,7 +2486,7 @@ static const struct CompiledMethod Method_Kernel_wallClockSetDate_time__compiled
     0
 };
 static const struct Closure Method_Kernel_wallClockSetDate_time__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_wallClockSetDate_time__compiled
 };
 
@@ -2499,7 +2499,7 @@ static const struct CompiledMethod Method_Kernel_rtcAlarmAt_post_on__compiled = 
     0
 };
 static const struct Closure Method_Kernel_rtcAlarmAt_post_on__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_rtcAlarmAt_post_on__compiled
 };
 
@@ -2512,7 +2512,7 @@ static const struct CompiledMethod Method_Kernel_pumpEvents_compiled = {
     0
 };
 static const struct Closure Method_Kernel_pumpEvents_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_pumpEvents_compiled
 };
 
@@ -2525,7 +2525,7 @@ static const struct CompiledMethod Method_Kernel_httpListen__compiled = {
     0
 };
 static const struct Closure Method_Kernel_httpListen__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_httpListen__compiled
 };
 
@@ -2538,7 +2538,7 @@ static const struct CompiledMethod Method_Kernel_httpRespondId_status_body__comp
     0
 };
 static const struct Closure Method_Kernel_httpRespondId_status_body__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_httpRespondId_status_body__compiled
 };
 
@@ -2551,7 +2551,7 @@ static const struct CompiledMethod Method_Kernel_httpInject_path__compiled = {
     0
 };
 static const struct Closure Method_Kernel_httpInject_path__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_httpInject_path__compiled
 };
 
@@ -2564,7 +2564,7 @@ static const struct CompiledMethod Method_Kernel_httpBeginId_status__compiled = 
     0
 };
 static const struct Closure Method_Kernel_httpBeginId_status__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_httpBeginId_status__compiled
 };
 
@@ -2577,7 +2577,7 @@ static const struct CompiledMethod Method_Kernel_httpChunkId_data__compiled = {
     0
 };
 static const struct Closure Method_Kernel_httpChunkId_data__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_httpChunkId_data__compiled
 };
 
@@ -2590,7 +2590,7 @@ static const struct CompiledMethod Method_Kernel_httpEndId__compiled = {
     0
 };
 static const struct Closure Method_Kernel_httpEndId__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_httpEndId__compiled
 };
 
@@ -2603,7 +2603,7 @@ static const struct CompiledMethod Method_Kernel_sensorFrame_compiled = {
     0
 };
 static const struct Closure Method_Kernel_sensorFrame_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_sensorFrame_compiled
 };
 
@@ -2616,7 +2616,7 @@ static const struct CompiledMethod Method_Kernel_sensorArmEventPost_on_threshold
     0
 };
 static const struct Closure Method_Kernel_sensorArmEventPost_on_threshold__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_sensorArmEventPost_on_threshold__compiled
 };
 
@@ -2628,7 +2628,7 @@ static const struct CompiledMethod Method_Kernel_Object_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Object_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Object_compiled
 };
 
@@ -2640,7 +2640,7 @@ static const struct CompiledMethod Method_Kernel_Array_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Array_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Array_compiled
 };
 
@@ -2652,7 +2652,7 @@ static const struct CompiledMethod Method_Kernel_Collection_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Collection_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Collection_compiled
 };
 
@@ -2664,7 +2664,7 @@ static const struct CompiledMethod Method_Kernel_OrderedCollection_compiled = {
     0
 };
 static const struct Closure Method_Kernel_OrderedCollection_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_OrderedCollection_compiled
 };
 
@@ -2676,7 +2676,7 @@ static const struct CompiledMethod Method_Kernel_Interval_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Interval_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Interval_compiled
 };
 
@@ -2688,7 +2688,7 @@ static const struct CompiledMethod Method_Kernel_Set_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Set_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Set_compiled
 };
 
@@ -2700,7 +2700,7 @@ static const struct CompiledMethod Method_Kernel_Dictionary_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Dictionary_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Dictionary_compiled
 };
 
@@ -2712,7 +2712,7 @@ static const struct CompiledMethod Method_Kernel_Association_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Association_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Association_compiled
 };
 
@@ -2724,7 +2724,7 @@ static const struct CompiledMethod Method_Kernel_List_compiled = {
     0
 };
 static const struct Closure Method_Kernel_List_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_List_compiled
 };
 
@@ -2736,7 +2736,7 @@ static const struct CompiledMethod Method_Kernel_Map_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Map_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Map_compiled
 };
 
@@ -2748,7 +2748,7 @@ static const struct CompiledMethod Method_Kernel_Protocol_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Protocol_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Protocol_compiled
 };
 
@@ -2760,7 +2760,7 @@ static const struct CompiledMethod Method_Kernel_Record_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Record_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Record_compiled
 };
 
@@ -2773,7 +2773,7 @@ static const struct CompiledMethod Method_Kernel_Cbor_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Cbor_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Cbor_compiled
 };
 
@@ -2785,7 +2785,7 @@ static const struct CompiledMethod Method_Kernel_HeapStats_compiled = {
     0
 };
 static const struct Closure Method_Kernel_HeapStats_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_HeapStats_compiled
 };
 
@@ -2797,7 +2797,7 @@ static const struct CompiledMethod Method_Kernel_Spans_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Spans_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Spans_compiled
 };
 
@@ -2809,7 +2809,7 @@ static const struct CompiledMethod Method_Kernel_SpanCapture_compiled = {
     0
 };
 static const struct Closure Method_Kernel_SpanCapture_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_SpanCapture_compiled
 };
 
@@ -2822,7 +2822,7 @@ static const struct CompiledMethod Method_Kernel_heapStats_compiled = {
     0
 };
 static const struct Closure Method_Kernel_heapStats_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_heapStats_compiled
 };
 
@@ -2835,7 +2835,7 @@ static const struct CompiledMethod Method_Kernel_cheapStats_compiled = {
     0
 };
 static const struct Closure Method_Kernel_cheapStats_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_cheapStats_compiled
 };
 
@@ -2848,7 +2848,7 @@ static const struct CompiledMethod Method_Kernel_profileStart_compiled = {
     0
 };
 static const struct Closure Method_Kernel_profileStart_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_profileStart_compiled
 };
 
@@ -2861,7 +2861,7 @@ static const struct CompiledMethod Method_Kernel_profileStop_compiled = {
     0
 };
 static const struct Closure Method_Kernel_profileStop_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_profileStop_compiled
 };
 
@@ -2874,7 +2874,7 @@ static const struct CompiledMethod Method_Kernel_buildId_compiled = {
     0
 };
 static const struct Closure Method_Kernel_buildId_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_buildId_compiled
 };
 
@@ -2887,7 +2887,7 @@ static const struct CompiledMethod Method_Kernel_bootId_compiled = {
     0
 };
 static const struct Closure Method_Kernel_bootId_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_bootId_compiled
 };
 
@@ -2900,7 +2900,7 @@ static const struct CompiledMethod Method_Kernel_otaRunningHash_compiled = {
     0
 };
 static const struct Closure Method_Kernel_otaRunningHash_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_otaRunningHash_compiled
 };
 
@@ -2913,7 +2913,7 @@ static const struct CompiledMethod Method_Kernel_otaIsRunning__compiled = {
     0
 };
 static const struct Closure Method_Kernel_otaIsRunning__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_otaIsRunning__compiled
 };
 
@@ -2926,7 +2926,7 @@ static const struct CompiledMethod Method_Kernel_otaTrial_compiled = {
     0
 };
 static const struct Closure Method_Kernel_otaTrial_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_otaTrial_compiled
 };
 
@@ -2939,7 +2939,7 @@ static const struct CompiledMethod Method_Kernel_otaStage_sig_host_port__compile
     0
 };
 static const struct Closure Method_Kernel_otaStage_sig_host_port__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_otaStage_sig_host_port__compiled
 };
 
@@ -2952,7 +2952,7 @@ static const struct CompiledMethod Method_Kernel_otaConfirm_compiled = {
     0
 };
 static const struct Closure Method_Kernel_otaConfirm_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_otaConfirm_compiled
 };
 
@@ -2965,7 +2965,7 @@ static const struct CompiledMethod Method_Kernel_otaActivate_sig__compiled = {
     0
 };
 static const struct Closure Method_Kernel_otaActivate_sig__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_otaActivate_sig__compiled
 };
 
@@ -2978,7 +2978,7 @@ static const struct CompiledMethod Method_Kernel_otaRawOf__compiled = {
     0
 };
 static const struct Closure Method_Kernel_otaRawOf__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_otaRawOf__compiled
 };
 
@@ -2991,7 +2991,7 @@ static const struct CompiledMethod Method_Kernel_parseProfileMs__compiled = {
     0
 };
 static const struct Closure Method_Kernel_parseProfileMs__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_parseProfileMs__compiled
 };
 
@@ -3004,7 +3004,7 @@ static const struct CompiledMethod Method_Kernel_metrics_compiled = {
     0
 };
 static const struct Closure Method_Kernel_metrics_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_metrics_compiled
 };
 
@@ -3017,7 +3017,7 @@ static const struct CompiledMethod Method_Kernel_cheap_compiled = {
     0
 };
 static const struct Closure Method_Kernel_cheap_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_cheap_compiled
 };
 
@@ -3030,7 +3030,7 @@ static const struct CompiledMethod Method_Kernel_crashRecordTag_text__compiled =
     0
 };
 static const struct Closure Method_Kernel_crashRecordTag_text__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_crashRecordTag_text__compiled
 };
 
@@ -3043,7 +3043,7 @@ static const struct CompiledMethod Method_Kernel_crashRecordText__compiled = {
     0
 };
 static const struct Closure Method_Kernel_crashRecordText__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_crashRecordText__compiled
 };
 
@@ -3055,7 +3055,7 @@ static const struct CompiledMethod Method_Kernel_ByteArray_compiled = {
     0
 };
 static const struct Closure Method_Kernel_ByteArray_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_ByteArray_compiled
 };
 
@@ -3067,7 +3067,7 @@ static const struct CompiledMethod Method_Kernel_NetBridge_compiled = {
     0
 };
 static const struct Closure Method_Kernel_NetBridge_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_NetBridge_compiled
 };
 
@@ -3079,7 +3079,7 @@ static const struct CompiledMethod Method_Kernel_PortaBridge_compiled = {
     0
 };
 static const struct Closure Method_Kernel_PortaBridge_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_PortaBridge_compiled
 };
 
@@ -3091,7 +3091,7 @@ static const struct CompiledMethod Method_Kernel_ReadStream_compiled = {
     0
 };
 static const struct Closure Method_Kernel_ReadStream_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_ReadStream_compiled
 };
 
@@ -3103,7 +3103,7 @@ static const struct CompiledMethod Method_Kernel_WriteStream_compiled = {
     0
 };
 static const struct Closure Method_Kernel_WriteStream_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_WriteStream_compiled
 };
 
@@ -3116,7 +3116,7 @@ static const struct CompiledMethod Method_Kernel_space_compiled = {
     0
 };
 static const struct Closure Method_Kernel_space_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_space_compiled
 };
 
@@ -3129,7 +3129,7 @@ static const struct CompiledMethod Method_Kernel_supervisor_compiled = {
     0
 };
 static const struct Closure Method_Kernel_supervisor_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_supervisor_compiled
 };
 
@@ -3142,7 +3142,7 @@ static const struct CompiledMethod Method_Kernel_timers_compiled = {
     0
 };
 static const struct Closure Method_Kernel_timers_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_timers_compiled
 };
 
@@ -3155,7 +3155,7 @@ static const struct CompiledMethod Method_Kernel_gpio_compiled = {
     0
 };
 static const struct Closure Method_Kernel_gpio_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_gpio_compiled
 };
 
@@ -3168,7 +3168,7 @@ static const struct CompiledMethod Method_Kernel_display_compiled = {
     0
 };
 static const struct Closure Method_Kernel_display_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_display_compiled
 };
 
@@ -3181,7 +3181,7 @@ static const struct CompiledMethod Method_Kernel_bell_compiled = {
     0
 };
 static const struct Closure Method_Kernel_bell_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_bell_compiled
 };
 
@@ -3194,7 +3194,7 @@ static const struct CompiledMethod Method_Kernel_rtcAlarm_compiled = {
     0
 };
 static const struct Closure Method_Kernel_rtcAlarm_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_rtcAlarm_compiled
 };
 
@@ -3207,7 +3207,7 @@ static const struct CompiledMethod Method_Kernel_HashedCollection_compiled = {
     0
 };
 static const struct Closure Method_Kernel_HashedCollection_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_HashedCollection_compiled
 };
 
@@ -3220,7 +3220,7 @@ static const struct CompiledMethod Method_Kernel_BytesReadProtocol_compiled = {
     0
 };
 static const struct Closure Method_Kernel_BytesReadProtocol_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_BytesReadProtocol_compiled
 };
 
@@ -3233,7 +3233,7 @@ static const struct CompiledMethod Method_Kernel_Bytes_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Bytes_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Bytes_compiled
 };
 
@@ -3246,7 +3246,7 @@ static const struct CompiledMethod Method_Kernel_ByteBuilder_compiled = {
     0
 };
 static const struct Closure Method_Kernel_ByteBuilder_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_ByteBuilder_compiled
 };
 
@@ -3259,7 +3259,7 @@ static const struct CompiledMethod Method_Kernel_CHeapStats_compiled = {
     0
 };
 static const struct Closure Method_Kernel_CHeapStats_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_CHeapStats_compiled
 };
 
@@ -3272,7 +3272,7 @@ static const struct CompiledMethod Method_Kernel_Serial_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Serial_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Serial_compiled
 };
 
@@ -3285,7 +3285,7 @@ static const struct CompiledMethod Method_Kernel_Net_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Net_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Net_compiled
 };
 
@@ -3298,7 +3298,7 @@ static const struct CompiledMethod Method_Kernel_Socket_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Socket_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Socket_compiled
 };
 
@@ -3311,7 +3311,7 @@ static const struct CompiledMethod Method_Kernel_Datagram_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Datagram_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Datagram_compiled
 };
 
@@ -3324,7 +3324,7 @@ static const struct CompiledMethod Method_Kernel_Channel_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Channel_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Channel_compiled
 };
 
@@ -3337,7 +3337,7 @@ static const struct CompiledMethod Method_Kernel_Space_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Space_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Space_compiled
 };
 
@@ -3350,7 +3350,7 @@ static const struct CompiledMethod Method_Kernel_SupervisedJob_compiled = {
     0
 };
 static const struct Closure Method_Kernel_SupervisedJob_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_SupervisedJob_compiled
 };
 
@@ -3363,7 +3363,7 @@ static const struct CompiledMethod Method_Kernel_Supervisor_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Supervisor_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Supervisor_compiled
 };
 
@@ -3376,7 +3376,7 @@ static const struct CompiledMethod Method_Kernel_Transition_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Transition_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Transition_compiled
 };
 
@@ -3389,7 +3389,7 @@ static const struct CompiledMethod Method_Kernel_Pending_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Pending_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Pending_compiled
 };
 
@@ -3402,7 +3402,7 @@ static const struct CompiledMethod Method_Kernel_Timers_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Timers_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Timers_compiled
 };
 
@@ -3415,7 +3415,7 @@ static const struct CompiledMethod Method_Kernel_GpioPulse_compiled = {
     0
 };
 static const struct Closure Method_Kernel_GpioPulse_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_GpioPulse_compiled
 };
 
@@ -3428,7 +3428,7 @@ static const struct CompiledMethod Method_Kernel_Display_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Display_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Display_compiled
 };
 
@@ -3441,7 +3441,7 @@ static const struct CompiledMethod Method_Kernel_Bell_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Bell_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Bell_compiled
 };
 
@@ -3454,7 +3454,7 @@ static const struct CompiledMethod Method_Kernel_RtcAlarm_compiled = {
     0
 };
 static const struct Closure Method_Kernel_RtcAlarm_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_RtcAlarm_compiled
 };
 
@@ -3467,7 +3467,7 @@ static const struct CompiledMethod Method_Kernel_init_platform__compiled = {
     0
 };
 static const struct Closure Method_Kernel_init_platform__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_init_platform__compiled
 };
 
@@ -3480,7 +3480,7 @@ static const struct CompiledMethod Method_Kernel_Object_isNil_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Object_isNil_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Object_isNil_compiled
 };
 
@@ -3493,7 +3493,7 @@ static const struct CompiledMethod Method_Kernel_Object_notNil_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Object_notNil_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Object_notNil_compiled
 };
 
@@ -3505,7 +3505,7 @@ static const struct CompiledMethod Method_Kernel_Object_ifNil__compiled = {
     0
 };
 static const struct Closure Method_Kernel_Object_ifNil__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Object_ifNil__compiled
 };
 
@@ -3518,7 +3518,7 @@ static const struct CompiledMethod Method_Kernel_Object_ifNotNil__compiled = {
     0
 };
 static const struct Closure Method_Kernel_Object_ifNotNil__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Object_ifNotNil__compiled
 };
 
@@ -3531,7 +3531,7 @@ static const struct CompiledMethod Method_Kernel_Object__eq_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Object__eq_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Object__eq_compiled
 };
 
@@ -3544,7 +3544,7 @@ static const struct CompiledMethod Method_Kernel_Object_printString_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Object_printString_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Object_printString_compiled
 };
 
@@ -3557,7 +3557,7 @@ static const struct CompiledMethod Method_Kernel_Object_asString_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Object_asString_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Object_asString_compiled
 };
 
@@ -3570,7 +3570,7 @@ static const struct CompiledMethod Method_Kernel_Object_hash_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Object_hash_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Object_hash_compiled
 };
 
@@ -3583,7 +3583,7 @@ static const struct CompiledMethod Method_Kernel_Object_isValue_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Object_isValue_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Object_isValue_compiled
 };
 
@@ -3596,7 +3596,7 @@ static const struct CompiledMethod Method_Kernel_Object_isSymbol_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Object_isSymbol_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Object_isSymbol_compiled
 };
 
@@ -3609,7 +3609,7 @@ static const struct CompiledMethod Method_Kernel_Object_isList_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Object_isList_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Object_isList_compiled
 };
 
@@ -3622,7 +3622,7 @@ static const struct CompiledMethod Method_Kernel_Object_isMap_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Object_isMap_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Object_isMap_compiled
 };
 
@@ -3635,7 +3635,7 @@ static const struct CompiledMethod Method_Kernel_Object_isRecord_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Object_isRecord_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Object_isRecord_compiled
 };
 
@@ -3648,7 +3648,7 @@ static const struct CompiledMethod Method_Kernel_Object_isBytes_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Object_isBytes_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Object_isBytes_compiled
 };
 
@@ -3661,7 +3661,7 @@ static const struct CompiledMethod Method_Kernel_Object_valueRank_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Object_valueRank_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Object_valueRank_compiled
 };
 
@@ -3674,7 +3674,7 @@ static const struct CompiledMethod Method_Kernel_Object_valueDepth_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Object_valueDepth_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Object_valueDepth_compiled
 };
 
@@ -3686,7 +3686,7 @@ static const struct CompiledMethod Method_Kernel_Object_init_new_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Object_init_new_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Object_init_new_compiled
 };
 
@@ -3699,7 +3699,7 @@ static const struct CompiledMethod Method_Kernel_Array_at__compiled = {
     0
 };
 static const struct Closure Method_Kernel_Array_at__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Array_at__compiled
 };
 
@@ -3712,7 +3712,7 @@ static const struct CompiledMethod Method_Kernel_Array_at_put__compiled = {
     0
 };
 static const struct Closure Method_Kernel_Array_at_put__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Array_at_put__compiled
 };
 
@@ -3725,7 +3725,7 @@ static const struct CompiledMethod Method_Kernel_Array_size_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Array_size_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Array_size_compiled
 };
 
@@ -3738,7 +3738,7 @@ static const struct CompiledMethod Method_Kernel_Array_do__compiled = {
     0
 };
 static const struct Closure Method_Kernel_Array_do__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Array_do__compiled
 };
 
@@ -3751,7 +3751,7 @@ static const struct CompiledMethod Method_Meta_Kernel_Array_new__compiled = {
     0
 };
 static const struct Closure Method_Meta_Kernel_Array_new__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Meta_Kernel_Array_new__compiled
 };
 
@@ -3763,7 +3763,7 @@ static const struct CompiledMethod Method_Kernel_Array_init_new_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Array_init_new_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Array_init_new_compiled
 };
 
@@ -3776,7 +3776,7 @@ static const struct CompiledMethod Method_Kernel_Collection_do__compiled = {
     0
 };
 static const struct Closure Method_Kernel_Collection_do__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Collection_do__compiled
 };
 
@@ -3789,7 +3789,7 @@ static const struct CompiledMethod Method_Kernel_Collection_size_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Collection_size_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Collection_size_compiled
 };
 
@@ -3802,7 +3802,7 @@ static const struct CompiledMethod Method_Kernel_Collection_isEmpty_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Collection_isEmpty_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Collection_isEmpty_compiled
 };
 
@@ -3815,7 +3815,7 @@ static const struct CompiledMethod Method_Kernel_Collection_inject_into__compile
     0
 };
 static const struct Closure Method_Kernel_Collection_inject_into__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Collection_inject_into__compiled
 };
 
@@ -3828,7 +3828,7 @@ static const struct CompiledMethod Method_Kernel_Collection_collect__compiled = 
     0
 };
 static const struct Closure Method_Kernel_Collection_collect__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Collection_collect__compiled
 };
 
@@ -3841,7 +3841,7 @@ static const struct CompiledMethod Method_Kernel_Collection_select__compiled = {
     0
 };
 static const struct Closure Method_Kernel_Collection_select__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Collection_select__compiled
 };
 
@@ -3854,7 +3854,7 @@ static const struct CompiledMethod Method_Kernel_Collection_reject__compiled = {
     0
 };
 static const struct Closure Method_Kernel_Collection_reject__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Collection_reject__compiled
 };
 
@@ -3867,7 +3867,7 @@ static const struct CompiledMethod Method_Kernel_Collection_includes__compiled =
     0
 };
 static const struct Closure Method_Kernel_Collection_includes__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Collection_includes__compiled
 };
 
@@ -3880,7 +3880,7 @@ static const struct CompiledMethod Method_Kernel_Collection_asArray_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Collection_asArray_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Collection_asArray_compiled
 };
 
@@ -3893,7 +3893,7 @@ static const struct CompiledMethod Method_Kernel_Collection_detect_ifNone__compi
     0
 };
 static const struct Closure Method_Kernel_Collection_detect_ifNone__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Collection_detect_ifNone__compiled
 };
 
@@ -3906,7 +3906,7 @@ static const struct CompiledMethod Method_Kernel_Collection_detect__compiled = {
     0
 };
 static const struct Closure Method_Kernel_Collection_detect__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Collection_detect__compiled
 };
 
@@ -3919,7 +3919,7 @@ static const struct CompiledMethod Method_Kernel_Collection_anySatisfy__compiled
     0
 };
 static const struct Closure Method_Kernel_Collection_anySatisfy__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Collection_anySatisfy__compiled
 };
 
@@ -3932,7 +3932,7 @@ static const struct CompiledMethod Method_Kernel_Collection_allSatisfy__compiled
     0
 };
 static const struct Closure Method_Kernel_Collection_allSatisfy__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Collection_allSatisfy__compiled
 };
 
@@ -3945,7 +3945,7 @@ static const struct CompiledMethod Method_Kernel_Collection_noneSatisfy__compile
     0
 };
 static const struct Closure Method_Kernel_Collection_noneSatisfy__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Collection_noneSatisfy__compiled
 };
 
@@ -3958,7 +3958,7 @@ static const struct CompiledMethod Method_Kernel_Collection_count__compiled = {
     0
 };
 static const struct Closure Method_Kernel_Collection_count__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Collection_count__compiled
 };
 
@@ -3971,7 +3971,7 @@ static const struct CompiledMethod Method_Kernel_Collection_do_separatedBy__comp
     0
 };
 static const struct Closure Method_Kernel_Collection_do_separatedBy__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Collection_do_separatedBy__compiled
 };
 
@@ -3984,7 +3984,7 @@ static const struct CompiledMethod Method_Kernel_Collection_withIndexDo__compile
     0
 };
 static const struct Closure Method_Kernel_Collection_withIndexDo__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Collection_withIndexDo__compiled
 };
 
@@ -3997,7 +3997,7 @@ static const struct CompiledMethod Method_Kernel_Collection_indexOf_ifAbsent__co
     0
 };
 static const struct Closure Method_Kernel_Collection_indexOf_ifAbsent__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Collection_indexOf_ifAbsent__compiled
 };
 
@@ -4010,7 +4010,7 @@ static const struct CompiledMethod Method_Kernel_Collection_indexOf__compiled = 
     0
 };
 static const struct Closure Method_Kernel_Collection_indexOf__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Collection_indexOf__compiled
 };
 
@@ -4023,7 +4023,7 @@ static const struct CompiledMethod Method_Kernel_Collection_detectMax_ifNone__co
     0
 };
 static const struct Closure Method_Kernel_Collection_detectMax_ifNone__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Collection_detectMax_ifNone__compiled
 };
 
@@ -4036,7 +4036,7 @@ static const struct CompiledMethod Method_Kernel_Collection_detectMin_ifNone__co
     0
 };
 static const struct Closure Method_Kernel_Collection_detectMin_ifNone__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Collection_detectMin_ifNone__compiled
 };
 
@@ -4049,7 +4049,7 @@ static const struct CompiledMethod Method_Kernel_Collection_detectMax__compiled 
     0
 };
 static const struct Closure Method_Kernel_Collection_detectMax__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Collection_detectMax__compiled
 };
 
@@ -4062,7 +4062,7 @@ static const struct CompiledMethod Method_Kernel_Collection_detectMin__compiled 
     0
 };
 static const struct Closure Method_Kernel_Collection_detectMin__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Collection_detectMin__compiled
 };
 
@@ -4074,7 +4074,7 @@ static const struct CompiledMethod Method_Kernel_Collection_init_new_compiled = 
     0
 };
 static const struct Closure Method_Kernel_Collection_init_new_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Collection_init_new_compiled
 };
 
@@ -4087,7 +4087,7 @@ static const struct CompiledMethod Method_Kernel_OrderedCollection_do__compiled 
     0
 };
 static const struct Closure Method_Kernel_OrderedCollection_do__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_OrderedCollection_do__compiled
 };
 
@@ -4099,7 +4099,7 @@ static const struct CompiledMethod Method_Kernel_OrderedCollection_size_compiled
     0
 };
 static const struct Closure Method_Kernel_OrderedCollection_size_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_OrderedCollection_size_compiled
 };
 
@@ -4112,7 +4112,7 @@ static const struct CompiledMethod Method_Kernel_OrderedCollection_isEmpty_compi
     0
 };
 static const struct Closure Method_Kernel_OrderedCollection_isEmpty_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_OrderedCollection_isEmpty_compiled
 };
 
@@ -4125,7 +4125,7 @@ static const struct CompiledMethod Method_Kernel_OrderedCollection_add__compiled
     0
 };
 static const struct Closure Method_Kernel_OrderedCollection_add__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_OrderedCollection_add__compiled
 };
 
@@ -4138,7 +4138,7 @@ static const struct CompiledMethod Method_Kernel_OrderedCollection_addLast__comp
     0
 };
 static const struct Closure Method_Kernel_OrderedCollection_addLast__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_OrderedCollection_addLast__compiled
 };
 
@@ -4151,7 +4151,7 @@ static const struct CompiledMethod Method_Kernel_OrderedCollection_at__compiled 
     0
 };
 static const struct Closure Method_Kernel_OrderedCollection_at__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_OrderedCollection_at__compiled
 };
 
@@ -4164,7 +4164,7 @@ static const struct CompiledMethod Method_Kernel_OrderedCollection_at_put__compi
     0
 };
 static const struct Closure Method_Kernel_OrderedCollection_at_put__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_OrderedCollection_at_put__compiled
 };
 
@@ -4177,7 +4177,7 @@ static const struct CompiledMethod Method_Kernel_OrderedCollection_first_compile
     0
 };
 static const struct Closure Method_Kernel_OrderedCollection_first_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_OrderedCollection_first_compiled
 };
 
@@ -4190,7 +4190,7 @@ static const struct CompiledMethod Method_Kernel_OrderedCollection_last_compiled
     0
 };
 static const struct Closure Method_Kernel_OrderedCollection_last_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_OrderedCollection_last_compiled
 };
 
@@ -4203,7 +4203,7 @@ static const struct CompiledMethod Method_Kernel_OrderedCollection_removeLast_co
     0
 };
 static const struct Closure Method_Kernel_OrderedCollection_removeLast_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_OrderedCollection_removeLast_compiled
 };
 
@@ -4216,7 +4216,7 @@ static const struct CompiledMethod Method_Kernel_OrderedCollection_removeFirst_c
     0
 };
 static const struct Closure Method_Kernel_OrderedCollection_removeFirst_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_OrderedCollection_removeFirst_compiled
 };
 
@@ -4229,7 +4229,7 @@ static const struct CompiledMethod Method_Kernel_OrderedCollection_ensureCapacit
     0
 };
 static const struct Closure Method_Kernel_OrderedCollection_ensureCapacity_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_OrderedCollection_ensureCapacity_compiled
 };
 
@@ -4242,7 +4242,7 @@ static const struct CompiledMethod Method_Kernel_OrderedCollection_grow_compiled
     0
 };
 static const struct Closure Method_Kernel_OrderedCollection_grow_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_OrderedCollection_grow_compiled
 };
 
@@ -4255,7 +4255,7 @@ static const struct CompiledMethod Method_Kernel_OrderedCollection_with_collect_
     0
 };
 static const struct Closure Method_Kernel_OrderedCollection_with_collect__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_OrderedCollection_with_collect__compiled
 };
 
@@ -4268,7 +4268,7 @@ static const struct CompiledMethod Method_Kernel_OrderedCollection_copyFrom_to__
     0
 };
 static const struct Closure Method_Kernel_OrderedCollection_copyFrom_to__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_OrderedCollection_copyFrom_to__compiled
 };
 
@@ -4281,7 +4281,7 @@ static const struct CompiledMethod Method_Kernel_OrderedCollection_reversed_comp
     0
 };
 static const struct Closure Method_Kernel_OrderedCollection_reversed_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_OrderedCollection_reversed_compiled
 };
 
@@ -4294,7 +4294,7 @@ static const struct CompiledMethod Method_Kernel_OrderedCollection_first__compil
     0
 };
 static const struct Closure Method_Kernel_OrderedCollection_first__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_OrderedCollection_first__compiled
 };
 
@@ -4307,7 +4307,7 @@ static const struct CompiledMethod Method_Kernel_OrderedCollection_last__compile
     0
 };
 static const struct Closure Method_Kernel_OrderedCollection_last__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_OrderedCollection_last__compiled
 };
 
@@ -4320,7 +4320,7 @@ static const struct CompiledMethod Method_Kernel_OrderedCollection__u44_compiled
     0
 };
 static const struct Closure Method_Kernel_OrderedCollection__u44_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_OrderedCollection__u44_compiled
 };
 
@@ -4333,7 +4333,7 @@ static const struct CompiledMethod Method_Kernel_OrderedCollection_init_new_comp
     0
 };
 static const struct Closure Method_Kernel_OrderedCollection_init_new_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_OrderedCollection_init_new_compiled
 };
 
@@ -4346,7 +4346,7 @@ static const struct CompiledMethod Method_Kernel_Interval_do__compiled = {
     0
 };
 static const struct Closure Method_Kernel_Interval_do__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Interval_do__compiled
 };
 
@@ -4359,7 +4359,7 @@ static const struct CompiledMethod Method_Kernel_Interval_size_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Interval_size_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Interval_size_compiled
 };
 
@@ -4372,7 +4372,7 @@ static const struct CompiledMethod Method_Kernel_Interval_at__compiled = {
     0
 };
 static const struct Closure Method_Kernel_Interval_at__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Interval_at__compiled
 };
 
@@ -4385,7 +4385,7 @@ static const struct CompiledMethod Method_Kernel_Interval_first_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Interval_first_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Interval_first_compiled
 };
 
@@ -4398,7 +4398,7 @@ static const struct CompiledMethod Method_Kernel_Interval_last_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Interval_last_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Interval_last_compiled
 };
 
@@ -4411,7 +4411,7 @@ static const struct CompiledMethod Method_Kernel_Interval_setStart_stop_step__co
     0
 };
 static const struct Closure Method_Kernel_Interval_setStart_stop_step__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Interval_setStart_stop_step__compiled
 };
 
@@ -4424,7 +4424,7 @@ static const struct CompiledMethod Method_Meta_Kernel_Interval_from_to__compiled
     0
 };
 static const struct Closure Method_Meta_Kernel_Interval_from_to__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Meta_Kernel_Interval_from_to__compiled
 };
 
@@ -4437,7 +4437,7 @@ static const struct CompiledMethod Method_Meta_Kernel_Interval_from_to_by__compi
     0
 };
 static const struct Closure Method_Meta_Kernel_Interval_from_to_by__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Meta_Kernel_Interval_from_to_by__compiled
 };
 
@@ -4450,7 +4450,7 @@ static const struct CompiledMethod Method_Kernel_Interval_init_new_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Interval_init_new_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Interval_init_new_compiled
 };
 
@@ -4463,7 +4463,7 @@ static const struct CompiledMethod Method_Kernel_HashedCollection_capacity_compi
     0
 };
 static const struct Closure Method_Kernel_HashedCollection_capacity_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_HashedCollection_capacity_compiled
 };
 
@@ -4475,7 +4475,7 @@ static const struct CompiledMethod Method_Kernel_HashedCollection_size_compiled 
     0
 };
 static const struct Closure Method_Kernel_HashedCollection_size_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_HashedCollection_size_compiled
 };
 
@@ -4488,7 +4488,7 @@ static const struct CompiledMethod Method_Kernel_HashedCollection_isEmpty_compil
     0
 };
 static const struct Closure Method_Kernel_HashedCollection_isEmpty_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_HashedCollection_isEmpty_compiled
 };
 
@@ -4501,7 +4501,7 @@ static const struct CompiledMethod Method_Kernel_HashedCollection_indexFor__comp
     0
 };
 static const struct Closure Method_Kernel_HashedCollection_indexFor__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_HashedCollection_indexFor__compiled
 };
 
@@ -4514,7 +4514,7 @@ static const struct CompiledMethod Method_Kernel_HashedCollection_slotFor__compi
     0
 };
 static const struct Closure Method_Kernel_HashedCollection_slotFor__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_HashedCollection_slotFor__compiled
 };
 
@@ -4527,7 +4527,7 @@ static const struct CompiledMethod Method_Kernel_HashedCollection_containsKey__c
     0
 };
 static const struct Closure Method_Kernel_HashedCollection_containsKey__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_HashedCollection_containsKey__compiled
 };
 
@@ -4540,7 +4540,7 @@ static const struct CompiledMethod Method_Kernel_HashedCollection_atCapacity_com
     0
 };
 static const struct Closure Method_Kernel_HashedCollection_atCapacity_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_HashedCollection_atCapacity_compiled
 };
 
@@ -4553,7 +4553,7 @@ static const struct CompiledMethod Method_Kernel_HashedCollection_growIfNeeded_c
     0
 };
 static const struct Closure Method_Kernel_HashedCollection_growIfNeeded_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_HashedCollection_growIfNeeded_compiled
 };
 
@@ -4566,7 +4566,7 @@ static const struct CompiledMethod Method_Kernel_HashedCollection_rehashFrom__co
     0
 };
 static const struct Closure Method_Kernel_HashedCollection_rehashFrom__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_HashedCollection_rehashFrom__compiled
 };
 
@@ -4579,7 +4579,7 @@ static const struct CompiledMethod Method_Kernel_HashedCollection_grow_compiled 
     0
 };
 static const struct Closure Method_Kernel_HashedCollection_grow_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_HashedCollection_grow_compiled
 };
 
@@ -4592,7 +4592,7 @@ static const struct CompiledMethod Method_Kernel_HashedCollection_reinsertEntryA
     0
 };
 static const struct Closure Method_Kernel_HashedCollection_reinsertEntryAt__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_HashedCollection_reinsertEntryAt__compiled
 };
 
@@ -4605,7 +4605,7 @@ static const struct CompiledMethod Method_Kernel_HashedCollection_do__compiled =
     0
 };
 static const struct Closure Method_Kernel_HashedCollection_do__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_HashedCollection_do__compiled
 };
 
@@ -4618,7 +4618,7 @@ static const struct CompiledMethod Method_Kernel_HashedCollection_init_new_compi
     0
 };
 static const struct Closure Method_Kernel_HashedCollection_init_new_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_HashedCollection_init_new_compiled
 };
 
@@ -4631,7 +4631,7 @@ static const struct CompiledMethod Method_Kernel_Set_add__compiled = {
     0
 };
 static const struct Closure Method_Kernel_Set_add__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Set_add__compiled
 };
 
@@ -4644,7 +4644,7 @@ static const struct CompiledMethod Method_Kernel_Set_addAll__compiled = {
     0
 };
 static const struct Closure Method_Kernel_Set_addAll__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Set_addAll__compiled
 };
 
@@ -4657,7 +4657,7 @@ static const struct CompiledMethod Method_Kernel_Set_remove__compiled = {
     0
 };
 static const struct Closure Method_Kernel_Set_remove__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Set_remove__compiled
 };
 
@@ -4670,7 +4670,7 @@ static const struct CompiledMethod Method_Kernel_Set_remove_ifAbsent__compiled =
     0
 };
 static const struct Closure Method_Kernel_Set_remove_ifAbsent__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Set_remove_ifAbsent__compiled
 };
 
@@ -4683,7 +4683,7 @@ static const struct CompiledMethod Method_Kernel_Set_includes__compiled = {
     0
 };
 static const struct Closure Method_Kernel_Set_includes__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Set_includes__compiled
 };
 
@@ -4696,7 +4696,7 @@ static const struct CompiledMethod Method_Kernel_Set_do__compiled = {
     0
 };
 static const struct Closure Method_Kernel_Set_do__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Set_do__compiled
 };
 
@@ -4709,7 +4709,7 @@ static const struct CompiledMethod Method_Kernel_Set_place__compiled = {
     0
 };
 static const struct Closure Method_Kernel_Set_place__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Set_place__compiled
 };
 
@@ -4722,7 +4722,7 @@ static const struct CompiledMethod Method_Kernel_Set_reinsertEntryAt__compiled =
     0
 };
 static const struct Closure Method_Kernel_Set_reinsertEntryAt__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Set_reinsertEntryAt__compiled
 };
 
@@ -4735,7 +4735,7 @@ static const struct CompiledMethod Method_Kernel_Set_grow_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Set_grow_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Set_grow_compiled
 };
 
@@ -4748,7 +4748,7 @@ static const struct CompiledMethod Method_Kernel_Set_init_new_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Set_init_new_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Set_init_new_compiled
 };
 
@@ -4761,7 +4761,7 @@ static const struct CompiledMethod Method_Kernel_Dictionary_at_put__compiled = {
     0
 };
 static const struct Closure Method_Kernel_Dictionary_at_put__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Dictionary_at_put__compiled
 };
 
@@ -4774,7 +4774,7 @@ static const struct CompiledMethod Method_Kernel_Dictionary_at_ifAbsent__compile
     0
 };
 static const struct Closure Method_Kernel_Dictionary_at_ifAbsent__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Dictionary_at_ifAbsent__compiled
 };
 
@@ -4787,7 +4787,7 @@ static const struct CompiledMethod Method_Kernel_Dictionary_at__compiled = {
     0
 };
 static const struct Closure Method_Kernel_Dictionary_at__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Dictionary_at__compiled
 };
 
@@ -4800,7 +4800,7 @@ static const struct CompiledMethod Method_Kernel_Dictionary_at_ifAbsentPut__comp
     0
 };
 static const struct Closure Method_Kernel_Dictionary_at_ifAbsentPut__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Dictionary_at_ifAbsentPut__compiled
 };
 
@@ -4813,7 +4813,7 @@ static const struct CompiledMethod Method_Kernel_Dictionary_includesKey__compile
     0
 };
 static const struct Closure Method_Kernel_Dictionary_includesKey__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Dictionary_includesKey__compiled
 };
 
@@ -4826,7 +4826,7 @@ static const struct CompiledMethod Method_Kernel_Dictionary_removeKey__compiled 
     0
 };
 static const struct Closure Method_Kernel_Dictionary_removeKey__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Dictionary_removeKey__compiled
 };
 
@@ -4839,7 +4839,7 @@ static const struct CompiledMethod Method_Kernel_Dictionary_removeKey_ifAbsent__
     0
 };
 static const struct Closure Method_Kernel_Dictionary_removeKey_ifAbsent__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Dictionary_removeKey_ifAbsent__compiled
 };
 
@@ -4852,7 +4852,7 @@ static const struct CompiledMethod Method_Kernel_Dictionary_keys_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Dictionary_keys_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Dictionary_keys_compiled
 };
 
@@ -4865,7 +4865,7 @@ static const struct CompiledMethod Method_Kernel_Dictionary_values_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Dictionary_values_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Dictionary_values_compiled
 };
 
@@ -4878,7 +4878,7 @@ static const struct CompiledMethod Method_Kernel_Dictionary_keysAndValuesDo__com
     0
 };
 static const struct Closure Method_Kernel_Dictionary_keysAndValuesDo__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Dictionary_keysAndValuesDo__compiled
 };
 
@@ -4891,7 +4891,7 @@ static const struct CompiledMethod Method_Kernel_Dictionary_do__compiled = {
     0
 };
 static const struct Closure Method_Kernel_Dictionary_do__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Dictionary_do__compiled
 };
 
@@ -4904,7 +4904,7 @@ static const struct CompiledMethod Method_Kernel_Dictionary_place_value__compile
     0
 };
 static const struct Closure Method_Kernel_Dictionary_place_value__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Dictionary_place_value__compiled
 };
 
@@ -4917,7 +4917,7 @@ static const struct CompiledMethod Method_Kernel_Dictionary_reinsertEntryAt__com
     0
 };
 static const struct Closure Method_Kernel_Dictionary_reinsertEntryAt__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Dictionary_reinsertEntryAt__compiled
 };
 
@@ -4930,7 +4930,7 @@ static const struct CompiledMethod Method_Kernel_Dictionary_grow_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Dictionary_grow_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Dictionary_grow_compiled
 };
 
@@ -4943,7 +4943,7 @@ static const struct CompiledMethod Method_Kernel_Dictionary_init_new_compiled = 
     0
 };
 static const struct Closure Method_Kernel_Dictionary_init_new_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Dictionary_init_new_compiled
 };
 
@@ -4955,7 +4955,7 @@ static const struct CompiledMethod Method_Kernel_Association_setKey_value__compi
     0
 };
 static const struct Closure Method_Kernel_Association_setKey_value__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Association_setKey_value__compiled
 };
 
@@ -4967,7 +4967,7 @@ static const struct CompiledMethod Method_Kernel_Association_key_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Association_key_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Association_key_compiled
 };
 
@@ -4979,7 +4979,7 @@ static const struct CompiledMethod Method_Kernel_Association_value_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Association_value_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Association_value_compiled
 };
 
@@ -4992,7 +4992,7 @@ static const struct CompiledMethod Method_Kernel_Association_printString_compile
     0
 };
 static const struct Closure Method_Kernel_Association_printString_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Association_printString_compiled
 };
 
@@ -5005,7 +5005,7 @@ static const struct CompiledMethod Method_Meta_Kernel_Association_key_value__com
     0
 };
 static const struct Closure Method_Meta_Kernel_Association_key_value__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Meta_Kernel_Association_key_value__compiled
 };
 
@@ -5018,7 +5018,7 @@ static const struct CompiledMethod Method_Kernel_Association_init_new_compiled =
     0
 };
 static const struct Closure Method_Kernel_Association_init_new_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Association_init_new_compiled
 };
 
@@ -5031,7 +5031,7 @@ static const struct CompiledMethod Method_Kernel_List_size_compiled = {
     0
 };
 static const struct Closure Method_Kernel_List_size_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_List_size_compiled
 };
 
@@ -5044,7 +5044,7 @@ static const struct CompiledMethod Method_Kernel_List_at__compiled = {
     0
 };
 static const struct Closure Method_Kernel_List_at__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_List_at__compiled
 };
 
@@ -5057,7 +5057,7 @@ static const struct CompiledMethod Method_Kernel_List_at_ifAbsent__compiled = {
     0
 };
 static const struct Closure Method_Kernel_List_at_ifAbsent__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_List_at_ifAbsent__compiled
 };
 
@@ -5070,7 +5070,7 @@ static const struct CompiledMethod Method_Kernel_List_do__compiled = {
     0
 };
 static const struct Closure Method_Kernel_List_do__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_List_do__compiled
 };
 
@@ -5083,7 +5083,7 @@ static const struct CompiledMethod Method_Kernel_List_inject_into__compiled = {
     0
 };
 static const struct Closure Method_Kernel_List_inject_into__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_List_inject_into__compiled
 };
 
@@ -5096,7 +5096,7 @@ static const struct CompiledMethod Method_Kernel_List_anySatisfy__compiled = {
     0
 };
 static const struct Closure Method_Kernel_List_anySatisfy__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_List_anySatisfy__compiled
 };
 
@@ -5109,7 +5109,7 @@ static const struct CompiledMethod Method_Kernel_List_isList_compiled = {
     0
 };
 static const struct Closure Method_Kernel_List_isList_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_List_isList_compiled
 };
 
@@ -5122,7 +5122,7 @@ static const struct CompiledMethod Method_Kernel_List_isValue_compiled = {
     0
 };
 static const struct Closure Method_Kernel_List_isValue_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_List_isValue_compiled
 };
 
@@ -5135,7 +5135,7 @@ static const struct CompiledMethod Method_Kernel_List_valueRank_compiled = {
     0
 };
 static const struct Closure Method_Kernel_List_valueRank_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_List_valueRank_compiled
 };
 
@@ -5147,7 +5147,7 @@ static const struct CompiledMethod Method_Kernel_List_valueDepth_compiled = {
     0
 };
 static const struct Closure Method_Kernel_List_valueDepth_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_List_valueDepth_compiled
 };
 
@@ -5160,7 +5160,7 @@ static const struct CompiledMethod Method_Kernel_List__eq_compiled = {
     0
 };
 static const struct Closure Method_Kernel_List__eq_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_List__eq_compiled
 };
 
@@ -5173,7 +5173,7 @@ static const struct CompiledMethod Method_Kernel_List_hash_compiled = {
     0
 };
 static const struct Closure Method_Kernel_List_hash_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_List_hash_compiled
 };
 
@@ -5186,7 +5186,7 @@ static const struct CompiledMethod Method_Kernel_List_setItems__compiled = {
     0
 };
 static const struct Closure Method_Kernel_List_setItems__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_List_setItems__compiled
 };
 
@@ -5199,7 +5199,7 @@ static const struct CompiledMethod Method_Meta_Kernel_List_with__compiled = {
     0
 };
 static const struct Closure Method_Meta_Kernel_List_with__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Meta_Kernel_List_with__compiled
 };
 
@@ -5212,7 +5212,7 @@ static const struct CompiledMethod Method_Meta_Kernel_List_with_with__compiled =
     0
 };
 static const struct Closure Method_Meta_Kernel_List_with_with__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Meta_Kernel_List_with_with__compiled
 };
 
@@ -5225,7 +5225,7 @@ static const struct CompiledMethod Method_Meta_Kernel_List_with_with_with__compi
     0
 };
 static const struct Closure Method_Meta_Kernel_List_with_with_with__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Meta_Kernel_List_with_with_with__compiled
 };
 
@@ -5238,7 +5238,7 @@ static const struct CompiledMethod Method_Meta_Kernel_List_with_with_with_with__
     0
 };
 static const struct Closure Method_Meta_Kernel_List_with_with_with_with__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Meta_Kernel_List_with_with_with_with__compiled
 };
 
@@ -5251,7 +5251,7 @@ static const struct CompiledMethod Method_Meta_Kernel_List_fromCollection__compi
     0
 };
 static const struct Closure Method_Meta_Kernel_List_fromCollection__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Meta_Kernel_List_fromCollection__compiled
 };
 
@@ -5264,7 +5264,7 @@ static const struct CompiledMethod Method_Kernel_List_init_new_compiled = {
     0
 };
 static const struct Closure Method_Kernel_List_init_new_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_List_init_new_compiled
 };
 
@@ -5277,7 +5277,7 @@ static const struct CompiledMethod Method_Kernel_Map_size_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Map_size_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Map_size_compiled
 };
 
@@ -5290,7 +5290,7 @@ static const struct CompiledMethod Method_Kernel_Map_at_ifAbsent__compiled = {
     0
 };
 static const struct Closure Method_Kernel_Map_at_ifAbsent__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Map_at_ifAbsent__compiled
 };
 
@@ -5303,7 +5303,7 @@ static const struct CompiledMethod Method_Kernel_Map_keysDo__compiled = {
     0
 };
 static const struct Closure Method_Kernel_Map_keysDo__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Map_keysDo__compiled
 };
 
@@ -5316,7 +5316,7 @@ static const struct CompiledMethod Method_Kernel_Map_do__compiled = {
     0
 };
 static const struct Closure Method_Kernel_Map_do__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Map_do__compiled
 };
 
@@ -5329,7 +5329,7 @@ static const struct CompiledMethod Method_Kernel_Map_keysAndValuesDo__compiled =
     0
 };
 static const struct Closure Method_Kernel_Map_keysAndValuesDo__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Map_keysAndValuesDo__compiled
 };
 
@@ -5342,7 +5342,7 @@ static const struct CompiledMethod Method_Kernel_Map_keyAt__compiled = {
     0
 };
 static const struct Closure Method_Kernel_Map_keyAt__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Map_keyAt__compiled
 };
 
@@ -5355,7 +5355,7 @@ static const struct CompiledMethod Method_Kernel_Map_valueAt__compiled = {
     0
 };
 static const struct Closure Method_Kernel_Map_valueAt__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Map_valueAt__compiled
 };
 
@@ -5368,7 +5368,7 @@ static const struct CompiledMethod Method_Kernel_Map_isMap_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Map_isMap_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Map_isMap_compiled
 };
 
@@ -5381,7 +5381,7 @@ static const struct CompiledMethod Method_Kernel_Map_isValue_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Map_isValue_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Map_isValue_compiled
 };
 
@@ -5394,7 +5394,7 @@ static const struct CompiledMethod Method_Kernel_Map_valueRank_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Map_valueRank_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Map_valueRank_compiled
 };
 
@@ -5406,7 +5406,7 @@ static const struct CompiledMethod Method_Kernel_Map_valueDepth_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Map_valueDepth_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Map_valueDepth_compiled
 };
 
@@ -5419,7 +5419,7 @@ static const struct CompiledMethod Method_Kernel_Map__eq_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Map__eq_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Map__eq_compiled
 };
 
@@ -5432,7 +5432,7 @@ static const struct CompiledMethod Method_Kernel_Map_hash_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Map_hash_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Map_hash_compiled
 };
 
@@ -5445,7 +5445,7 @@ static const struct CompiledMethod Method_Kernel_Map_setPairs_values__compiled =
     0
 };
 static const struct Closure Method_Kernel_Map_setPairs_values__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Map_setPairs_values__compiled
 };
 
@@ -5458,7 +5458,7 @@ static const struct CompiledMethod Method_Meta_Kernel_Map_with__compiled = {
     0
 };
 static const struct Closure Method_Meta_Kernel_Map_with__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Meta_Kernel_Map_with__compiled
 };
 
@@ -5471,7 +5471,7 @@ static const struct CompiledMethod Method_Meta_Kernel_Map_with_with__compiled = 
     0
 };
 static const struct Closure Method_Meta_Kernel_Map_with_with__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Meta_Kernel_Map_with_with__compiled
 };
 
@@ -5484,7 +5484,7 @@ static const struct CompiledMethod Method_Meta_Kernel_Map_with_with_with__compil
     0
 };
 static const struct Closure Method_Meta_Kernel_Map_with_with_with__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Meta_Kernel_Map_with_with_with__compiled
 };
 
@@ -5497,7 +5497,7 @@ static const struct CompiledMethod Method_Meta_Kernel_Map_with_with_with_with__c
     0
 };
 static const struct Closure Method_Meta_Kernel_Map_with_with_with_with__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Meta_Kernel_Map_with_with_with_with__compiled
 };
 
@@ -5510,7 +5510,7 @@ static const struct CompiledMethod Method_Meta_Kernel_Map_fromPairs__compiled = 
     0
 };
 static const struct Closure Method_Meta_Kernel_Map_fromPairs__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Meta_Kernel_Map_fromPairs__compiled
 };
 
@@ -5523,7 +5523,7 @@ static const struct CompiledMethod Method_Kernel_Map_init_new_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Map_init_new_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Map_init_new_compiled
 };
 
@@ -5535,7 +5535,7 @@ static const struct CompiledMethod Method_Kernel_Record_tag_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Record_tag_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Record_tag_compiled
 };
 
@@ -5547,7 +5547,7 @@ static const struct CompiledMethod Method_Kernel_Record_fields_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Record_fields_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Record_fields_compiled
 };
 
@@ -5560,7 +5560,7 @@ static const struct CompiledMethod Method_Kernel_Record_at_ifAbsent__compiled = 
     0
 };
 static const struct Closure Method_Kernel_Record_at_ifAbsent__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Record_at_ifAbsent__compiled
 };
 
@@ -5573,7 +5573,7 @@ static const struct CompiledMethod Method_Kernel_Record_isRecord_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Record_isRecord_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Record_isRecord_compiled
 };
 
@@ -5586,7 +5586,7 @@ static const struct CompiledMethod Method_Kernel_Record_isValue_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Record_isValue_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Record_isValue_compiled
 };
 
@@ -5599,7 +5599,7 @@ static const struct CompiledMethod Method_Kernel_Record_valueRank_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Record_valueRank_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Record_valueRank_compiled
 };
 
@@ -5611,7 +5611,7 @@ static const struct CompiledMethod Method_Kernel_Record_valueDepth_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Record_valueDepth_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Record_valueDepth_compiled
 };
 
@@ -5624,7 +5624,7 @@ static const struct CompiledMethod Method_Kernel_Record__eq_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Record__eq_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Record__eq_compiled
 };
 
@@ -5637,7 +5637,7 @@ static const struct CompiledMethod Method_Kernel_Record_hash_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Record_hash_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Record_hash_compiled
 };
 
@@ -5650,7 +5650,7 @@ static const struct CompiledMethod Method_Kernel_Record_setTag_fields__compiled 
     0
 };
 static const struct Closure Method_Kernel_Record_setTag_fields__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Record_setTag_fields__compiled
 };
 
@@ -5663,7 +5663,7 @@ static const struct CompiledMethod Method_Meta_Kernel_Record_tag_fields__compile
     0
 };
 static const struct Closure Method_Meta_Kernel_Record_tag_fields__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Meta_Kernel_Record_tag_fields__compiled
 };
 
@@ -5676,7 +5676,7 @@ static const struct CompiledMethod Method_Meta_Kernel_Record_tag_with__compiled 
     0
 };
 static const struct Closure Method_Meta_Kernel_Record_tag_with__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Meta_Kernel_Record_tag_with__compiled
 };
 
@@ -5689,7 +5689,7 @@ static const struct CompiledMethod Method_Meta_Kernel_Record_tag_with_with__comp
     0
 };
 static const struct Closure Method_Meta_Kernel_Record_tag_with_with__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Meta_Kernel_Record_tag_with_with__compiled
 };
 
@@ -5702,7 +5702,7 @@ static const struct CompiledMethod Method_Meta_Kernel_Record_tag_with_with_with_
     0
 };
 static const struct Closure Method_Meta_Kernel_Record_tag_with_with_with__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Meta_Kernel_Record_tag_with_with_with__compiled
 };
 
@@ -5715,7 +5715,7 @@ static const struct CompiledMethod Method_Meta_Kernel_Record_tag_with_with_with_
     0
 };
 static const struct Closure Method_Meta_Kernel_Record_tag_with_with_with_with__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Meta_Kernel_Record_tag_with_with_with_with__compiled
 };
 
@@ -5728,7 +5728,7 @@ static const struct CompiledMethod Method_Kernel_Record_init_new_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Record_init_new_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Record_init_new_compiled
 };
 
@@ -5741,7 +5741,7 @@ static const struct CompiledMethod Method_Kernel_BytesReadProtocol_u16At__compil
     0
 };
 static const struct Closure Method_Kernel_BytesReadProtocol_u16At__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_BytesReadProtocol_u16At__compiled
 };
 
@@ -5754,7 +5754,7 @@ static const struct CompiledMethod Method_Kernel_BytesReadProtocol_u16BeAt__comp
     0
 };
 static const struct Closure Method_Kernel_BytesReadProtocol_u16BeAt__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_BytesReadProtocol_u16BeAt__compiled
 };
 
@@ -5766,7 +5766,7 @@ static const struct CompiledMethod Method_Kernel_BytesReadProtocol_init_new_comp
     0
 };
 static const struct Closure Method_Kernel_BytesReadProtocol_init_new_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_BytesReadProtocol_init_new_compiled
 };
 
@@ -5779,7 +5779,7 @@ static const struct CompiledMethod Method_Kernel_ByteArray_byteSize_compiled = {
     0
 };
 static const struct Closure Method_Kernel_ByteArray_byteSize_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_ByteArray_byteSize_compiled
 };
 
@@ -5792,7 +5792,7 @@ static const struct CompiledMethod Method_Kernel_ByteArray_u8At__compiled = {
     0
 };
 static const struct Closure Method_Kernel_ByteArray_u8At__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_ByteArray_u8At__compiled
 };
 
@@ -5805,7 +5805,7 @@ static const struct CompiledMethod Method_Kernel_ByteArray_u8At_put__compiled = 
     0
 };
 static const struct Closure Method_Kernel_ByteArray_u8At_put__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_ByteArray_u8At_put__compiled
 };
 
@@ -5818,7 +5818,7 @@ static const struct CompiledMethod Method_Kernel_ByteArray_u16At_put__compiled =
     0
 };
 static const struct Closure Method_Kernel_ByteArray_u16At_put__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_ByteArray_u16At_put__compiled
 };
 
@@ -5831,7 +5831,7 @@ static const struct CompiledMethod Method_Kernel_ByteArray_u16BeAt_put__compiled
     0
 };
 static const struct Closure Method_Kernel_ByteArray_u16BeAt_put__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_ByteArray_u16BeAt_put__compiled
 };
 
@@ -5844,7 +5844,7 @@ static const struct CompiledMethod Method_Kernel_ByteArray_freeze_compiled = {
     0
 };
 static const struct Closure Method_Kernel_ByteArray_freeze_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_ByteArray_freeze_compiled
 };
 
@@ -5856,7 +5856,7 @@ static const struct CompiledMethod Method_Kernel_ByteArray_setRaw__compiled = {
     0
 };
 static const struct Closure Method_Kernel_ByteArray_setRaw__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_ByteArray_setRaw__compiled
 };
 
@@ -5869,7 +5869,7 @@ static const struct CompiledMethod Method_Meta_Kernel_ByteArray_new__compiled = 
     0
 };
 static const struct Closure Method_Meta_Kernel_ByteArray_new__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Meta_Kernel_ByteArray_new__compiled
 };
 
@@ -5882,7 +5882,7 @@ static const struct CompiledMethod Method_Meta_Kernel_ByteArray_fromList__compil
     0
 };
 static const struct Closure Method_Meta_Kernel_ByteArray_fromList__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Meta_Kernel_ByteArray_fromList__compiled
 };
 
@@ -5895,7 +5895,7 @@ static const struct CompiledMethod Method_Meta_Kernel_ByteArray_fromHex__compile
     0
 };
 static const struct Closure Method_Meta_Kernel_ByteArray_fromHex__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Meta_Kernel_ByteArray_fromHex__compiled
 };
 
@@ -5908,7 +5908,7 @@ static const struct CompiledMethod Method_Meta_Kernel_ByteArray_hexDigit__compil
     0
 };
 static const struct Closure Method_Meta_Kernel_ByteArray_hexDigit__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Meta_Kernel_ByteArray_hexDigit__compiled
 };
 
@@ -5921,7 +5921,7 @@ static const struct CompiledMethod Method_Kernel_ByteArray_init_new_compiled = {
     0
 };
 static const struct Closure Method_Kernel_ByteArray_init_new_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_ByteArray_init_new_compiled
 };
 
@@ -5934,7 +5934,7 @@ static const struct CompiledMethod Method_Kernel_Bytes_byteSize_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Bytes_byteSize_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Bytes_byteSize_compiled
 };
 
@@ -5947,7 +5947,7 @@ static const struct CompiledMethod Method_Kernel_Bytes_u8At__compiled = {
     0
 };
 static const struct Closure Method_Kernel_Bytes_u8At__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Bytes_u8At__compiled
 };
 
@@ -5959,7 +5959,7 @@ static const struct CompiledMethod Method_Kernel_Bytes_freeze_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Bytes_freeze_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Bytes_freeze_compiled
 };
 
@@ -5972,7 +5972,7 @@ static const struct CompiledMethod Method_Kernel_Bytes_asByteArray_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Bytes_asByteArray_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Bytes_asByteArray_compiled
 };
 
@@ -5985,7 +5985,7 @@ static const struct CompiledMethod Method_Kernel_Bytes_isBytes_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Bytes_isBytes_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Bytes_isBytes_compiled
 };
 
@@ -5998,7 +5998,7 @@ static const struct CompiledMethod Method_Kernel_Bytes_isValue_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Bytes_isValue_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Bytes_isValue_compiled
 };
 
@@ -6011,7 +6011,7 @@ static const struct CompiledMethod Method_Kernel_Bytes_valueRank_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Bytes_valueRank_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Bytes_valueRank_compiled
 };
 
@@ -6024,7 +6024,7 @@ static const struct CompiledMethod Method_Kernel_Bytes_valueDepth_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Bytes_valueDepth_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Bytes_valueDepth_compiled
 };
 
@@ -6037,7 +6037,7 @@ static const struct CompiledMethod Method_Kernel_Bytes__eq_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Bytes__eq_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Bytes__eq_compiled
 };
 
@@ -6050,7 +6050,7 @@ static const struct CompiledMethod Method_Kernel_Bytes_hash_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Bytes_hash_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Bytes_hash_compiled
 };
 
@@ -6063,7 +6063,7 @@ static const struct CompiledMethod Method_Kernel_Bytes_printHex_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Bytes_printHex_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Bytes_printHex_compiled
 };
 
@@ -6075,7 +6075,7 @@ static const struct CompiledMethod Method_Kernel_Bytes_setRaw__compiled = {
     0
 };
 static const struct Closure Method_Kernel_Bytes_setRaw__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Bytes_setRaw__compiled
 };
 
@@ -6087,7 +6087,7 @@ static const struct CompiledMethod Method_Kernel_Bytes_rawLeaf_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Bytes_rawLeaf_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Bytes_rawLeaf_compiled
 };
 
@@ -6100,7 +6100,7 @@ static const struct CompiledMethod Method_Meta_Kernel_Bytes_overRaw__compiled = 
     0
 };
 static const struct Closure Method_Meta_Kernel_Bytes_overRaw__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Meta_Kernel_Bytes_overRaw__compiled
 };
 
@@ -6113,7 +6113,7 @@ static const struct CompiledMethod Method_Kernel_Bytes_init_new_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Bytes_init_new_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Bytes_init_new_compiled
 };
 
@@ -6125,7 +6125,7 @@ static const struct CompiledMethod Method_Kernel_ByteBuilder_size_compiled = {
     0
 };
 static const struct Closure Method_Kernel_ByteBuilder_size_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_ByteBuilder_size_compiled
 };
 
@@ -6138,7 +6138,7 @@ static const struct CompiledMethod Method_Kernel_ByteBuilder_at__compiled = {
     0
 };
 static const struct Closure Method_Kernel_ByteBuilder_at__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_ByteBuilder_at__compiled
 };
 
@@ -6151,7 +6151,7 @@ static const struct CompiledMethod Method_Kernel_ByteBuilder_add__compiled = {
     0
 };
 static const struct Closure Method_Kernel_ByteBuilder_add__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_ByteBuilder_add__compiled
 };
 
@@ -6164,7 +6164,7 @@ static const struct CompiledMethod Method_Kernel_ByteBuilder_do__compiled = {
     0
 };
 static const struct Closure Method_Kernel_ByteBuilder_do__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_ByteBuilder_do__compiled
 };
 
@@ -6177,7 +6177,7 @@ static const struct CompiledMethod Method_Kernel_ByteBuilder_grow_compiled = {
     0
 };
 static const struct Closure Method_Kernel_ByteBuilder_grow_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_ByteBuilder_grow_compiled
 };
 
@@ -6190,7 +6190,7 @@ static const struct CompiledMethod Method_Kernel_ByteBuilder_frozenBytes_compile
     0
 };
 static const struct Closure Method_Kernel_ByteBuilder_frozenBytes_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_ByteBuilder_frozenBytes_compiled
 };
 
@@ -6203,7 +6203,7 @@ static const struct CompiledMethod Method_Kernel_ByteBuilder_init_new_compiled =
     0
 };
 static const struct Closure Method_Kernel_ByteBuilder_init_new_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_ByteBuilder_init_new_compiled
 };
 
@@ -6216,7 +6216,7 @@ static const struct CompiledMethod Method_Kernel_Cbor_encode__compiled = {
     0
 };
 static const struct Closure Method_Kernel_Cbor_encode__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Cbor_encode__compiled
 };
 
@@ -6229,7 +6229,7 @@ static const struct CompiledMethod Method_Kernel_Cbor_encode_into_depth__compile
     0
 };
 static const struct Closure Method_Kernel_Cbor_encode_into_depth__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Cbor_encode_into_depth__compiled
 };
 
@@ -6242,7 +6242,7 @@ static const struct CompiledMethod Method_Kernel_Cbor_emitHead_len_into__compile
     0
 };
 static const struct Closure Method_Kernel_Cbor_emitHead_len_into__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Cbor_emitHead_len_into__compiled
 };
 
@@ -6255,7 +6255,7 @@ static const struct CompiledMethod Method_Kernel_Cbor_appendFrag_into__compiled 
     0
 };
 static const struct Closure Method_Kernel_Cbor_appendFrag_into__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Cbor_appendFrag_into__compiled
 };
 
@@ -6268,7 +6268,7 @@ static const struct CompiledMethod Method_Kernel_Cbor_encodeString_into__compile
     0
 };
 static const struct Closure Method_Kernel_Cbor_encodeString_into__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Cbor_encodeString_into__compiled
 };
 
@@ -6281,7 +6281,7 @@ static const struct CompiledMethod Method_Kernel_Cbor_encodeBytes_into__compiled
     0
 };
 static const struct Closure Method_Kernel_Cbor_encodeBytes_into__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Cbor_encodeBytes_into__compiled
 };
 
@@ -6294,7 +6294,7 @@ static const struct CompiledMethod Method_Kernel_Cbor_encodeSymbol_into__compile
     0
 };
 static const struct Closure Method_Kernel_Cbor_encodeSymbol_into__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Cbor_encodeSymbol_into__compiled
 };
 
@@ -6307,7 +6307,7 @@ static const struct CompiledMethod Method_Kernel_Cbor_encodeList_into_depth__com
     0
 };
 static const struct Closure Method_Kernel_Cbor_encodeList_into_depth__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Cbor_encodeList_into_depth__compiled
 };
 
@@ -6320,7 +6320,7 @@ static const struct CompiledMethod Method_Kernel_Cbor_encodeMap_into_depth__comp
     0
 };
 static const struct Closure Method_Kernel_Cbor_encodeMap_into_depth__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Cbor_encodeMap_into_depth__compiled
 };
 
@@ -6333,7 +6333,7 @@ static const struct CompiledMethod Method_Kernel_Cbor_encodeEntry_value_keys_val
     0
 };
 static const struct Closure Method_Kernel_Cbor_encodeEntry_value_keys_vals_depth__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Cbor_encodeEntry_value_keys_vals_depth__compiled
 };
 
@@ -6346,7 +6346,7 @@ static const struct CompiledMethod Method_Kernel_Cbor_encodeRecord_into_depth__c
     0
 };
 static const struct Closure Method_Kernel_Cbor_encodeRecord_into_depth__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Cbor_encodeRecord_into_depth__compiled
 };
 
@@ -6359,7 +6359,7 @@ static const struct CompiledMethod Method_Kernel_Cbor_appendColl_into__compiled 
     0
 };
 static const struct Closure Method_Kernel_Cbor_appendColl_into__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Cbor_appendColl_into__compiled
 };
 
@@ -6372,7 +6372,7 @@ static const struct CompiledMethod Method_Kernel_Cbor_sortPairsBytewise_vals__co
     0
 };
 static const struct Closure Method_Kernel_Cbor_sortPairsBytewise_vals__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Cbor_sortPairsBytewise_vals__compiled
 };
 
@@ -6385,7 +6385,7 @@ static const struct CompiledMethod Method_Kernel_Cbor_compareBytes_with__compile
     0
 };
 static const struct Closure Method_Kernel_Cbor_compareBytes_with__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Cbor_compareBytes_with__compiled
 };
 
@@ -6398,7 +6398,7 @@ static const struct CompiledMethod Method_Kernel_Cbor_decode_ifInvalid__compiled
     0
 };
 static const struct Closure Method_Kernel_Cbor_decode_ifInvalid__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Cbor_decode_ifInvalid__compiled
 };
 
@@ -6411,7 +6411,7 @@ static const struct CompiledMethod Method_Kernel_Cbor_rawBytesOf_size__compiled 
     0
 };
 static const struct Closure Method_Kernel_Cbor_rawBytesOf_size__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Cbor_rawBytesOf_size__compiled
 };
 
@@ -6424,7 +6424,7 @@ static const struct CompiledMethod Method_Kernel_Cbor_failDecode__compiled = {
     0
 };
 static const struct Closure Method_Kernel_Cbor_failDecode__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Cbor_failDecode__compiled
 };
 
@@ -6437,7 +6437,7 @@ static const struct CompiledMethod Method_Kernel_Cbor_result_next__compiled = {
     0
 };
 static const struct Closure Method_Kernel_Cbor_result_next__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Cbor_result_next__compiled
 };
 
@@ -6450,7 +6450,7 @@ static const struct CompiledMethod Method_Kernel_Cbor_parse_at_depth__compiled =
     0
 };
 static const struct Closure Method_Kernel_Cbor_parse_at_depth__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Cbor_parse_at_depth__compiled
 };
 
@@ -6463,7 +6463,7 @@ static const struct CompiledMethod Method_Kernel_Cbor_intFrom_arg__compiled = {
     0
 };
 static const struct Closure Method_Kernel_Cbor_intFrom_arg__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Cbor_intFrom_arg__compiled
 };
 
@@ -6476,7 +6476,7 @@ static const struct CompiledMethod Method_Kernel_Cbor_floatFrom_at__compiled = {
     0
 };
 static const struct Closure Method_Kernel_Cbor_floatFrom_at__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Cbor_floatFrom_at__compiled
 };
 
@@ -6489,7 +6489,7 @@ static const struct CompiledMethod Method_Kernel_Cbor_bytesFrom_at_len__compiled
     0
 };
 static const struct Closure Method_Kernel_Cbor_bytesFrom_at_len__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Cbor_bytesFrom_at_len__compiled
 };
 
@@ -6502,7 +6502,7 @@ static const struct CompiledMethod Method_Kernel_Cbor_stringFrom_at_len__compile
     0
 };
 static const struct Closure Method_Kernel_Cbor_stringFrom_at_len__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Cbor_stringFrom_at_len__compiled
 };
 
@@ -6515,7 +6515,7 @@ static const struct CompiledMethod Method_Kernel_Cbor_listFrom_at_count_depth__c
     0
 };
 static const struct Closure Method_Kernel_Cbor_listFrom_at_count_depth__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Cbor_listFrom_at_count_depth__compiled
 };
 
@@ -6528,7 +6528,7 @@ static const struct CompiledMethod Method_Kernel_Cbor_mapFrom_at_count_depth__co
     0
 };
 static const struct Closure Method_Kernel_Cbor_mapFrom_at_count_depth__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Cbor_mapFrom_at_count_depth__compiled
 };
 
@@ -6541,7 +6541,7 @@ static const struct CompiledMethod Method_Kernel_Cbor_checkNoDupKey_in__compiled
     0
 };
 static const struct Closure Method_Kernel_Cbor_checkNoDupKey_in__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Cbor_checkNoDupKey_in__compiled
 };
 
@@ -6554,7 +6554,7 @@ static const struct CompiledMethod Method_Kernel_Cbor_tagFrom_at_tag_depth__comp
     0
 };
 static const struct Closure Method_Kernel_Cbor_tagFrom_at_tag_depth__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Cbor_tagFrom_at_tag_depth__compiled
 };
 
@@ -6567,7 +6567,7 @@ static const struct CompiledMethod Method_Kernel_Cbor_symbolTagFrom_at_depth__co
     0
 };
 static const struct Closure Method_Kernel_Cbor_symbolTagFrom_at_depth__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Cbor_symbolTagFrom_at_depth__compiled
 };
 
@@ -6580,7 +6580,7 @@ static const struct CompiledMethod Method_Kernel_Cbor_recordTagFrom_at_depth__co
     0
 };
 static const struct Closure Method_Kernel_Cbor_recordTagFrom_at_depth__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Cbor_recordTagFrom_at_depth__compiled
 };
 
@@ -6592,7 +6592,7 @@ static const struct CompiledMethod Method_Kernel_Cbor_init_new_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Cbor_init_new_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Cbor_init_new_compiled
 };
 
@@ -6604,7 +6604,7 @@ static const struct CompiledMethod Method_Kernel_HeapStats_heapSize_compiled = {
     0
 };
 static const struct Closure Method_Kernel_HeapStats_heapSize_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_HeapStats_heapSize_compiled
 };
 
@@ -6616,7 +6616,7 @@ static const struct CompiledMethod Method_Kernel_HeapStats_liveBytes_compiled = 
     0
 };
 static const struct Closure Method_Kernel_HeapStats_liveBytes_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_HeapStats_liveBytes_compiled
 };
 
@@ -6628,7 +6628,7 @@ static const struct CompiledMethod Method_Kernel_HeapStats_highWater_compiled = 
     0
 };
 static const struct Closure Method_Kernel_HeapStats_highWater_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_HeapStats_highWater_compiled
 };
 
@@ -6640,7 +6640,7 @@ static const struct CompiledMethod Method_Kernel_HeapStats_largestFreeBlock_comp
     0
 };
 static const struct Closure Method_Kernel_HeapStats_largestFreeBlock_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_HeapStats_largestFreeBlock_compiled
 };
 
@@ -6652,7 +6652,7 @@ static const struct CompiledMethod Method_Kernel_HeapStats_gcCycles_compiled = {
     0
 };
 static const struct Closure Method_Kernel_HeapStats_gcCycles_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_HeapStats_gcCycles_compiled
 };
 
@@ -6665,7 +6665,7 @@ static const struct CompiledMethod Method_Kernel_HeapStats_setFromList__compiled
     0
 };
 static const struct Closure Method_Kernel_HeapStats_setFromList__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_HeapStats_setFromList__compiled
 };
 
@@ -6678,7 +6678,7 @@ static const struct CompiledMethod Method_Kernel_HeapStats_printString_compiled 
     0
 };
 static const struct Closure Method_Kernel_HeapStats_printString_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_HeapStats_printString_compiled
 };
 
@@ -6691,7 +6691,7 @@ static const struct CompiledMethod Method_Meta_Kernel_HeapStats_fromList__compil
     0
 };
 static const struct Closure Method_Meta_Kernel_HeapStats_fromList__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Meta_Kernel_HeapStats_fromList__compiled
 };
 
@@ -6704,7 +6704,7 @@ static const struct CompiledMethod Method_Kernel_HeapStats_init_new_compiled = {
     0
 };
 static const struct Closure Method_Kernel_HeapStats_init_new_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_HeapStats_init_new_compiled
 };
 
@@ -6716,7 +6716,7 @@ static const struct CompiledMethod Method_Kernel_CHeapStats_outBytes_compiled = 
     0
 };
 static const struct Closure Method_Kernel_CHeapStats_outBytes_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_CHeapStats_outBytes_compiled
 };
 
@@ -6728,7 +6728,7 @@ static const struct CompiledMethod Method_Kernel_CHeapStats_outHigh_compiled = {
     0
 };
 static const struct Closure Method_Kernel_CHeapStats_outHigh_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_CHeapStats_outHigh_compiled
 };
 
@@ -6740,7 +6740,7 @@ static const struct CompiledMethod Method_Kernel_CHeapStats_allocs_compiled = {
     0
 };
 static const struct Closure Method_Kernel_CHeapStats_allocs_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_CHeapStats_allocs_compiled
 };
 
@@ -6752,7 +6752,7 @@ static const struct CompiledMethod Method_Kernel_CHeapStats_frees_compiled = {
     0
 };
 static const struct Closure Method_Kernel_CHeapStats_frees_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_CHeapStats_frees_compiled
 };
 
@@ -6764,7 +6764,7 @@ static const struct CompiledMethod Method_Kernel_CHeapStats_fails_compiled = {
     0
 };
 static const struct Closure Method_Kernel_CHeapStats_fails_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_CHeapStats_fails_compiled
 };
 
@@ -6777,7 +6777,7 @@ static const struct CompiledMethod Method_Kernel_CHeapStats_setFromList__compile
     0
 };
 static const struct Closure Method_Kernel_CHeapStats_setFromList__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_CHeapStats_setFromList__compiled
 };
 
@@ -6790,7 +6790,7 @@ static const struct CompiledMethod Method_Kernel_CHeapStats_printString_compiled
     0
 };
 static const struct Closure Method_Kernel_CHeapStats_printString_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_CHeapStats_printString_compiled
 };
 
@@ -6803,7 +6803,7 @@ static const struct CompiledMethod Method_Meta_Kernel_CHeapStats_fromList__compi
     0
 };
 static const struct Closure Method_Meta_Kernel_CHeapStats_fromList__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Meta_Kernel_CHeapStats_fromList__compiled
 };
 
@@ -6816,7 +6816,7 @@ static const struct CompiledMethod Method_Kernel_CHeapStats_init_new_compiled = 
     0
 };
 static const struct Closure Method_Kernel_CHeapStats_init_new_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_CHeapStats_init_new_compiled
 };
 
@@ -6829,7 +6829,7 @@ static const struct CompiledMethod Method_Kernel_Spans_ensureTables_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Spans_ensureTables_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Spans_ensureTables_compiled
 };
 
@@ -6842,7 +6842,7 @@ static const struct CompiledMethod Method_Kernel_Spans_httpQueueSlot_compiled = 
     0
 };
 static const struct Closure Method_Kernel_Spans_httpQueueSlot_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Spans_httpQueueSlot_compiled
 };
 
@@ -6855,7 +6855,7 @@ static const struct CompiledMethod Method_Kernel_Spans_egressSlot_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Spans_egressSlot_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Spans_egressSlot_compiled
 };
 
@@ -6868,7 +6868,7 @@ static const struct CompiledMethod Method_Kernel_Spans_register__compiled = {
     0
 };
 static const struct Closure Method_Kernel_Spans_register__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Spans_register__compiled
 };
 
@@ -6881,7 +6881,7 @@ static const struct CompiledMethod Method_Kernel_Spans_slotCount_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Spans_slotCount_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Spans_slotCount_compiled
 };
 
@@ -6894,7 +6894,7 @@ static const struct CompiledMethod Method_Kernel_Spans_nameAt__compiled = {
     0
 };
 static const struct Closure Method_Kernel_Spans_nameAt__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Spans_nameAt__compiled
 };
 
@@ -6907,7 +6907,7 @@ static const struct CompiledMethod Method_Kernel_Spans_pathAt__compiled = {
     0
 };
 static const struct Closure Method_Kernel_Spans_pathAt__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Spans_pathAt__compiled
 };
 
@@ -6920,7 +6920,7 @@ static const struct CompiledMethod Method_Kernel_Spans_langAt__compiled = {
     0
 };
 static const struct Closure Method_Kernel_Spans_langAt__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Spans_langAt__compiled
 };
 
@@ -6933,7 +6933,7 @@ static const struct CompiledMethod Method_Kernel_Spans_begin__compiled = {
     0
 };
 static const struct Closure Method_Kernel_Spans_begin__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Spans_begin__compiled
 };
 
@@ -6946,7 +6946,7 @@ static const struct CompiledMethod Method_Kernel_Spans_end__compiled = {
     0
 };
 static const struct Closure Method_Kernel_Spans_end__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Spans_end__compiled
 };
 
@@ -6959,7 +6959,7 @@ static const struct CompiledMethod Method_Kernel_Spans_recordSlot_us__compiled =
     0
 };
 static const struct Closure Method_Kernel_Spans_recordSlot_us__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Spans_recordSlot_us__compiled
 };
 
@@ -6972,7 +6972,7 @@ static const struct CompiledMethod Method_Kernel_Spans_statsAt__compiled = {
     0
 };
 static const struct Closure Method_Kernel_Spans_statsAt__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Spans_statsAt__compiled
 };
 
@@ -6985,7 +6985,7 @@ static const struct CompiledMethod Method_Kernel_Spans_noteFailure__compiled = {
     0
 };
 static const struct Closure Method_Kernel_Spans_noteFailure__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Spans_noteFailure__compiled
 };
 
@@ -6998,7 +6998,7 @@ static const struct CompiledMethod Method_Kernel_Spans_failuresAt__compiled = {
     0
 };
 static const struct Closure Method_Kernel_Spans_failuresAt__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Spans_failuresAt__compiled
 };
 
@@ -7011,7 +7011,7 @@ static const struct CompiledMethod Method_Kernel_Spans_resetAll_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Spans_resetAll_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Spans_resetAll_compiled
 };
 
@@ -7024,7 +7024,7 @@ static const struct CompiledMethod Method_Kernel_Spans_minSamplesForP95_compiled
     0
 };
 static const struct Closure Method_Kernel_Spans_minSamplesForP95_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Spans_minSamplesForP95_compiled
 };
 
@@ -7037,7 +7037,7 @@ static const struct CompiledMethod Method_Kernel_Spans_decadeName__compiled = {
     0
 };
 static const struct Closure Method_Kernel_Spans_decadeName__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Spans_decadeName__compiled
 };
 
@@ -7050,7 +7050,7 @@ static const struct CompiledMethod Method_Kernel_Spans_decadeAt_percentile__comp
     0
 };
 static const struct Closure Method_Kernel_Spans_decadeAt_percentile__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Spans_decadeAt_percentile__compiled
 };
 
@@ -7063,7 +7063,7 @@ static const struct CompiledMethod Method_Kernel_Spans_p50At__compiled = {
     0
 };
 static const struct Closure Method_Kernel_Spans_p50At__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Spans_p50At__compiled
 };
 
@@ -7076,7 +7076,7 @@ static const struct CompiledMethod Method_Kernel_Spans_p95At__compiled = {
     0
 };
 static const struct Closure Method_Kernel_Spans_p95At__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Spans_p95At__compiled
 };
 
@@ -7089,7 +7089,7 @@ static const struct CompiledMethod Method_Kernel_Spans_recordAt__compiled = {
     0
 };
 static const struct Closure Method_Kernel_Spans_recordAt__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Spans_recordAt__compiled
 };
 
@@ -7102,7 +7102,7 @@ static const struct CompiledMethod Method_Kernel_Spans_init_new_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Spans_init_new_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Spans_init_new_compiled
 };
 
@@ -7115,7 +7115,7 @@ static const struct CompiledMethod Method_Kernel_SpanCapture_onSpace_spans__comp
     0
 };
 static const struct Closure Method_Kernel_SpanCapture_onSpace_spans__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_SpanCapture_onSpace_spans__compiled
 };
 
@@ -7128,7 +7128,7 @@ static const struct CompiledMethod Method_Kernel_SpanCapture_start_compiled = {
     0
 };
 static const struct Closure Method_Kernel_SpanCapture_start_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_SpanCapture_start_compiled
 };
 
@@ -7141,7 +7141,7 @@ static const struct CompiledMethod Method_Kernel_SpanCapture_normalise_compiled 
     0
 };
 static const struct Closure Method_Kernel_SpanCapture_normalise_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_SpanCapture_normalise_compiled
 };
 
@@ -7154,7 +7154,7 @@ static const struct CompiledMethod Method_Kernel_SpanCapture_apply__compiled = {
     0
 };
 static const struct Closure Method_Kernel_SpanCapture_apply__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_SpanCapture_apply__compiled
 };
 
@@ -7167,7 +7167,7 @@ static const struct CompiledMethod Method_Kernel_SpanCapture_beginWindow_compile
     0
 };
 static const struct Closure Method_Kernel_SpanCapture_beginWindow_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_SpanCapture_beginWindow_compiled
 };
 
@@ -7180,7 +7180,7 @@ static const struct CompiledMethod Method_Kernel_SpanCapture_endWindow_compiled 
     0
 };
 static const struct Closure Method_Kernel_SpanCapture_endWindow_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_SpanCapture_endWindow_compiled
 };
 
@@ -7193,7 +7193,7 @@ static const struct CompiledMethod Method_Kernel_SpanCapture_publishSlots_compil
     0
 };
 static const struct Closure Method_Kernel_SpanCapture_publishSlots_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_SpanCapture_publishSlots_compiled
 };
 
@@ -7206,7 +7206,7 @@ static const struct CompiledMethod Method_Kernel_SpanCapture_summaryMs_total__co
     0
 };
 static const struct Closure Method_Kernel_SpanCapture_summaryMs_total__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_SpanCapture_summaryMs_total__compiled
 };
 
@@ -7219,7 +7219,7 @@ static const struct CompiledMethod Method_Meta_Kernel_SpanCapture_onSpace_spans_
     0
 };
 static const struct Closure Method_Meta_Kernel_SpanCapture_onSpace_spans__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Meta_Kernel_SpanCapture_onSpace_spans__compiled
 };
 
@@ -7232,7 +7232,7 @@ static const struct CompiledMethod Method_Kernel_SpanCapture_init_new_compiled =
     0
 };
 static const struct Closure Method_Kernel_SpanCapture_init_new_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_SpanCapture_init_new_compiled
 };
 
@@ -7245,7 +7245,7 @@ static const struct CompiledMethod Method_Kernel_ReadStream_next_compiled = {
     0
 };
 static const struct Closure Method_Kernel_ReadStream_next_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_ReadStream_next_compiled
 };
 
@@ -7258,7 +7258,7 @@ static const struct CompiledMethod Method_Kernel_ReadStream_peek_compiled = {
     0
 };
 static const struct Closure Method_Kernel_ReadStream_peek_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_ReadStream_peek_compiled
 };
 
@@ -7271,7 +7271,7 @@ static const struct CompiledMethod Method_Kernel_ReadStream_atEnd_compiled = {
     0
 };
 static const struct Closure Method_Kernel_ReadStream_atEnd_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_ReadStream_atEnd_compiled
 };
 
@@ -7283,7 +7283,7 @@ static const struct CompiledMethod Method_Kernel_ReadStream_skip__compiled = {
     0
 };
 static const struct Closure Method_Kernel_ReadStream_skip__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_ReadStream_skip__compiled
 };
 
@@ -7295,7 +7295,7 @@ static const struct CompiledMethod Method_Kernel_ReadStream_position_compiled = 
     0
 };
 static const struct Closure Method_Kernel_ReadStream_position_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_ReadStream_position_compiled
 };
 
@@ -7308,7 +7308,7 @@ static const struct CompiledMethod Method_Kernel_ReadStream_reset_compiled = {
     0
 };
 static const struct Closure Method_Kernel_ReadStream_reset_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_ReadStream_reset_compiled
 };
 
@@ -7321,7 +7321,7 @@ static const struct CompiledMethod Method_Kernel_ReadStream_next__compiled = {
     0
 };
 static const struct Closure Method_Kernel_ReadStream_next__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_ReadStream_next__compiled
 };
 
@@ -7334,7 +7334,7 @@ static const struct CompiledMethod Method_Kernel_ReadStream_upTo__compiled = {
     0
 };
 static const struct Closure Method_Kernel_ReadStream_upTo__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_ReadStream_upTo__compiled
 };
 
@@ -7347,7 +7347,7 @@ static const struct CompiledMethod Method_Kernel_ReadStream_nextLine_compiled = 
     0
 };
 static const struct Closure Method_Kernel_ReadStream_nextLine_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_ReadStream_nextLine_compiled
 };
 
@@ -7360,7 +7360,7 @@ static const struct CompiledMethod Method_Kernel_ReadStream_upToEnd_compiled = {
     0
 };
 static const struct Closure Method_Kernel_ReadStream_upToEnd_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_ReadStream_upToEnd_compiled
 };
 
@@ -7373,7 +7373,7 @@ static const struct CompiledMethod Method_Kernel_ReadStream_do__compiled = {
     0
 };
 static const struct Closure Method_Kernel_ReadStream_do__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_ReadStream_do__compiled
 };
 
@@ -7386,7 +7386,7 @@ static const struct CompiledMethod Method_Kernel_ReadStream_prefixOf_upTo__compi
     0
 };
 static const struct Closure Method_Kernel_ReadStream_prefixOf_upTo__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_ReadStream_prefixOf_upTo__compiled
 };
 
@@ -7399,7 +7399,7 @@ static const struct CompiledMethod Method_Kernel_ReadStream_setSource__compiled 
     0
 };
 static const struct Closure Method_Kernel_ReadStream_setSource__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_ReadStream_setSource__compiled
 };
 
@@ -7412,7 +7412,7 @@ static const struct CompiledMethod Method_Meta_Kernel_ReadStream_on__compiled = 
     0
 };
 static const struct Closure Method_Meta_Kernel_ReadStream_on__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Meta_Kernel_ReadStream_on__compiled
 };
 
@@ -7425,7 +7425,7 @@ static const struct CompiledMethod Method_Kernel_ReadStream_init_new_compiled = 
     0
 };
 static const struct Closure Method_Kernel_ReadStream_init_new_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_ReadStream_init_new_compiled
 };
 
@@ -7438,7 +7438,7 @@ static const struct CompiledMethod Method_Kernel_WriteStream_nextPut__compiled =
     0
 };
 static const struct Closure Method_Kernel_WriteStream_nextPut__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_WriteStream_nextPut__compiled
 };
 
@@ -7451,7 +7451,7 @@ static const struct CompiledMethod Method_Kernel_WriteStream_nextPutAll__compile
     0
 };
 static const struct Closure Method_Kernel_WriteStream_nextPutAll__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_WriteStream_nextPutAll__compiled
 };
 
@@ -7464,7 +7464,7 @@ static const struct CompiledMethod Method_Kernel_WriteStream_print__compiled = {
     0
 };
 static const struct Closure Method_Kernel_WriteStream_print__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_WriteStream_print__compiled
 };
 
@@ -7477,7 +7477,7 @@ static const struct CompiledMethod Method_Kernel_WriteStream_nextPutLine__compil
     0
 };
 static const struct Closure Method_Kernel_WriteStream_nextPutLine__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_WriteStream_nextPutLine__compiled
 };
 
@@ -7490,7 +7490,7 @@ static const struct CompiledMethod Method_Kernel_WriteStream_contents_compiled =
     0
 };
 static const struct Closure Method_Kernel_WriteStream_contents_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_WriteStream_contents_compiled
 };
 
@@ -7503,7 +7503,7 @@ static const struct CompiledMethod Method_Kernel_WriteStream_size_compiled = {
     0
 };
 static const struct Closure Method_Kernel_WriteStream_size_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_WriteStream_size_compiled
 };
 
@@ -7516,7 +7516,7 @@ static const struct CompiledMethod Method_Kernel_WriteStream_reset_compiled = {
     0
 };
 static const struct Closure Method_Kernel_WriteStream_reset_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_WriteStream_reset_compiled
 };
 
@@ -7529,7 +7529,7 @@ static const struct CompiledMethod Method_Kernel_WriteStream_init_new_compiled =
     0
 };
 static const struct Closure Method_Kernel_WriteStream_init_new_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_WriteStream_init_new_compiled
 };
 
@@ -7541,7 +7541,7 @@ static const struct CompiledMethod Method_Kernel_Serial_setPort__compiled = {
     0
 };
 static const struct Closure Method_Kernel_Serial_setPort__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Serial_setPort__compiled
 };
 
@@ -7554,7 +7554,7 @@ static const struct CompiledMethod Method_Kernel_Serial_writeByte__compiled = {
     0
 };
 static const struct Closure Method_Kernel_Serial_writeByte__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Serial_writeByte__compiled
 };
 
@@ -7567,7 +7567,7 @@ static const struct CompiledMethod Method_Kernel_Serial_write__compiled = {
     0
 };
 static const struct Closure Method_Kernel_Serial_write__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Serial_write__compiled
 };
 
@@ -7580,7 +7580,7 @@ static const struct CompiledMethod Method_Kernel_Serial_atEnd_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Serial_atEnd_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Serial_atEnd_compiled
 };
 
@@ -7593,7 +7593,7 @@ static const struct CompiledMethod Method_Kernel_Serial_readByte_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Serial_readByte_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Serial_readByte_compiled
 };
 
@@ -7606,7 +7606,7 @@ static const struct CompiledMethod Method_Kernel_Serial_read__compiled = {
     0
 };
 static const struct Closure Method_Kernel_Serial_read__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Serial_read__compiled
 };
 
@@ -7619,7 +7619,7 @@ static const struct CompiledMethod Method_Kernel_Serial_readLine_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Serial_readLine_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Serial_readLine_compiled
 };
 
@@ -7632,7 +7632,7 @@ static const struct CompiledMethod Method_Meta_Kernel_Serial_onPort__compiled = 
     0
 };
 static const struct Closure Method_Meta_Kernel_Serial_onPort__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Meta_Kernel_Serial_onPort__compiled
 };
 
@@ -7645,7 +7645,7 @@ static const struct CompiledMethod Method_Kernel_Serial_init_new_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Serial_init_new_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Serial_init_new_compiled
 };
 
@@ -7657,7 +7657,7 @@ static const struct CompiledMethod Method_Kernel_Net_setPort__compiled = {
     0
 };
 static const struct Closure Method_Kernel_Net_setPort__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Net_setPort__compiled
 };
 
@@ -7670,7 +7670,7 @@ static const struct CompiledMethod Method_Kernel_Net_udp_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Net_udp_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Net_udp_compiled
 };
 
@@ -7683,7 +7683,7 @@ static const struct CompiledMethod Method_Kernel_Net_udpBindPort__compiled = {
     0
 };
 static const struct Closure Method_Kernel_Net_udpBindPort__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Net_udpBindPort__compiled
 };
 
@@ -7696,7 +7696,7 @@ static const struct CompiledMethod Method_Meta_Kernel_Net_onPort__compiled = {
     0
 };
 static const struct Closure Method_Meta_Kernel_Net_onPort__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Meta_Kernel_Net_onPort__compiled
 };
 
@@ -7709,7 +7709,7 @@ static const struct CompiledMethod Method_Kernel_Net_init_new_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Net_init_new_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Net_init_new_compiled
 };
 
@@ -7721,7 +7721,7 @@ static const struct CompiledMethod Method_Kernel_Socket_setPort_handle__compiled
     0
 };
 static const struct Closure Method_Kernel_Socket_setPort_handle__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Socket_setPort_handle__compiled
 };
 
@@ -7734,7 +7734,7 @@ static const struct CompiledMethod Method_Kernel_Socket_sendTo_port_data__compil
     0
 };
 static const struct Closure Method_Kernel_Socket_sendTo_port_data__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Socket_sendTo_port_data__compiled
 };
 
@@ -7747,7 +7747,7 @@ static const struct CompiledMethod Method_Kernel_Socket_receive_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Socket_receive_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Socket_receive_compiled
 };
 
@@ -7760,7 +7760,7 @@ static const struct CompiledMethod Method_Kernel_Socket_close_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Socket_close_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Socket_close_compiled
 };
 
@@ -7773,7 +7773,7 @@ static const struct CompiledMethod Method_Meta_Kernel_Socket_onPort_handle__comp
     0
 };
 static const struct Closure Method_Meta_Kernel_Socket_onPort_handle__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Meta_Kernel_Socket_onPort_handle__compiled
 };
 
@@ -7786,7 +7786,7 @@ static const struct CompiledMethod Method_Kernel_Socket_init_new_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Socket_init_new_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Socket_init_new_compiled
 };
 
@@ -7798,7 +7798,7 @@ static const struct CompiledMethod Method_Kernel_Datagram_setData_host_port__com
     0
 };
 static const struct Closure Method_Kernel_Datagram_setData_host_port__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Datagram_setData_host_port__compiled
 };
 
@@ -7810,7 +7810,7 @@ static const struct CompiledMethod Method_Kernel_Datagram_data_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Datagram_data_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Datagram_data_compiled
 };
 
@@ -7822,7 +7822,7 @@ static const struct CompiledMethod Method_Kernel_Datagram_senderHost_compiled = 
     0
 };
 static const struct Closure Method_Kernel_Datagram_senderHost_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Datagram_senderHost_compiled
 };
 
@@ -7834,7 +7834,7 @@ static const struct CompiledMethod Method_Kernel_Datagram_senderPort_compiled = 
     0
 };
 static const struct Closure Method_Kernel_Datagram_senderPort_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Datagram_senderPort_compiled
 };
 
@@ -7847,7 +7847,7 @@ static const struct CompiledMethod Method_Meta_Kernel_Datagram_data_senderHost_s
     0
 };
 static const struct Closure Method_Meta_Kernel_Datagram_data_senderHost_senderPort__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Meta_Kernel_Datagram_data_senderHost_senderPort__compiled
 };
 
@@ -7860,7 +7860,7 @@ static const struct CompiledMethod Method_Kernel_Datagram_init_new_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Datagram_init_new_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Datagram_init_new_compiled
 };
 
@@ -7872,7 +7872,7 @@ static const struct CompiledMethod Method_Kernel_NetBridge_setSocket_out_peerHos
     0
 };
 static const struct Closure Method_Kernel_NetBridge_setSocket_out_peerHost_peerPort_in__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_NetBridge_setSocket_out_peerHost_peerPort_in__compiled
 };
 
@@ -7885,7 +7885,7 @@ static const struct CompiledMethod Method_Kernel_NetBridge_encodeFor__compiled =
     0
 };
 static const struct Closure Method_Kernel_NetBridge_encodeFor__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_NetBridge_encodeFor__compiled
 };
 
@@ -7898,7 +7898,7 @@ static const struct CompiledMethod Method_Kernel_NetBridge_start_compiled = {
     0
 };
 static const struct Closure Method_Kernel_NetBridge_start_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_NetBridge_start_compiled
 };
 
@@ -7911,7 +7911,7 @@ static const struct CompiledMethod Method_Kernel_NetBridge_pumpInbound_compiled 
     0
 };
 static const struct Closure Method_Kernel_NetBridge_pumpInbound_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_NetBridge_pumpInbound_compiled
 };
 
@@ -7924,7 +7924,7 @@ static const struct CompiledMethod Method_Meta_Kernel_NetBridge_socket_out_peer_
     0
 };
 static const struct Closure Method_Meta_Kernel_NetBridge_socket_out_peer_port_in__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Meta_Kernel_NetBridge_socket_out_peer_port_in__compiled
 };
 
@@ -7937,7 +7937,7 @@ static const struct CompiledMethod Method_Kernel_NetBridge_init_new_compiled = {
     0
 };
 static const struct Closure Method_Kernel_NetBridge_init_new_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_NetBridge_init_new_compiled
 };
 
@@ -7950,7 +7950,7 @@ static const struct CompiledMethod Method_Kernel_PortaBridge_setSocket_space_id_
     0
 };
 static const struct Closure Method_Kernel_PortaBridge_setSocket_space_id_peer_port_spans__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_PortaBridge_setSocket_space_id_peer_port_spans__compiled
 };
 
@@ -7962,7 +7962,7 @@ static const struct CompiledMethod Method_Kernel_PortaBridge_bootId_compiled = {
     0
 };
 static const struct Closure Method_Kernel_PortaBridge_bootId_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_PortaBridge_bootId_compiled
 };
 
@@ -7975,7 +7975,7 @@ static const struct CompiledMethod Method_Kernel_PortaBridge_maxBatchBytes_compi
     0
 };
 static const struct Closure Method_Kernel_PortaBridge_maxBatchBytes_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_PortaBridge_maxBatchBytes_compiled
 };
 
@@ -7988,7 +7988,7 @@ static const struct CompiledMethod Method_Kernel_PortaBridge_maxValueBytes_compi
     0
 };
 static const struct Closure Method_Kernel_PortaBridge_maxValueBytes_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_PortaBridge_maxValueBytes_compiled
 };
 
@@ -8001,7 +8001,7 @@ static const struct CompiledMethod Method_Kernel_PortaBridge_maxRows_compiled = 
     0
 };
 static const struct Closure Method_Kernel_PortaBridge_maxRows_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_PortaBridge_maxRows_compiled
 };
 
@@ -8014,7 +8014,7 @@ static const struct CompiledMethod Method_Kernel_PortaBridge_replyBudget_compile
     0
 };
 static const struct Closure Method_Kernel_PortaBridge_replyBudget_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_PortaBridge_replyBudget_compiled
 };
 
@@ -8027,7 +8027,7 @@ static const struct CompiledMethod Method_Kernel_PortaBridge_maxPending_compiled
     0
 };
 static const struct Closure Method_Kernel_PortaBridge_maxPending_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_PortaBridge_maxPending_compiled
 };
 
@@ -8039,7 +8039,7 @@ static const struct CompiledMethod Method_Kernel_PortaBridge_cursor_compiled = {
     0
 };
 static const struct Closure Method_Kernel_PortaBridge_cursor_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_PortaBridge_cursor_compiled
 };
 
@@ -8051,7 +8051,7 @@ static const struct CompiledMethod Method_Kernel_PortaBridge_acked_compiled = {
     0
 };
 static const struct Closure Method_Kernel_PortaBridge_acked_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_PortaBridge_acked_compiled
 };
 
@@ -8063,7 +8063,7 @@ static const struct CompiledMethod Method_Kernel_PortaBridge_rejected_compiled =
     0
 };
 static const struct Closure Method_Kernel_PortaBridge_rejected_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_PortaBridge_rejected_compiled
 };
 
@@ -8075,7 +8075,7 @@ static const struct CompiledMethod Method_Kernel_PortaBridge_misses_compiled = {
     0
 };
 static const struct Closure Method_Kernel_PortaBridge_misses_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_PortaBridge_misses_compiled
 };
 
@@ -8087,7 +8087,7 @@ static const struct CompiledMethod Method_Kernel_PortaBridge_dropped_compiled = 
     0
 };
 static const struct Closure Method_Kernel_PortaBridge_dropped_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_PortaBridge_dropped_compiled
 };
 
@@ -8099,7 +8099,7 @@ static const struct CompiledMethod Method_Kernel_PortaBridge_crossed_compiled = 
     0
 };
 static const struct Closure Method_Kernel_PortaBridge_crossed_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_PortaBridge_crossed_compiled
 };
 
@@ -8112,7 +8112,7 @@ static const struct CompiledMethod Method_Kernel_PortaBridge_pendingSize_compile
     0
 };
 static const struct Closure Method_Kernel_PortaBridge_pendingSize_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_PortaBridge_pendingSize_compiled
 };
 
@@ -8124,7 +8124,7 @@ static const struct CompiledMethod Method_Kernel_PortaBridge_pendingRows_compile
     0
 };
 static const struct Closure Method_Kernel_PortaBridge_pendingRows_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_PortaBridge_pendingRows_compiled
 };
 
@@ -8137,7 +8137,7 @@ static const struct CompiledMethod Method_Kernel_PortaBridge_subscribeStream__co
     0
 };
 static const struct Closure Method_Kernel_PortaBridge_subscribeStream__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_PortaBridge_subscribeStream__compiled
 };
 
@@ -8150,7 +8150,7 @@ static const struct CompiledMethod Method_Kernel_PortaBridge_capture_value__comp
     0
 };
 static const struct Closure Method_Kernel_PortaBridge_capture_value__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_PortaBridge_capture_value__compiled
 };
 
@@ -8163,7 +8163,7 @@ static const struct CompiledMethod Method_Kernel_PortaBridge_pullFrame_compiled 
     0
 };
 static const struct Closure Method_Kernel_PortaBridge_pullFrame_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_PortaBridge_pullFrame_compiled
 };
 
@@ -8176,7 +8176,7 @@ static const struct CompiledMethod Method_Kernel_PortaBridge_applyBatch__compile
     0
 };
 static const struct Closure Method_Kernel_PortaBridge_applyBatch__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_PortaBridge_applyBatch__compiled
 };
 
@@ -8189,7 +8189,7 @@ static const struct CompiledMethod Method_Kernel_PortaBridge_applyEntry__compile
     0
 };
 static const struct Closure Method_Kernel_PortaBridge_applyEntry__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_PortaBridge_applyEntry__compiled
 };
 
@@ -8202,7 +8202,7 @@ static const struct CompiledMethod Method_Kernel_PortaBridge_mayApply__compiled 
     0
 };
 static const struct Closure Method_Kernel_PortaBridge_mayApply__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_PortaBridge_mayApply__compiled
 };
 
@@ -8215,7 +8215,7 @@ static const struct CompiledMethod Method_Kernel_PortaBridge_path_startsWith__co
     0
 };
 static const struct Closure Method_Kernel_PortaBridge_path_startsWith__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_PortaBridge_path_startsWith__compiled
 };
 
@@ -8228,7 +8228,7 @@ static const struct CompiledMethod Method_Kernel_PortaBridge_pushFrame_compiled 
     0
 };
 static const struct Closure Method_Kernel_PortaBridge_pushFrame_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_PortaBridge_pushFrame_compiled
 };
 
@@ -8241,7 +8241,7 @@ static const struct CompiledMethod Method_Kernel_PortaBridge_encodePush__compile
     0
 };
 static const struct Closure Method_Kernel_PortaBridge_encodePush__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_PortaBridge_encodePush__compiled
 };
 
@@ -8254,7 +8254,7 @@ static const struct CompiledMethod Method_Kernel_PortaBridge_collectOutbound_com
     0
 };
 static const struct Closure Method_Kernel_PortaBridge_collectOutbound_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_PortaBridge_collectOutbound_compiled
 };
 
@@ -8267,7 +8267,7 @@ static const struct CompiledMethod Method_Kernel_PortaBridge_addCellsFrom_into__
     0
 };
 static const struct Closure Method_Kernel_PortaBridge_addCellsFrom_into__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_PortaBridge_addCellsFrom_into__compiled
 };
 
@@ -8280,7 +8280,7 @@ static const struct CompiledMethod Method_Kernel_PortaBridge_valueFits__compiled
     0
 };
 static const struct Closure Method_Kernel_PortaBridge_valueFits__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_PortaBridge_valueFits__compiled
 };
 
@@ -8293,7 +8293,7 @@ static const struct CompiledMethod Method_Kernel_PortaBridge_sortedBySeq__compil
     0
 };
 static const struct Closure Method_Kernel_PortaBridge_sortedBySeq__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_PortaBridge_sortedBySeq__compiled
 };
 
@@ -8306,7 +8306,7 @@ static const struct CompiledMethod Method_Kernel_PortaBridge_applyAck__compiled 
     0
 };
 static const struct Closure Method_Kernel_PortaBridge_applyAck__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_PortaBridge_applyAck__compiled
 };
 
@@ -8319,7 +8319,7 @@ static const struct CompiledMethod Method_Kernel_PortaBridge_checkIn_compiled = 
     0
 };
 static const struct Closure Method_Kernel_PortaBridge_checkIn_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_PortaBridge_checkIn_compiled
 };
 
@@ -8332,7 +8332,7 @@ static const struct CompiledMethod Method_Kernel_PortaBridge_publishMetrics_comp
     0
 };
 static const struct Closure Method_Kernel_PortaBridge_publishMetrics_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_PortaBridge_publishMetrics_compiled
 };
 
@@ -8345,7 +8345,7 @@ static const struct CompiledMethod Method_Kernel_PortaBridge_publishCheap_compil
     0
 };
 static const struct Closure Method_Kernel_PortaBridge_publishCheap_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_PortaBridge_publishCheap_compiled
 };
 
@@ -8358,7 +8358,7 @@ static const struct CompiledMethod Method_Kernel_PortaBridge_publishApps_compile
     0
 };
 static const struct Closure Method_Kernel_PortaBridge_publishApps_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_PortaBridge_publishApps_compiled
 };
 
@@ -8371,7 +8371,7 @@ static const struct CompiledMethod Method_Kernel_PortaBridge_otaCheck_compiled =
     0
 };
 static const struct Closure Method_Kernel_PortaBridge_otaCheck_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_PortaBridge_otaCheck_compiled
 };
 
@@ -8384,7 +8384,7 @@ static const struct CompiledMethod Method_Kernel_PortaBridge_telLog_text__compil
     0
 };
 static const struct Closure Method_Kernel_PortaBridge_telLog_text__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_PortaBridge_telLog_text__compiled
 };
 
@@ -8397,7 +8397,7 @@ static const struct CompiledMethod Method_Kernel_PortaBridge_otaWantedFrom__comp
     0
 };
 static const struct Closure Method_Kernel_PortaBridge_otaWantedFrom__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_PortaBridge_otaWantedFrom__compiled
 };
 
@@ -8410,7 +8410,7 @@ static const struct CompiledMethod Method_Kernel_PortaBridge_pushOnce_compiled =
     0
 };
 static const struct Closure Method_Kernel_PortaBridge_pushOnce_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_PortaBridge_pushOnce_compiled
 };
 
@@ -8423,7 +8423,7 @@ static const struct CompiledMethod Method_Kernel_PortaBridge_awaitReply__compile
     0
 };
 static const struct Closure Method_Kernel_PortaBridge_awaitReply__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_PortaBridge_awaitReply__compiled
 };
 
@@ -8436,7 +8436,7 @@ static const struct CompiledMethod Method_Kernel_PortaBridge_tagOf__compiled = {
     0
 };
 static const struct Closure Method_Kernel_PortaBridge_tagOf__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_PortaBridge_tagOf__compiled
 };
 
@@ -8449,7 +8449,7 @@ static const struct CompiledMethod Method_Kernel_PortaBridge_isCrossed_expecting
     0
 };
 static const struct Closure Method_Kernel_PortaBridge_isCrossed_expecting__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_PortaBridge_isCrossed_expecting__compiled
 };
 
@@ -8462,7 +8462,7 @@ static const struct CompiledMethod Method_Meta_Kernel_PortaBridge_socket_space_i
     0
 };
 static const struct Closure Method_Meta_Kernel_PortaBridge_socket_space_id_peer_port_spans__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Meta_Kernel_PortaBridge_socket_space_id_peer_port_spans__compiled
 };
 
@@ -8475,7 +8475,7 @@ static const struct CompiledMethod Method_Kernel_PortaBridge_init_new_compiled =
     0
 };
 static const struct Closure Method_Kernel_PortaBridge_init_new_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_PortaBridge_init_new_compiled
 };
 
@@ -8487,7 +8487,7 @@ static const struct CompiledMethod Method_Kernel_Channel_setRoot__compiled = {
     0
 };
 static const struct Closure Method_Kernel_Channel_setRoot__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Channel_setRoot__compiled
 };
 
@@ -8499,7 +8499,7 @@ static const struct CompiledMethod Method_Kernel_Channel_rootPath_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Channel_rootPath_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Channel_rootPath_compiled
 };
 
@@ -8512,7 +8512,7 @@ static const struct CompiledMethod Method_Kernel_Channel_resolve__compiled = {
     0
 };
 static const struct Closure Method_Kernel_Channel_resolve__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Channel_resolve__compiled
 };
 
@@ -8525,7 +8525,7 @@ static const struct CompiledMethod Method_Kernel_Channel_channel__compiled = {
     0
 };
 static const struct Closure Method_Kernel_Channel_channel__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Channel_channel__compiled
 };
 
@@ -8538,7 +8538,7 @@ static const struct CompiledMethod Method_Kernel_Channel_KIND_STREAM_compiled = 
     0
 };
 static const struct Closure Method_Kernel_Channel_KIND_STREAM_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Channel_KIND_STREAM_compiled
 };
 
@@ -8551,7 +8551,7 @@ static const struct CompiledMethod Method_Kernel_Channel_KIND_CELL_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Channel_KIND_CELL_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Channel_KIND_CELL_compiled
 };
 
@@ -8564,7 +8564,7 @@ static const struct CompiledMethod Method_Kernel_Channel_kindAt__compiled = {
     0
 };
 static const struct Closure Method_Kernel_Channel_kindAt__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Channel_kindAt__compiled
 };
 
@@ -8577,7 +8577,7 @@ static const struct CompiledMethod Method_Kernel_Channel_out_value__compiled = {
     0
 };
 static const struct Closure Method_Kernel_Channel_out_value__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Channel_out_value__compiled
 };
 
@@ -8590,7 +8590,7 @@ static const struct CompiledMethod Method_Kernel_Channel_take_ifEmpty__compiled 
     0
 };
 static const struct Closure Method_Kernel_Channel_take_ifEmpty__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Channel_take_ifEmpty__compiled
 };
 
@@ -8603,7 +8603,7 @@ static const struct CompiledMethod Method_Kernel_Channel_put_value__compiled = {
     0
 };
 static const struct Closure Method_Kernel_Channel_put_value__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Channel_put_value__compiled
 };
 
@@ -8616,7 +8616,7 @@ static const struct CompiledMethod Method_Kernel_Channel_peek_ifAbsent__compiled
     0
 };
 static const struct Closure Method_Kernel_Channel_peek_ifAbsent__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Channel_peek_ifAbsent__compiled
 };
 
@@ -8629,7 +8629,7 @@ static const struct CompiledMethod Method_Kernel_Channel_peek_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Channel_peek_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Channel_peek_compiled
 };
 
@@ -8642,7 +8642,7 @@ static const struct CompiledMethod Method_Kernel_Channel_peek__compiled = {
     0
 };
 static const struct Closure Method_Kernel_Channel_peek__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Channel_peek__compiled
 };
 
@@ -8655,7 +8655,7 @@ static const struct CompiledMethod Method_Kernel_Channel_peekCell_ifStream__comp
     0
 };
 static const struct Closure Method_Kernel_Channel_peekCell_ifStream__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Channel_peekCell_ifStream__compiled
 };
 
@@ -8668,7 +8668,7 @@ static const struct CompiledMethod Method_Kernel_Channel_changedSince_max__compi
     0
 };
 static const struct Closure Method_Kernel_Channel_changedSince_max__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Channel_changedSince_max__compiled
 };
 
@@ -8681,7 +8681,7 @@ static const struct CompiledMethod Method_Kernel_Channel_rowOf__compiled = {
     0
 };
 static const struct Closure Method_Kernel_Channel_rowOf__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Channel_rowOf__compiled
 };
 
@@ -8694,7 +8694,7 @@ static const struct CompiledMethod Method_Kernel_Channel_whenever_do__compiled =
     0
 };
 static const struct Closure Method_Kernel_Channel_whenever_do__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Channel_whenever_do__compiled
 };
 
@@ -8707,7 +8707,7 @@ static const struct CompiledMethod Method_Kernel_Channel_dropMyReactions_compile
     0
 };
 static const struct Closure Method_Kernel_Channel_dropMyReactions_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Channel_dropMyReactions_compiled
 };
 
@@ -8720,7 +8720,7 @@ static const struct CompiledMethod Method_Kernel_Channel_init_new_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Channel_init_new_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Channel_init_new_compiled
 };
 
@@ -8733,7 +8733,7 @@ static const struct CompiledMethod Method_Kernel_Space_drain_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Space_drain_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Space_drain_compiled
 };
 
@@ -8746,7 +8746,7 @@ static const struct CompiledMethod Method_Kernel_Space_seq_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Space_seq_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Space_seq_compiled
 };
 
@@ -8759,7 +8759,7 @@ static const struct CompiledMethod Method_Kernel_Space_stamp_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Space_stamp_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Space_stamp_compiled
 };
 
@@ -8772,7 +8772,7 @@ static const struct CompiledMethod Method_Kernel_Space_postCrash_channel__compil
     0
 };
 static const struct Closure Method_Kernel_Space_postCrash_channel__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Space_postCrash_channel__compiled
 };
 
@@ -8785,7 +8785,7 @@ static const struct CompiledMethod Method_Kernel_Space_isSysPath__compiled = {
     0
 };
 static const struct Closure Method_Kernel_Space_isSysPath__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Space_isSysPath__compiled
 };
 
@@ -8797,7 +8797,7 @@ static const struct CompiledMethod Method_Kernel_Space_init_new_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Space_init_new_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Space_init_new_compiled
 };
 
@@ -8809,7 +8809,7 @@ static const struct CompiledMethod Method_Kernel_SupervisedJob_rootCap_compiled 
     0
 };
 static const struct Closure Method_Kernel_SupervisedJob_rootCap_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_SupervisedJob_rootCap_compiled
 };
 
@@ -8821,7 +8821,7 @@ static const struct CompiledMethod Method_Kernel_SupervisedJob_rootPath_compiled
     0
 };
 static const struct Closure Method_Kernel_SupervisedJob_rootPath_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_SupervisedJob_rootPath_compiled
 };
 
@@ -8833,7 +8833,7 @@ static const struct CompiledMethod Method_Kernel_SupervisedJob_restartThunk_comp
     0
 };
 static const struct Closure Method_Kernel_SupervisedJob_restartThunk_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_SupervisedJob_restartThunk_compiled
 };
 
@@ -8845,7 +8845,7 @@ static const struct CompiledMethod Method_Kernel_SupervisedJob_crashes_compiled 
     0
 };
 static const struct Closure Method_Kernel_SupervisedJob_crashes_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_SupervisedJob_crashes_compiled
 };
 
@@ -8857,7 +8857,7 @@ static const struct CompiledMethod Method_Kernel_SupervisedJob_quarantined_compi
     0
 };
 static const struct Closure Method_Kernel_SupervisedJob_quarantined_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_SupervisedJob_quarantined_compiled
 };
 
@@ -8870,7 +8870,7 @@ static const struct CompiledMethod Method_Kernel_SupervisedJob_bumpCrashes_compi
     0
 };
 static const struct Closure Method_Kernel_SupervisedJob_bumpCrashes_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_SupervisedJob_bumpCrashes_compiled
 };
 
@@ -8883,7 +8883,7 @@ static const struct CompiledMethod Method_Kernel_SupervisedJob_noteProgress_comp
     0
 };
 static const struct Closure Method_Kernel_SupervisedJob_noteProgress_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_SupervisedJob_noteProgress_compiled
 };
 
@@ -8896,7 +8896,7 @@ static const struct CompiledMethod Method_Kernel_SupervisedJob_markQuarantined_c
     0
 };
 static const struct Closure Method_Kernel_SupervisedJob_markQuarantined_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_SupervisedJob_markQuarantined_compiled
 };
 
@@ -8909,7 +8909,7 @@ static const struct CompiledMethod Method_Kernel_SupervisedJob_addresses__compil
     0
 };
 static const struct Closure Method_Kernel_SupervisedJob_addresses__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_SupervisedJob_addresses__compiled
 };
 
@@ -8922,7 +8922,7 @@ static const struct CompiledMethod Method_Kernel_SupervisedJob_setRootCap_restar
     0
 };
 static const struct Closure Method_Kernel_SupervisedJob_setRootCap_restart__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_SupervisedJob_setRootCap_restart__compiled
 };
 
@@ -8935,7 +8935,7 @@ static const struct CompiledMethod Method_Meta_Kernel_SupervisedJob_rootCap_rest
     0
 };
 static const struct Closure Method_Meta_Kernel_SupervisedJob_rootCap_restart__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Meta_Kernel_SupervisedJob_rootCap_restart__compiled
 };
 
@@ -8948,7 +8948,7 @@ static const struct CompiledMethod Method_Kernel_SupervisedJob_init_new_compiled
     0
 };
 static const struct Closure Method_Kernel_SupervisedJob_init_new_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_SupervisedJob_init_new_compiled
 };
 
@@ -8961,7 +8961,7 @@ static const struct CompiledMethod Method_Kernel_Supervisor_setSpace__compiled =
     0
 };
 static const struct Closure Method_Kernel_Supervisor_setSpace__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Supervisor_setSpace__compiled
 };
 
@@ -8973,7 +8973,7 @@ static const struct CompiledMethod Method_Kernel_Supervisor_timers__compiled = {
     0
 };
 static const struct Closure Method_Kernel_Supervisor_timers__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Supervisor_timers__compiled
 };
 
@@ -8986,7 +8986,7 @@ static const struct CompiledMethod Method_Kernel_Supervisor_register_restart_pro
     0
 };
 static const struct Closure Method_Kernel_Supervisor_register_restart_progress__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Supervisor_register_restart_progress__compiled
 };
 
@@ -8999,7 +8999,7 @@ static const struct CompiledMethod Method_Kernel_Supervisor_start_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Supervisor_start_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Supervisor_start_compiled
 };
 
@@ -9012,7 +9012,7 @@ static const struct CompiledMethod Method_Kernel_Supervisor_isQuarantined__compi
     0
 };
 static const struct Closure Method_Kernel_Supervisor_isQuarantined__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Supervisor_isQuarantined__compiled
 };
 
@@ -9025,7 +9025,7 @@ static const struct CompiledMethod Method_Kernel_Supervisor_handleCrash__compile
     0
 };
 static const struct Closure Method_Kernel_Supervisor_handleCrash__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Supervisor_handleCrash__compiled
 };
 
@@ -9038,7 +9038,7 @@ static const struct CompiledMethod Method_Kernel_Supervisor_sweepJob__compiled =
     0
 };
 static const struct Closure Method_Kernel_Supervisor_sweepJob__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Supervisor_sweepJob__compiled
 };
 
@@ -9051,7 +9051,7 @@ static const struct CompiledMethod Method_Kernel_Supervisor_restart__compiled = 
     0
 };
 static const struct Closure Method_Kernel_Supervisor_restart__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Supervisor_restart__compiled
 };
 
@@ -9064,7 +9064,7 @@ static const struct CompiledMethod Method_Kernel_Supervisor_quarantine__compiled
     0
 };
 static const struct Closure Method_Kernel_Supervisor_quarantine__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Supervisor_quarantine__compiled
 };
 
@@ -9077,7 +9077,7 @@ static const struct CompiledMethod Method_Kernel_Supervisor_jobAddressing__compi
     0
 };
 static const struct Closure Method_Kernel_Supervisor_jobAddressing__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Supervisor_jobAddressing__compiled
 };
 
@@ -9090,7 +9090,7 @@ static const struct CompiledMethod Method_Kernel_Supervisor_init_new_compiled = 
     0
 };
 static const struct Closure Method_Kernel_Supervisor_init_new_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Supervisor_init_new_compiled
 };
 
@@ -9102,7 +9102,7 @@ static const struct CompiledMethod Method_Kernel_Transition_action_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Transition_action_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Transition_action_compiled
 };
 
@@ -9114,7 +9114,7 @@ static const struct CompiledMethod Method_Kernel_Transition_target_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Transition_target_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Transition_target_compiled
 };
 
@@ -9126,7 +9126,7 @@ static const struct CompiledMethod Method_Kernel_Transition_setAction_target__co
     0
 };
 static const struct Closure Method_Kernel_Transition_setAction_target__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Transition_setAction_target__compiled
 };
 
@@ -9139,7 +9139,7 @@ static const struct CompiledMethod Method_Meta_Kernel_Transition_action_target__
     0
 };
 static const struct Closure Method_Meta_Kernel_Transition_action_target__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Meta_Kernel_Transition_action_target__compiled
 };
 
@@ -9152,7 +9152,7 @@ static const struct CompiledMethod Method_Kernel_Transition_init_new_compiled = 
     0
 };
 static const struct Closure Method_Kernel_Transition_init_new_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Transition_init_new_compiled
 };
 
@@ -9165,7 +9165,7 @@ static const struct CompiledMethod Method_Kernel_Protocol_state_on_do_then__comp
     0
 };
 static const struct Closure Method_Kernel_Protocol_state_on_do_then__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Protocol_state_on_do_then__compiled
 };
 
@@ -9178,7 +9178,7 @@ static const struct CompiledMethod Method_Kernel_Protocol_state_onEntry__compile
     0
 };
 static const struct Closure Method_Kernel_Protocol_state_onEntry__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Protocol_state_onEntry__compiled
 };
 
@@ -9190,7 +9190,7 @@ static const struct CompiledMethod Method_Kernel_Protocol_onUnhandled__compiled 
     0
 };
 static const struct Closure Method_Kernel_Protocol_onUnhandled__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Protocol_onUnhandled__compiled
 };
 
@@ -9203,7 +9203,7 @@ static const struct CompiledMethod Method_Kernel_Protocol_startIn__compiled = {
     0
 };
 static const struct Closure Method_Kernel_Protocol_startIn__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Protocol_startIn__compiled
 };
 
@@ -9215,7 +9215,7 @@ static const struct CompiledMethod Method_Kernel_Protocol_trace__compiled = {
     0
 };
 static const struct Closure Method_Kernel_Protocol_trace__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Protocol_trace__compiled
 };
 
@@ -9227,7 +9227,7 @@ static const struct CompiledMethod Method_Kernel_Protocol_currentState_compiled 
     0
 };
 static const struct Closure Method_Kernel_Protocol_currentState_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Protocol_currentState_compiled
 };
 
@@ -9239,7 +9239,7 @@ static const struct CompiledMethod Method_Kernel_Protocol_name_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Protocol_name_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Protocol_name_compiled
 };
 
@@ -9251,7 +9251,7 @@ static const struct CompiledMethod Method_Kernel_Protocol_snapshot_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Protocol_snapshot_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Protocol_snapshot_compiled
 };
 
@@ -9263,7 +9263,7 @@ static const struct CompiledMethod Method_Kernel_Protocol_restore__compiled = {
     0
 };
 static const struct Closure Method_Kernel_Protocol_restore__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Protocol_restore__compiled
 };
 
@@ -9276,7 +9276,7 @@ static const struct CompiledMethod Method_Kernel_Protocol_handle__compiled = {
     0
 };
 static const struct Closure Method_Kernel_Protocol_handle__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Protocol_handle__compiled
 };
 
@@ -9289,7 +9289,7 @@ static const struct CompiledMethod Method_Kernel_Protocol_keyFor__compiled = {
     0
 };
 static const struct Closure Method_Kernel_Protocol_keyFor__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Protocol_keyFor__compiled
 };
 
@@ -9302,7 +9302,7 @@ static const struct CompiledMethod Method_Kernel_Protocol_validate_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Protocol_validate_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Protocol_validate_compiled
 };
 
@@ -9315,7 +9315,7 @@ static const struct CompiledMethod Method_Kernel_Protocol_runEntry_with__compile
     0
 };
 static const struct Closure Method_Kernel_Protocol_runEntry_with__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Protocol_runEntry_with__compiled
 };
 
@@ -9327,7 +9327,7 @@ static const struct CompiledMethod Method_Kernel_Protocol_setName__compiled = {
     0
 };
 static const struct Closure Method_Kernel_Protocol_setName__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Protocol_setName__compiled
 };
 
@@ -9340,7 +9340,7 @@ static const struct CompiledMethod Method_Meta_Kernel_Protocol_named__compiled =
     0
 };
 static const struct Closure Method_Meta_Kernel_Protocol_named__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Meta_Kernel_Protocol_named__compiled
 };
 
@@ -9353,7 +9353,7 @@ static const struct CompiledMethod Method_Kernel_Protocol_init_new_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Protocol_init_new_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Protocol_init_new_compiled
 };
 
@@ -9365,7 +9365,7 @@ static const struct CompiledMethod Method_Kernel_Pending_chan_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Pending_chan_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Pending_chan_compiled
 };
 
@@ -9377,7 +9377,7 @@ static const struct CompiledMethod Method_Kernel_Pending_msg_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Pending_msg_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Pending_msg_compiled
 };
 
@@ -9389,7 +9389,7 @@ static const struct CompiledMethod Method_Kernel_Pending_repeating_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Pending_repeating_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Pending_repeating_compiled
 };
 
@@ -9401,7 +9401,7 @@ static const struct CompiledMethod Method_Kernel_Pending_setChan_msg_repeating__
     0
 };
 static const struct Closure Method_Kernel_Pending_setChan_msg_repeating__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Pending_setChan_msg_repeating__compiled
 };
 
@@ -9414,7 +9414,7 @@ static const struct CompiledMethod Method_Meta_Kernel_Pending_chan_msg_repeating
     0
 };
 static const struct Closure Method_Meta_Kernel_Pending_chan_msg_repeating__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Meta_Kernel_Pending_chan_msg_repeating__compiled
 };
 
@@ -9427,7 +9427,7 @@ static const struct CompiledMethod Method_Kernel_Pending_init_new_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Pending_init_new_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Pending_init_new_compiled
 };
 
@@ -9440,7 +9440,7 @@ static const struct CompiledMethod Method_Kernel_Timers_after_post_on__compiled 
     0
 };
 static const struct Closure Method_Kernel_Timers_after_post_on__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Timers_after_post_on__compiled
 };
 
@@ -9453,7 +9453,7 @@ static const struct CompiledMethod Method_Kernel_Timers_every_post_on__compiled 
     0
 };
 static const struct Closure Method_Kernel_Timers_every_post_on__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Timers_every_post_on__compiled
 };
 
@@ -9466,7 +9466,7 @@ static const struct CompiledMethod Method_Kernel_Timers_cancel__compiled = {
     0
 };
 static const struct Closure Method_Kernel_Timers_cancel__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Timers_cancel__compiled
 };
 
@@ -9479,7 +9479,7 @@ static const struct CompiledMethod Method_Kernel_Timers_pendingCount_compiled = 
     0
 };
 static const struct Closure Method_Kernel_Timers_pendingCount_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Timers_pendingCount_compiled
 };
 
@@ -9492,7 +9492,7 @@ static const struct CompiledMethod Method_Kernel_Timers_cancelAddressedBy__compi
     0
 };
 static const struct Closure Method_Kernel_Timers_cancelAddressedBy__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Timers_cancelAddressedBy__compiled
 };
 
@@ -9505,7 +9505,7 @@ static const struct CompiledMethod Method_Kernel_Timers_is_under__compiled = {
     0
 };
 static const struct Closure Method_Kernel_Timers_is_under__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Timers_is_under__compiled
 };
 
@@ -9518,7 +9518,7 @@ static const struct CompiledMethod Method_Kernel_Timers_now_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Timers_now_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Timers_now_compiled
 };
 
@@ -9531,7 +9531,7 @@ static const struct CompiledMethod Method_Kernel_Timers_dispatch__compiled = {
     0
 };
 static const struct Closure Method_Kernel_Timers_dispatch__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Timers_dispatch__compiled
 };
 
@@ -9544,7 +9544,7 @@ static const struct CompiledMethod Method_Kernel_Timers_allocateToken_compiled =
     0
 };
 static const struct Closure Method_Kernel_Timers_allocateToken_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Timers_allocateToken_compiled
 };
 
@@ -9556,7 +9556,7 @@ static const struct CompiledMethod Method_Kernel_Timers_setSpace_seam__compiled 
     0
 };
 static const struct Closure Method_Kernel_Timers_setSpace_seam__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Timers_setSpace_seam__compiled
 };
 
@@ -9569,7 +9569,7 @@ static const struct CompiledMethod Method_Meta_Kernel_Timers_usingSpace_seam__co
     0
 };
 static const struct Closure Method_Meta_Kernel_Timers_usingSpace_seam__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Meta_Kernel_Timers_usingSpace_seam__compiled
 };
 
@@ -9582,7 +9582,7 @@ static const struct CompiledMethod Method_Kernel_Timers_init_new_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Timers_init_new_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Timers_init_new_compiled
 };
 
@@ -9595,7 +9595,7 @@ static const struct CompiledMethod Method_Kernel_GpioPulse_pin_edge_post_on__com
     0
 };
 static const struct Closure Method_Kernel_GpioPulse_pin_edge_post_on__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_GpioPulse_pin_edge_post_on__compiled
 };
 
@@ -9608,7 +9608,7 @@ static const struct CompiledMethod Method_Kernel_GpioPulse_fire__compiled = {
     0
 };
 static const struct Closure Method_Kernel_GpioPulse_fire__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_GpioPulse_fire__compiled
 };
 
@@ -9621,7 +9621,7 @@ static const struct CompiledMethod Method_Kernel_GpioPulse_set_to__compiled = {
     0
 };
 static const struct Closure Method_Kernel_GpioPulse_set_to__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_GpioPulse_set_to__compiled
 };
 
@@ -9634,7 +9634,7 @@ static const struct CompiledMethod Method_Kernel_GpioPulse_level__compiled = {
     0
 };
 static const struct Closure Method_Kernel_GpioPulse_level__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_GpioPulse_level__compiled
 };
 
@@ -9646,7 +9646,7 @@ static const struct CompiledMethod Method_Kernel_GpioPulse_setSpace_seam__compil
     0
 };
 static const struct Closure Method_Kernel_GpioPulse_setSpace_seam__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_GpioPulse_setSpace_seam__compiled
 };
 
@@ -9659,7 +9659,7 @@ static const struct CompiledMethod Method_Meta_Kernel_GpioPulse_usingSpace_seam_
     0
 };
 static const struct Closure Method_Meta_Kernel_GpioPulse_usingSpace_seam__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Meta_Kernel_GpioPulse_usingSpace_seam__compiled
 };
 
@@ -9672,7 +9672,7 @@ static const struct CompiledMethod Method_Kernel_GpioPulse_init_new_compiled = {
     0
 };
 static const struct Closure Method_Kernel_GpioPulse_init_new_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_GpioPulse_init_new_compiled
 };
 
@@ -9685,7 +9685,7 @@ static const struct CompiledMethod Method_Kernel_Display_clear_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Display_clear_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Display_clear_compiled
 };
 
@@ -9698,7 +9698,7 @@ static const struct CompiledMethod Method_Kernel_Display_at_col_put__compiled = 
     0
 };
 static const struct Closure Method_Kernel_Display_at_col_put__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Display_at_col_put__compiled
 };
 
@@ -9711,7 +9711,7 @@ static const struct CompiledMethod Method_Kernel_Display_refresh_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Display_refresh_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Display_refresh_compiled
 };
 
@@ -9724,7 +9724,7 @@ static const struct CompiledMethod Method_Kernel_Display_refreshRow__compiled = 
     0
 };
 static const struct Closure Method_Kernel_Display_refreshRow__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Display_refreshRow__compiled
 };
 
@@ -9737,7 +9737,7 @@ static const struct CompiledMethod Method_Kernel_Display_check__compiled = {
     0
 };
 static const struct Closure Method_Kernel_Display_check__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Display_check__compiled
 };
 
@@ -9749,7 +9749,7 @@ static const struct CompiledMethod Method_Kernel_Display_setSeam__compiled = {
     0
 };
 static const struct Closure Method_Kernel_Display_setSeam__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Display_setSeam__compiled
 };
 
@@ -9762,7 +9762,7 @@ static const struct CompiledMethod Method_Meta_Kernel_Display_usingSeam__compile
     0
 };
 static const struct Closure Method_Meta_Kernel_Display_usingSeam__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Meta_Kernel_Display_usingSeam__compiled
 };
 
@@ -9775,7 +9775,7 @@ static const struct CompiledMethod Method_Kernel_Display_init_new_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Display_init_new_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Display_init_new_compiled
 };
 
@@ -9788,7 +9788,7 @@ static const struct CompiledMethod Method_Kernel_Bell_strike__compiled = {
     0
 };
 static const struct Closure Method_Kernel_Bell_strike__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Bell_strike__compiled
 };
 
@@ -9801,7 +9801,7 @@ static const struct CompiledMethod Method_Kernel_Bell_bellsForHalfHour__compiled
     0
 };
 static const struct Closure Method_Kernel_Bell_bellsForHalfHour__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Bell_bellsForHalfHour__compiled
 };
 
@@ -9814,7 +9814,7 @@ static const struct CompiledMethod Method_Kernel_Bell_check__compiled = {
     0
 };
 static const struct Closure Method_Kernel_Bell_check__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Bell_check__compiled
 };
 
@@ -9826,7 +9826,7 @@ static const struct CompiledMethod Method_Kernel_Bell_setSeam__compiled = {
     0
 };
 static const struct Closure Method_Kernel_Bell_setSeam__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Bell_setSeam__compiled
 };
 
@@ -9839,7 +9839,7 @@ static const struct CompiledMethod Method_Meta_Kernel_Bell_usingSeam__compiled =
     0
 };
 static const struct Closure Method_Meta_Kernel_Bell_usingSeam__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Meta_Kernel_Bell_usingSeam__compiled
 };
 
@@ -9852,7 +9852,7 @@ static const struct CompiledMethod Method_Kernel_Bell_init_new_compiled = {
     0
 };
 static const struct Closure Method_Kernel_Bell_init_new_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_Bell_init_new_compiled
 };
 
@@ -9865,7 +9865,7 @@ static const struct CompiledMethod Method_Kernel_RtcAlarm_at_post_on__compiled =
     0
 };
 static const struct Closure Method_Kernel_RtcAlarm_at_post_on__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_RtcAlarm_at_post_on__compiled
 };
 
@@ -9877,7 +9877,7 @@ static const struct CompiledMethod Method_Kernel_RtcAlarm_setSpace_seam__compile
     0
 };
 static const struct Closure Method_Kernel_RtcAlarm_setSpace_seam__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_RtcAlarm_setSpace_seam__compiled
 };
 
@@ -9890,7 +9890,7 @@ static const struct CompiledMethod Method_Meta_Kernel_RtcAlarm_usingSpace_seam__
     0
 };
 static const struct Closure Method_Meta_Kernel_RtcAlarm_usingSpace_seam__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Meta_Kernel_RtcAlarm_usingSpace_seam__compiled
 };
 
@@ -9903,7 +9903,7 @@ static const struct CompiledMethod Method_Kernel_RtcAlarm_init_new_compiled = {
     0
 };
 static const struct Closure Method_Kernel_RtcAlarm_init_new_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Kernel_RtcAlarm_init_new_compiled
 };
 
@@ -9916,7 +9916,7 @@ static const struct CompiledMethod Method_Supervisor_run_platform_args_debug__co
     0
 };
 static const struct Closure Method_Supervisor_run_platform_args_debug__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Supervisor_run_platform_args_debug__compiled
 };
 
@@ -9929,7 +9929,7 @@ static const struct CompiledMethod Method_Supervisor_ObjectMirror_compiled = {
     0
 };
 static const struct Closure Method_Supervisor_ObjectMirror_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Supervisor_ObjectMirror_compiled
 };
 
@@ -9942,7 +9942,7 @@ static const struct CompiledMethod Method_Supervisor_ContextMirror_compiled = {
     0
 };
 static const struct Closure Method_Supervisor_ContextMirror_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Supervisor_ContextMirror_compiled
 };
 
@@ -9955,7 +9955,7 @@ static const struct CompiledMethod Method_Supervisor_Debugger_compiled = {
     0
 };
 static const struct Closure Method_Supervisor_Debugger_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Supervisor_Debugger_compiled
 };
 
@@ -9968,7 +9968,7 @@ static const struct CompiledMethod Method_Supervisor_init_mirror__compiled = {
     0
 };
 static const struct Closure Method_Supervisor_init_mirror__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Supervisor_init_mirror__compiled
 };
 
@@ -9981,7 +9981,7 @@ static const struct CompiledMethod Method_Supervisor_ObjectMirror_vtable_compile
     0
 };
 static const struct Closure Method_Supervisor_ObjectMirror_vtable_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Supervisor_ObjectMirror_vtable_compiled
 };
 
@@ -9994,7 +9994,7 @@ static const struct CompiledMethod Method_Supervisor_ObjectMirror_bindings_compi
     0
 };
 static const struct Closure Method_Supervisor_ObjectMirror_bindings_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Supervisor_ObjectMirror_bindings_compiled
 };
 
@@ -10006,7 +10006,7 @@ static const struct CompiledMethod Method_Supervisor_ObjectMirror_reflectee_comp
     0
 };
 static const struct Closure Method_Supervisor_ObjectMirror_reflectee_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Supervisor_ObjectMirror_reflectee_compiled
 };
 
@@ -10018,7 +10018,7 @@ static const struct CompiledMethod Method_Supervisor_ObjectMirror_init_m_obj__co
     0
 };
 static const struct Closure Method_Supervisor_ObjectMirror_init_m_obj__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Supervisor_ObjectMirror_init_m_obj__compiled
 };
 
@@ -10030,7 +10030,7 @@ static const struct CompiledMethod Method_Supervisor_ContextMirror_context_compi
     0
 };
 static const struct Closure Method_Supervisor_ContextMirror_context_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Supervisor_ContextMirror_context_compiled
 };
 
@@ -10043,7 +10043,7 @@ static const struct CompiledMethod Method_Supervisor_ContextMirror_rawSender_com
     0
 };
 static const struct Closure Method_Supervisor_ContextMirror_rawSender_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Supervisor_ContextMirror_rawSender_compiled
 };
 
@@ -10056,7 +10056,7 @@ static const struct CompiledMethod Method_Supervisor_ContextMirror_sender_compil
     0
 };
 static const struct Closure Method_Supervisor_ContextMirror_sender_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Supervisor_ContextMirror_sender_compiled
 };
 
@@ -10069,7 +10069,7 @@ static const struct CompiledMethod Method_Supervisor_ContextMirror_pc_compiled =
     0
 };
 static const struct Closure Method_Supervisor_ContextMirror_pc_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Supervisor_ContextMirror_pc_compiled
 };
 
@@ -10082,7 +10082,7 @@ static const struct CompiledMethod Method_Supervisor_ContextMirror_offset_compil
     0
 };
 static const struct Closure Method_Supervisor_ContextMirror_offset_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Supervisor_ContextMirror_offset_compiled
 };
 
@@ -10095,7 +10095,7 @@ static const struct CompiledMethod Method_Supervisor_ContextMirror_registerAt__c
     0
 };
 static const struct Closure Method_Supervisor_ContextMirror_registerAt__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Supervisor_ContextMirror_registerAt__compiled
 };
 
@@ -10108,7 +10108,7 @@ static const struct CompiledMethod Method_Supervisor_ContextMirror_registerAt_pu
     0
 };
 static const struct Closure Method_Supervisor_ContextMirror_registerAt_put__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Supervisor_ContextMirror_registerAt_put__compiled
 };
 
@@ -10121,7 +10121,7 @@ static const struct CompiledMethod Method_Supervisor_ContextMirror_numRegisters_
     0
 };
 static const struct Closure Method_Supervisor_ContextMirror_numRegisters_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Supervisor_ContextMirror_numRegisters_compiled
 };
 
@@ -10133,7 +10133,7 @@ static const struct CompiledMethod Method_Supervisor_ContextMirror_init_m_ctx__c
     0
 };
 static const struct Closure Method_Supervisor_ContextMirror_init_m_ctx__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Supervisor_ContextMirror_init_m_ctx__compiled
 };
 
@@ -10145,7 +10145,7 @@ static const struct CompiledMethod Method_Supervisor_Debugger_registerEntry__com
     0
 };
 static const struct Closure Method_Supervisor_Debugger_registerEntry__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Supervisor_Debugger_registerEntry__compiled
 };
 
@@ -10158,7 +10158,7 @@ static const struct CompiledMethod Method_Supervisor_Debugger_buildRegistry_comp
     0
 };
 static const struct Closure Method_Supervisor_Debugger_buildRegistry_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Supervisor_Debugger_buildRegistry_compiled
 };
 
@@ -10171,7 +10171,7 @@ static const struct CompiledMethod Method_Supervisor_Debugger_listMethods_compil
     0
 };
 static const struct Closure Method_Supervisor_Debugger_listMethods_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Supervisor_Debugger_listMethods_compiled
 };
 
@@ -10184,7 +10184,7 @@ static const struct CompiledMethod Method_Supervisor_Debugger_methodAt__compiled
     0
 };
 static const struct Closure Method_Supervisor_Debugger_methodAt__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Supervisor_Debugger_methodAt__compiled
 };
 
@@ -10197,7 +10197,7 @@ static const struct CompiledMethod Method_Supervisor_Debugger_parseInt__compiled
     0
 };
 static const struct Closure Method_Supervisor_Debugger_parseInt__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Supervisor_Debugger_parseInt__compiled
 };
 
@@ -10210,7 +10210,7 @@ static const struct CompiledMethod Method_Supervisor_Debugger_ensureBp_compiled 
     0
 };
 static const struct Closure Method_Supervisor_Debugger_ensureBp_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Supervisor_Debugger_ensureBp_compiled
 };
 
@@ -10223,7 +10223,7 @@ static const struct CompiledMethod Method_Supervisor_Debugger_break_at__compiled
     0
 };
 static const struct Closure Method_Supervisor_Debugger_break_at__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Supervisor_Debugger_break_at__compiled
 };
 
@@ -10236,7 +10236,7 @@ static const struct CompiledMethod Method_Supervisor_Debugger_clear_at__compiled
     0
 };
 static const struct Closure Method_Supervisor_Debugger_clear_at__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Supervisor_Debugger_clear_at__compiled
 };
 
@@ -10249,7 +10249,7 @@ static const struct CompiledMethod Method_Supervisor_Debugger_doBreak__compiled 
     0
 };
 static const struct Closure Method_Supervisor_Debugger_doBreak__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Supervisor_Debugger_doBreak__compiled
 };
 
@@ -10262,7 +10262,7 @@ static const struct CompiledMethod Method_Supervisor_Debugger_doClear__compiled 
     0
 };
 static const struct Closure Method_Supervisor_Debugger_doClear__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Supervisor_Debugger_doClear__compiled
 };
 
@@ -10275,7 +10275,7 @@ static const struct CompiledMethod Method_Supervisor_Debugger_onBreakContext__co
     0
 };
 static const struct Closure Method_Supervisor_Debugger_onBreakContext__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Supervisor_Debugger_onBreakContext__compiled
 };
 
@@ -10288,7 +10288,7 @@ static const struct CompiledMethod Method_Supervisor_Debugger_depthOf__compiled 
     0
 };
 static const struct Closure Method_Supervisor_Debugger_depthOf__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Supervisor_Debugger_depthOf__compiled
 };
 
@@ -10301,7 +10301,7 @@ static const struct CompiledMethod Method_Supervisor_Debugger_methodIdOfCtx__com
     0
 };
 static const struct Closure Method_Supervisor_Debugger_methodIdOfCtx__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Supervisor_Debugger_methodIdOfCtx__compiled
 };
 
@@ -10314,7 +10314,7 @@ static const struct CompiledMethod Method_Supervisor_Debugger_doInspect__compile
     0
 };
 static const struct Closure Method_Supervisor_Debugger_doInspect__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Supervisor_Debugger_doInspect__compiled
 };
 
@@ -10327,7 +10327,7 @@ static const struct CompiledMethod Method_Supervisor_Debugger_initialLoop_compil
     0
 };
 static const struct Closure Method_Supervisor_Debugger_initialLoop_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Supervisor_Debugger_initialLoop_compiled
 };
 
@@ -10340,7 +10340,7 @@ static const struct CompiledMethod Method_Supervisor_Debugger_commandLoop_compil
     0
 };
 static const struct Closure Method_Supervisor_Debugger_commandLoop_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Supervisor_Debugger_commandLoop_compiled
 };
 
@@ -10353,7 +10353,7 @@ static const struct CompiledMethod Method_Supervisor_Debugger_verbOf__compiled =
     0
 };
 static const struct Closure Method_Supervisor_Debugger_verbOf__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Supervisor_Debugger_verbOf__compiled
 };
 
@@ -10366,7 +10366,7 @@ static const struct CompiledMethod Method_Supervisor_Debugger_init_m_io__compile
     0
 };
 static const struct Closure Method_Supervisor_Debugger_init_m_io__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Supervisor_Debugger_init_m_io__compiled
 };
 
@@ -10379,7 +10379,7 @@ static const struct CompiledMethod Method_Block_Kernel_block1_value__compiled = 
     0
 };
 static const struct Closure Method_Block_Kernel_block1_value__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Block_Kernel_block1_value__compiled
 };
 
@@ -10392,7 +10392,7 @@ static const struct CompiledMethod Method_Block_Kernel_block2_value___compiled =
     0
 };
 static const struct Closure Method_Block_Kernel_block2_value___closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Block_Kernel_block2_value___compiled
 };
 
@@ -10405,7 +10405,7 @@ static const struct CompiledMethod Method_Block_Kernel_Collection_block3_value__
     0
 };
 static const struct Closure Method_Block_Kernel_Collection_block3_value___closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Block_Kernel_Collection_block3_value___compiled
 };
 
@@ -10418,7 +10418,7 @@ static const struct CompiledMethod Method_Block_Kernel_Collection_block4_value__
     0
 };
 static const struct Closure Method_Block_Kernel_Collection_block4_value__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Block_Kernel_Collection_block4_value__compiled
 };
 
@@ -10431,7 +10431,7 @@ static const struct CompiledMethod Method_Block_Kernel_Collection_block5_value__
     0
 };
 static const struct Closure Method_Block_Kernel_Collection_block5_value__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Block_Kernel_Collection_block5_value__compiled
 };
 
@@ -10444,7 +10444,7 @@ static const struct CompiledMethod Method_Block_Kernel_Collection_block6_value__
     0
 };
 static const struct Closure Method_Block_Kernel_Collection_block6_value__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Block_Kernel_Collection_block6_value__compiled
 };
 
@@ -10457,7 +10457,7 @@ static const struct CompiledMethod Method_Block_Kernel_Collection_block7_value__
     0
 };
 static const struct Closure Method_Block_Kernel_Collection_block7_value__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Block_Kernel_Collection_block7_value__compiled
 };
 
@@ -10470,7 +10470,7 @@ static const struct CompiledMethod Method_Block_Kernel_Collection_block8_value__
     0
 };
 static const struct Closure Method_Block_Kernel_Collection_block8_value___closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Block_Kernel_Collection_block8_value___compiled
 };
 
@@ -10483,7 +10483,7 @@ static const struct CompiledMethod Method_Block_Kernel_Collection_block9_value__
     0
 };
 static const struct Closure Method_Block_Kernel_Collection_block9_value__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Block_Kernel_Collection_block9_value__compiled
 };
 
@@ -10496,7 +10496,7 @@ static const struct CompiledMethod Method_Block_Kernel_Collection_block10_value_
     0
 };
 static const struct Closure Method_Block_Kernel_Collection_block10_value__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Block_Kernel_Collection_block10_value__compiled
 };
 
@@ -10509,7 +10509,7 @@ static const struct CompiledMethod Method_Block_Kernel_Collection_block11_value_
     0
 };
 static const struct Closure Method_Block_Kernel_Collection_block11_value_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Block_Kernel_Collection_block11_value_compiled
 };
 
@@ -10522,7 +10522,7 @@ static const struct CompiledMethod Method_Block_Kernel_Collection_block12_value_
     0
 };
 static const struct Closure Method_Block_Kernel_Collection_block12_value__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Block_Kernel_Collection_block12_value__compiled
 };
 
@@ -10535,7 +10535,7 @@ static const struct CompiledMethod Method_Block_Kernel_Collection_block13_value_
     0
 };
 static const struct Closure Method_Block_Kernel_Collection_block13_value__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Block_Kernel_Collection_block13_value__compiled
 };
 
@@ -10548,7 +10548,7 @@ static const struct CompiledMethod Method_Block_Kernel_Collection_block14_value_
     0
 };
 static const struct Closure Method_Block_Kernel_Collection_block14_value___closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Block_Kernel_Collection_block14_value___compiled
 };
 
@@ -10561,7 +10561,7 @@ static const struct CompiledMethod Method_Block_Kernel_Collection_block15_value_
     0
 };
 static const struct Closure Method_Block_Kernel_Collection_block15_value__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Block_Kernel_Collection_block15_value__compiled
 };
 
@@ -10574,7 +10574,7 @@ static const struct CompiledMethod Method_Block_Kernel_Collection_block16_value_
     0
 };
 static const struct Closure Method_Block_Kernel_Collection_block16_value__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Block_Kernel_Collection_block16_value__compiled
 };
 
@@ -10587,7 +10587,7 @@ static const struct CompiledMethod Method_Block_Kernel_Collection_block17_value_
     0
 };
 static const struct Closure Method_Block_Kernel_Collection_block17_value___closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Block_Kernel_Collection_block17_value___compiled
 };
 
@@ -10600,7 +10600,7 @@ static const struct CompiledMethod Method_Block_Kernel_Collection_block18_value_
     0
 };
 static const struct Closure Method_Block_Kernel_Collection_block18_value_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Block_Kernel_Collection_block18_value_compiled
 };
 
@@ -10613,7 +10613,7 @@ static const struct CompiledMethod Method_Block_Kernel_Collection_block19_value_
     0
 };
 static const struct Closure Method_Block_Kernel_Collection_block19_value__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Block_Kernel_Collection_block19_value__compiled
 };
 
@@ -10626,7 +10626,7 @@ static const struct CompiledMethod Method_Block_Kernel_Collection_block20_value_
     0
 };
 static const struct Closure Method_Block_Kernel_Collection_block20_value__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Block_Kernel_Collection_block20_value__compiled
 };
 
@@ -10639,7 +10639,7 @@ static const struct CompiledMethod Method_Block_Kernel_Collection_block21_value_
     0
 };
 static const struct Closure Method_Block_Kernel_Collection_block21_value_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Block_Kernel_Collection_block21_value_compiled
 };
 
@@ -10652,7 +10652,7 @@ static const struct CompiledMethod Method_Block_Kernel_Collection_block22_value_
     0
 };
 static const struct Closure Method_Block_Kernel_Collection_block22_value_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Block_Kernel_Collection_block22_value_compiled
 };
 
@@ -10665,7 +10665,7 @@ static const struct CompiledMethod Method_Block_Kernel_OrderedCollection_block23
     0
 };
 static const struct Closure Method_Block_Kernel_OrderedCollection_block23_value___closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Block_Kernel_OrderedCollection_block23_value___compiled
 };
 
@@ -10678,7 +10678,7 @@ static const struct CompiledMethod Method_Block_Kernel_OrderedCollection_block24
     0
 };
 static const struct Closure Method_Block_Kernel_OrderedCollection_block24_value__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Block_Kernel_OrderedCollection_block24_value__compiled
 };
 
@@ -10691,7 +10691,7 @@ static const struct CompiledMethod Method_Block_Kernel_OrderedCollection_block25
     0
 };
 static const struct Closure Method_Block_Kernel_OrderedCollection_block25_value__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Block_Kernel_OrderedCollection_block25_value__compiled
 };
 
@@ -10704,7 +10704,7 @@ static const struct CompiledMethod Method_Block_Kernel_Set_block26_value__compil
     0
 };
 static const struct Closure Method_Block_Kernel_Set_block26_value__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Block_Kernel_Set_block26_value__compiled
 };
 
@@ -10717,7 +10717,7 @@ static const struct CompiledMethod Method_Block_Kernel_Set_block27_value_compile
     0
 };
 static const struct Closure Method_Block_Kernel_Set_block27_value_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Block_Kernel_Set_block27_value_compiled
 };
 
@@ -10730,7 +10730,7 @@ static const struct CompiledMethod Method_Block_Kernel_Dictionary_block28_value_
     0
 };
 static const struct Closure Method_Block_Kernel_Dictionary_block28_value_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Block_Kernel_Dictionary_block28_value_compiled
 };
 
@@ -10743,7 +10743,7 @@ static const struct CompiledMethod Method_Block_Kernel_Dictionary_block29_value_
     0
 };
 static const struct Closure Method_Block_Kernel_Dictionary_block29_value_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Block_Kernel_Dictionary_block29_value_compiled
 };
 
@@ -10756,7 +10756,7 @@ static const struct CompiledMethod Method_Block_Kernel_List_block30_value__compi
     0
 };
 static const struct Closure Method_Block_Kernel_List_block30_value__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Block_Kernel_List_block30_value__compiled
 };
 
@@ -10769,7 +10769,7 @@ static const struct CompiledMethod Method_Block_Kernel_List_block31_value__compi
     0
 };
 static const struct Closure Method_Block_Kernel_List_block31_value__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Block_Kernel_List_block31_value__compiled
 };
 
@@ -10782,7 +10782,7 @@ static const struct CompiledMethod Method_Block_Meta_Kernel_List_block32_value__
     0
 };
 static const struct Closure Method_Block_Meta_Kernel_List_block32_value__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Block_Meta_Kernel_List_block32_value__compiled
 };
 
@@ -10795,7 +10795,7 @@ static const struct CompiledMethod Method_Block_Kernel_Cbor_block33_value__compi
     0
 };
 static const struct Closure Method_Block_Kernel_Cbor_block33_value__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Block_Kernel_Cbor_block33_value__compiled
 };
 
@@ -10808,7 +10808,7 @@ static const struct CompiledMethod Method_Block_Kernel_Cbor_block34_value___comp
     0
 };
 static const struct Closure Method_Block_Kernel_Cbor_block34_value___closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Block_Kernel_Cbor_block34_value___compiled
 };
 
@@ -10821,7 +10821,7 @@ static const struct CompiledMethod Method_Block_Kernel_Cbor_block35_value__compi
     0
 };
 static const struct Closure Method_Block_Kernel_Cbor_block35_value__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Block_Kernel_Cbor_block35_value__compiled
 };
 
@@ -10834,7 +10834,7 @@ static const struct CompiledMethod Method_Block_Kernel_Cbor_block36_value_compil
     0
 };
 static const struct Closure Method_Block_Kernel_Cbor_block36_value_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Block_Kernel_Cbor_block36_value_compiled
 };
 
@@ -10847,7 +10847,7 @@ static const struct CompiledMethod Method_Block_Kernel_Cbor_block37_value__compi
     0
 };
 static const struct Closure Method_Block_Kernel_Cbor_block37_value__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Block_Kernel_Cbor_block37_value__compiled
 };
 
@@ -10860,7 +10860,7 @@ static const struct CompiledMethod Method_Block_Kernel_Cbor_block38_block39_valu
     0
 };
 static const struct Closure Method_Block_Kernel_Cbor_block38_block39_value_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Block_Kernel_Cbor_block38_block39_value_compiled
 };
 
@@ -10873,7 +10873,7 @@ static const struct CompiledMethod Method_Block_Kernel_Cbor_block38_value__compi
     0
 };
 static const struct Closure Method_Block_Kernel_Cbor_block38_value__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Block_Kernel_Cbor_block38_value__compiled
 };
 
@@ -10886,7 +10886,7 @@ static const struct CompiledMethod Method_Block_Kernel_SpanCapture_block40_value
     0
 };
 static const struct Closure Method_Block_Kernel_SpanCapture_block40_value__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Block_Kernel_SpanCapture_block40_value__compiled
 };
 
@@ -10899,7 +10899,7 @@ static const struct CompiledMethod Method_Block_Kernel_SpanCapture_block41_value
     0
 };
 static const struct Closure Method_Block_Kernel_SpanCapture_block41_value_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Block_Kernel_SpanCapture_block41_value_compiled
 };
 
@@ -10912,7 +10912,7 @@ static const struct CompiledMethod Method_Block_Kernel_SpanCapture_block42_value
     0
 };
 static const struct Closure Method_Block_Kernel_SpanCapture_block42_value_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Block_Kernel_SpanCapture_block42_value_compiled
 };
 
@@ -10925,7 +10925,7 @@ static const struct CompiledMethod Method_Block_Kernel_NetBridge_block43_value__
     0
 };
 static const struct Closure Method_Block_Kernel_NetBridge_block43_value__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Block_Kernel_NetBridge_block43_value__compiled
 };
 
@@ -10938,7 +10938,7 @@ static const struct CompiledMethod Method_Block_Kernel_NetBridge_block44_value__
     0
 };
 static const struct Closure Method_Block_Kernel_NetBridge_block44_value__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Block_Kernel_NetBridge_block44_value__compiled
 };
 
@@ -10951,7 +10951,7 @@ static const struct CompiledMethod Method_Block_Kernel_PortaBridge_block45_value
     0
 };
 static const struct Closure Method_Block_Kernel_PortaBridge_block45_value__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Block_Kernel_PortaBridge_block45_value__compiled
 };
 
@@ -10964,7 +10964,7 @@ static const struct CompiledMethod Method_Block_Kernel_PortaBridge_block46_value
     0
 };
 static const struct Closure Method_Block_Kernel_PortaBridge_block46_value__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Block_Kernel_PortaBridge_block46_value__compiled
 };
 
@@ -10977,7 +10977,7 @@ static const struct CompiledMethod Method_Block_Kernel_PortaBridge_block47_value
     0
 };
 static const struct Closure Method_Block_Kernel_PortaBridge_block47_value_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Block_Kernel_PortaBridge_block47_value_compiled
 };
 
@@ -10989,7 +10989,7 @@ static const struct CompiledMethod Method_Block_Kernel_PortaBridge_block48_value
     0
 };
 static const struct Closure Method_Block_Kernel_PortaBridge_block48_value_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Block_Kernel_PortaBridge_block48_value_compiled
 };
 
@@ -11002,7 +11002,7 @@ static const struct CompiledMethod Method_Block_Kernel_PortaBridge_block49_value
     0
 };
 static const struct Closure Method_Block_Kernel_PortaBridge_block49_value__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Block_Kernel_PortaBridge_block49_value__compiled
 };
 
@@ -11015,7 +11015,7 @@ static const struct CompiledMethod Method_Block_Kernel_PortaBridge_block50_value
     0
 };
 static const struct Closure Method_Block_Kernel_PortaBridge_block50_value_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Block_Kernel_PortaBridge_block50_value_compiled
 };
 
@@ -11028,7 +11028,7 @@ static const struct CompiledMethod Method_Block_Kernel_PortaBridge_block51_value
     0
 };
 static const struct Closure Method_Block_Kernel_PortaBridge_block51_value_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Block_Kernel_PortaBridge_block51_value_compiled
 };
 
@@ -11041,7 +11041,7 @@ static const struct CompiledMethod Method_Block_Kernel_PortaBridge_block52_value
     0
 };
 static const struct Closure Method_Block_Kernel_PortaBridge_block52_value_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Block_Kernel_PortaBridge_block52_value_compiled
 };
 
@@ -11054,7 +11054,7 @@ static const struct CompiledMethod Method_Block_Kernel_PortaBridge_block53_value
     0
 };
 static const struct Closure Method_Block_Kernel_PortaBridge_block53_value_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Block_Kernel_PortaBridge_block53_value_compiled
 };
 
@@ -11067,7 +11067,7 @@ static const struct CompiledMethod Method_Block_Kernel_PortaBridge_block54_value
     0
 };
 static const struct Closure Method_Block_Kernel_PortaBridge_block54_value_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Block_Kernel_PortaBridge_block54_value_compiled
 };
 
@@ -11080,7 +11080,7 @@ static const struct CompiledMethod Method_Block_Kernel_PortaBridge_block55_value
     0
 };
 static const struct Closure Method_Block_Kernel_PortaBridge_block55_value__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Block_Kernel_PortaBridge_block55_value__compiled
 };
 
@@ -11093,7 +11093,7 @@ static const struct CompiledMethod Method_Block_Kernel_Channel_block56_value_com
     0
 };
 static const struct Closure Method_Block_Kernel_Channel_block56_value_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Block_Kernel_Channel_block56_value_compiled
 };
 
@@ -11106,7 +11106,7 @@ static const struct CompiledMethod Method_Block_Kernel_Channel_block57_value_com
     0
 };
 static const struct Closure Method_Block_Kernel_Channel_block57_value_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Block_Kernel_Channel_block57_value_compiled
 };
 
@@ -11119,7 +11119,7 @@ static const struct CompiledMethod Method_Block_Kernel_Space_block58_value_compi
     0
 };
 static const struct Closure Method_Block_Kernel_Space_block58_value_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Block_Kernel_Space_block58_value_compiled
 };
 
@@ -11132,7 +11132,7 @@ static const struct CompiledMethod Method_Block_Kernel_Space_block59_value_compi
     0
 };
 static const struct Closure Method_Block_Kernel_Space_block59_value_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Block_Kernel_Space_block59_value_compiled
 };
 
@@ -11145,7 +11145,7 @@ static const struct CompiledMethod Method_Block_Kernel_Supervisor_block60_value_
     0
 };
 static const struct Closure Method_Block_Kernel_Supervisor_block60_value__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Block_Kernel_Supervisor_block60_value__compiled
 };
 
@@ -11158,7 +11158,7 @@ static const struct CompiledMethod Method_Block_Kernel_Supervisor_block61_value_
     0
 };
 static const struct Closure Method_Block_Kernel_Supervisor_block61_value__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Block_Kernel_Supervisor_block61_value__compiled
 };
 
@@ -11171,7 +11171,7 @@ static const struct CompiledMethod Method_Block_Kernel_Supervisor_block62_value_
     0
 };
 static const struct Closure Method_Block_Kernel_Supervisor_block62_value__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Block_Kernel_Supervisor_block62_value__compiled
 };
 
@@ -11184,7 +11184,7 @@ static const struct CompiledMethod Method_Block_Kernel_Supervisor_block63_value_
     0
 };
 static const struct Closure Method_Block_Kernel_Supervisor_block63_value_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Block_Kernel_Supervisor_block63_value_compiled
 };
 
@@ -11197,7 +11197,7 @@ static const struct CompiledMethod Method_Block_Kernel_Supervisor_block64_value_
     0
 };
 static const struct Closure Method_Block_Kernel_Supervisor_block64_value_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Block_Kernel_Supervisor_block64_value_compiled
 };
 
@@ -11210,7 +11210,7 @@ static const struct CompiledMethod Method_Block_Kernel_Supervisor_block65_value_
     0
 };
 static const struct Closure Method_Block_Kernel_Supervisor_block65_value__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Block_Kernel_Supervisor_block65_value__compiled
 };
 
@@ -11223,7 +11223,7 @@ static const struct CompiledMethod Method_Block_Kernel_Supervisor_block66_value_
     0
 };
 static const struct Closure Method_Block_Kernel_Supervisor_block66_value_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Block_Kernel_Supervisor_block66_value_compiled
 };
 
@@ -11236,7 +11236,7 @@ static const struct CompiledMethod Method_Block_Kernel_Protocol_block67_value_co
     0
 };
 static const struct Closure Method_Block_Kernel_Protocol_block67_value_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Block_Kernel_Protocol_block67_value_compiled
 };
 
@@ -11249,7 +11249,7 @@ static const struct CompiledMethod Method_Block_Kernel_Protocol_block68_value_co
     0
 };
 static const struct Closure Method_Block_Kernel_Protocol_block68_value_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Block_Kernel_Protocol_block68_value_compiled
 };
 
@@ -11262,7 +11262,7 @@ static const struct CompiledMethod Method_Block_Kernel_Protocol_block69_value_co
     0
 };
 static const struct Closure Method_Block_Kernel_Protocol_block69_value_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Block_Kernel_Protocol_block69_value_compiled
 };
 
@@ -11275,7 +11275,7 @@ static const struct CompiledMethod Method_Block_Kernel_Protocol_block70_block71_
     0
 };
 static const struct Closure Method_Block_Kernel_Protocol_block70_block71_value__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Block_Kernel_Protocol_block70_block71_value__compiled
 };
 
@@ -11288,7 +11288,7 @@ static const struct CompiledMethod Method_Block_Kernel_Protocol_block70_value__c
     0
 };
 static const struct Closure Method_Block_Kernel_Protocol_block70_value__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Block_Kernel_Protocol_block70_value__compiled
 };
 
@@ -11301,7 +11301,7 @@ static const struct CompiledMethod Method_Block_Kernel_Protocol_block72_value_co
     0
 };
 static const struct Closure Method_Block_Kernel_Protocol_block72_value_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Block_Kernel_Protocol_block72_value_compiled
 };
 
@@ -11314,7 +11314,7 @@ static const struct CompiledMethod Method_Block_Kernel_Timers_block73_value_comp
     0
 };
 static const struct Closure Method_Block_Kernel_Timers_block73_value_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Block_Kernel_Timers_block73_value_compiled
 };
 
@@ -11327,7 +11327,7 @@ static const struct CompiledMethod Method_Block_Kernel_Timers_block74_value_comp
     0
 };
 static const struct Closure Method_Block_Kernel_Timers_block74_value_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Block_Kernel_Timers_block74_value_compiled
 };
 
@@ -11340,7 +11340,7 @@ static const struct CompiledMethod Method_Block_Kernel_Timers_block75_value_comp
     0
 };
 static const struct Closure Method_Block_Kernel_Timers_block75_value_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Block_Kernel_Timers_block75_value_compiled
 };
 
@@ -11353,7 +11353,7 @@ static const struct CompiledMethod Method_Block_Supervisor_block76_value__compil
     0
 };
 static const struct Closure Method_Block_Supervisor_block76_value__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL,
     (void *)&Method_Block_Supervisor_block76_value__compiled
 };
 

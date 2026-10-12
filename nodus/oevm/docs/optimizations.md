@@ -32,6 +32,8 @@ measured, whether or not it lands. The numbers and the reasoning live in the rec
 | 10-12 | L1: the access mechanism deleted (check, field, builtin #14, patch line) | AWFY: C6 0.936, WeAct 0.961, host 0.963; STIC: C6 0.986, WeAct 0.997; MCU text −754 B | kept, Opt #12 | `docs/results/2026-10-12-37-send-frame/` |
 | 10-12 | L2: `push_frame` answers its method, one prologue, gcc left to inline | host 1.051 against L1 (gcc inlined 3 of 7 sites); C6 AWFY 0.995, STIC 1.021; WeAct AWFY 1.004, STIC 1.021 | **dead end** | same |
 | 10-12 | L2 with `push_frame` always inlined | host 0.983 against L1; boards: C6 AWFY 0.981, STIC 1.022; WeAct AWFY 1.024, STIC 1.035 | **dead end** on the boards; reverted (Opt #12) | same |
+| 10-12 | L4(c): `gen_tag` dropped (the frame word, both `home_generation` fields, the global increment per frame) | AWFY: C6 0.988, WeAct 0.981; STIC: C6 0.995, WeAct 0.978; MCU text −28 B | kept, Opt #15 | `docs/results/2026-10-12-37-l4/` |
+| 10-12 | L3-lite: `push_frame` and the return read the frame globals once into locals; `ctx` from `push_frame` | against L4(c): C6 AWFY 1.000, STIC 0.999; WeAct AWFY 1.024, STIC 1.037 | **dead end** on the WeAct (the L2 pattern) | same |
 | — | the jump table's bound check (`cmp`/`bhi`) | GCC 12 keeps it despite `__builtin_unreachable()` | open: only computed goto removes it; untried | Opt #11 |
 
 Open levers, not yet tried: the frame and send cost (next), GC performance (pause, throughput, heap high-water),
@@ -781,6 +783,15 @@ The C6 was the last XIP target running the interpreter from flash; `OEVM_HOT` no
 there too (default on). **C6 AWFY 0.951, STIC 0.997** (`docs/results/2026-10-12-37-c6-sram/`): Towers −15 %, CD −17 %,
 DeltaBlue −12 %. Beyond the speed, it ends the placement roulette that made L6's untouched rows move 2–8 % on the C6:
 every XIP target now runs its hot path from RAM, and `run.sh`'s placement report says so after each build.
+
+## Opt #15 — `gen_tag` dropped (rete#37 L4(c), 2026-10-12)
+
+Every frame got a fresh serial number from a global counter, copied into each Closure and Context made in it, and
+nothing ever compared it: the stale-home guard it was meant for was never written (send/frame design Q3). Deleted, with
+both `home_generation` fields. The frame header is five words. **AWFY C6 0.988, WeAct 0.981; STIC C6 0.995, WeAct
+0.978** (`docs/results/2026-10-12-37-l4/`): DeltaBlue −2.4 %, Richards −1.2 %, integerMath −4 to −5 %. The same
+session's L3-lite (frame globals read once into locals) was level on the C6 and lost 2–4 % on the WeAct: a third
+loop-shape change that each target's gcc prices differently.
 
 ## Known weaknesses / tracked gaps (snapshot 2026-06-18)
 

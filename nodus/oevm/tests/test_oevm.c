@@ -107,7 +107,6 @@ static void setup_test_environment(void) {
     // Bind Integer >> double to primitive_integer_double
     oop double_cl = gc_allocate(PrimitiveClosureVtable, sizeof(struct Closure));
     ((struct Closure *)double_cl)->home_ctx = NULL;
-    ((struct Closure *)double_cl)->home_generation = 0;
     ((struct Closure *)double_cl)->entry_point = (void *)primitive_integer_double;
     add_method(IntegerVtable, Symbol_double, double_cl);
 }

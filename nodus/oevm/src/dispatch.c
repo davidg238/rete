@@ -69,7 +69,7 @@ oop stack_alloc(uint32_t capacity) {
    ops for escaping captures. `outer` may be a heap oop we must keep live
    across the allocation (a GC during gc_allocate would otherwise sweep it
    before it's linked into the new Context). */
-OEVM_HOT oop context_alloc(uint32_t num_slots, oop outer, uint32_t home_generation) {
+OEVM_HOT oop context_alloc(uint32_t num_slots, oop outer) {
     extern oop gc_allocate(oop vtable, size_t size);
     extern void gc_temp_root_push(oop o);
     extern int gc_temp_roots_count;
@@ -82,7 +82,6 @@ OEVM_HOT oop context_alloc(uint32_t num_slots, oop outer, uint32_t home_generati
     if (pinned) gc_temp_root_push(outer);
     oop c = gc_allocate(ContextVtable, sizeof(struct Context) + (size_t)num_slots * sizeof(oop));
     struct Context *ctx = (struct Context *)c;
-    ctx->home_generation = home_generation;
     ctx->num_slots = num_slots;
     ctx->outer = outer;
     for (uint32_t i = 0; i < num_slots; i++) ctx->slots[i] = NULL;
@@ -1103,7 +1102,6 @@ OEVM_HOT oop make_closure(oop method) {
        there is no current frame, preserving the old (oop)NULL no-home result. */
     ((struct Closure *)cl)->home_ctx =
         current_frame ? home_link_encode_relative(vm_stack, current_frame) : NULL;
-    ((struct Closure *)cl)->home_generation = current_frame ? current_frame->gen_tag.tag32 : 0;
     ((struct Closure *)cl)->entry_point = (void *)method;
     ((struct Closure *)cl)->captured_env = NULL;  /* set by the OP_CLOSURE path when the creating method has a heap Context */
     /* De-recursify Phase 2 (self-migration, Approach B): snapshot the home method's

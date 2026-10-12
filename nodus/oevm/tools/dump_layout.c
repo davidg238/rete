@@ -35,7 +35,6 @@
   S(Closure) \
     F(Closure, "base.vtable",     1, 0, offsetof(struct Closure, base.vtable)) \
     F(Closure, "home_ctx",        1, 0, offsetof(struct Closure, home_ctx)) \
-    F(Closure, "home_generation", 0, 0, offsetof(struct Closure, home_generation)) \
     F(Closure, "entry_point",     0, 1, offsetof(struct Closure, entry_point)) \
   S(Float) \
     F(Float, "base.vtable", 1, 0, offsetof(struct Float, base.vtable)) \

@@ -169,8 +169,7 @@ struct Vtable {
  * [ Offset 2: saved_pc   ] -> Instruction Pointer return address
  * [ Offset 3: home_ctx   ] -> Lexical Link (discriminated: NULL | relative-SMI; frame_abi.h)
  * [ Offset 4: closure    ] -> The compiled closure being executed
- * [ Offset 5: gen_tag    ] -> 32-bit Lifecycle Generation Counter
- * [ Offset 6...: regs    ] -> Local Register Array (Virtual Address Space)
+ * [ Offset 5...: regs    ] -> Local Register Array (Virtual Address Space)
  */
 struct MethodContext {
     oop vtable;               // Offset 0
@@ -179,23 +178,8 @@ struct MethodContext {
     oop home_ctx;             // Offset 3
     oop closure;              // Offset 4: The compiled closure being executed
 
-    /*
-     * Offset 5: 32-bit Lifecycle Generation Counter.
-     * We use a union with uintptr_t to ensure the offset index layout remains
-     * exactly identical on both 32-bit and 64-bit systems.
-     * On 64-bit hosts, this pads gen_tag to pointer size (8 bytes), keeping
-     * regs at Offset 6.
-     */
-    union {
-        uint32_t tag32;
-        uintptr_t tag_word;
-    } gen_tag;                // Offset 5
-
-    /*
-     * Offset 6...: Local Register Array (Virtual Address Space).
-     * Flexible array member starting at offset 6.
-     */
-    oop regs[];               // Offset 6
+    /* Offset 5...: Local Register Array (Virtual Address Space). */
+    oop regs[];               // Offset 5
 };
 
 /*
@@ -203,13 +187,11 @@ struct MethodContext {
  * It is an Object (inherits from struct Object base).
  * home_ctx: Lexical link to the defining MethodContext frame — discriminated
  *   {NULL | relative-SMI} (frame_abi.h), decoded via vm.c's home_ctx_frame; NOT a raw pointer.
- * home_generation: Generation tag of the home context frame (to prevent dangling returns).
  * entry_point: Pointer to the compiled bytecode or primitive C function.
  */
 struct Closure {
     struct Object base;
     oop home_ctx;
-    uint32_t home_generation;
     void *entry_point;
     oop captured_env;   /* enclosing Context for captured-var access (deferred-lift P1);
                             NULL at top level. Runtime-only — Closures are never
@@ -293,7 +275,7 @@ oop stack_alloc(uint32_t capacity);
    Phase 1). Layout is the L0-reserved struct in frame_abi.h. Private runtime
    vtable — not in builtins.def, not .oimg-serialized. */
 extern oop ContextVtable;
-oop context_alloc(uint32_t num_slots, oop outer, uint32_t home_generation);
+oop context_alloc(uint32_t num_slots, oop outer);
 
 /*
  * ObjectInstance: Standard instance of a class/vtable with dynamic slots.

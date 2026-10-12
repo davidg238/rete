@@ -102,7 +102,6 @@ static void setup_enclosure_environment(void) {
 
     oop cl_outer_method = gc_allocate(BytecodeClosureVtable, sizeof(struct Closure));
     ((struct Closure *)cl_outer_method)->home_ctx = NULL;
-    ((struct Closure *)cl_outer_method)->home_generation = 0;
     ((struct Closure *)cl_outer_method)->entry_point = cm_outer_method;
     add_test_method(OuterVtable, Symbol_outerMethod, cl_outer_method);
 
@@ -122,7 +121,6 @@ static void setup_enclosure_environment(void) {
 
     oop cl_outer_shadowed = gc_allocate(BytecodeClosureVtable, sizeof(struct Closure));
     ((struct Closure *)cl_outer_shadowed)->home_ctx = NULL;
-    ((struct Closure *)cl_outer_shadowed)->home_generation = 0;
     ((struct Closure *)cl_outer_shadowed)->entry_point = cm_outer_shadowed;
     add_test_method(OuterVtable, Symbol_shadowedMethod, cl_outer_shadowed);
 
@@ -142,7 +140,6 @@ static void setup_enclosure_environment(void) {
 
     oop cl_super_shadowed = gc_allocate(BytecodeClosureVtable, sizeof(struct Closure));
     ((struct Closure *)cl_super_shadowed)->home_ctx = NULL;
-    ((struct Closure *)cl_super_shadowed)->home_generation = 0;
     ((struct Closure *)cl_super_shadowed)->entry_point = cm_super_shadowed;
     add_test_method(SuperInnerVtable, Symbol_shadowedMethod, cl_super_shadowed);
 
@@ -163,7 +160,6 @@ static void setup_enclosure_environment(void) {
 
     oop cl_run_inner = gc_allocate(BytecodeClosureVtable, sizeof(struct Closure));
     ((struct Closure *)cl_run_inner)->home_ctx = NULL;
-    ((struct Closure *)cl_run_inner)->home_generation = 0;
     ((struct Closure *)cl_run_inner)->entry_point = cm_run_inner;
     add_test_method(InnerVtable, Symbol_runInner, cl_run_inner);
 
@@ -184,7 +180,6 @@ static void setup_enclosure_environment(void) {
 
     oop cl_run_shadowed_imp = gc_allocate(BytecodeClosureVtable, sizeof(struct Closure));
     ((struct Closure *)cl_run_shadowed_imp)->home_ctx = NULL;
-    ((struct Closure *)cl_run_shadowed_imp)->home_generation = 0;
     ((struct Closure *)cl_run_shadowed_imp)->entry_point = cm_run_shadowed_imp;
     add_test_method(InnerVtable, Symbol_runShadowedImplicit, cl_run_shadowed_imp);
 
@@ -205,7 +200,6 @@ static void setup_enclosure_environment(void) {
 
     oop cl_run_shadowed_exp = gc_allocate(BytecodeClosureVtable, sizeof(struct Closure));
     ((struct Closure *)cl_run_shadowed_exp)->home_ctx = NULL;
-    ((struct Closure *)cl_run_shadowed_exp)->home_generation = 0;
     ((struct Closure *)cl_run_shadowed_exp)->entry_point = cm_run_shadowed_exp;
     add_test_method(InnerVtable, Symbol_runShadowedExplicit, cl_run_shadowed_exp);
 }
