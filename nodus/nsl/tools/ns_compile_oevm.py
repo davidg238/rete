@@ -322,6 +322,9 @@ class MethodCompiler:
     #       copy is deleted once t is dead after j.
     #   (B) dead store: `LD_REG t, x` / `LD_CONST t` whose t is rewritten before
     #       any read (no label or jump before that write) -> deleted.
+    #   (C) result forwarding (rete#37): `op t, ...` immediately followed by
+    #       `LD_REG v, t`, no label between them and t dead after -> `op v, ...`.
+    #       `i:: i + 1` is one ADD, not an ADD and a copy.
     # Never touched: r0 (self), the Context register, and every register a nested
     # block may reach through home_ctx (OP_LD_LEXICAL / OP_ST_LEXICAL): those are
     # the inlined-loop captures in _capture_regs. Any opcode without an operand
@@ -364,6 +367,9 @@ class MethodCompiler:
         if op == OP_ST_CTX:        return ({c, d}, set())
         if op == OP_MK_CONTEXT:    return ({0}, {d})
         return None
+
+    # Opcodes whose only write is the plain register in the dest field, read after their operands.
+    PEEP_FORWARDABLE = (OP_ADD, OP_SUB, OP_MUL, OP_DIV, OP_LD_CONST, OP_LD_REG, OP_LD_SLOT)
 
     def _peep_is_send(self, inst):
         return self._peep_decode(inst)[0] in (OP_SEND, OP_SEND_IMPLICIT, OP_SEND_SUPER, OP_BLOCK_INVOKE)
@@ -477,6 +483,16 @@ class MethodCompiler:
                 if op != OP_LD_REG or not copy_prop:
                     continue
                 x = s1
+                # (C) result forwarding into the copy's destination
+                j = i - 1
+                if (j >= 0 and j not in delete and i not in labels and x not in protected
+                        and t != x and (ins[j] & 0xFF) in self.PEEP_FORWARDABLE
+                        and ((ins[j] >> 8) & 0xFF) == x and dead_after(i, x)):
+                    ins[j] = (ins[j] & ~0xFF00) | (t << 8)
+                    rw[j] = self._peep_rw(ins[j])
+                    delete.add(i)
+                    changed = True
+                    continue
                 # (A) copy-propagation to the one consumer j
                 j = None
                 ok = True
