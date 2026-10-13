@@ -133,3 +133,29 @@ also lets anyone in range redirect a node's console, which belongs in #253's not
 **Q2′. Is the tee target a `goal/console` cell, set by custos through porta, and is `OEVM_LOG_UDP6` deleted?**
 Recommended: yes to both. One mechanism, not a build-time one plus a run-time one. Deletion lands after the
 wall bell shows the cell working (P4 then becomes "push an image without the bake, then write the cell").
+
+**Q2′ DECIDED (David, 2026-10-12): yes, and build it.**
+
+## Q8: a profile request that survives sleep (David's question, 2026-10-12; awaiting his answer)
+
+David: "can we save the address on the target to nvm, so that ... in wakeA tell it we want to profile + custos
+address, next time it wakes, wakeB, it profiles for the set period or until it sleeps again?"
+
+The address needs no NVM, because `goal/console` is a cell, and porta replays every cell into each cold boot's first
+check-in. The request is different. A `dbg/req` row is served once, ever (#262). It profiles the rest of wake A,
+from its check-in to its sleep (P3), and never anything before a check-in. Two facts make David's version cheap:
+the manifest already carries a `goal/profile/<app>` cell (`Profile{action, durationS, continuous}`) that nothing
+implements (the #342 spike found it dead), and the boards keep RTC_NOINIT memory across deep sleep (`g_rtc[]`,
+`main.c`; the boot counter).
+
+**Q8. How does a profile request reach a node through porta?**
+- **(a) A cell, retained.** *Recommended.* Replace the dead record with `Profile{ms}`. On receipt the node opens a
+  window at once, which covers the always-on bell, and keeps `ms` in RTC memory, so every later boot opens a window
+  before `main:` (wake B, from its boot). The window closes at `ms` or at `deepSleep:`, whichever is first. An
+  empty cell clears it, and custos clears the cell once a dump arrives. porta's `dbg/req` stops carrying
+  `profile`, and the cable keeps the same `profile <ms>` line. This revisits #312 Q1's "the same line reaches A and
+  A′".
+- **(b) The `dbg/req` line, as decided.** No NVM, no boot coverage. Delete the dead `goal/profile` record.
+- **(c) Both.** Two mechanisms.
+
+The build on 2026-10-12 does not depend on Q8. custos's request is one PUT whose path and value follow the answer.
