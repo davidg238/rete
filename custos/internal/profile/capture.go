@@ -20,6 +20,15 @@ type Sender interface {
 // Profiler; no row pattern matches it.
 var endLine = regexp.MustCompile(`mprof\[window\]: end\s*$`)
 
+// after is a timeout's channel; 0 is none (rete#415: a request through porta
+// waits for a node that may be asleep, and a newer request supersedes it).
+func after(d time.Duration) <-chan time.Time {
+	if d <= 0 {
+		return nil
+	}
+	return time.After(d)
+}
+
 // Capture opens the line, sends `profile <ms>` and answers every line from the
 // request through `mprof[window]: end`. Lines that arrived before the request
 // (an earlier window's rows) are not part of it. open hands its reader the
@@ -78,7 +87,7 @@ func Capture(open func(onLine func(string), onEnd func()) (Sender, error), ms in
 			mu.Unlock()
 			return "", fmt.Errorf("the program ended before the window closed (%d lines after the request) — does it run as long as the window, and dispatch sys/timer?", n)
 		}
-	case <-time.After(timeout):
+	case <-after(timeout):
 		mu.Lock()
 		n := len(got)
 		mu.Unlock()

@@ -29,6 +29,7 @@ import (
 // silent false negative. TestTheActivationRowsStillMatchBesideAllocRows guards it.
 var (
 	rowRE      = regexp.MustCompile(`(?m)mprof:\s+(@?\S+)\s+(\d+)\s*$`)
+	cutRE      = regexp.MustCompile(`(?m)profile: window cut by sleep\s*$`)
 	hdrRE      = regexp.MustCompile(`mprof\[(\w+)\]:\s+methods=(\d+)\s+activations=(\d+)\s+overflow=(\d+)\s+cap=(\d+)`)
 	allocRowRE = regexp.MustCompile(`(?m)mprofa:\s+(@?\S+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s*$`)
 	allocHdrRE = regexp.MustCompile(`mprofa\[(\w+)\]:\s+noframe_arena=(\d+)/(\d+)\s+noframe_cheap=(\d+)/(\d+)\s+allocOverflow=(\d+)`)
@@ -67,6 +68,9 @@ type Dump struct {
 	Rows      []Row
 	Alloc     *AllocHeader
 	AllocRows []AllocRow
+	// Cut is the kernel's `profile: window cut by sleep` (rete#415): the node
+	// slept before the window's end, so the window is shorter than asked.
+	Cut bool
 }
 
 func atoi(s string) int { n, _ := strconv.Atoi(s); return n }
@@ -87,6 +91,7 @@ func Parse(text string) Dump {
 	for _, m := range allocRowRE.FindAllStringSubmatch(text, -1) {
 		d.AllocRows = append(d.AllocRows, AllocRow{m[1], atoi(m[2]), atoi(m[3]), atoi(m[4]), atoi(m[5])})
 	}
+	d.Cut = cutRE.MatchString(text)
 	return d
 }
 
@@ -187,6 +192,10 @@ func (d Dump) Warnings() []string {
 		return nil
 	}
 	var w []string
+	if d.Cut {
+		w = append(w, "CUT: the node went to deep sleep before the window ended, so it is shorter than asked; "+
+			"the counts are the wake's, up to the sleep.")
+	}
 	if h.Overflow != 0 {
 		w = append(w, fmt.Sprintf("INCOMPLETE: overflow=%d activations were dropped — the table saturated, "+
 			"so methods are MISSING from this table. Counts below are exact; percentages are lower bounds.", h.Overflow))
