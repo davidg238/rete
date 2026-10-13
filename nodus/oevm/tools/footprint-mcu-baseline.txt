@@ -1,4 +1,16 @@
 # T0.3 footprint baseline — MCU config (arm-zephyr-eabi, cortex-m4).
+# Re-banked 2026-10-13 for rete#415 (David: re-bank the footprint).
+#
+#   +963 B  text, 45930 -> 46893, measured on msi-7d43 at 48f51ebf (FOOTPRINT_CONFIG=mcu):
+#           +866  master since the Opt #16 bank, inside the 2 %, never re-banked: rete#37 Opt #17 (the one-word
+#                 arena header), L4(b), L5 (2026-10-12 late), rete#372 (visibility; super/private sends through
+#                 the method cache); not split per commit;
+#            +97  rete#415: prim 164 consoleTee:port: and mprof_out (the dump through the platform's console
+#                 write, F5). The tee itself (log_udp.c) is zephyr-only and not in this build; on the bell it
+#                 costs +6,448 B sram0 (design As built).
+#    +4 B  data+bss, 73592 -> 73596; not attributed.
+#
+# Previous bank:
 # Re-banked 2026-10-12 (evening) for rete#37 Opt #16 (David: give the ratchet the memory for L5's ~1.5 %).
 #
 #  +1328 B  text, 44602 -> 45930, measured on msi-7d43 at the 37-l5-rebank head (FOOTPRINT_CONFIG=mcu):
@@ -101,5 +113,5 @@
 #  what was broken was footprint.sh's un-SKIP instruction, which named a deleted
 #  path. That bank split 34488 -> 38872 into +3108 B of enrolment (ota.c + span.c)
 #  and +1276 B of real drift.
-text 45930
-data_bss 73592
+text 46893
+data_bss 73596

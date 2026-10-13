@@ -1,4 +1,13 @@
-# T0.3 footprint baseline — HOST config. Re-banked 2026-10-12 (later) for rete#37 Opt #12 (David: lock in L1).
+# T0.3 footprint baseline — HOST config. Re-banked 2026-10-13 for rete#415 (David: re-bank the footprint).
+#
+#  +1908 B  76929 -> 78837, measured on msi-7d43 at 48f51ebf (branch 415-profile-porta):
+#           +1100  master since the Opt #12 bank, inside the 2 %, never re-banked: rete#37 Opt #16-#17 and L4(b)/L5,
+#                  rete#372 (visibility, super/private sends through the cache); not split per commit on the host;
+#            +808  rete#415: the posix console tee (platform_posix.o, one datagram per line), prim 164
+#                  consoleTee:port: (dispatch/platform), mprof_out (vm.o, the dump through the tee, F5).
+#           Bought: a profile through porta, its rows back by the tee (porta_sync_host leg 8c).
+#
+# Previous header (2026-10-12, later): Re-banked 2026-10-12 (later) for rete#37 Opt #12 (David: lock in L1).
 #
 #   -872 B  77801 -> 76929: L1, the access mechanism deleted (check_access_allowed and its helpers,
 #           trigger_access_violation, CompiledMethod.access_modifier, builtin #14), measured on msi-7d43 at 78a4920d.
@@ -69,25 +78,25 @@
 # handles.c, and timer_posix.o — which was compiled and then omitted from its own
 # `size -t` line), of which only +8 B was real drift.
    text	   data	    bss	    dec	    hex	filename
-  16727	     20	   1192	  17939	   4613	vm.o
-  17519	   1357	 132832	 151708	  2509c	dispatch.o
-   5037	     24	17048480	17053541	1043765	gc.o
+  17747	     20	   1192	  18959	   4a0f	vm.o
+  17607	   1365	 132832	 151804	  250fc	dispatch.o
+   5032	     24	17048480	17053536	1043760	gc.o
     577	   1008	      4	   1589	    635	kernel_boot.o
-  13148	     28	   1032	  14208	   3780	platform.o
+  13270	     28	   1032	  14330	   37fa	platform.o
     510	      0	     88	    598	    256	serial.o
     939	      0	     88	   1027	    403	udp.o
     474	      0	      0	    474	    1da	http.o
    2703	      4	    400	   3107	    c23	http_core.o
    1916	      0	     88	   2004	    7d4	mirror.o
-   2638	      0	    312	   2950	    b86	oimg_loader.o
+   2652	      0	    312	   2964	    b94	oimg_loader.o
    3238	      0	  16448	  19686	   4ce6	space.o
     602	      0	    544	   1146	    47a	handles.o
    4601	      0	    176	   4777	   12a9	ota.o
     613	      0	    800	   1413	    585	span.o
-   1983	      8	    560	   2551	    9f7	platform_posix.o
+   2652	     12	   1156	   3820	    eec	platform_posix.o
     336	      0	   4128	   4464	   1170	serial_posix.o
    1168	      0	      0	   1168	    490	udp_posix.o
    1059	      4	      0	   1063	    427	http_posix.o
    1141	      4	   1056	   2201	    899	timer_posix.o
-  76929	   2457	17208228	17287614	107c9be	(TOTALS)
-data+bss (host proxy for MCU static RAM): 17210685
+  78837	   2469	17208824	17290130	107d392	(TOTALS)
+data+bss (host proxy for MCU static RAM): 17211293
