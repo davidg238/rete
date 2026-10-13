@@ -1,0 +1,45 @@
+19:10:33 < ets Jun  8 2016 00:22:57
+19:10:33 < 
+19:10:33 < rst:0x1 (POWERON_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+19:10:33 < configsip: 0, SPIWP:0xee
+19:10:33 < clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+19:10:33 < mode:DIO, clock div:2
+19:10:33 < load:0x3ffb0000,len:7912
+19:10:33 < load:0x40080000,len:53200
+19:10:33 < entry 0x40088488
+19:10:33 < I (39) soc_init: ESP Simple boot
+19:10:33 < I (39) soc_init: compile time Oct 12 2026 18:51:03
+19:10:33 < W (39) soc_init: Unicore bootloader
+19:10:33 < I (39) soc_init: chip revision: v1.0
+19:10:33 < E (43) soc_init: You are using ESP32 chip revision (1) that is unsupported. While it may work, it could cause unexpected behavior or issues.
+19:10:33 < E (55) soc_init: Proceeding with this ESP32 chip revision is not recommended unless you fully understand the potential risk and limitations.
+19:10:33 < I (67) flash_init: SPI Speed      : 40MHz
+19:10:33 < I (71) flash_init: SPI Mode       : DIO
+19:10:33 < I (75) flash_init: SPI Flash Size : 4MB
+19:10:33 < I (78) boot: DRAM: lma 0x00001020 vma 0x3ffb0000 len 0x1ee8   (7912)
+19:10:33 < I (84) boot: IRAM: lma 0x00002f10 vma 0x40080000 len 0xcfd0   (53200)
+19:10:33 < I (90) boot: IRAM: lma 0x0000fef8 vma 0x00000000 len 0x100    (256)
+19:10:33 < I (96) boot: IMAP: lma 0x00010000 vma 0x400d0000 len 0x1d0f0  (119024)
+19:10:33 < I (103) boot: IRAM: lma 0x0002d0f8 vma 0x00000000 len 0x2f00   (12032)
+19:10:33 < I (109) boot: DMAP: lma 0x00030000 vma 0x3f400000 len 0x2a9ec  (174572)
+19:10:33 < I (115) boot: Image with 6 segments
+19:10:33 < I (119) boot: IROM segment: paddr=00010000h, vaddr=400d0000h, size=1D0F0h (119024) map
+19:10:33 < I (126) boot: DROM segment: paddr=00030000h, vaddr=3f400000h, size=2A9ECh (174572) map
+19:10:33 < I (145) boot: libc heap size 3 kB.
+19:10:33 < I (145) spi_flash: detected chip: gd
+19:10:33 < I (145) spi_flash: flash io: dio
+19:10:33 < *** Booting Zephyr OS build v4.2.0-12-gbc47c6fab9cc ***
+19:10:33 < oevm: build-id porta-v1-final-1686-g38a5500f-20261012T185102
+19:10:33 < logudp: not built in (no OEVM_LOG_UDP6) — console is UART only
+19:10:33 < oevm: observer — CONFIG_TASK_WDT is not enabled, wedge detection is OFF
+19:10:33 < oevm: image loaded and verified (21955 us)
+19:10:58 < alloc: 25224
+19:11:20 < arrayWrite: 21839
+19:11:27 < dictionaryWrite: 6359
+19:12:06 < floatMath: 38944
+19:12:09 < integerMath: 2799
+19:12:26 < collectionIterate: 17289
+19:12:40 < collectionWrite: 14492
+19:12:43 < stringCompare: 2543
+19:12:43 < hanoi8: 2
+19:12:43 < done
