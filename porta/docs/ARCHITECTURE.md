@@ -132,7 +132,7 @@ What the gateway *is*:
   actor is `X-Porta-Actor` or the peer address; answers `{Seq}`). `GET
   /node/{id}/{path...}` is one cell of `porta get`, the raw CBOR with its seq in
   `X-Porta-Seq`. They are general on purpose: a push is a blob and a goal write, the
-  same write carries `goal/debug/main`, `goal/console` and a `profile <ms>` line, and porta never learns what an app is. Admission
+  same write carries `goal/debug/main`, `goal/console`, `goal/profile` and a debugger's `dbg/req` line, and porta never learns what an app is. Admission
   is the listener's CIDR allowlist and nothing else, a known gap for 0.1
   (`../../docs/design/2026-10-12-398-load-through-porta-design.md` Q3). v1's dashboard, JSON API and MCP server are deferred → operator surface
   in the capability audit, not silently dropped; the exposed agent-facing front door is

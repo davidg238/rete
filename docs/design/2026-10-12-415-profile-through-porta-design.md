@@ -245,3 +245,44 @@ tee's ring is 4 KB, and a dump is ~10 KB written in one burst.
   boot target covers it. Once that literal is deleted (Q2′), the ring holds 4 KB and the paced writer gives up,
   so such a dump would be lost. The bench run will show whether a MagTag wake ever reaches `ms` before its
   check-in. If one does, the answer is to keep the tee's target in RTC as well.
+
+## One mechanism, the kept target, and the first board (2026-10-13, David: "a single mechanism for both board test and porta?", "keep the console address in sleep memory too", "do the board test")
+
+- **One mechanism.** Every request, porta's `goal/profile` cell or a `profile <ms>` line from the cable or the
+  debugger's loop, is one request with an id, through `Profiler>>requestMs:id:`. It is retained, served once, and
+  carried across a sleep that cuts it. A line names no id, so the kernel mints one below every id it has armed or
+  served (negative, so it never meets a cell's). The Profiler no longer listens on `dbg/req`; in a debug image
+  `dbg/req` is the debugger's line, and its `profile` command reaches the same entry. No board scenario used the
+  `dbg/req` line; three August probes (`ReplayProbeC6`, `ProfileRestartProbeC6`, `ProfileCostNodeC6`) describe it
+  and are historical.
+- **The tee target is kept** (F7 closed): `log_udp.c` keeps the last target, or off, in RTC no-init memory with a
+  check; the host keeps it beside `OEVM_RTC_FILE`. A node that wakes or restarts tees from its first line.
+- **Bench: c6b** (the second ESP32-C6, `c6bench`'s CP2102N on opti7040), over Thread, against a test porta on gw
+  (its own database, the new manifest, UDP 6979 / HTTP 6980) and the branch's custos on gw, advertising gw's
+  mesh-local address. The node is `PortaBridgeNodeC6` with `gwPort` 6979 (an uncommitted copy). The production
+  porta (`porta-398`, the wall bell's and the MagTag's) was not touched: restarting it on the new manifest was
+  refused by the session's permission check.
+  - **F8, the tee lost the dump's tail over Thread.** A 272-line dump teed its first 82 lines at the radio's
+    ~4.3 ms each, then one in 25, and never the `end` line, so custos stayed Pending. The ring dropped nothing and
+    `sendto` reported nothing: the socket accepts the datagram, and OpenThread drops it later when its message pool
+    is full. A first fix (a short back-off on `ENOMEM`, a 2 s give-up) changed nothing (98 of 272), because no error
+    reached the sender. **Fixed** by waiting, before each datagram, until OpenThread's pool has 32 of its 128
+    buffers free (at most 1 s, then send anyway): **278 of 278 lines, `end` included, in 1.27 s.**
+  - **F9, custos ranked mixed windows.** A capture that had waited through the truncated dump kept its 98 lines and
+    then took the next whole one: 294 rows for `methods=208`. **Fixed:** a new `mprof[window]:` header starts the
+    dump again (the kernel's cut line just before it is kept).
+  - **Results, after both fixes:** three agent requests, each `POST /board/c6b/profile/capture?ms=10000` through
+    custos, the test porta, the cell and the tee: answered 12–13 s after the POST, **204 rows for 204 methods and
+    205 for 205, no warnings**, the map's sha checked against the node's `obs/apps/main`. A stale map was refused
+    with 409, naming both hashes.
+  - **The kept target and the served id across resets.** A cable flash's reset pulses EN, a power-on reset that
+    clears RTC no-init memory. The node then boots holding its console until `goal/console` arrives, and the
+    replayed `goal/profile` cell profiles once more, because the served id is gone too. A program push through
+    custos (161,240 B, staged over Thread, confirmed 40 s after the POST) reboots into the trial by a **software**
+    reset. Its boot teed from the Zephyr banner on: `logudp: teeing console to [...]:48187 (kept from the last
+    goal/console)`. No window opened from the replayed cell. So a power cycle repeats the last profile once, and a
+    deep sleep or a software reset does not.
+- **Not done:** the wall bell and the MagTag. Each needs a cable flash, because the tee and the kept target are
+  firmware. Neither is cabled, and the production porta needs the new manifest. The drain time before deep sleep
+  (the 2 s guess) needs the MagTag. `OEVM_LOG_UDP6` is not deleted yet (Q2′: after a board's run on the cell; c6b
+  ran with no literal and was carried by the cell alone).

@@ -667,11 +667,15 @@ or a view built on that tooling, look like a violation of "stateless relay" when
 (`docs/design/2026-08-06-method-profile-over-porta-design.md` D7).
 
 **Implemented 2026-08-06** (`docs/design/2026-08-06-method-profile-over-porta-design.md`,
-issues #164/#165) — `dbg/*`'s first implementation since v1 was deleted. The line this
-channel carries today is `profile <ms>`: the node opens a self-limiting per-method
-activation-count window sized in milliseconds, counts for that duration, and reports without
-needing a matching stop request, so a node that never hears from porta again still stops
-counting and still reports. The rows themselves stay off this path — they leave over the
+issues #164/#165) — `dbg/*`'s first implementation since v1 was deleted. Its first line
+was `profile <ms>`: the node opens a self-limiting per-method activation-count window sized
+in milliseconds, counts for that duration, and reports without needing a matching stop
+request, so a node that never hears from porta again still stops counting and still reports.
+**Since rete#415 porta asks for a profile by the `goal/profile` cell, not by this channel**
+(`Profile{id, ms}`: one request, retained across sleep and served once, §4.1's table). The
+`profile <ms>` line survives as the cable's spelling of the same request and as one of the
+debugger's commands in a debug image, where `dbg/req` is the debugger's line; the kernel has
+one entry for all of them (`Profiler>>requestMs:id:`). The rows themselves stay off this path — they leave over the
 console's UDP tee, whose target is the `goal/console` cell (rete#415: custos writes its own
 address there, so the rows reach the custos that asked), never over `dbg/resp`, which keeps a profile
 table off the same plane the size law keeps every other blob off (§2.4) rather than testing
