@@ -286,3 +286,19 @@ tee's ring is 4 KB, and a dump is ~10 KB written in one burst.
   firmware. Neither is cabled, and the production porta needs the new manifest. The drain time before deep sleep
   (the 2 s guess) needs the MagTag. `OEVM_LOG_UDP6` is not deleted yet (Q2′: after a board's run on the cell; c6b
   ran with no literal and was carried by the cell alone).
+- **Bench: the MagTag (2026-10-13 noon).** The production porta (`porta-398`) now runs `MANIFEST-415.cddl` (David:
+  "restart porta"). The MagTag was cable-flashed on msi (S2 ROM download mode, David's hand; the first cable was
+  charge-only), with its goal written to the new image first (#426). The firmware has no build-time console
+  literal. A second custos on gw (127.0.0.1:6991, `--advertise` gw's ULA `…fe2f:710`) serves it against the
+  production porta.
+  - Its boot teed whole once `goal/console` arrived, over WiFi, with no literal (program `ed7c71ee…`).
+  - **Q9 seen on hardware:** a 3 s request taken at the 12:00 wake opened at the check-in near the end of an 8 s
+    wake, and the node printed `profile: window carried to the next wake`.
+  - **F10, open: the last lines before a sleep never arrive over WiFi** (`sleep: arming`, `space:`, `deep sleep`).
+    That is true of the drain as built (the ring empty) and still true with the fix (the ring, Zephyr's net_pkt TX
+    slab and OpenThread's send queues empty, `4480c256`). So the frames die below Zephyr, presumably in the WiFi
+    blob's queue. A window cut by sleep therefore loses its dump's tail on the MagTag. Next: measure what the old
+    fixed 150 ms delivered, and look for a WiFi-driver flush or TX-done count. The firmware keeps the drain's time
+    and prints `logudp: the last sleep's drain took N ms` at the next wake's boot, which is the data the 2 s cap waits on.
+  - Re-flashing at 12:17 (firmware 2) cleared the RTC request, as an EN reset does. The replayed cell re-arms at the
+    next check-in, so the carry test continues at the next wakes.
