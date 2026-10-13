@@ -195,5 +195,16 @@ tee's ring is 4 KB, and a dump is ~10 KB written in one burst.
   The MagTag (`MagTagDeepSleepNode`, its T10 recipe) links at dram0 220,176 B against master's 220,048 B with
   `OEVM_LOG_UDP6` baked: +128 B, 2,032 B left. Found on the way: `MagTagSleepyDebugNode.nsl`'s header recipe overflows
   dram0 by 9,040 B on master. It is stale, and not this issue's.
+- **The full nsl suite (msi, `415-sync-2`):** 302 passed, 0 failed. Two aux gates were red. `nsl-tools-py` wanted a
+  golden for `console`, now added (`415-sync-3`: the node's encoder and cval agree byte for byte, 3/3). The
+  **footprint ratchet** is red and is **David's call**, because every re-bank has been his:
+
+  | | bank | master (`5e1d6d45`) | branch | of which #415 |
+  |---|---|---|---|---|
+  | host text | 76,929 | 78,029 (+1.4 %, passes) | 78,837 (+2.5 %) | +808 B: the posix tee, prim 164, `mprof_out` |
+  | MCU text | 45,930 | 46,796 (+1.9 %, passes) | 46,893 (+2.1 %) | +97 B |
+
+  Most of each overrun is drift already on master; #415 tips both over 2 %. The proposed re-bank is host 76,929 →
+  78,837 and MCU 45,930 → 46,893, with the attribution above.
 - **Not done, and why:** the bench (plan Task 8: gw's porta manifest, a bell image without the literal pushed
   through porta, the two board profiles, the drain measurement, deleting `OEVM_LOG_UDP6`) waits for David. Q8 is open.
