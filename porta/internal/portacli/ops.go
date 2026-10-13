@@ -5,12 +5,13 @@ package portacli
 // ops.go — porta's operator write routes (rete#398): the HTTP twins of
 // `porta blob put`, `porta put --raw` and `porta get`, so a peer off the
 // gateway (custos) can push a program and read the proof. General on purpose:
-// the same PUT writes goal/apps/main and goal/debug/main, and porta never
-// learns what an app or an .oimg is. Admission is the listener's CIDR
+// the same PUT writes goal/apps/main, goal/debug/main and goal/console, and the
+// dbg/req lines (rete#415: `profile <ms>`), and porta never learns what an app
+// or an .oimg is. Admission is the listener's CIDR
 // allowlist and nothing else (design 2026-10-12 Q3: a known gap for 0.1).
 //
 //	POST /blob                   the bytes; answers {Hash, Size, Sig, Record} (hex)
-//	PUT  /node/{id}/{path...}    one closed cval encoding to a goal/ cell; answers {Seq}
+//	PUT  /node/{id}/{path...}    one closed cval encoding to a goal/ cell, or a dbg/req row; answers {Seq}
 //	GET  /node/{id}/{path...}    the cell's value as raw CBOR, its seq in X-Porta-Seq
 
 import (
@@ -46,8 +47,14 @@ func mountOps(mux *http.ServeMux, st *space.Store, db string) {
 	})
 	mux.HandleFunc("PUT /node/{id}/{path...}", func(w http.ResponseWriter, r *http.Request) {
 		path := r.PathValue("path")
-		if !strings.HasPrefix(path, "goal/") {
-			http.Error(w, fmt.Sprintf("porta: %q is not under goal/; the HTTP write is intent only", path), http.StatusBadRequest)
+		// porta's inbound authority, exactly (PROTOCOL-NSL §3): goal/** as cells,
+		// and dbg/req, the one stream porta writes. Nothing else is intent.
+		kind := cval.KindCell
+		switch {
+		case path == "dbg/req":
+			kind = cval.KindStream
+		case !strings.HasPrefix(path, "goal/"):
+			http.Error(w, fmt.Sprintf("porta: %q is neither under goal/ nor dbg/req; the HTTP write is intent only", path), http.StatusBadRequest)
 			return
 		}
 		value, err := io.ReadAll(http.MaxBytesReader(w, r.Body, space.MaxValueBytes))
@@ -59,7 +66,7 @@ func mountOps(mux *http.ServeMux, st *space.Store, db string) {
 		if actor == "" {
 			actor = "http:" + r.RemoteAddr
 		}
-		seq, err := st.Write(r.PathValue("id"), path, cval.KindCell, value, actor, r.URL.Query().Get("reason"))
+		seq, err := st.Write(r.PathValue("id"), path, kind, value, actor, r.URL.Query().Get("reason"))
 		if err != nil {
 			http.Error(w, "porta: "+err.Error(), http.StatusBadRequest)
 			return
