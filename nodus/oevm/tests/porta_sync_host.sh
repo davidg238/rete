@@ -11,10 +11,10 @@
 #      check-in IS the heartbeat, so this is also the liveness proof.
 #   3. `tel/log` entries arrive EXACTLY ONCE: every entry carries a monotone tick
 #      counter, so a re-pushed entry would show up as a repeated 'tick N'.
-#   4. a `dbg/req` written at porta opens a per-method profile window on the node
+#   4. a `goal/profile` cell written at porta opens a per-method profile window on the node
 #      and the window CLOSES ITSELF (#165 D2/D6) — the only off-target proof that
 #      the request survives the wire, since the node-side chain alone is covered
-#      by nodus/tests/23_mprof/04_dbg_req_chain.nsl.
+#      by nodus/tests/23_mprof/10_profile_cell.nsl.
 #   4c. (rete#415) the same window asked for by an AGENT, through custos and porta's
 #      HTTP: custos serves the node as a porta node with a console, writes
 #      goal/console naming its own UDP sink, writes the request as the
@@ -73,7 +73,7 @@ echo "[3/9] compile PortaBridgeNode.nsl -> .oimg"
 python3 "$NSL" zephyr/PortaBridgeNode.nsl /tmp/porta_node.oimg --format=oimg --layout=/tmp/layout.json
 
 echo "[4/9] build the image VM"
-# -DOEVM_METHOD_PROFILE: leg 8 below drives a real dbg/req profile window end
+# -DOEVM_METHOD_PROFILE: leg 8 below drives a real goal/profile window end
 # to end. Without the define `profileStart`/`profileStop` are silent no-ops
 # (platform.c:1217), so the leg would pass on a node that never counted — the
 # gate would be green with the whole feature compiled out. The counter costs
@@ -367,31 +367,29 @@ done
 SPAN_ROWS=$(/tmp/porta get --db "$DB" "$NODE" diag | grep -c "diag/spans/")
 echo "  diag/spans: $SPAN_ROWS cells in porta's tree, rows and summary (tuvm#107)"
 
-# LEG 8 — the #165 profile chain, end to end over the real wire: porta writes
-# dbg/req, the node's inbound filter accepts it (kernel `mayApply:`), the bridge
-# applies it as a STREAM, the channel reaction self-sends `dbgReq:`, the parsed
-# duration arms a one-shot on the app's ONE Timers instance, and the fired timer
-# posts to sys/profileEnd, which closes the window and dumps.
+# LEG 8 — the #165 profile chain, end to end over the real wire: porta writes the
+# goal/profile cell (rete#415 Q8: Profile{id 7, ms 3000}, raw, as an operator would),
+# the node's inbound filter accepts it (kernel `mayApply:`), the bridge applies it as
+# a CELL and hands it to the kernel's Profiler (`requestMs:id:`), which arms a one-shot
+# on the ONE Timers instance, and the fired timer posts to sys/profileEnd, which
+# closes the window and dumps.
 #
-# Every one of those hops was proven ONLY by the C6 hardware gate until now:
-# nodus/tests/23_mprof/04_dbg_req_chain.nsl drives the node-side half on the
-# host virtual clock, but nothing off-target had ever carried a dbg/req across
-# the wire. This leg is the other half, and it is why the wiring was ported to
-# PortaBridgeNode.nsl rather than left C6-only.
+# nodus/tests/23_mprof/10_profile_cell.nsl drives the node-side half on the host
+# virtual clock; this leg is the other half, over the wire.
 #
 # `mprof[window]` is asserted by name, not `mprof`: mprof_report also prints
 # `mprof[exit]` (vm.c's destructor, gated on OEVM_MPROF_DUMP) and `mprof[flip]`
 # / `mprof[dump]` under the old countdown seam, and a grep for the bare prefix
 # would score any of them as a window that closed.
-echo "[8/9] dbg/req opens and closes a profile window"
-/tmp/porta put --db "$DB" "$NODE" dbg/req "profile 3000" --kind stream >/dev/null
+echo "[8/9] goal/profile opens and closes a profile window"
+/tmp/porta put --db "$DB" "$NODE" goal/profile --raw d81b82d8276750726f66696c65a2d82762696407d827626d73190bb8 >/dev/null
 for _ in $(seq 1 100); do
   grep -q 'mprof\[window\]' /tmp/porta_node.log && break; sleep 0.4
 done
 grep -q 'mprof\[window\]' /tmp/porta_node.log || {
-  echo "FAIL: dbg/req 'profile 3000' never closed a window — no mprof[window] in the node log."
-  echo "      The chain is porta put -> mayApply: -> the dbg/req channel reaction ->"
-  echo "      parseProfileMs: -> timers after: -> sys/profileEnd -> profileStop."
+  echo "FAIL: goal/profile {id 7, ms 3000} never closed a window — no mprof[window] in the node log."
+  echo "      The chain is porta put -> mayApply: -> applyProfile: -> requestMs:id: ->"
+  echo "      timers after: -> sys/profileEnd -> profileStop."
   tail -40 /tmp/porta_node.log; exit 1; }
 echo "  the window closed itself and dumped — porta never sent a stop"
 

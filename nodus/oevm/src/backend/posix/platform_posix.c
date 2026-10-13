@@ -40,17 +40,12 @@ static void tee_feed(struct tee_line *l, const char *bytes, size_t n) {
     }
 }
 
-int platform_console_tee(const char *addr6, size_t addr_len, int port) {
-    char a[INET6_ADDRSTRLEN];
+/* rete#415: the target survives deep sleep, as the board keeps it in RTC memory
+   (log_udp.c), so a waking node tees from its first line, before any check-in. The
+   host's sleep is a re-exec, so the target is kept beside OEVM_RTC_FILE, in
+   `<file>.tee` ("<addr> <port>", or "off"); with no file it lasts one process. */
+static int tee_open(const char *a, int port) {
     struct sockaddr_in6 dst;
-    if (addr_len == 0) {
-        if (tee_sock >= 0) close(tee_sock);
-        tee_sock = -1;
-        return 1;
-    }
-    if (addr_len >= sizeof a || port < 1 || port > 65535) return 0;
-    memcpy(a, addr6, addr_len);
-    a[addr_len] = '\0';
     memset(&dst, 0, sizeof dst);
     dst.sin6_family = AF_INET6;
     dst.sin6_port = htons((unsigned short)port);
@@ -62,16 +57,53 @@ int platform_console_tee(const char *addr6, size_t addr_len, int port) {
     tee_dst = dst;
     return 1;
 }
+static FILE *tee_keep(const char *mode) {
+    char path[512];
+    const char *p = getenv("OEVM_RTC_FILE");
+    if (!p || snprintf(path, sizeof path, "%s.tee", p) >= (int)sizeof path) return NULL;
+    return fopen(path, mode);
+}
+static void tee_boot_once(void) {
+    static int done;
+    char a[INET6_ADDRSTRLEN];
+    int port;
+    FILE *f;
+    if (done) return;
+    done = 1;
+    if (!(f = tee_keep("r"))) return;
+    if (fscanf(f, "%45s %d", a, &port) == 2) (void)tee_open(a, port);
+    fclose(f);
+}
+
+int platform_console_tee(const char *addr6, size_t addr_len, int port) {
+    char a[INET6_ADDRSTRLEN];
+    FILE *f;
+    tee_boot_once();
+    if (addr_len == 0) {
+        if (tee_sock >= 0) close(tee_sock);
+        tee_sock = -1;
+        if ((f = tee_keep("w"))) { fputs("off\n", f); fclose(f); }
+        return 1;
+    }
+    if (addr_len >= sizeof a || port < 1 || port > 65535) return 0;
+    memcpy(a, addr6, addr_len);
+    a[addr_len] = '\0';
+    if (!tee_open(a, port)) return 0;
+    if ((f = tee_keep("w"))) { fprintf(f, "%s %d\n", a, port); fclose(f); }
+    return 1;
+}
 
 void platform_console_write(const char *bytes, size_t n) {
     if (n) {
         fwrite(bytes, 1, n, stdout);
+        tee_boot_once();
         tee_feed(&tee_out, bytes, n);
     }
 }
 void platform_console_err(const char *bytes, size_t n) {
     if (n) {
         fwrite(bytes, 1, n, stderr);
+        tee_boot_once();
         tee_feed(&tee_err, bytes, n);
     }
 }

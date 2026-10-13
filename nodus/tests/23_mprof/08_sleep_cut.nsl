@@ -1,23 +1,21 @@
 (* expect:
 open
-profile: window cut by sleep
+profile: window carried to the next wake
 sleep: arming 3 s
 *)
-(* rete#415 P3: Kernel>>deepSleep: closes an open profile window before the VM ends,
-   and says it was cut, so a deep-sleep node's wake still dumps (the table is RAM, and a
-   wake is usually shorter than the window asked for). The build under test has no
-   OEVM_METHOD_PROFILE, so the dump itself is silent (01_window_lifecycle); what this
-   gates is that the kernel's deepSleep: reaches the Profiler, and that a window that
-   is NOT open says nothing (the second deepSleep: is never reached, so the absence is
-   checked by the first window being the only one). Delete the cut in deepSleep: and
-   the middle line goes. *)
+(* rete#415 P3, Q9: Kernel>>deepSleep: reaches the Profiler before the VM ends. A window
+   opened mid-wake is carried, not dumped: the next boot opens it again, whole
+   (test_deepsleep_node's test_profile_request_survives_one_sleep crosses the sleep).
+   The build under test has no OEVM_METHOD_PROFILE, so a dump would be silent anyway
+   (01_window_lifecycle); what this gates is that deepSleep: reaches the Profiler.
+   Delete the cut in deepSleep: and the middle line goes. *)
 class SleepCutTest packageUsing: manifest = () (
   public main: platform args: args = (
     | space timers |
     space:: platform space.
     timers:: platform timers.
     space whenever: 'sys/timer' do: [ :e | timers dispatch: e ].
-    (space channel: 'dbg/req') out: '' value: 'profile 60000'. space drain.
+    platform profiler request: 'profile 60000'. space drain.
     'open' println.
     platform deepSleep: 3.
     'after sleep' println.   (* unreachable *)

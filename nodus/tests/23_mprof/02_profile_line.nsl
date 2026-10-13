@@ -6,7 +6,7 @@ reboot now -> 0
 profile 0 -> 0
 profile abc -> 0
 *)
-(* #165 D2/D6: a dbg/req line opens a self-limiting window. Parsing is a PURE
+(* #165 D2/D6: a `profile <ms>` line (the cable, the debugger) opens a self-limiting window. Parsing is a PURE
    function on the Kernel so it can be tested without standing up a bridge; the
    orchestration that acts on it lives in the app, where the one legitimate
    Timers instance is.

@@ -15,8 +15,11 @@
  * the one that hears it, and two developers on one mesh each hear their own node.
  * Compiled into every image with sockets. Until a target arrives the ring HOLDS the
  * boot (4 KB), which then goes out in one burst, exactly as it used to wait for a
- * route. An image still built with OEVM_LOG_UDP6 starts on that literal and the cell
- * overrides it; the literal is deleted once the cell has carried a board (Q2′).
+ * route. The last target (or off) is KEPT in RTC memory, so a node waking from deep
+ * sleep, or restarting, tees from its first line, before a check-in replays the cell
+ * (a window opened from boot may dump before then). With nothing kept, an image still
+ * built with OEVM_LOG_UDP6 starts on that literal and the cell overrides it; the
+ * literal is deleted once the cell has carried a board (Q2′).
  * Every state SAYS SO at boot, because a silently-inactive remote console is the
  * exact failure class that cost twenty minutes over a missing NTP address.
  */

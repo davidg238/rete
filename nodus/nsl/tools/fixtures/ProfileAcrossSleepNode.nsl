@@ -9,7 +9,11 @@
              cell (porta replays every cell) changes nothing; sleep cuts it, and this
              time it dumps and is served.
      wake 3  the replay again: nothing opens, nothing is said at sleep.
-     wake 4  a new id (6, 100 ms) opens at once, ends on its timer, and is served. *)
+     wake 4  a new id (6, 100 ms) opens at once, ends on its timer, and is served.
+
+   The console's tee target is told once, in wake 1 (goal/console, [::1]:54345); every
+   later wake must tee from its first line with no cell, because the platform keeps the
+   target across the sleep (the host keeps it beside OEVM_RTC_FILE). *)
 class ProfileAcrossSleepNode packageUsing: manifest = (
   | private ends ::= 0. |
 ) (
@@ -27,6 +31,10 @@ class ProfileAcrossSleepNode packageUsing: manifest = (
     (space channel: 'sys/profileEnd') whenever: '' do: [ :m | ends:: ends + 1 ].
     bridge:: platform PortaBridge socket: nil space: space id: 'n1' peer: '::1' port: 6969 spans: platform Spans new.
     wake:: (platform rtcGet: 1) + 1.
+    wake = 1 ifTrue: [
+      bridge applyBatch: (platform Cbor encode: (platform Record tag: #batch with: #hi -> 100
+        with: #ent -> (platform List with: (platform List with: 100 with: 'goal/console' with: 2
+          with: (platform Record tag: #Console with: #addr -> '::1' with: #port -> 54345))))) ].
     platform rtcPut: 1 value: wake.
     ('wake ' , wake printString) println.
     cell:: platform Record tag: #Profile with: #id -> 5 with: #ms -> 60000.

@@ -46,6 +46,50 @@ static int tee_port;
 static volatile int sender_pending;       /* a refused line is held for retry */
 K_SEM_DEFINE(tee_wake, 0, 1);
 
+/* rete#415: the target survives deep sleep and a restart, so a waking node tees from
+   its first line rather than holding the boot until its first check-in replays
+   goal/console (a profile window opened from boot can dump before then). RTC_NOINIT
+   memory on espressif, as main.c's g_rtc; elsewhere plain .bss, which a boot zeroes,
+   and the check fails, as it does on a power-on's garbage. `on` 0 is an off kept. */
+#define TEE_KEEP_MAGIC 0x7EE15415u
+struct tee_keep { uint32_t check; uint16_t port; uint8_t on; char addr[INET6_ADDRSTRLEN]; };
+#if defined(CONFIG_SOC_FAMILY_ESPRESSIF_ESP32)
+#include <esp_attr.h>   /* RTC_NOINIT_ATTR */
+static RTC_NOINIT_ATTR struct tee_keep tee_kept;
+#else
+static struct tee_keep tee_kept;
+#endif
+
+static uint32_t tee_keep_sum(const struct tee_keep *k)
+{
+	uint32_t h = 2166136261u ^ TEE_KEEP_MAGIC;
+	size_t i;
+
+	h = (h ^ k->port) * 16777619u;
+	h = (h ^ k->on) * 16777619u;
+	for (i = 0; i < sizeof k->addr; i++) {
+		h = (h ^ (uint8_t)k->addr[i]) * 16777619u;
+	}
+	return h;
+}
+
+static void tee_keep_put(const char *addr, int port, int on)
+{
+	memset(&tee_kept, 0, sizeof tee_kept);
+	strncpy(tee_kept.addr, addr, sizeof tee_kept.addr - 1);
+	tee_kept.port = (uint16_t)port;
+	tee_kept.on = (uint8_t)on;
+	tee_kept.check = tee_keep_sum(&tee_kept);
+}
+
+static int tee_from_keep;
+
+static int tee_keep_valid(void)
+{
+	return tee_kept.check == tee_keep_sum(&tee_kept) &&
+	       tee_kept.addr[sizeof tee_kept.addr - 1] == '\0';
+}
+
 /* Called from EVERY context printk is called from — thread, workqueue, ISR. It
  * must never block and never allocate. A spinlock rather than a lock-free ring
  * because printk has multiple concurrent producers and a torn index would
@@ -170,6 +214,7 @@ int log_udp_set_target(const char *addr6, size_t len, int port)
 			r_tail = r_head;      /* what was queued for the old target is nobody's */
 		}
 		k_spin_unlock(&ring_lock, key);
+		tee_keep_put("", 0, 0);
 		printk("logudp: off (goal/console)\n");   /* reaches the UART only */
 		return 1;
 	}
@@ -184,6 +229,7 @@ int log_udp_set_target(const char *addr6, size_t len, int port)
 	if (!set_target(a, port)) {
 		return 0;
 	}
+	tee_keep_put(a, port, 1);
 	printk("logudp: teeing console to [%s]:%d (goal/console)\n", a, port);
 	return 1;
 }
@@ -311,6 +357,15 @@ static int log_udp_hook_init(void)
 {
 	prev_hook = __printk_get_hook();
 	__printk_hook_install(tee_char_out);
+	if (tee_keep_valid()) {
+		if (tee_kept.on) {
+			(void)set_target(tee_kept.addr, tee_kept.port);
+		} else {
+			tee_state = TEE_OFF;
+		}
+		tee_from_keep = 1;
+		return 0;
+	}
 #ifdef OEVM_LOG_UDP6
 	(void)set_target(OEVM_LOG_UDP6, OEVM_LOG_UDP_PORT);
 #endif
@@ -321,8 +376,10 @@ SYS_INIT(log_udp_hook_init, POST_KERNEL, CONFIG_KERNEL_INIT_PRIORITY_DEFAULT);
 void log_udp_start(void)
 {
 	if (tee_state == TEE_ON) {
-		printk("logudp: teeing console to [%s]:%d (build-time; goal/console overrides)\n",
-		       tee_addr, tee_port);
+		printk("logudp: teeing console to [%s]:%d (%s)\n", tee_addr, tee_port,
+		       tee_from_keep ? "kept from the last goal/console" : "build-time; goal/console overrides");
+	} else if (tee_state == TEE_OFF) {
+		printk("logudp: off (kept from the last goal/console)\n");
 	} else {
 		printk("logudp: holding the console until goal/console names a target\n");
 	}

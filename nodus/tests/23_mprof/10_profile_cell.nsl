@@ -14,7 +14,7 @@ done
 
    `replay 1` is the load-bearing line: porta replays a cell into every cold boot,
    so the same id arriving again must open nothing. Delete the served check in
-   Profiler>>requestCell:id: and a second window opens and ends, and the line reads
+   Profiler>>requestMs:id: and a second window opens and ends, and the line reads
    `replay 2`. Across a deep sleep (a cut window carried to the next boot) is
    nodus/nsl/tools/test_profile_across_sleep.py, which needs a second process. *)
 class ProfileCellTest packageUsing: manifest = (
