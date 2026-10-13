@@ -2686,6 +2686,25 @@ mandatory language feature; capability security needs naming an object not to ha
 Record: `nodus/nsl/docs/NEWSPEAK_DIALECT.md` row 25; `nodus/oevm/docs/optimizations.md` ("A cost, not a lever");
 `docs/design/2026-10-12-372-method-visibility-design.md`; `docs/results/2026-10-12-372-visibility-board/`.
 
+## A program over the air, through porta, to both bells — 2026-10-10/12, #233
+
+**The firmware is the runner: two program slots run in place, a signed push staged from porta's block plane into the
+idle one, one trial boot, confirmed at the first check-in or reverted after 150 s.** On `c6spare` over Thread, all four
+of the host gate's scenarios held by hand (clean, reset mid-fetch, flipped signature, never confirms). On master, after a
+cable reflash of both demo nodes, the MagTag took a program over WiFi (177 KB in 9 s, inside its awake window) and the
+wall C6 over Thread (131 KB in 30 s, checking in throughout); both confirmed and struck 18:30 on time.
+
+1. **A deep-sleep node stages in its check-in, not on a thread** (T10): the S2's RAM cannot spare the stack, and the
+   node has nothing else to do while awake. Its reboot wake strikes nothing and catches the clock up without scoring
+   the gap as drift: two failed trials once put it 5 min 46 s behind, ~87,000 ppm to a plain sync.
+2. **The recipe is part of the seat:** the bell's flash script never passed porta's key, so it would have refused
+   every push. And a cable flash under a stale goal restages that goal forever (#426): write the goal first.
+3. **Not delivered:** the agent's front (`custos load --porta`, #398); a stored fetch cursor; any board gate. The
+   proof is by hand and is field evidence in `CLAIMS.md`.
+
+Record: `docs/design/2026-08-07-code-push-host-slice-design.md` §10 (T1–T10, the 2026-10-12 addendum);
+`nodus/nsl/docs/nsl-embedded-paper.md` §9; `review/tests/CLAIMS.md` (the target OTA row).
+
 ## Known stale docs (do not treat as current)
 
 `nodus/oevm/docs/archive/ROADMAP.md` (oevm-era backlog; prime directive still valid, task list superseded),

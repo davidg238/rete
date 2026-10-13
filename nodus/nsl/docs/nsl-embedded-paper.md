@@ -19,9 +19,10 @@ bench; a gateway holds what a sleeping node is to be told until it next wakes; a
 running it, the code an agent wrote.
 
 *Status: a lifecycle system whose desk half (host VM, USB load, debug, patch, profile) is built and measured, and whose
-field half is built for debug and, on a bench node, for program over the air; version 0.1 ships when the field
-half is shown on the two demo nodes (decided 2026-10-09), so nothing in the release is labelled "designed".* Remote debug through a gateway
-was run on two boards on 2026-10-09 and 2026-10-10, a deep-sleep node over WiFi and an always-on node over Thread (§9).
+field half is built for debug and for program over the air on both demo nodes; version 0.1 ships when every verb is
+shown there (decided 2026-10-09), so nothing in the release is labelled "designed".* Remote debug through a gateway
+was run on two boards on 2026-10-09 and 2026-10-10, a deep-sleep node over WiFi and an always-on node over Thread, and
+a program was pushed through it to each on 2026-10-12 (§9).
 
 ## 1. The problem
 
@@ -424,8 +425,8 @@ The patch row is one board, one method and one session: a demonstration, not a s
 **The debugger through the gateway is built and has been run on two boards** with no cable on either: the MagTag,
 which deep-sleeps, on 2026-10-09, and the wall-powered ShipsBell C6, which runs continuously, on 2026-10-10
 (#375–#377, #379, #380) [Field]. It was designed on a host spike that runs a real porta and a host VM on the desktop
-and prints `SLEEPY DEBUG OK` [Spike]. Program over-the-air load (#233) runs on a bench C6 over Thread as of 2026-10-10
-(below) and is not yet on either demo node, the last item before version 0.1 ships (decided 2026-10-09).
+and prints `SLEEPY DEBUG OK` [Spike]. Program over-the-air load (#233) was proven on a bench C6 over Thread on 2026-10-10
+and on both demo nodes on 2026-10-12 (below) [Field].
 
 ![Remote debug sequence](img/e-remote-debug-seq.svg)
 
@@ -492,8 +493,26 @@ exchange or resets after 150 s and reverts to the previous slot. On a bench C6 o
 image fetched at 3.3 KB/s, 64 s from push to confirmed; an image that never checked in was reverted after exactly 150 s;
 a flipped signature byte was refused before the image ran; a reset half-way through the fetch cost one full refetch
 (the fetch cursor is not yet kept across a reboot) and still converged. A rejected or reverted image is refetched at the
-next check-in, about a minute of radio per retry, until the goal changes (#175). The same push has not yet been run on
-either demo node. Until it has, a sleepy node can be debugged only if its program is already the one the breakpoints were built against.
+next check-in, about a minute of radio per retry, until the goal changes (#175, #426).
+
+**On the demo nodes** (2026-10-12; both reflashed by cable from one source first, then pushed through porta with no
+cable) [Field]:
+
+| Measure | MagTag, WiFi, deep sleep | wall C6, Thread, always on |
+|---|---|---|
+| Image | 177 KB | 131 KB |
+| Stage | 9 s, inside the awake window, in the check-in itself | 30 s (about 4.4 KB/s) on its fetch thread, checking in every 30 s throughout |
+| Goal written to confirmed | not timed: the goal waits for the next wake, whose check-ins stage, reboot and confirm | 3 min |
+| Next bell | 18:30, on time | 18:30, on time |
+
+The MagTag stages in the check-in rather than on a thread of its own: its RAM cannot spare the thread's stack, and a
+node awake only to check in has nothing else to do. Its trial boot is not a timer wake, so it does not strike, and
+it sets its clock at once without scoring the gap as drift: before the catch-up was added, a stale goal made it
+stage and fail two trials after a cable flash, the firmware held each for 150 s, and it rang 5 min 46 s late, which
+an ordinary sync would have read as about 87,000 ppm of drift. After a push the breakpoint cell still names the old
+image, and the new one refuses it until it is rewritten, since a breakpoint is an offset in one image. The push is
+driven today from porta's command line; the agent's front for it (`custos load --porta`, #398) is the remaining piece
+of the deploy row.
 
 ## 10. Trusting code an agent wrote
 
@@ -570,10 +589,10 @@ MicroPython, scored on measured rows; several rows MicroPython wins, which is th
 ### Where this stands
 
 Today rete is a lifecycle system whose desk half (host VM, USB load, debug, patch, profile) is built and measured, and
-whose field half is built for debug (the two bells, through the gateway, over WiFi and over Thread, §9) and, on a
-bench C6, for program over the air. Version 0.1 ships when the
-field half is built (decided 2026-10-09), so nothing in the release is labelled "designed". Not yet shown: a program
-loaded over a radio on either demo node, or an agent writing C against
+whose field half is built for debug and for program over the air (the two bells, through the gateway, over WiFi and
+over Thread, §9). Version 0.1 ships when the
+field half is built (decided 2026-10-09), so nothing in the release is labelled "designed". Not yet shown: the profile
+through the gateway, the push driven by an agent rather than from the gateway's command line, or an agent writing C against
 an agent writing nsl.
 
 Version 0.1 is defined as one node, every verb, through the gateway, over the radio, while the node sleeps. By
@@ -582,7 +601,7 @@ lifecycle stage, against the C toolchain the reader already has:
 | Stage | The C toolchain | rete today | Version 0.1 |
 |---|---|---|---|
 | write | edit, compile, link | the same program runs first on the host VM; authority in the header; 160 closed primitives | the same |
-| deploy | flash the firmware | load an image beside the firmware over the cable (ESP32-C6 only); a manifest-checked wire | over the cable, or through the gateway on the bench C6 (#233) |
+| deploy | flash the firmware | load an image beside the firmware over the cable (ESP32-C6 only); a manifest-checked wire | over the cable, or through the gateway: built on both bells (#233); the agent's front is #398 |
 | debug | `printf`; a probe and gdb | source-line breakpoints, the stack and named locals, patch and restart, over one USB cable; and through the gateway, on a node that sleeps (§9) | the same |
 | observe | nothing | a per-method profile on the shipped image (1.3 %); heap statistics every check-in; a liveness observer that dumps and leaves a note | the profile through the gateway as well |
 | manage | a site visit | the gateway holds intent for a node that is asleep and judges its liveness from outside | and keeps each commissioned image with its symbol map |

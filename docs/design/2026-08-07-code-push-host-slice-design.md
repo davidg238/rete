@@ -259,7 +259,7 @@ from worked examples).
 
 ## 10. The target half — proposed 2026-10-10 (rete#233, for David)
 
-*Status: DECIDED (David, 2026-10-10: yes to T1–T8, with T8 amended below; T9 added after S1). S1, T9, S2 and S3 are done on `233-ota`: all four scenarios proven on c6spare, the reset mid-fetch refetching from block 0 as T7 decided, ~60 s on Thread (rete#233, 2026-10-10; the retry loop's mesh cost is on rete#175). Program OTA only (peer design D4; firmware OTA stays
+*Status: DECIDED (David, 2026-10-10: yes to T1–T8, with T8 amended below; T9 added after S1). BUILT on both demo nodes, 2026-10-12 (rete#233 closed; the addendum after T10). S1, T9, S2 and S3 are done on `233-ota`: all four scenarios proven on c6spare, the reset mid-fetch refetching from block 0 as T7 decided, ~60 s on Thread (rete#233, 2026-10-10; the retry loop's mesh cost is on rete#175). Program OTA only (peer design D4; firmware OTA stays
 deferred), for the two 0.1 demo boards: the wall C6 on Thread (#380) and the MagTag on
 WiFi (#379). The host gate (`nodus/oevm/tests/host_ota/run.sh`) was re-run today: `plan 4`,
 four `ok`, `HOST OTA OK`. Everything above this section is unchanged by it: the kernel's
@@ -389,8 +389,43 @@ only `backend/zephyr/ota_zephyr.c` stops being inert, and `main.c` gains the run
   count (a strike wake's count is the one to size from; 16 would return 2,432 B, enough for the
   profiler's 256 slots).
 
+- **Addendum 2026-10-12 — the two demo nodes, on master (rete#233 closed).** Both bells were
+  reflashed by cable from `6975d8c` (rete#372 changed the method header, so the firmware on the
+  wall could not load a new image: a header change is a cable reflash of every node first), then
+  each took a push through porta with no cable (`38a5500f`). The MagTag recipe now sets the registry
+  at 16 and the profiler is back at 256 slots (dram0 220,048 of 222,208; `space: 11 of 16`).
+  - **Measured.** MagTag, WiFi, in-channel: 177,344 B staged in 9 s; trial boot, catch-up sync,
+    confirmed; struck 18:30 on time. Wall C6, Thread, fetch thread: 131,328 B staged in 30 s
+    (18:16:29–18:16:59, ~4.4 KB/s), checking in every 30 s throughout; goal written 18:15:01, reboot
+    18:17:31, confirmed 18:18:01; struck 18:30 and logged `v2 slot 37 bells 5`.
+  - **The catch-up sync — supersedes T10 (c)'s "the clock loses one awake window until the next
+    watch-end sync".** That cost was priced for one window and is unbounded: a trial that cannot
+    confirm holds the board for the runner's 150 s, the count never sees the time, and two of them
+    put the MagTag 5 min 46 s behind. A reboot wake now syncs at once (`rebootWake` calls
+    `BellClock>>tryCatchUp`; WiFi is already up for the confirming check-in), and the gap it finds
+    is never scored as drift: a plain `trySync` there takes the hold branch and would have folded
+    ~+87,000 ppm into the calibration. Board: `sync true 65176 predicted 64809` / `catch-up sync:
+    not drift, ppm not recorded`. The host cannot pose a reboot wake; the board is that path's only
+    test.
+  - **The bell's missing key — a flash recipe is part of the seat (T4).** `flash-bell.sh` never
+    passed `OEVM_OTA_PUBKEY`, so the wall bell was built as T4's "no OTA" image and would have
+    refused every push. It passes porta's key now; CMake already warns at configure time (`this
+    build cannot receive a program over the air`), but a warning is not a failure. Every recipe for a
+    slot board that is meant to take a push carries the key: today `flash-bell.sh` and the MagTag
+    header.
+  - **Clear a node's goal before a cable flash.** porta still held the MagTag's 2026-10-10 goal
+    (an image under the old header). The cable image was adopted by T5's rule, the first check-in
+    saw goal ≠ running and staged the stale image, its trial failed, and the next check-in staged it
+    again (rete#426: a reverted push restages forever). Rule until rete#426 is fixed: before a cable
+    flash of a node porta knows, write its `goal/apps/main` to the image the cable writes. The
+    cable and the goal are two writers of one fact; rete#398's front is where the rule can become
+    a check.
+  - **After a push the debugger is off until its goal is rewritten.** `goal/debug/main` names the
+    old image's sha, so the new image answers `dbg:error sha`. That is correct (a breakpoint is an
+    offset in one image) and is recorded so it is not read as a fault.
+
 **Order, on `c6spare` and never the bell until proven:** (S1) `ota_zephyr.c` real against
 slot `b`, staged over Thread from the gateway's porta — the fetch time; (S2) the runner in
 `main.c` with T3–T6 and the verify cost; (S3) the host gate's four scenarios by hand on the
 board: clean, reset mid-fetch, flipped sig byte, an image that never checks in; then the
-MagTag, the bell, and paper E §9's OTA line.
+MagTag, the bell, and paper E §9's OTA line. All done 2026-10-12; the front is rete#398.
