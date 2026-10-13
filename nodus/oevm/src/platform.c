@@ -424,7 +424,7 @@ int rtc_alarm_arm(int seconds_of_day, int chan_id, int handle_idx) {
    ratchet witnessed ACROSS simulated sleeps (Task 7's harness). With no file set the
    array is cold at process start (magic unwritten -> rtcValid false), which is
    exactly the cold-power-on path. A reusable test feature, not a one-off. */
-#define OEVM_RTC_FIELDS 10
+#define OEVM_RTC_FIELDS 14  /* 0-9 the app's, 10-13 the kernel's retained profile request (rete#415 Q8) */
 #define OEVM_RTC_MAGIC  0x14BE11C0u  /* must fit a 32-bit SMI (31-bit tag): the node
                                         writes it via rtcPut:, and a magnitude >= 2^30
                                         never round-trips on a 32-bit target */

@@ -279,7 +279,7 @@ int ntp_target_date(void) { return -1; }
    2026-07-24 handoff crash first blamed on the RTC_DATA_ATTR load segment was really
    the loader.c segment-walk bug below — any loaded RTC segment tripped it — but NOLOAD
    retention semantics remain the right fit regardless.) */
-#define OEVM_RTC_FIELDS 10
+#define OEVM_RTC_FIELDS 14  /* 0-9 the app's, 10-13 the kernel's retained profile request (rete#415 Q8) */
 #define OEVM_RTC_MAGIC  0x14BE11C0u  /* must fit a 32-bit SMI (31-bit tag): the node
                                         writes it via rtcPut:, and a magnitude >= 2^30
                                         never round-trips on a 32-bit target */

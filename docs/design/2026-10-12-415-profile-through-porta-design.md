@@ -1,6 +1,6 @@
 # Profile through porta: the last 0.1 lifecycle row (rete#415)
 
-> Status: **Q1, Q3–Q7 and Q2′ DECIDED (David, 2026-10-12); Q8 DECIDED (a), one-shot (2026-10-13); Q9 open; footprint re-banked (2026-10-13). Host half BUILT on branch `415-profile-porta` (see As built); the bench half waits.** #415 asks to settle whether "profile local or OTA" (#26's
+> Status: **Q1, Q3–Q7 and Q2′ DECIDED (David, 2026-10-12); Q8 DECIDED (a), one-shot, and Q9 DECIDED (a) (2026-10-13); footprint re-banked (2026-10-13). Host half BUILT on branch `415-profile-porta` (see As built); the bench half waits.** #415 asks to settle whether "profile local or OTA" (#26's
 > lifecycle table) is built or open work. **Answer: half built.** The trigger through porta is built and gated; the
 > rows' way back to an agent is not, nor is custos's verb for it, nor the sleepy-node case. Decided upstream
 > and not reopened: profiling is in the standard image, and one command reader in every image is fed by the
@@ -136,7 +136,7 @@ wall bell shows the cell working (P4 then becomes "push an image without the bak
 
 **Q2′ DECIDED (David, 2026-10-12): yes, and build it.**
 
-## Q8: a profile request that survives sleep (DECIDED (a), David, 2026-10-13; Q9 open)
+## Q8: a profile request that survives sleep (DECIDED (a), David, 2026-10-13; Q9 DECIDED (a))
 
 David: "can we save the address on the target to nvm, so that ... in wakeA tell it we want to profile + custos
 address, next time it wakes, wakeB, it profiles for the set period or until it sleeps again?"
@@ -160,7 +160,7 @@ clear races the next boot. A cell is also replayed into every cold boot's first 
 `(ms, id)` armed and `served` (the last id it dumped) in RTC memory. A cell whose id is `served` does nothing. A new id
 arms it. After its one dump, `served := id`. A new request is a new id. An empty cell disarms.
 
-**Q9. When does a window open on a request that arrives mid-wake?** David: "if a profile request arrives mid-wake,
+**Q9. When does a window open on a request that arrives mid-wake? DECIDED: (a)** (David, 2026-10-13: "simple !"). David: "if a profile request arrives mid-wake,
 it starts next". Taken literally, the always-on bell never boots again, so it would never profile.
 - **(a) At once, and carried once.** *Recommended.* The window opens on receipt. If it reaches `ms`, it dumps and
   is served: the bell's case, and a long wake's. If sleep cuts it first, it dumps nothing, stays armed, and the next

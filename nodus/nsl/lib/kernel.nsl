@@ -2059,6 +2059,8 @@ class Kernel usingPlatform: platform = (
            node that wakes, checks in, works and sleeps must tee the work, and a
            profile window cut by that sleep dumps through it. *)
         (path = 'goal/console') ifTrue: [ self applyConsole: value ].
+        (* rete#415 Q8: the profile request, a one-shot cell retained across sleep. *)
+        (path = 'goal/profile') ifTrue: [ self applyProfile: value ].
         ^ self ].
       (* #342 spike: in a debug image whose debugger talks through the space,
          dbg/req belongs to the debugger, as the cable does (supervisor.nsl's
@@ -2082,6 +2084,19 @@ class Kernel usingPlatform: platform = (
         self telLog: #error text: 'console bad record'. ^ self ].
       (outer consoleTee: addr port: port) ifFalse: [
         self telLog: #error text: 'console bad address' ].
+      ^ self )
+
+    (* rete#415 Q8: `Profile{ms, id}` is one request, identified by id; ms 0 disarms.
+       Checked here, as applyConsole: checks its record; the Profiler owns the rest. *)
+    applyProfile: rec = (
+      | ms id |
+      ((outer rankOf: rec) = 9 and: [ rec tag = #Profile ]) ifFalse: [
+        self telLog: #error text: 'profile bad record'. ^ self ].
+      ms:: rec at: #ms ifAbsent: [ nil ].
+      id:: rec at: #id ifAbsent: [ nil ].
+      ((outer rankOf: ms) = 2 and: [ (outer rankOf: id) = 2 ]) ifFalse: [
+        self telLog: #error text: 'profile bad record'. ^ self ].
+      outer profiler requestCell: ms id: id.
       ^ self )
 
     (* porta's authority, enforced where it can be believed: goal/** and dbg/req,
@@ -3763,7 +3778,8 @@ class Kernel usingPlatform: platform = (
      drains its space, so nothing here reaches it; its profile is a build option
      (OEVM_MPROF_FLIP_AT/DUMP_AT). The console is read with `consoleLine`, which never
      blocks: an app that reads the cable itself may already have taken the line. *)
-  class Profiler = ( | private kernel private space private timers private tok ::= nil. private endCh | ) (
+  class Profiler = ( | private kernel private space private timers private tok ::= nil. private endCh
+                       private cellId ::= nil. private fromBoot ::= false. | ) (
     public install: withCable = (
       | first |
       (space channel: 'dbg/req') whenever: '' do: [ :v | self request: v ].
@@ -3778,13 +3794,14 @@ class Kernel usingPlatform: platform = (
           (space channel: 'sys/console') whenever: '' do: [ :n | self drainConsole ].
           first == nil ifFalse: [ self request: first ].
           self drainConsole ] ].
+      self resumeRetained.
       ^ self
     )
     (* Answers the window's ms, or 0 for a line that is not `profile <positive int>`. *)
     public request: line = (
       | ms |
       ms:: kernel parseProfileMs: line.
-      ms > 0 ifTrue: [ self open: ms ].
+      ms > 0 ifTrue: [ cellId:: nil. self open: ms ].
       ^ ms
     )
     (* One announcement may stand for several lines: take every complete one. *)
@@ -3793,19 +3810,64 @@ class Kernel usingPlatform: platform = (
       [ line:: kernel consoleLine. line == nil ] whileFalse: [ self request: line ].
       ^ self
     )
+
+    (* rete#415 Q8/Q9: the goal/profile cell is ONE request, named by its id, and it
+       survives deep sleep in the kernel's RTC slots (10 ms, 11 id, 12 served, 13 check;
+       an app owns 0-9). A cell is replayed into every cold boot, so `served` is what
+       makes it one-shot. The rule, one for every node: a new id opens a window at once.
+       A window that reaches its ms dumps and is served (the always-on bell). A window
+       that sleep cuts dumps nothing and stays armed, and the next boot opens a fresh
+       window before main:, which dumps and is served at its ms or at sleep (a sleepy
+       node's next wake). ms 0 disarms. *)
+    public requestCell: ms id: id = (
+      ms > 0 ifFalse: [ self retainMs: 0 id: 0 served: self served. ^ self ].
+      id = self served ifTrue: [ ^ self ].
+      ((tok == nil) not and: [ cellId = id ]) ifTrue: [ ^ self ].   (* the boot window's replay *)
+      self retainMs: ms id: id served: self served.
+      self open: ms.
+      cellId:: id. fromBoot:: false.
+      ^ self )
+    resumeRetained = (
+      | ms id |
+      self retained ifFalse: [ ^ self ].
+      ms:: kernel rtcGet: 10. id:: kernel rtcGet: 11.
+      (ms > 0 and: [ (id = self served) not ]) ifFalse: [ ^ self ].
+      ('profile: window from boot, request ' , id printString) println.
+      self open: ms.
+      cellId:: id. fromBoot:: true.
+      ^ self )
+    retained = ( ^ (kernel rtcGet: 13) = (self checkMs: (kernel rtcGet: 10) id: (kernel rtcGet: 11) served: (kernel rtcGet: 12)) )
+    served = ( self retained ifFalse: [ ^ nil ]. ^ kernel rtcGet: 12 )
+    checkMs: ms id: id served: s = ( ^ ((ms bitXor: id) bitXor: (s bitXor: 789516773)) bitAnd: 1073741823 )
+    retainMs: ms id: id served: s = (
+      | s0 |
+      s0:: s == nil ifTrue: [ 0 ] ifFalse: [ s ].
+      kernel rtcPut: 10 value: ms. kernel rtcPut: 11 value: id. kernel rtcPut: 12 value: s0.
+      kernel rtcPut: 13 value: (self checkMs: ms id: id served: s0).
+      ^ self )
+
     open: ms = (
       tok == nil ifFalse: [ timers cancel: tok ].
       kernel profileStart.
       tok:: timers after: ms post: #profileEnd on: endCh.
       ^ self
     )
-    public close = ( tok:: nil. kernel profileStop. ^ self )
-    (* rete#415 P3: Kernel>>deepSleep: is about to end the VM. An open window is closed
-       now and SAYS it was cut, so a dump shorter than the request is not read as the
-       whole window. *)
+    public close = (
+      cellId == nil ifFalse: [
+        self retainMs: (kernel rtcGet: 10) id: (kernel rtcGet: 11) served: cellId.
+        cellId:: nil ].
+      tok:: nil. kernel profileStop. ^ self )
+    (* rete#415 P3: Kernel>>deepSleep: is about to end the VM. A window opened from the
+       cable, or from boot, is closed now and SAYS it was cut, so a dump shorter than the
+       request is not read as the whole window. A cell's window opened mid-wake is
+       carried instead (Q9): it dumps nothing, and the next boot opens it again whole. *)
     public cutBySleep = (
       tok == nil ifTrue: [ ^ self ].
       timers cancel: tok.
+      ((cellId == nil) not and: [ fromBoot not ]) ifTrue: [
+        tok:: nil. cellId:: nil.
+        'profile: window carried to the next wake' println.
+        ^ self ].
       'profile: window cut by sleep' println.
       ^ self close )
     public setKernel: k = ( kernel:: k. space:: k space. timers:: k timers. ^ self )

@@ -56,7 +56,6 @@ sym-SpanCapture = #6.39("SpanCapture")
 sym-SpanCtl     = #6.39("SpanCtl")
 
 ; --- field keys (shared across records; scoped per record on the wire) ---
-sym-action      = #6.39("action")
 sym-addr        = #6.39("addr")
 sym-alc         = #6.39("alc")
 sym-alg         = #6.39("alg")
@@ -73,11 +72,9 @@ sym-bootId      = #6.39("bootId")
 sym-build       = #6.39("build")
 sym-chip        = #6.39("chip")
 sym-code        = #6.39("code")
-sym-continuous  = #6.39("continuous")
 sym-core        = #6.39("core")
 sym-detail      = #6.39("detail")
 sym-dropped     = #6.39("dropped")
-sym-durationS   = #6.39("durationS")
 sym-fails       = #6.39("fails")
 sym-fal         = #6.39("fal")
 sym-fre         = #6.39("fre")
@@ -93,6 +90,7 @@ sym-hnhw        = #6.39("hnhw")
 sym-hnl         = #6.39("hnl")
 sym-hsz         = #6.39("hsz")
 sym-image       = #6.39("image")
+sym-id          = #6.39("id")
 sym-lb          = #6.39("lb")
 sym-lfb         = #6.39("lfb")
 sym-lifecycle   = #6.39("lifecycle")
@@ -211,11 +209,16 @@ console = #6.27([sym-Console, {
   sym-port => uint,
 }])
 
-;# path=goal/profile/<app>  kind=cell  class=routine  dir=down
+;# path=goal/profile  kind=cell  class=routine  dir=down
+; One profile request (rete#415 Q8/Q9). A new id opens a window of ms at once; a
+; window that reaches ms dumps and is served. One that deep sleep cuts dumps
+; nothing and is opened again, whole, at the next boot (the kernel keeps the
+; request in RTC memory). A cell is replayed into every cold boot, so the node
+; remembers the last id it served and ignores it. ms 0 disarms. The rows leave by
+; the console tee (goal/console), never on the space.
 profile = #6.27([sym-Profile, {
-  sym-action    => anysym,
-  sym-durationS => uint,
-  sym-continuous => bool,
+  sym-id => uint,
+  sym-ms => uint,
 }])
 
 ;# path=goal/liveness  kind=cell  class=routine  dir=down

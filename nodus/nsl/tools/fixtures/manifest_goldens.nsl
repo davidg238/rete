@@ -10,7 +10,7 @@ GOLDEN goal/debug/main d81b82d827654465627567a2d8276373686142616bd82766627265616
 GOLDEN goal/debug/main d81b82d827654465627567a2d8276373686142616bd82766627265616b7380
 GOLDEN goal/console d81b82d82767436f6e736f6c65a2d8276461646472633a3a31d82764706f727419d43a
 GOLDEN goal/console d81b82d82767436f6e736f6c65a2d827646164647260d82764706f727400
-GOLDEN goal/profile/main d81b82d8276750726f66696c65a3d82766616374696f6ed827657374617274d827696475726174696f6e531903e8d8276a636f6e74696e756f7573f4
+GOLDEN goal/profile d81b82d8276750726f66696c65a2d82762696407d827626d73191388
 GOLDEN goal/liveness d81b82d827684c6976656e657373a2d827666d697373657308d8276674656c4361641907d0
 GOLDEN goal/do/reboot d81b82d827665265626f6f74a0
 GOLDEN dbg/req 6c70726f66696c652031303030
@@ -102,9 +102,8 @@ class ManifestGoldens packageUsing: manifest = () (
     (* rete#415: the console's tee target, and the off. *)
     self emit: 'goal/console' value: (R tag: #Console with: #addr -> '::1' with: #port -> 54330) using: platform.
     self emit: 'goal/console' value: (R tag: #Console with: #addr -> '' with: #port -> 0) using: platform.
-    self emit: 'goal/profile/main'
-         value: (R tag: #Profile with: #action -> #start with: #durationS -> 1000 with: #continuous -> false)
-         using: platform.
+    (* rete#415 Q8: one profile request, id 7, a 5 s window. *)
+    self emit: 'goal/profile' value: (R tag: #Profile with: #id -> 7 with: #ms -> 5000) using: platform.
     self emit: 'goal/liveness' value: (R tag: #Liveness with: #misses -> 8 with: #telCad -> 2000) using: platform.
     self emit: 'goal/do/reboot' value: (R tag: #Reboot fields: (M fromPairs: OC new)) using: platform.
     (* dbg/req is a BARE line by the node's own reader (parseProfileMs:) —

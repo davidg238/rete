@@ -848,25 +848,32 @@ records:
 
   profile:
     record: Profile
-    paths: ["goal/profile/<app>"]
-    status: specified
-    summary: No producer and no consumer in this tree; profiling is driven over dbg/req today.
+    paths: [goal/profile]
+    status: live
+    summary: >
+      One profile request (rete#415 Q8/Q9). custos writes it with a new id; the node
+      opens a window of ms at once. A window that reaches ms dumps and is served; one
+      that deep sleep cuts dumps nothing and is opened again, whole, at the next boot,
+      from the kernel's RTC slots. The node keeps the last id it served there, so the
+      cell porta replays into every cold boot does not profile again. ms 0 disarms.
+      The rows leave by the console tee (goal/console), never on the space.
     fields:
-      - key: action
-        name: action
-        unit: symbol
+      - key: id
+        name: id
+        unit: count
         kind: config
-        meaning: what the profiler should do
-      - key: durationS
-        name: durationS
-        unit: seconds
+        meaning: the request's identity; a new id is a new request
+        validity: >
+          The node compares it with the id it last served, by equality, and must hold
+          it as a 31-bit SMI: custos writes values below 2^30. A custos that reused a
+          served id would be ignored without a trace.
+        refs: [rete#415]
+      - key: ms
+        name: ms
+        unit: ms
         kind: config
-        meaning: how long to capture
-      - key: continuous
-        name: continuous
-        unit: bool
-        kind: config
-        meaning: whether to keep capturing rather than stopping at durationS
+        meaning: the window's length; 0 disarms
+        refs: [rete#415]
 
   reboot:
     record: Reboot

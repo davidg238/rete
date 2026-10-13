@@ -368,7 +368,7 @@ forward, `R` reads as "cell". Direction is from the node's point of view.
 | `goal/config/<app>/<key>` | R | scalar (`int`/`str`/`bool`/`sym`) |
 | `goal/debug/<app>` | R | `Debug { sha: bytes, breaks: [[blob: int, off: int] …] }` — the WHOLE breakpoint set for the image `sha` names (an offset means nothing in another image); empty is the detach. Replayed to a fresh boot, so a deep-sleeping node re-arms from it (rete#375) |
 | `goal/console` | R | `Console { addr: str, port: int }` — the console's UDP tee target, a literal IPv6 address (rete#415); `""` turns the tee off. Replayed to a fresh boot, so a waking node re-tees before its work |
-| `goal/profile/<app>` | R | `Profile { action: sym, durationS: int, continuous: bool }` |
+| `goal/profile` | R | `Profile { id: int, ms: int }` — one request; served once, carried across a sleep that cuts it (rete#415) |
 | `goal/do/reboot` | **E** | `Reboot {}` — exactly-once via cursor |
 
 `goal/apps/<name>` is where the size law earns its keep: the image is a `BlobRef`, so

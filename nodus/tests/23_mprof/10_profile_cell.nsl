@@ -1,0 +1,60 @@
+(* expect:
+open 0
+ended 1 served 7
+replay 1
+again 2 served 8
+disarmed ms 0
+bad record level #error
+done
+*)
+(* rete#415 Q8/Q9: a `goal/profile` cell is ONE request, named by its id. Driven
+   through the bridge's inbound apply (applyBatch:), the kernel's Profiler and its
+   RTC slots (10 ms, 11 id, 12 served), on the host virtual clock as
+   04_dbg_req_chain is.
+
+   `replay 1` is the load-bearing line: porta replays a cell into every cold boot,
+   so the same id arriving again must open nothing. Delete the served check in
+   Profiler>>requestCell:id: and a second window opens and ends, and the line reads
+   `replay 2`. Across a deep sleep (a cut window carried to the next boot) is
+   nodus/nsl/tools/test_profile_across_sleep.py, which needs a second process. *)
+class ProfileCellTest packageUsing: manifest = (
+  | private ends ::= 0. |
+) (
+  batch: platform hi: hi value: value = (
+    ^ platform Cbor encode:
+        (platform Record tag: #batch
+           with: #hi -> hi
+           with: #ent -> (platform List with: (platform List with: hi with: 'goal/profile' with: 2 with: value))) )
+
+  public main: platform args: args = (
+    | space timers bridge log |
+    space:: platform space.
+    timers:: platform timers.
+    space whenever: 'sys/timer' do: [ :e | timers dispatch: e ].
+    (space channel: 'sys/profileEnd') whenever: '' do: [ :m | ends:: ends + 1 ].
+    bridge:: platform PortaBridge socket: nil space: space id: 'n1' peer: '::1' port: 6969 spans: platform Spans new.
+
+    bridge applyBatch: (self batch: platform hi: 1 value: (platform Record tag: #Profile with: #id -> 7 with: #ms -> 100)).
+    platform advanceMillis: 50. space drain.
+    ('open ' , ends printString) println.
+    platform advanceMillis: 100. space drain.
+    ('ended ' , ends printString , ' served ' , (platform rtcGet: 12) printString) println.
+
+    bridge applyBatch: (self batch: platform hi: 2 value: (platform Record tag: #Profile with: #id -> 7 with: #ms -> 100)).
+    platform advanceMillis: 200. space drain.
+    ('replay ' , ends printString) println.
+
+    bridge applyBatch: (self batch: platform hi: 3 value: (platform Record tag: #Profile with: #id -> 8 with: #ms -> 100)).
+    platform advanceMillis: 200. space drain.
+    ('again ' , ends printString , ' served ' , (platform rtcGet: 12) printString) println.
+
+    bridge applyBatch: (self batch: platform hi: 4 value: (platform Record tag: #Profile with: #id -> 9 with: #ms -> 0)).
+    ('disarmed ms ' , (platform rtcGet: 10) printString) println.
+
+    bridge applyBatch: (self batch: platform hi: 5 value: (platform Record tag: #Profile with: #id -> 'x' with: #ms -> 100)).
+    log:: space take: 'tel/log' ifEmpty: [ nil ].
+    ('bad record level ' , (log at: #lvl ifAbsent: [ #NONE ]) printString) println.
+    'done' println.
+    ^ 0 )
+) : (
+)

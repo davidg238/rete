@@ -79,7 +79,7 @@ Paths are from the repo root. `$RETE` is the clone, as in [tutorial 1](tutorials
   - **No command or document for a person.** The trigger line is found only inside a test script.
   - **The results need a cable.** The rows leave over the console, not through the gateway (design D4), so a node that is not on USB cannot be profiled.
   - **The table's capacity and the cost figure are unmeasured for a real program** (design D9).
-  - `goal/profile/<app>` is in the record catalogue but no command that uses it was found; `gwprofiler` is a separate spike, not this path.
+  - `goal/profile` carries custos's profile request through porta (rete#415); `gwprofiler` is a separate spike, not this path.
 
 ### Update the nsl program over the air
 - Proven on a desktop only. `bash tests/host_ota/run.sh` (from `nodus/oevm`) runs three VMs and a real `porta serve` through signed push, kill mid-transfer, bad signature and no check-in, and prints `HOST OTA OK` ([run.sh](../nodus/oevm/tests/host_ota/run.sh)). It uses its own port pair, so it can run beside the porta sync gate. It is standalone, not in the suite. rete#233's body says `nodus/tuvm`; the directory is `nodus/oevm`, which exists.
