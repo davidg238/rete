@@ -2705,6 +2705,25 @@ wall C6 over Thread (131 KB in 30 s, checking in throughout); both confirmed and
 Record: `docs/design/2026-08-07-code-push-host-slice-design.md` §10 (T1–T10, the 2026-10-12 addendum);
 `nodus/nsl/docs/nsl-embedded-paper.md` §9; `review/tests/CLAIMS.md` (the target OTA row).
 
+## An agent pushes a program to a node it cannot reach: load through porta — 2026-10-12, #398
+
+**porta's HTTP listener gains its first writes, and custos's load works on a node behind the gateway.** porta serves
+the twins of three CLI commands: `POST /blob` (store and sign), `PUT /node/{id}/{path...}` (a `goal/` cell, through
+the store's one write door) and `GET` of one cell. custos serves a node as `--porta-node <name>=<node-id>`, and
+`POST /board/<name>/load` there is a push, answered at the goal write in the cable's own `Load` shape plus `Push`;
+`/load/last` re-reads the node until `Converged`. On the wall bell, one request had a new program confirmed 2 min 37 s
+later over Thread.
+
+1. **General routes, not a push verb** (David, Q1): a push is a blob and a goal write, the same write carries
+   `goal/debug/main`, and porta still knows nothing of apps or `.oimg`.
+2. **Answered at once and polled** (Q2): a sleeping node cannot be waited on for a bounded time.
+3. **Not delivered:** authentication (CIDR only, a known gap for 0.1, Q3); a CLI flag (Q5); the debug and profile
+   verbs through the gateway (#415 is the profile row). The real-VM gate is `host_ota` scenario 1, now pushed
+   through custos.
+
+Record: `docs/design/2026-10-12-398-load-through-porta-design.md` (Q1–Q5, as built); `porta/docs/ARCHITECTURE.md`
+§3; `nodus/nsl/docs/nsl-embedded-paper.md` Appendix D and §9; `review/tests/CLAIMS.md` (the host and target OTA rows).
+
 ## Known stale docs (do not treat as current)
 
 `nodus/oevm/docs/archive/ROADMAP.md` (oevm-era backlog; prime directive still valid, task list superseded),

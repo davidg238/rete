@@ -101,5 +101,12 @@ its four claims. Go unit tests for each route and for the porta target against a
   chain, porta's tree, and custos's `/load/last` reading `Converged`. `HOST OTA OK`, 2026-10-12, opti7040.
   `PORTA SYNC OK` the same day. Unit: `porta/internal/portacli/ops_test.go`, `custos/internal/custos/portaload_test.go`
   (against a fake porta: custos may not import porta), the TUI's push view and re-read.
-- **Not yet:** a push through custos to a demo node. It needs porta on the gateway rebuilt with the routes and
-  serving HTTP, then a custos with the bells as porta nodes.
+- **On the wall bell, 2026-10-12 (rete#398 closed).** porta on the gateway rebuilt with the routes (`porta-398`,
+  a static build: the gateway's glibc is 2.36 and has no Go) and restarted with the same flags; the bell checked in
+  to it 24 s later. A custos on opti7040 served the bell as `--porta-node bell=206ef1195438` against
+  `http://gw85224-01:6970`, and one `POST /board/bell/load` pushed a v3 image (master's `ShipsBellNodeC6.nsl` with
+  its `tel/log` row tagged `v3`, baked with `OEVM_DEBUG_HOOKS=1` and the C6 layout, a recipe first proven by
+  reproducing the cable image `2b325f4b…` byte for byte). Goal seq 9 written by actor `custos` at 20:41:26; `ota
+  staging 0` 20:42:01, `ota staged` 20:43:01, the trial boot's `obs/apps/main` 20:43:34, `/load/last` `Converged`
+  20:43:38, `ota confirmed` 20:44:03: 2 min 37 s from the POST to a confirmed trial, over Thread, the node checking
+  in throughout. At 21:00:03 the new program logged `v3 slot 42 bells 2`, two bells, on time.
