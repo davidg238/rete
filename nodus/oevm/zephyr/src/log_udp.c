@@ -10,6 +10,9 @@
 #include <errno.h>
 
 #include "log_udp.h"
+#ifdef CONFIG_NET_L2_OPENTHREAD
+#include "thread_bringup.h"
+#endif
 
 #ifdef CONFIG_NET_SOCKETS
 
@@ -181,6 +184,27 @@ void log_udp_tee_paced(const char *bytes, size_t n)
 	log_udp_tee(bytes, n);
 }
 
+/* rete#415, measured on c6b (2026-10-13): over Thread a sendto succeeds and the
+ * message is dropped later, when OpenThread's pool is full: a 272-line dump teed 82
+ * lines at the radio's ~4.3 ms each, then one in 25, with no error and no ring drop.
+ * So before each datagram the sender waits for the pool to have room, keeping
+ * OT_RESERVE buffers for the node's own check-ins; it waits at most OT_WAIT_MS, then
+ * sends anyway, so a stack that never frees cannot stop the console. */
+#define OT_RESERVE 32
+#define OT_WAIT_MS 1000
+static void wait_for_radio(void)
+{
+#ifdef CONFIG_NET_L2_OPENTHREAD
+	int waited = 0;
+	int f;
+
+	while ((f = oevm_thread_free_buffers()) >= 0 && f < OT_RESERVE && waited < OT_WAIT_MS) {
+		k_msleep(2);
+		waited += 2;
+	}
+#endif
+}
+
 /* A send refused for want of buffers, which drain on their own. */
 static int busy(int e)
 {
@@ -312,6 +336,7 @@ static void log_udp_thread(void *a, void *b, void *c)
 		 * overflows, which is the right end to lose: a boot is bounded and a
 		 * running node's chatter is not. Witnessed 2026-08-04, first flash. */
 		if (pending) {
+			wait_for_radio();
 			if (zsock_sendto(sock, line, len, 0,
 					 (struct sockaddr *)&dst, sizeof dst) < 0) {
 				send_errors++;
@@ -331,6 +356,7 @@ static void log_udp_thread(void *a, void *b, void *c)
 			}
 			if (ch == '\n' || len == LINE_MAX - 1) {
 				if (len > 0) {
+					wait_for_radio();
 					if (zsock_sendto(sock, line, len, 0,
 							 (struct sockaddr *)&dst, sizeof dst) < 0) {
 						send_errors++;

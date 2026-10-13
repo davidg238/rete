@@ -28,6 +28,7 @@
 #include <zephyr/net/openthread.h>
 #include <openthread.h>
 #include <openthread/thread.h>
+#include <openthread/message.h>
 #include "thread_bringup.h"
 
 void oevm_thread_bringup(void) {
@@ -55,4 +56,18 @@ void oevm_thread_bringup(void) {
         k_msleep(100);
     }
     printk("thread: attach timed out, continuing\n");
+}
+
+int oevm_thread_free_buffers(void)
+{
+	struct otInstance *ot = openthread_get_default_instance();
+	otBufferInfo info;
+
+	if (ot == NULL) {
+		return -1;
+	}
+	openthread_mutex_lock();
+	otMessageGetBufferInfo(ot, &info);
+	openthread_mutex_unlock();
+	return info.mFreeBuffers == 0xffff ? -1 : info.mFreeBuffers;
 }
