@@ -15,6 +15,10 @@
 #      and the window CLOSES ITSELF (#165 D2/D6) — the only off-target proof that
 #      the request survives the wire, since the node-side chain alone is covered
 #      by nodus/tests/23_mprof/04_dbg_req_chain.nsl.
+#   4c. (rete#415) the same window asked for by an AGENT, through custos and porta's
+#      HTTP: custos serves the node as a porta node with a console, writes
+#      goal/console naming its own UDP sink, writes `profile <ms>` to dbg/req,
+#      and ranks the dump that comes back by the console tee — never the space.
 # Leg 3 under a DELIBERATE datagram drop is plan 3's, on the C6 over the mesh.
 #
 # Not wired into run_tests_oevm.py — it builds a separate Go binary and a
@@ -56,8 +60,9 @@ if ! command -v go >/dev/null 2>&1; then
   echo "SKIP: go is not on PATH — cannot build the porta counterparty"; exit 0
 fi
 
-echo "[1/9] build porta"
+echo "[1/9] build porta and custos"
 ( cd "$PORTA_DIR" && go build -o /tmp/porta ./cmd/porta )
+( cd "$PORTA_DIR/../custos" && go build -o /tmp/porta_sync_custos ./cmd/custos )
 
 echo "[2/9] host-ABI layout descriptor"
 gcc -std=c99 -Isrc tools/dump_layout.c -o /tmp/dl
@@ -91,10 +96,16 @@ rm -f "$DB"
 # the real node pushes below must clear the closed manifest, so a green run is
 # also the completeness proof for protocol/MANIFEST.cddl's row table.
 MANIFEST="$(git rev-parse --show-toplevel)/protocol/MANIFEST.cddl"
-/tmp/porta serve --db "$DB" --udp 127.0.0.1:16969 --http-port 0 --sweep-tick 1s --manifest "$MANIFEST" >/tmp/porta_serve.log 2>&1 &
+# rete#415: porta's operator HTTP on 16968 and custos on 16967 (leg 8c), beside the
+# exchange pair; host_ota's 2696x set is its own, so the two gates still coexist.
+PORTA_HTTP=16968
+CUSTOS_PORT=16967
+/tmp/porta serve --db "$DB" --udp 127.0.0.1:16969 --http-port "$PORTA_HTTP" --http-bind 127.0.0.1 \
+  --sweep-tick 1s --manifest "$MANIFEST" >/tmp/porta_serve.log 2>&1 &
 PORTA_PID=$!
 NODE_PID=""
-trap 'kill $PORTA_PID ${NODE_PID:-} 2>/dev/null || true' EXIT
+CUSTOS_PID=""
+trap 'kill $PORTA_PID ${NODE_PID:-} ${CUSTOS_PID:-} 2>/dev/null || true' EXIT
 for _ in $(seq 1 50); do grep -q "serving the space" /tmp/porta_serve.log && break; sleep 0.1; done
 grep -q "serving the space" /tmp/porta_serve.log || {
   echo "FAIL: porta did not start"; cat /tmp/porta_serve.log; exit 1; }
@@ -398,6 +409,52 @@ done
   echo "      Profiler>>drainConsole -> consoleLine -> request: -> timers after:."
   tail -40 /tmp/porta_node.log; exit 1; }
 echo "  the console line opened a window through the same handler"
+
+# LEG 8c — rete#415: the agent's path. custos serves the node as a porta node with a
+# console (--advertise ::1) and its map; at start-up it writes goal/console naming its
+# own UDP sink, so the node tees its console there from its next check-in. One POST
+# writes `profile 1000` to dbg/req through porta's HTTP and answers Pending; the dump
+# comes back by the tee (prim consoleTee:port: -> the posix tee, the host twin of
+# log_udp.c) and /profile/last ranks it. The space never carries a row: the only
+# writes are the cell and the line. The host node publishes no obs/apps/main, so the
+# report carries the UNCHECKED warning, which is asserted too: a node that can say
+# which program it runs would be checked against the map instead.
+echo "[8c/9] an agent's profile through custos and porta, the rows by the console tee"
+CUSTOS_HOME=$(mktemp -d)
+HOME="$CUSTOS_HOME" /tmp/porta_sync_custos --bind 127.0.0.1 --port "$CUSTOS_PORT" \
+  --porta-http "http://127.0.0.1:$PORTA_HTTP" --porta-node "node=$NODE" \
+  --map "node=/tmp/porta_node.oimg.map.json" --advertise ::1 >/tmp/porta_sync_custos.log 2>&1 &
+CUSTOS_PID=$!
+CUSTOS_URL="http://127.0.0.1:$CUSTOS_PORT/board/node"
+for _ in $(seq 1 50); do curl -sf "http://127.0.0.1:$CUSTOS_PORT/boards" >/dev/null && break; sleep 0.1; done
+curl -sf "http://127.0.0.1:$CUSTOS_PORT/boards" | grep '"profile"' >/dev/null || {
+  echo "FAIL: custos did not start serving the node's profile"; cat /tmp/porta_sync_custos.log; exit 1; }
+/tmp/porta get --db "$DB" "$NODE" goal/console | grep "Console" >/dev/null || {
+  echo "FAIL: custos wrote no goal/console at start-up"; /tmp/porta get --db "$DB" "$NODE" goal; exit 1; }
+POSTED=$(curl -sf -X POST "$CUSTOS_URL/profile/capture?ms=1000") || {
+  echo "FAIL: custos refused the profile request"; curl -s -X POST "$CUSTOS_URL/profile/capture?ms=1000"; exit 1; }
+echo "$POSTED" | grep '"Pending":true' >/dev/null || {
+  echo "FAIL: a porta node's capture must answer Pending at the dbg/req write, got: $POSTED"; exit 1; }
+for _ in $(seq 1 150); do
+  curl -sf "$CUSTOS_URL/profile/last" | grep '"Pending":true' >/dev/null || break; sleep 0.2
+done
+LAST=$(curl -sf "$CUSTOS_URL/profile/last")
+python3 - "$LAST" <<'PY' || { echo "FAIL: /profile/last: $LAST" | head -c 2000; echo; tail -20 /tmp/porta_sync_custos.log; exit 1; }
+import json, sys
+c = json.loads(sys.argv[1])
+assert not c.get("Pending"), "still pending after 30 s: the node never teed a dump to custos"
+assert not c.get("Error"), c.get("Error")
+r = c["Report"]
+assert r["Header"]["Methods"] > 0 and len(r["Rows"]) == r["Header"]["Methods"], "rows do not match the header"
+assert any(row["Name"].startswith("PortaBridge") for row in r["Rows"]), "no bridge method ranked"
+assert any(w.startswith("UNCHECKED") for w in r["Warnings"]), "an unchecked node must say so"
+print(f"  {len(r['Rows'])} methods ranked from the teed dump; top: {r['Rows'][0]['Name']} {r['Rows'][0]['Count']}")
+PY
+/tmp/porta log --db "$DB" "$NODE" --limit 400 2>/dev/null | grep "mprof" >/dev/null && {
+  echo "FAIL: a profile row reached the space; the rows must leave by the console tee only"; exit 1; }
+echo "  the request went through porta and the rows came back by the tee, not the space"
+kill "$CUSTOS_PID" 2>/dev/null || true
+rm -rf "$CUSTOS_HOME"
 
 # rete#114 — the leg NO gate had: a sys/panic row actually ARRIVING at porta.
 # Before #114 nothing subscribed the path, so the app-side publication died
