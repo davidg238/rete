@@ -220,6 +220,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		m.load, m.status = &msg.l, ""
+		// A push through porta (rete#398) answers before the node has asked:
+		// re-read it every 5 s until the node runs the image, as the page does.
+		if p := msg.l.Push; p != nil && !p.Converged {
+			c := m.c
+			return m, tea.Tick(5*time.Second, func(time.Time) tea.Msg { l, err := c.LastLoad(); return loadMsg{l, err, true} })
+		}
 	case builtMsg:
 		m.building = false
 		if msg.err != nil {

@@ -16,7 +16,7 @@ import (
 )
 
 func TestParseBoardsJoinsTheFlags(t *testing.T) {
-	bs, err := ParseBoards([]string{"c6=/dev/ttyA"}, []string{"dev=/tmp/oevm_img -x"}, nil, []string{"dev=/a.oimg.map.json"}, []string{"dev=/a.nsl"})
+	bs, err := ParseBoards([]string{"c6=/dev/ttyA"}, []string{"dev=/tmp/oevm_img -x"}, nil, nil, []string{"dev=/a.oimg.map.json"}, []string{"dev=/a.nsl"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -33,30 +33,32 @@ func TestABareBoardReadsItsBenchFile(t *testing.T) {
 	defer func() { BenchDir = old }()
 	os.WriteFile(filepath.Join(BenchDir, "console-c6spare.env"), []byte("# the spare\nRETE_CONSOLE_PORT=/dev/serial/by-id/x\n"), 0o644)
 	os.WriteFile(filepath.Join(BenchDir, "console-empty.env"), []byte("# nothing\n"), 0o644)
-	bs, err := ParseBoards([]string{"c6spare"}, nil, nil, nil, nil)
+	bs, err := ParseBoards([]string{"c6spare"}, nil, nil, nil, nil, nil)
 	if err != nil || len(bs) != 1 || bs[0].Port != "/dev/serial/by-id/x" {
 		t.Fatalf("%+v %v", bs, err)
 	}
 	for name, want := range map[string]string{"nope": "no bench file", "empty": "no RETE_CONSOLE_PORT="} {
-		if _, err := ParseBoards([]string{name}, nil, nil, nil, nil); err == nil || !strings.Contains(err.Error(), want) {
+		if _, err := ParseBoards([]string{name}, nil, nil, nil, nil, nil); err == nil || !strings.Contains(err.Error(), want) {
 			t.Errorf("%s: %v, want %q", name, err, want)
 		}
 	}
 }
 
 func TestParseBoardsRefuses(t *testing.T) {
-	cases := map[string][5][]string{
-		"<name>=<value>":          {{"/dev/ttyA"}, nil, nil, nil, nil},
-		"a-z, 0-9":                {{"C6=/dev/ttyA"}, nil, nil, nil, nil},
-		"named twice":             {{"a=/dev/ttyA"}, {"a=/bin/true"}, nil, nil, nil},
-		"no --board":              {{"a=/dev/ttyA"}, nil, nil, {"b=/x.map.json"}, nil},
-		"one cable":               {{"a=/dev/ttyA", "b=/dev/ttyA"}, nil, nil, nil, nil},
-		"<name>=<udp port>":       {nil, nil, {"c6=x"}, nil, nil},
-		"serves its console only": {nil, nil, {"c6=54330"}, {"c6=/x.map.json"}, nil},
-		"twice":                   {{"a=/dev/ttyA"}, nil, {"a=54330"}, nil, nil},
+	cases := map[string][6][]string{
+		"<name>=<value>":          {{"/dev/ttyA"}, nil, nil, nil, nil, nil},
+		"a-z, 0-9":                {{"C6=/dev/ttyA"}, nil, nil, nil, nil, nil},
+		"named twice":             {{"a=/dev/ttyA"}, {"a=/bin/true"}, nil, nil, nil, nil},
+		"no --board":              {{"a=/dev/ttyA"}, nil, nil, nil, {"b=/x.map.json"}, nil},
+		"one cable":               {{"a=/dev/ttyA", "b=/dev/ttyA"}, nil, nil, nil, nil, nil},
+		"<name>=<udp port>":       {nil, nil, {"c6=x"}, nil, nil, nil},
+		"serves its console only": {nil, nil, {"c6=54330"}, nil, {"c6=/x.map.json"}, nil},
+		"serves load only":        {nil, nil, nil, {"bell=206ef1195438"}, {"bell=/x.map.json"}, nil},
+		"bell is named twice":     {nil, {"bell=/bin/true"}, nil, {"bell=206ef1195438"}, nil, nil},
+		"twice":                   {{"a=/dev/ttyA"}, nil, {"a=54330"}, nil, nil, nil},
 	}
 	for want, c := range cases {
-		if _, err := ParseBoards(c[0], c[1], c[2], c[3], c[4]); err == nil || !strings.Contains(err.Error(), want) {
+		if _, err := ParseBoards(c[0], c[1], c[2], c[3], c[4], c[5]); err == nil || !strings.Contains(err.Error(), want) {
 			t.Errorf("%v: %v, want an error naming %q", c, err, want)
 		}
 	}

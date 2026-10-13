@@ -19,13 +19,25 @@
 <div class="wrap"><table>
   <tbody id="rows"><tr><td class="empty">no load yet</td></tr></tbody>
 </table></div>
-<p class="note">The sha256 is the one the target printed at boot, after its loader accepted the image and before the program's first line: a load proves the program loaded, not that it runs. A board's firmware build-id is read before and after the write, and must not change.</p>
+<p class="note">On a porta node, a load is a push: porta stores and signs the image and holds it as the node's goal until the node next asks, so the page answers at once and re-reads the node every 5 s until it runs the image.</p>
+<p class="note">On a cable or a host VM, the sha256 is the one the target printed at boot, after its loader accepted the image and before the program's first line: a load proves the program loaded, not that it runs. A board's firmware build-id is read before and after the write, and must not change.</p>
 
 <script>
 // Every verb URL is relative: a board's page is /board/<name>/<verb>, or /<verb> for the only board (peer design D15).
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let poll;
+function renderPush(l) {
+  const p = l.Push;
+  $('stamp').textContent = `${new Date(l.LoadedMs).toLocaleString()} · ${p.Image} · ${p.Converged ? 'running on the node' : 'waiting for the node to ask'}`;
+  const rows = [['image', p.Image], ['size', `${p.Size} B`], ['sha256, signed by porta', p.SHA256],
+    ['goal seq', p.Seq], ['the node runs', p.Running || 'nothing published yet'], ['converged', p.Converged ? 'yes' : 'not yet']];
+  $('rows').innerHTML = rows.map(([k, v]) => `<tr><th>${esc(k)}</th><td><code>${esc(v)}</code></td></tr>`).join('');
+  clearTimeout(poll);
+  if (!p.Converged) poll = setTimeout(() => fetch('load/last').then(show).catch(err => fail(String(err))), 5000);
+}
 function render(l) {
+  if (l.Push) return renderPush(l);
   const r = l.Result;
   $('stamp').textContent = `${new Date(l.LoadedMs).toLocaleString()} · ${r.Image}`;
   const rows = [['image', r.Image], ['size', `${r.Size} B`], ['program sha256', r.SHA256],

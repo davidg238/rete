@@ -152,7 +152,7 @@ Three contracts, two of them unwritten today:
 |---|---|---|
 | `protocol/` | porta ↔ nodes; also what custos decodes | written |
 | **image artifacts** (`.oimg`, `.stmap`, `methods.json`) | nsl compiler → custos | **unwritten**: defined only by the compiler's code |
-| **porta's HTTP interface** | porta ↔ the monitor and custos (D6) | **unwritten**: today it is only `/health` and `/manifest` (§5 F1) |
+| **porta's HTTP interface** | porta ↔ the monitor and custos (D6) | **partly written** (rete#398, 2026-10-12): `/health`, `/manifest`, and the write half, `POST /blob` + `PUT`/`GET /node/{id}/{path...}` (`porta/docs/ARCHITECTURE.md` §3); the monitor's reads are still §5 F1 |
 
 ## 3. One set of verbs; the target picks the transport
 

@@ -190,6 +190,7 @@ func newServeCmd() *cobra.Command {
 				}
 				srv.SetStats(stats)
 				srv.Mux.HandleFunc("/manifest", manifestHandler(tbl))
+				mountOps(srv.Mux, st, dbPath)
 				httpErr = make(chan error, 1)
 				go func() { httpErr <- srv.Run(ctx) }()
 				log.Printf("porta: serving HTTP on %s:%d", httpBind, httpPort)

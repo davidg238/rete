@@ -1,6 +1,8 @@
 # Load through porta: porta's first write routes, custos's porta target (rete#398)
 
-> Status: **PROPOSED 2026-10-12, for David** (questions Q1–Q5 at the foot). The node side is built and closed
+> Status: **DECIDED (David, 2026-10-12): yes to every recommendation, Q1–Q5** — the general pair plus a read; load
+> answers at the goal write and is polled; CIDR-only admission for 0.1, a known gap for #253's note; `host_ota`
+> scenario 1 moves onto custos; HTTP only, no CLI flag. The node side is built and closed
 > (#233, code-push design §10 and its 2026-10-12 addendum); this is the front. Decided upstream and not reopened:
 > the push front is in 0.1, for consistency with debug (§10 T8 amendment, David 2026-10-10); agent first, HTTP the
 > only agent surface (peer design D11–D12); porta is language-neutral and custos is the nsl peer (D1–D2); the two
@@ -37,8 +39,8 @@ route of its own. The `GET` is what lets a custos that is not on the gateway rea
 porta's HTTP interface"); it is one cell at a time, not the store, so it does not settle F1's monitor question.
 porta stays language-neutral: it signs bytes and stores cval, and never parses an `.oimg`.
 
-**P2 — custos gains a third kind of board: a porta node.** `--board <name>=porta:<node-id>`, using the porta base
-URL `--porta-http` already names. Such a board serves `load` and nothing else for now (`GET /boards` says so). Its
+**P2 — custos gains a fourth kind of board: a porta node.** `--porta-node <name>=<node-id>` (as built; the draft
+said `--board <name>=porta:<node-id>`), using the porta base URL `--porta-http` already names. Such a board serves `load` and nothing else for now (`GET /boards` says so). Its
 `load.Target` is:
 
 1. `POST /blob` with the `.oimg` (custos has already checked it with `oimg.Read`, as for a cable load);
@@ -81,3 +83,23 @@ its four claims. Go unit tests for each route and for the porta target against a
    would push the same image the same way, and the gate's claim count stays four.
 5. **`custos load --porta` as a CLI flag too**, as the issue title says, or the HTTP route only (D12: a CLI wrapper
    once it has earned its place)? Recommended: HTTP only, and the issue retitled to match.
+
+## As built (2026-10-12)
+
+- **porta** (`porta/internal/portacli/ops.go`, mounted by `serve` beside `/manifest`): the three routes as P1 has
+  them. `POST /blob` and `porta blob put` share one function (`storeAndSign`); the PUT goes through `Store.Write`, so
+  the gw/ ban, the 256 B value cap and the manifest gate hold for it as for the CLI; the actor is `X-Porta-Actor` or
+  `http:<peer>`, the reason `?reason=`. A keyless porta answers `POST /blob` 400 (`run porta key gen`).
+- **custos**: `--porta-node <name>=<node-id>`; `GET /boards` answers `Target: "porta"`, `Node`, verbs `[load]`; a
+  `--map` or `--source` on a porta node is refused, and a porta node with no `--porta-http` refuses to start.
+  `load.Porta` (`custos/internal/load/porta.go`) is the client. **One answer shape for load:** a push answers the
+  cable's `Load` with `Result` naming the image (name, size, sha256) and a `Push` field added (`Seq`, `Running`,
+  `Converged`), so the page, the TUI and an agent read one shape; the page and the TUI re-read `/load/last` every
+  5 s until `Converged`. The upload handling is shared with the cable's load (`upload`).
+- **Gate:** `nodus/oevm/tests/host_ota/run.sh` builds custos beside porta, serves the three host nodes as porta
+  nodes, and pushes scenario 1 through `POST /board/node-N/load`; it now asserts three things per node: the runner's
+  chain, porta's tree, and custos's `/load/last` reading `Converged`. `HOST OTA OK`, 2026-10-12, opti7040.
+  `PORTA SYNC OK` the same day. Unit: `porta/internal/portacli/ops_test.go`, `custos/internal/custos/portaload_test.go`
+  (against a fake porta: custos may not import porta), the TUI's push view and re-read.
+- **Not yet:** a push through custos to a demo node. It needs porta on the gateway rebuilt with the routes and
+  serving HTTP, then a custos with the bells as porta nodes.

@@ -63,6 +63,33 @@ func TestLoadView(t *testing.T) {
 	}
 }
 
+func TestLoadViewOfAPush(t *testing.T) {
+	m := stopped()
+	m.tab = loadTab
+	m.load = &custos.Load{Push: &load.Push{Image: "Bell.oimg", Size: 99, SHA256: "ca59647a", Seq: 18, Running: "4e6e5874"}}
+	v := m.View()
+	for _, want := range []string{"Bell.oimg (99 B)", "ca59647a", "goal seq        18", "4e6e5874", "not yet"} {
+		if !strings.Contains(v, want) {
+			t.Errorf("missing %q in\n%s", want, v)
+		}
+	}
+}
+
+// A push the node has not run yet is re-read; a converged one, or a cable
+// load, is not.
+func TestAPushIsReReadUntilConverged(t *testing.T) {
+	m := stopped()
+	_, cmd := m.Update(loadMsg{l: custos.Load{Push: &load.Push{SHA256: "a", Running: "b"}}})
+	if cmd == nil {
+		t.Fatal("an unconverged push schedules no re-read")
+	}
+	for _, l := range []custos.Load{{Push: &load.Push{SHA256: "a", Running: "a", Converged: true}}, {Result: load.Result{Image: "A.oimg"}}} {
+		if _, cmd := m.Update(loadMsg{l: l}); cmd != nil {
+			t.Errorf("%+v schedules a re-read", l)
+		}
+	}
+}
+
 func TestBuildView(t *testing.T) {
 	m := stopped()
 	m.tab = buildTab

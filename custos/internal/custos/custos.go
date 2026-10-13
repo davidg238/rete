@@ -74,7 +74,7 @@ func Handler(cfg Config) (http.Handler, error) {
 		root = console.DefaultRoot
 	}
 	mountBuild(mux, cfg.Boards)
-	if err := mountBoards(ctx, mux, cfg.Boards, cfg.Esptool, root); err != nil {
+	if err := mountBoards(ctx, mux, cfg.Boards, cfg.Esptool, root, cfg.PortaHTTP); err != nil {
 		return nil, err
 	}
 	if cfg.Store != "" {

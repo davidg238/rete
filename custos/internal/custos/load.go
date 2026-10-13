@@ -34,11 +34,14 @@ var loadPage []byte
 const maxImage = 16 << 20
 
 // Load is one load, as the page receives it. Debug is what became of the debug
-// page on the same cable: "" (none), "restarted", or why it is stale.
+// page on the same cable: "" (none), "restarted", or why it is stale. Push is
+// set on a porta node only (rete#398): the goal write and what the node runs,
+// with Result naming the image alone.
 type Load struct {
 	LoadedMs int64
 	Result   load.Result
 	Debug    string
+	Push     *load.Push `json:",omitempty"`
 }
 
 // around is what a load needs of its board beyond the target (peer design
@@ -79,34 +82,17 @@ func mountLoad(mux *http.ServeMux, prefixes []string, t load.Target, held *aroun
 		answer(w, l)
 	})
 	handle(mux, prefixes, "POST /load", func(w http.ResponseWriter, r *http.Request) {
-		body, err := io.ReadAll(io.LimitReader(r.Body, maxImage+1))
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-		if len(body) > maxImage {
-			http.Error(w, "custos: an image is at most 16 MiB", http.StatusRequestEntityTooLarge)
-			return
-		}
-		name := filepath.Base(r.URL.Query().Get("name"))
-		if name == "." || name == "/" {
-			name = "upload.oimg"
-		}
 		if !busy.TryLock() {
 			http.Error(w, "custos: the cable is busy (a load or a debug command is running)", http.StatusConflict)
 			return
 		}
 		defer busy.Unlock()
-		path := filepath.Join(dir, name)
-		if err := os.WriteFile(path, body, 0o644); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		if _, err := oimg.Read(path); err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+		path, name, ok := upload(w, r, dir)
+		if !ok {
 			return
 		}
 		var res load.Result
+		var err error
 		run := func() (err error) { res, err = t.Load(path); return err }
 		if held != nil && held.lend != nil {
 			err = held.lend(run)
@@ -122,11 +108,39 @@ func mountLoad(mux *http.ServeMux, prefixes []string, t load.Target, held *aroun
 			return
 		}
 		res.Image = name
-		l := &Load{time.Now().UnixMilli(), res, debug}
+		l := &Load{LoadedMs: time.Now().UnixMilli(), Result: res, Debug: debug}
 		mu.Lock()
 		last = l
 		mu.Unlock()
 		answer(w, l)
 	})
 	return nil
+}
+
+// upload writes a POSTed image (?name=F.oimg) into dir and checks it is an
+// image, or answers why not and false.
+func upload(w http.ResponseWriter, r *http.Request, dir string) (path, name string, ok bool) {
+	body, err := io.ReadAll(io.LimitReader(r.Body, maxImage+1))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return "", "", false
+	}
+	if len(body) > maxImage {
+		http.Error(w, "custos: an image is at most 16 MiB", http.StatusRequestEntityTooLarge)
+		return "", "", false
+	}
+	name = filepath.Base(r.URL.Query().Get("name"))
+	if name == "." || name == "/" {
+		name = "upload.oimg"
+	}
+	path = filepath.Join(dir, name)
+	if err := os.WriteFile(path, body, 0o644); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return "", "", false
+	}
+	if _, err := oimg.Read(path); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return "", "", false
+	}
+	return path, name, true
 }

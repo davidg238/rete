@@ -513,9 +513,9 @@ node awake only to check in has nothing else to do. Its trial boot is not a time
 it sets its clock at once without scoring the gap as drift: before the catch-up was added, a stale goal made it
 stage and fail two trials after a cable flash, the firmware held each for 150 s, and it rang 5 min 46 s late, which
 an ordinary sync would have read as about 87,000 ppm of drift. After a push the breakpoint cell still names the old
-image, and the new one refuses it until it is rewritten, since a breakpoint is an offset in one image. The push is
-driven today from porta's command line; the agent's front for it (`custos load --porta`, #398) is the remaining piece
-of the deploy row.
+image, and the new one refuses it until it is rewritten, since a breakpoint is an offset in one image. On the bench
+the push was driven from porta's command line. An agent drives it through custos, the same `POST /load` it uses on a
+cable (Appendix D), proven on host VMs against a real gateway (#398) and not yet on either demo node.
 
 ## 10. Trusting code an agent wrote
 
@@ -595,7 +595,7 @@ Today rete is a lifecycle system whose desk half (host VM, USB load, debug, patc
 whose field half is built for debug and for program over the air (the two bells, through the gateway, over WiFi and
 over Thread, §9). Version 0.1 ships when the
 field half is built (decided 2026-10-09), so nothing in the release is labelled "designed". Not yet shown: the profile
-through the gateway, the push driven by an agent rather than from the gateway's command line, or an agent writing C against
+through the gateway, an agent's push to a demo node (built and gated on host VMs, #398), or an agent writing C against
 an agent writing nsl.
 
 Version 0.1 is defined as one node, every verb, through the gateway, over the radio, while the node sleeps. By
@@ -604,7 +604,7 @@ lifecycle stage, against the C toolchain the reader already has:
 | Stage | The C toolchain | rete today | Version 0.1 |
 |---|---|---|---|
 | write | edit, compile, link | the same program runs first on the host VM; authority in the header; 160 closed primitives | the same |
-| deploy | flash the firmware | load an image beside the firmware over the cable (ESP32-C6 only); a manifest-checked wire | over the cable, or through the gateway: built on both bells (#233); the agent's front is #398 |
+| deploy | flash the firmware | load an image beside the firmware over the cable (ESP32-C6 only); a manifest-checked wire | over the cable, or through the gateway: built on both bells (#233); the agent's push gated on host VMs (#398) |
 | debug | `printf`; a probe and gdb | source-line breakpoints, the stack and named locals, patch and restart, over one USB cable; and through the gateway, on a node that sleeps (§9) | the same |
 | observe | nothing | a per-method profile on the shipped image (1.3 %); heap statistics every check-in; a liveness observer that dumps and leaves a note | the profile through the gateway as well |
 | manage | a site visit | the gateway holds intent for a node that is asleep and judges its liveness from outside | and keeps each commissioned image with its symbol map |
@@ -1335,11 +1335,11 @@ each serves. The build, load, debug and profile verbs each also have a page for 
 
 | Route | What it answers |
 |---|---|
-| `GET /boards` | JSON: every board custos serves, its target (cable, host VM, or UDP sink) and the verbs it has |
+| `GET /boards` | JSON: every board custos serves, its target (cable, host VM, UDP sink, or a node through the gateway) and the verbs it has |
 | `POST /build?for=<board>&name=F.nsl` | the `.nsl` as the body; compiles it for that board and answers `Board`, `Image`, `SHA256` and `Size`, or the compiler's own error. `GET /build` is the page |
 | `GET /build/last.oimg`, `/build/last.oimg.map.json` | the last build's image and its map, for `POST /load` |
 | `POST /run?for=<host board>&name=F.nsl` | host boards only: builds the `.nsl`, runs it once on the host VM and answers `Output`, `Exit` and `TimedOut` |
-| `POST /load?name=F.oimg` | the image as the body; loads it onto the board or host VM and answers `LoadedMs`, `Result` and `Debug`. `GET /load` is the page; `GET /load/last` answers the last load |
+| `POST /load?name=F.oimg` | the image as the body; loads it onto the board or host VM and answers `LoadedMs`, `Result` and `Debug`. On a node through the gateway it is a push: the gateway signs the image and holds it as the node's goal, and the answer comes at once, in the same shape with `Push` added (`SHA256`, the goal's `Seq`, `Running`, the image the node runs, and `Converged`). `GET /load` is the page; `GET /load/last` answers the last load, re-reading the node on each call |
 | `GET /debug/state?after=N` | the debug `State` once its `Seq` passes N: a long-poll, 25 s at most. `GET /debug` is the page |
 | `POST /debug/do` | one debug command as the body (`break`, `continue`, `step`, `next`, `finish`, `bt`, `locals`, `pause` and the rest); answers `OK`, `Error` and `State` |
 | `GET /debug/source` | the app's lines and which of them have code |
@@ -1351,7 +1351,7 @@ each serves. The build, load, debug and profile verbs each also have a page for 
 | `GET /health` | per board, the console cable's state (for example `up` or `lent`); the board-less path is also the proxy to porta's health |
 | `GET /q/{name}`, `GET /fleet`, `GET /node/{id}` | with a porta store configured: the named queries `liveness`, `convergence` and `node` (`?id=`) as JSON; `/fleet` and `/node/{id}` are the pages. |
 
-An agent uses `build`, `run`, `load`, `debug` and `profile` in that order, reads `log` and `runs` for what the board
+An agent uses `build`, `run`, `load`, `debug` and `profile` in that order (on a node through the gateway, it polls `load/last` until `Converged`), reads `log` and `runs` for what the board
 did on its own, and uses `lend` only when a tool outside custos must hold the cable.
 
 <div style="page-break-before: always"></div>

@@ -194,6 +194,18 @@ func (m Model) loadView(w, h int) string {
 		}
 		return pane("load", dim.Render(msg), w, h)
 	}
+	if p := m.load.Push; p != nil {
+		runs, conv := p.Running, "not yet: the node has not asked"
+		if runs == "" {
+			runs = "nothing published yet"
+		}
+		if p.Converged {
+			conv = "yes"
+		}
+		body := fmt.Sprintf("image           %s (%d B)\nsha256 (signed) %s\ngoal seq        %d\nthe node runs   %s\nconverged       %s",
+			p.Image, p.Size, p.SHA256, p.Seq, runs, conv)
+		return pane("load", body, w, h)
+	}
 	r := m.load.Result
 	where := "host VM"
 	if r.Offset != 0 {

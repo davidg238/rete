@@ -4,10 +4,14 @@
 # and its three interesting failures.
 #
 # What it witnesses, one `ok` per scenario:
-#   1. CLEAN DEPLOY. Three nodes on v1 are pushed to v2 by one `porta put` each.
+#   1. CLEAN DEPLOY. Three nodes on v1 are pushed to v2 the way an agent does it
+#      (rete#398): one POST /board/node-N/load each to a custos serving them as
+#      porta nodes, which stores, signs and writes the goal through porta's HTTP.
 #      Each runner must print staged-ok -> trial -> confirmed and re-exec on the
-#      new hash, and porta's own tree must show obs/apps/main carrying it — the
-#      node saying it and the gateway seeing it are two claims, not one.
+#      new hash, porta's own tree must show obs/apps/main carrying it, and the
+#      agent's /load/last must read Converged — the node saying it, the gateway
+#      seeing it and the agent being told it are three claims, not one.
+#      Scenarios 2-4 push with porta's CLI, so both fronts stay covered.
 #   2. KILL MID-TRANSFER. The VM is SIGKILLed with a partial image in the staging
 #      slot. The runner re-execs, the fetch RESUMES from the slot's own length
 #      (the slot never shrinks below where the kill left it), and the node still
@@ -23,7 +27,7 @@
 # dies half-way is a FAIL and never a short pass. `HOST OTA OK` is printed only
 # after all four.
 #
-# Not wired into run_tests_oevm.py: it builds a Go binary, three VM images per
+# Not wired into run_tests_oevm.py: it builds two Go binaries, three VM images per
 # round and runs for minutes. Standalone, like porta_sync_host.sh — and it uses
 # the 26969/26970 port pair precisely so it can run while that gate's 16969/16970
 # artifacts linger.
@@ -38,8 +42,11 @@ TARGET="${OEVM_TARGET:-posix}"
 WORK=/tmp/host_ota_gate
 DB="$WORK/porta.db"
 PORTA="$WORK/porta"
+CUSTOS="$WORK/custos"
 VM="$WORK/oevm_ota"
 EXCH_PORT=26969                     # blocks ride EXCH_PORT+1, chosen by porta
+PORTA_HTTP=26968                    # porta's operator HTTP, for custos (rete#398)
+CUSTOS_PORT=26967                   # the agent's surface
 WATCHDOG=10                         # seconds a trial boot has to confirm
 
 # rete#241: per-RUN node ids, not per-run slots. The nodes answer `platform
@@ -56,6 +63,7 @@ echo "plan 4"
 # process bookkeeping
 # --------------------------------------------------------------------------
 PORTA_PID=""
+CUSTOS_PID=""
 RUNNER_PIDS=()
 
 cleanup() {
@@ -68,6 +76,7 @@ cleanup() {
   # already gone leaves no one to reap them. Match on the slot path, which only
   # ever appears in a VM's argv.
   pkill -9 -f "$WORK/node[0-9]/slots/" 2>/dev/null || true
+  [ -n "$CUSTOS_PID" ] && kill -9 "$CUSTOS_PID" 2>/dev/null || true
   [ -n "$PORTA_PID" ] && kill -9 "$PORTA_PID" 2>/dev/null || true
   return 0
 }
@@ -87,6 +96,10 @@ dump_logs() {
   if [ -f "$WORK/porta.log" ]; then
     echo "----- porta.log (tail 30) -----"
     tail -30 "$WORK/porta.log"
+  fi
+  if [ -f "$WORK/custos.log" ]; then
+    echo "----- custos.log (tail 20) -----"
+    tail -20 "$WORK/custos.log"
   fi
   for n in 1 2 3; do
     [ -f "$WORK/node$n/manifest.json" ] && {
@@ -216,8 +229,9 @@ rm -rf "$WORK"
 mkdir -p "$WORK"
 STARTED=1
 
-echo "[1/9] build porta"
+echo "[1/9] build porta and custos"
 ( cd "$PORTA_DIR" && go build -o "$PORTA" ./cmd/porta )
+( cd "$REPO/custos" && go build -o "$CUSTOS" ./cmd/custos )
 
 echo "[2/9] host-ABI layout descriptor"
 gcc -std=c99 -Isrc tools/dump_layout.c -o "$WORK/dl"
@@ -259,12 +273,21 @@ for n in 1 2 3; do
 done
 
 echo "[5/9] start porta (udp 127.0.0.1:$EXCH_PORT, blocks on $((EXCH_PORT + 1))) and three runners"
-"$PORTA" serve --db "$DB" --udp "127.0.0.1:$EXCH_PORT" --http-port 0 >"$WORK/porta.log" 2>&1 &
+"$PORTA" serve --db "$DB" --udp "127.0.0.1:$EXCH_PORT" \
+    --http-bind 127.0.0.1 --http-port "$PORTA_HTTP" >"$WORK/porta.log" 2>&1 &
 PORTA_PID=$!
 for _ in $(seq 1 50); do grep -q "serving blobs on udp" "$WORK/porta.log" && break; sleep 0.1; done
 grep -q "serving the space" "$WORK/porta.log" || { cat "$WORK/porta.log"; fail "porta did not start"; }
 grep -q "serving blobs on udp 127.0.0.1:$((EXCH_PORT + 1))" "$WORK/porta.log" ||
   { cat "$WORK/porta.log"; fail "porta did not bring up the block plane on $((EXCH_PORT + 1))"; }
+
+# The agent's front: one custos, the three nodes as porta nodes (rete#398).
+"$CUSTOS" --bind 127.0.0.1 --port "$CUSTOS_PORT" --porta-http "http://127.0.0.1:$PORTA_HTTP" \
+    --porta-node "node-1=$NID-1" --porta-node "node-2=$NID-2" --porta-node "node-3=$NID-3" \
+    >"$WORK/custos.log" 2>&1 &
+CUSTOS_PID=$!
+CUSTOS_URL="http://127.0.0.1:$CUSTOS_PORT"
+poll_cmd 50 0.1 curl -sf "$CUSTOS_URL/boards" || { cat "$WORK/custos.log"; fail "custos did not start"; }
 
 for n in 1 2 3; do
   # NEVER pass an OEVM_OTA_* / OEVM_IMAGE_HASH through --env: the runner owns
@@ -297,12 +320,18 @@ echo "  all three published obs/apps/main at v1"
 
 declare -A MARK
 for n in 1 2 3; do MARK[$n]=$(( $(lines_in "$WORK/runner$n.log") + 1 )); done
+# json_get <json> <key>: one top-level field of custos's answer (Push nested).
+json_get() { python3 -c 'import json,sys; d=json.loads(sys.argv[1]); print(d["Push"][sys.argv[2]])' "$1" "$2"; }
 for n in 1 2 3; do
   compile_node "$n" 2 "$WORK/n$n-v2.oimg"
-  blob_put "$WORK/n$n-v2.oimg"
-  V2H[$n]=$BP_HASH
-  "$PORTA" put --db "$DB" "$NID-$n" goal/apps/main --raw "$BP_RAW" >/dev/null
-  echo "  node-$n goal/apps/main -> v2 ${BP_HASH:0:12}…"
+  out=$(curl -sS -f --data-binary "@$WORK/n$n-v2.oimg" "$CUSTOS_URL/board/node-$n/load?name=n$n-v2.oimg") ||
+    fail "custos refused node-$n's push: $out"
+  V2H[$n]=$(json_get "$out" SHA256)
+  want=$(sha256sum "$WORK/n$n-v2.oimg" | cut -d' ' -f1)
+  [ "${V2H[$n]}" = "$want" ] || fail "custos answered sha ${V2H[$n]} for node-$n, the image is $want"
+  [ "$(json_get "$out" Converged)" = False ] ||
+    fail "custos answered Converged before node-$n could have asked: $out"
+  echo "  node-$n POST /board/node-$n/load -> goal seq $(json_get "$out" Seq), v2 ${V2H[$n]:0:12}…"
 done
 
 for n in 1 2 3; do
@@ -324,6 +353,11 @@ done
 for n in 1 2 3; do
   poll_cmd 150 0.2 porta_has "$NID-$n" obs/apps/main "0x${V2H[$n]}" ||
     fail "porta's tree never showed node-$n's obs/apps/main at the v2 hash"
+done
+# The third claim: the agent is told, by the route it pushed through.
+converged() { [ "$(json_get "$(curl -sf "$CUSTOS_URL/board/node-$1/load/last")" Converged)" = True ]; }
+for n in 1 2 3; do
+  poll_cmd 50 0.2 converged "$n" || fail "custos's /board/node-$n/load/last never read Converged"
 done
 echo "ok 1 - clean deploy converged"
 

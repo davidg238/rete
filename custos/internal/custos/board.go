@@ -31,7 +31,7 @@ import (
 	"go.bug.st/serial"
 )
 
-// Board is one target. Exactly one of Port, Host and UDP.
+// Board is one target. Exactly one of Port, Host, UDP and Node.
 type Board struct {
 	Name string
 	// Port is a board's console cable, held from start-up when the board has a
@@ -44,6 +44,10 @@ type Board struct {
 	// UDP is the port a board that logs over the mesh (log_udp.c) sends its
 	// console to: custos collects it and serves its console verbs, nothing else.
 	UDP int
+	// Node is a node porta knows, by its id: custos pushes it a program through
+	// porta's HTTP listener (--porta-http) and serves load, nothing else
+	// (rete#398).
+	Node string
 	// Map is the program's <name>.oimg.map.json: without it the board serves
 	// load only. Source is its .nsl ("" = beside the map).
 	Map    string
@@ -53,10 +57,11 @@ type Board struct {
 // BoardInfo is one row of GET /boards.
 type BoardInfo struct {
 	Name   string
-	Target string // "port", "host" or "udp"
+	Target string // "port", "host", "udp" or "porta"
 	Port   string `json:",omitempty"`
 	Host   string `json:",omitempty"`
 	UDP    int    `json:",omitempty"`
+	Node   string `json:",omitempty"`
 	Map    string `json:",omitempty"`
 	Verbs  []string
 }
@@ -83,10 +88,10 @@ func benchPort(name string) (string, error) {
 	return "", fmt.Errorf("custos: %s has no RETE_CONSOLE_PORT=", f)
 }
 
-// ParseBoards joins the repeated --board, --host, --udp-log, --map and
-// --source flags (each name=value; a bare --board name reads its bench file)
+// ParseBoards joins the repeated --board, --host, --udp-log, --porta-node, --map
+// and --source flags (each name=value; a bare --board name reads its bench file)
 // into boards, sorted by name, or says what is wrong.
-func ParseBoards(ports, hosts, udps, maps, sources []string) ([]Board, error) {
+func ParseBoards(ports, hosts, udps, nodes, maps, sources []string) ([]Board, error) {
 	byName := map[string]*Board{}
 	split := func(flag, kv string) (string, string, error) {
 		name, v, ok := strings.Cut(kv, "=")
@@ -98,7 +103,7 @@ func ParseBoards(ports, hosts, udps, maps, sources []string) ([]Board, error) {
 	for _, t := range []struct {
 		flag string
 		kvs  []string
-	}{{"board", ports}, {"host", hosts}, {"udp-log", udps}} {
+	}{{"board", ports}, {"host", hosts}, {"udp-log", udps}, {"porta-node", nodes}} {
 		for _, kv := range t.kvs {
 			if t.flag == "board" && boardName.MatchString(kv) {
 				port, err := benchPort(kv)
@@ -120,6 +125,8 @@ func ParseBoards(ports, hosts, udps, maps, sources []string) ([]Board, error) {
 				b.Port = v
 			case "host":
 				b.Host = v
+			case "porta-node":
+				b.Node = v
 			default:
 				n, err := strconv.Atoi(v)
 				if err != nil || n < 1 || n > 65535 {
@@ -147,6 +154,9 @@ func ParseBoards(ports, hosts, udps, maps, sources []string) ([]Board, error) {
 			if b.UDP != 0 {
 				return nil, fmt.Errorf("custos: --%s names board %s, which logs over the mesh and serves its console only", t.flag, name)
 			}
+			if b.Node != "" {
+				return nil, fmt.Errorf("custos: --%s names board %s, a porta node, which serves load only", t.flag, name)
+			}
 			t.set(b, v)
 		}
 	}
@@ -168,23 +178,25 @@ func ParseBoards(ports, hosts, udps, maps, sources []string) ([]Board, error) {
 // mountBoards serves every board under /board/<name>, and the only one also
 // at the board-less paths. A board on a cable is also collected: custos reads
 // its console until ctx ends, into day logs under root (D16).
-func mountBoards(ctx context.Context, mux *http.ServeMux, boards []Board, esptool, root string) error {
+func mountBoards(ctx context.Context, mux *http.ServeMux, boards []Board, esptool, root, porta string) error {
 	var infos []BoardInfo
 	for _, b := range boards {
 		prefixes := []string{"/board/" + b.Name}
 		if len(boards) == 1 {
 			prefixes = append(prefixes, "")
 		}
-		verbs, err := mountBoard(ctx, mux, prefixes, b, esptool, root)
+		verbs, err := mountBoard(ctx, mux, prefixes, b, esptool, root, porta)
 		if err != nil {
 			return fmt.Errorf("custos: board %s: %w", b.Name, err)
 		}
-		info := BoardInfo{Name: b.Name, Target: "port", Port: b.Port, Host: b.Host, UDP: b.UDP, Map: b.Map, Verbs: verbs}
+		info := BoardInfo{Name: b.Name, Target: "port", Port: b.Port, Host: b.Host, UDP: b.UDP, Node: b.Node, Map: b.Map, Verbs: verbs}
 		switch {
 		case b.Host != "":
 			info.Target = "host"
 		case b.UDP != 0:
 			info.Target = "udp"
+		case b.Node != "":
+			info.Target = "porta"
 		}
 		infos = append(infos, info)
 	}
@@ -236,9 +248,18 @@ func (l cableLine) Send(line string) error { return l.c.Send(line) }
 // owns the port: the debug session and a capture subscribe to its lines, and a
 // load borrows the port from it (esptool and the reset need it to themselves),
 // after which the debug session follows the board's new program.
-func mountBoard(ctx context.Context, mux *http.ServeMux, prefixes []string, b Board, esptool, root string) ([]string, error) {
+func mountBoard(ctx context.Context, mux *http.ServeMux, prefixes []string, b Board, esptool, root, porta string) ([]string, error) {
 	busy := &sync.Mutex{}
 	var verbs []string
+	if b.Node != "" {
+		if porta == "" {
+			return nil, fmt.Errorf("a porta node needs --porta-http")
+		}
+		if err := mountPortaLoad(mux, prefixes, load.Porta{Base: porta, Node: b.Node}, busy); err != nil {
+			return nil, err
+		}
+		return []string{"load"}, nil
+	}
 	if b.UDP != 0 {
 		lock, err := console.Lock(root, b.Name)
 		if err != nil {

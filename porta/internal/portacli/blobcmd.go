@@ -6,6 +6,7 @@ package portacli
 import (
 	"encoding/hex"
 	"fmt"
+	"io"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -32,6 +33,37 @@ func appRecord(hash []byte, size int64, sig []byte) ([]byte, error) {
 	})
 }
 
+// Signed is one stored, signed blob: what `porta blob put` prints and POST
+// /blob answers. Record is the goal/apps/<name> value, ready to write.
+type Signed struct {
+	Hash, Sig, Record []byte
+	Size              int64
+}
+
+// storeAndSign is the signing seat (D3), shared by the CLI and POST /blob:
+// store the bytes content-addressed beside db, sign their SHA-256 with porta's
+// key, and build the App record that names them.
+func storeAndSign(db string, r io.Reader) (Signed, error) {
+	st, err := blob.Open(blobDir(db))
+	if err != nil {
+		return Signed{}, err
+	}
+	hash, size, err := st.Put(r)
+	if err != nil {
+		return Signed{}, err
+	}
+	priv, _ := keyPaths(db)
+	sig, err := blob.SignHash(priv, hash[:])
+	if err != nil {
+		return Signed{}, err
+	}
+	raw, err := appRecord(hash[:], size, sig)
+	if err != nil {
+		return Signed{}, err
+	}
+	return Signed{Hash: hash[:], Sig: sig, Record: raw, Size: size}, nil
+}
+
 func newBlobCmd() *cobra.Command {
 	cmd := &cobra.Command{Use: "blob", Short: "Bulk-plane image blobs"}
 	put := &cobra.Command{
@@ -44,25 +76,12 @@ func newBlobCmd() *cobra.Command {
 				return err
 			}
 			defer f.Close()
-			st, err := blob.Open(blobDir(dbPath))
-			if err != nil {
-				return err
-			}
-			hash, size, err := st.Put(f)
-			if err != nil {
-				return err
-			}
-			priv, _ := keyPaths(dbPath)
-			sig, err := blob.SignHash(priv, hash[:])
-			if err != nil {
-				return err
-			}
-			raw, err := appRecord(hash[:], size, sig)
+			s, err := storeAndSign(dbPath, f)
 			if err != nil {
 				return err
 			}
 			fmt.Fprintf(c.OutOrStdout(), "hash %s\nsig %s\nporta put <node> goal/apps/main --raw %s\n",
-				hex.EncodeToString(hash[:]), hex.EncodeToString(sig), hex.EncodeToString(raw))
+				hex.EncodeToString(s.Hash), hex.EncodeToString(s.Sig), hex.EncodeToString(s.Record))
 			return nil
 		},
 	}

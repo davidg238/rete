@@ -28,15 +28,15 @@ describes them; §7 says where they went.
                                      ▼
    agent ·  ── HTTP :6971 ──►  ┌───────────────┐
    browser                     │  CUSTOS   │  /fleet, /node/{id}, /q/{name};
-                               │  (custos/)    │  /dev docs; proxies /health, /manifest
-                               └───────┬───────┘
-                                       │ 127.0.0.1 HTTP + the store, read-only
+                               │  (custos/)    │  /dev docs; proxies /health, /manifest;
+                               └───────┬───────┘  load on a porta node pushes through porta
+                                       │ HTTP (/blob, /node/…) + the store, read-only
    operator ── porta CLI ────►  ┌──────▼──────────────────────────────────┐
    (opens the sqlite file       │              PORTA GATEWAY              │
     DIRECTLY, on this host —    │   `porta serve` — four loops:           │
     never a network client)     │     • exchange   udp :6969   pull/push  │
                                 │     • blocks     udp :6970   image bytes│
-                                │     • http       tcp :6970   /health    │
+                                │     • http       tcp :6970   operator   │
                                 │     • sweep      every 30 s  → gw/**    │
                                 │   store: nodes · cells · events ·       │
                                 │          exchanges   (+ gw_runs · meta) │
@@ -59,8 +59,8 @@ Three planes, three contracts — and note that only one of them is a network pr
 | Plane | Who talks | Contract | Transport |
 |-------|-----------|----------|-----------|
 | **Southbound** (gateway ↔ node) | porta ↔ any conforming node | `protocol/PROTOCOL-NSL.md` §§1–4 + `MANIFEST.cddl` | plain UDP + CBOR (the exchange); a binary block plane for bulk bytes |
-| **Northbound** (dev tool → gateway) | node-repo tooling → porta | `porta/devsdk` (`exec`, `provision`) | a Go import. **No network path** — v1's `apiclient` went with v1's HTTP API |
-| **Operator** (human/agent → gateway) | CLI → the store; browser/agent → custos | the path namespaces themselves; `GET /health`, `GET /manifest`; custos's named queries (`custos/internal/gate`) | a local sqlite open (§3.1); HTTP for the two routes; custos reads the store `mode=ro` (live) or a `porta snapshot` file (history) |
+| **Northbound** (dev tool → gateway) | node-repo tooling → porta | `porta/devsdk` (`exec`, `provision`) | a Go import. v1's `apiclient` went with v1's HTTP API; a dev tool's network path is now custos through the operator routes below |
+| **Operator** (human/agent → gateway) | CLI → the store; browser/agent → custos → porta | the path namespaces themselves; `GET /health`, `GET /manifest`, `POST /blob`, `PUT`/`GET /node/{id}/{path...}` (rete#398); custos's named queries (`custos/internal/gate`) | a local sqlite open (§3.1); HTTP for the five routes; custos reads the store `mode=ro` (live) or a `porta snapshot` file (history) |
 
 The code more than one peer needs is a Go module of its own, `protocol/` — `cval` (the
 codec), `manifest` (the catalogue's table), `store` (the store's shared vocabulary:
@@ -122,8 +122,18 @@ What the gateway *is*:
   space**: a 512 B batch and a 256 B value are radio constraints, not preferences.
 - **The judge of silence.** A ticking sweep forms one liveness verdict per node against
   the budget the node itself declared (§3.5).
-- **The operator surface.** Two HTTP routes, `GET /health` and `GET /manifest`, and
-  nothing else. v1's dashboard, JSON API and MCP server are deferred → operator surface
+- **The operator surface.** Five HTTP routes: `GET /health`, `GET /manifest`, and since
+  rete#398 the HTTP twins of three CLI commands. `POST /blob` is `porta blob put` (the
+  bytes stored content-addressed, their SHA-256 signed with `porta.key`; answers `{Hash,
+  Size, Sig, Record}`, `Record` the `App` value as hex). `PUT /node/{id}/{path...}` is
+  `porta put --raw`, for `goal/**` cells only (one closed cval encoding through the same
+  `Store.Write` door, so the gw/ ban, the 256 B cap and the manifest gate hold; the
+  actor is `X-Porta-Actor` or the peer address; answers `{Seq}`). `GET
+  /node/{id}/{path...}` is one cell of `porta get`, the raw CBOR with its seq in
+  `X-Porta-Seq`. They are general on purpose: a push is a blob and a goal write, the
+  same write carries `goal/debug/main`, and porta never learns what an app is. Admission
+  is the listener's CIDR allowlist and nothing else, a known gap for 0.1
+  (`../../docs/design/2026-10-12-398-load-through-porta-design.md` Q3). v1's dashboard, JSON API and MCP server are deferred → operator surface
   in the capability audit, not silently dropped; the exposed agent-facing front door is
   the separate `custos` program — its own Go module at the repo's top level, `custos/`
   (rete#338), importing `protocol/` and nothing of porta's. custos decodes what porta stores without porta learning
@@ -510,8 +520,10 @@ not have. They live on the dev machine, in node-repo tooling built on porta's **
 (Go, MIT-licensed so tooling in any language can import it without copyleft):
 `devsdk/exec` (a narrating runner for build and flash commands) and `devsdk/provision`
 (the gateway-address contract a node is flashed with). **`devsdk/apiclient` was deleted**
-with v1's HTTP surface — there is no network path from a dev tool to porta, which is why
-`porta blob put` runs on the gateway host.
+with v1's HTTP surface. Until rete#398 there was no network path from a dev tool to
+porta, which is why `porta blob put` ran on the gateway host; now custos pushes a program
+to a node through the operator routes (§3, "The operator surface"), and the CLI remains
+the gateway host's own front.
 
 That tooling is becoming **custos**, the nsl developer's peer, local over USB first
 (`../../docs/design/2026-10-04-custos-peer-design.md`). It lives at `custos/`, beside porta
