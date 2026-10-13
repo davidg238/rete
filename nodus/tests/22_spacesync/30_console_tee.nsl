@@ -1,0 +1,86 @@
+(*
+rete#415 — a `goal/console` cell points the console's UDP tee, through the bridge's
+inbound apply, the kernel's `consoleTee:port:` and the platform's tee (posix here, the
+host twin of the board's log_udp.c). The datagram is the proof: a line printed AFTER the
+cell arrives at the address the cell named, and a line printed after an empty addr does
+not. A bad record is logged and changes nothing.
+
+The receiver is this program's own socket, so the test needs no second process. The
+port is a fixed one (the tee is told a port, and a Socket cannot say which ephemeral
+port it got); 54344 is nobody else's in this tree. Every println below is also teed
+once the tee is on, so each check drains the socket before the next line.
+expect:
+before
+one
+teed one: true
+bad record level #error
+two
+still teed two: true
+three
+off, nothing: true
+done
+*)
+class ConsoleTee usingPlatform: platform net: net = () (
+
+  batch: k hi: hi value: value = (
+    ^ k Cbor encode:
+        (k Record tag: #batch
+           with: #hi -> hi
+           with: #ent -> (k List with: (k List with: hi with: 'goal/console' with: 2 with: value))) )
+
+  (* One datagram, or nil. The tee's sendto on loopback has already landed when
+     println returns, so a short bounded poll is generous. *)
+  take: rx = ( | dg i |
+    i:: 0. dg:: nil.
+    [ dg == nil and: [ i < 200 ] ] whileTrue: [ dg:: rx receive. i:: i + 1 ].
+    dg == nil ifTrue: [ ^ nil ].
+    ^ dg data )
+
+  drain: rx = ( [ (self take: rx) == nil ] whileFalse: [ ]. ^ self )
+
+  is: b text: s = ( | i ok |
+    b == nil ifTrue: [ ^ false ].
+    b byteSize = s size ifFalse: [ ^ false ].
+    ok:: true. i:: 1.
+    [ i <= s size ] whileTrue: [
+      (b u8At: i) = (s at: i) ifFalse: [ ok:: false ].
+      i:: i + 1 ].
+    ^ ok )
+
+  public main: k args: args = (
+    | space bridge rx log got |
+    space:: k space.
+    bridge:: k PortaBridge socket: nil space: space id: 'n1' peer: '::1' port: 6969 spans: k Spans new.
+    rx:: net udpBindPort: 54344.
+    rx == nil ifTrue: [ 'no socket' println. ^ 1 ].
+    'before' println.
+
+    bridge applyBatch: (self batch: k hi: 1 value:
+      (k Record tag: #Console with: #addr -> '::1' with: #port -> 54344)).
+    'one' println.
+    got:: self take: rx.
+    ('teed one: ' , (self is: got text: 'one') printString) println.
+    self drain: rx.
+
+    (* A port that is not an integer: logged, and the tee still points where it did. *)
+    bridge applyBatch: (self batch: k hi: 2 value:
+      (k Record tag: #Console with: #addr -> '::1' with: #port -> 'x')).
+    log:: space take: 'tel/log' ifEmpty: [ nil ].
+    ('bad record level ' , (log at: #lvl ifAbsent: [ #NONE ]) printString) println.
+    self drain: rx.
+    'two' println.
+    got:: self take: rx.
+    ('still teed two: ' , (self is: got text: 'two') printString) println.
+    self drain: rx.
+
+    (* An empty addr turns the tee off. *)
+    bridge applyBatch: (self batch: k hi: 3 value:
+      (k Record tag: #Console with: #addr -> '' with: #port -> 0)).
+    'three' println.
+    ('off, nothing: ' , ((self take: rx) == nil) printString) println.
+    rx close.
+    'done' println.
+    ^ 0 )
+) : (
+  public packageUsing: manifest = ( ^ self new )
+)

@@ -10,7 +10,7 @@
 
 #include "log_udp.h"
 
-#ifdef OEVM_LOG_UDP6
+#ifdef CONFIG_NET_SOCKETS
 
 #include <zephyr/net/socket.h>
 
@@ -24,12 +24,27 @@
  * works. Overflow drops the NEWEST character and counts it — see the report. */
 #define RING_BYTES 4096
 #define LINE_MAX   256
+/* The sender's idle poll. log_udp_tee_paced reads "no progress" as two of them. */
+#define POLL_MS    50
 
 static char ring[RING_BYTES];
 static uint32_t r_head, r_tail;
 static uint32_t dropped_chars, sent_lines, send_errors;
 static struct k_spinlock ring_lock;
 static printk_hook_fn_t prev_hook;
+
+/* rete#415: where the lines go. HOLD until the first target (the boot waits in the
+   ring, as it waited for a route), ON once one is set, OFF after an empty one (lines
+   are discarded: nobody asked for them). `gen` moves on every new target, so the
+   sender re-opens on the next pass. */
+enum { TEE_HOLD, TEE_ON, TEE_OFF };
+static volatile int tee_state = TEE_HOLD;
+static volatile uint32_t tee_gen;
+static struct sockaddr_in6 tee_dst;       /* written under ring_lock */
+static char tee_addr[INET6_ADDRSTRLEN];   /* for the boot and target lines */
+static int tee_port;
+static volatile int sender_pending;       /* a refused line is held for retry */
+K_SEM_DEFINE(tee_wake, 0, 1);
 
 /* Called from EVERY context printk is called from — thread, workqueue, ISR. It
  * must never block and never allocate. A spinlock rather than a lock-free ring
@@ -41,7 +56,9 @@ static int ring_put(char c)
 	uint32_t next = (r_head + 1u) % RING_BYTES;
 	int put = 0;
 
-	if (next == r_tail) {
+	if (tee_state == TEE_OFF) {
+		put = 1;                  /* nobody asked: discard, uncounted */
+	} else if (next == r_tail) {
 		dropped_chars++;          /* full: drop, count, never block */
 	} else {
 		ring[r_head] = c;
@@ -50,6 +67,14 @@ static int ring_put(char c)
 	}
 	k_spin_unlock(&ring_lock, key);
 	return put;
+}
+
+static uint32_t ring_used(void)
+{
+	k_spinlock_key_t key = k_spin_lock(&ring_lock);
+	uint32_t u = (r_head + RING_BYTES - r_tail) % RING_BYTES;
+	k_spin_unlock(&ring_lock, key);
+	return u;
 }
 
 static int tee_char_out(int c)
@@ -71,6 +96,33 @@ void log_udp_tee(const char *bytes, size_t n)
 	}
 }
 
+/* rete#415 F6: a profile dump is ~10 KB written in one burst, and the ring is 4 KB,
+ * so an unpaced dump lost its tail, `end` line included, which is the line custos
+ * waits for. The writer is the VM thread (a window's close, or deepSleep:), so it may
+ * wait. It waits only while the sender is moving the tail; a sender that stops
+ * (no route: refused sends back off 500 ms) is not waited on, so a dead route costs
+ * one stall of two polls per dump, not one per line. */
+void log_udp_tee_paced(const char *bytes, size_t n)
+{
+	static int gave_up;
+	uint32_t tail = r_tail;
+	int still = 0;
+
+	while (tee_state == TEE_ON && !gave_up && RING_BYTES - 1 - ring_used() < n) {
+		k_msleep(2);
+		if (r_tail != tail) {
+			tail = r_tail;
+			still = 0;
+		} else if ((still += 2) >= 2 * POLL_MS) {
+			gave_up = 1;
+		}
+	}
+	if (gave_up && ring_used() == 0) {
+		gave_up = 0;              /* the sender caught up: pace the next line again */
+	}
+	log_udp_tee(bytes, n);
+}
+
 static int ring_get(char *out)
 {
 	k_spinlock_key_t key = k_spin_lock(&ring_lock);
@@ -85,18 +137,65 @@ static int ring_get(char *out)
 	return got;
 }
 
-static int log_udp_socket(struct sockaddr_in6 *dst)
+static int set_target(const char *addr, int port)
 {
-	int s;
+	struct sockaddr_in6 dst;
+	k_spinlock_key_t key;
 
-	memset(dst, 0, sizeof *dst);
-	dst->sin6_family = AF_INET6;
-	dst->sin6_port = htons(OEVM_LOG_UDP_PORT);
-	if (zsock_inet_pton(AF_INET6, OEVM_LOG_UDP6, &dst->sin6_addr) != 1) {
-		return -1;              /* a bad literal is a build error, not a runtime one */
+	memset(&dst, 0, sizeof dst);
+	dst.sin6_family = AF_INET6;
+	dst.sin6_port = htons(port);
+	if (zsock_inet_pton(AF_INET6, addr, &dst.sin6_addr) != 1) {
+		return 0;
 	}
-	s = zsock_socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
-	return s;
+	key = k_spin_lock(&ring_lock);
+	tee_dst = dst;
+	tee_gen++;
+	tee_state = TEE_ON;
+	k_spin_unlock(&ring_lock, key);
+	strncpy(tee_addr, addr, sizeof tee_addr - 1);
+	tee_port = port;
+	k_sem_give(&tee_wake);
+	return 1;
+}
+
+int log_udp_set_target(const char *addr6, size_t len, int port)
+{
+	char a[INET6_ADDRSTRLEN];
+
+	if (len == 0) {
+		k_spinlock_key_t key = k_spin_lock(&ring_lock);
+		if (tee_state != TEE_OFF) {
+			tee_state = TEE_OFF;
+			r_tail = r_head;      /* what was queued for the old target is nobody's */
+		}
+		k_spin_unlock(&ring_lock, key);
+		printk("logudp: off (goal/console)\n");   /* reaches the UART only */
+		return 1;
+	}
+	if (len >= sizeof a || port < 1 || port > 65535) {
+		return 0;
+	}
+	memcpy(a, addr6, len);
+	a[len] = '\0';
+	if (tee_state == TEE_ON && port == tee_port && strcmp(a, tee_addr) == 0) {
+		return 1;                 /* the replayed cell: no new socket, no new line */
+	}
+	if (!set_target(a, port)) {
+		return 0;
+	}
+	printk("logudp: teeing console to [%s]:%d (goal/console)\n", a, port);
+	return 1;
+}
+
+void log_udp_drain(int max_ms)
+{
+	int waited = 0;
+
+	while (tee_state == TEE_ON && (ring_used() > 0 || sender_pending) && waited < max_ms) {
+		k_msleep(10);
+		waited += 10;
+	}
 }
 
 /* One datagram per line. UDP because a console that can BLOCK is a console that
@@ -112,13 +211,28 @@ static void log_udp_thread(void *a, void *b, void *c)
 	int len = 0;
 	int pending = 0;          /* `line` is assembled and NOT yet accepted */
 	int sock = -1;
+	uint32_t gen = 0;
 	uint32_t reported_drops = 0;
 
 	while (1) {
+		if (tee_state != TEE_ON) {
+			(void)k_sem_take(&tee_wake, K_MSEC(200));
+			continue;
+		}
+		if (gen != tee_gen) {     /* a new target: re-open and aim there */
+			k_spinlock_key_t key = k_spin_lock(&ring_lock);
+			dst = tee_dst;
+			gen = tee_gen;
+			k_spin_unlock(&ring_lock, key);
+			if (sock >= 0) {
+				zsock_close(sock);
+				sock = -1;
+			}
+		}
 		if (sock < 0) {
-			sock = log_udp_socket(&dst);
+			sock = zsock_socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
 			if (sock < 0) {
-				k_msleep(2000);   /* no route yet, or a bad literal */
+				k_msleep(2000);   /* no stack yet */
 				continue;
 			}
 		}
@@ -140,6 +254,7 @@ static void log_udp_thread(void *a, void *b, void *c)
 			}
 			sent_lines++;
 			pending = 0;
+			sender_pending = 0;
 			len = 0;
 		}
 
@@ -154,6 +269,7 @@ static void log_udp_thread(void *a, void *b, void *c)
 							 (struct sockaddr *)&dst, sizeof dst) < 0) {
 						send_errors++;
 						pending = 1;   /* retry this exact line */
+						sender_pending = 1;
 					} else {
 						sent_lines++;
 						len = 0;
@@ -180,7 +296,7 @@ static void log_udp_thread(void *a, void *b, void *c)
 			       dropped_chars, send_errors, sent_lines);
 		}
 
-		k_msleep(50);
+		k_msleep(POLL_MS);
 	}
 }
 
@@ -195,32 +311,53 @@ static int log_udp_hook_init(void)
 {
 	prev_hook = __printk_get_hook();
 	__printk_hook_install(tee_char_out);
+#ifdef OEVM_LOG_UDP6
+	(void)set_target(OEVM_LOG_UDP6, OEVM_LOG_UDP_PORT);
+#endif
 	return 0;
 }
 SYS_INIT(log_udp_hook_init, POST_KERNEL, CONFIG_KERNEL_INIT_PRIORITY_DEFAULT);
 
 void log_udp_start(void)
 {
-	printk("logudp: teeing console to [%s]:%d\n", OEVM_LOG_UDP6, OEVM_LOG_UDP_PORT);
+	if (tee_state == TEE_ON) {
+		printk("logudp: teeing console to [%s]:%d (build-time; goal/console overrides)\n",
+		       tee_addr, tee_port);
+	} else {
+		printk("logudp: holding the console until goal/console names a target\n");
+	}
 }
 
-#else  /* !OEVM_LOG_UDP6 */
+#else  /* !CONFIG_NET_SOCKETS */
 
 void log_udp_start(void)
 {
-	/* No remote console in this image. Say it
-	 * out loud. An image built without the address looks identical to one
-	 * whose gateway is unreachable, and this bench has now been bitten twice by a
-	 * build-time omission wearing the costume of a network fault. */
-	printk("logudp: not built in (no OEVM_LOG_UDP6) — console is UART only\n");
+	/* No network in this image, so no remote console. Say it out loud: an image
+	 * that cannot tee looks identical to one whose target is unreachable, and this
+	 * bench has now been bitten twice by a build-time omission wearing the costume
+	 * of a network fault. */
+	printk("logudp: no sockets in this image — console is UART only\n");
 }
 
-/* The no-op the VM's console leaf calls in an image without a remote console.
-   Defined HERE rather than as a weak stub beside the call site, for the reason
-   recorded in platform_zephyr.c. */
+/* The no-ops the VM's console leaves call in an image without a network. Defined
+   HERE rather than as weak stubs beside the call sites, for the reason recorded in
+   platform_zephyr.c. */
 void log_udp_tee(const char *bytes, size_t n)
 {
 	(void)bytes; (void)n;
 }
+void log_udp_tee_paced(const char *bytes, size_t n)
+{
+	(void)bytes; (void)n;
+}
+int log_udp_set_target(const char *addr6, size_t len, int port)
+{
+	(void)addr6; (void)len; (void)port;
+	return 0;
+}
+void log_udp_drain(int max_ms)
+{
+	(void)max_ms;
+}
 
-#endif /* OEVM_LOG_UDP6 */
+#endif /* CONFIG_NET_SOCKETS */

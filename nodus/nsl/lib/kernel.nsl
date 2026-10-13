@@ -2055,6 +2055,10 @@ class Kernel usingPlatform: platform = (
            work before any drain set the breakpoint. *)
         (dbgLink == nil or: [ (path = 'goal/debug/main') not ]) ifFalse: [
           dbgLink acceptGoal: value ].
+        (* rete#415: the console's tee target, applied here for the same reason: a
+           node that wakes, checks in, works and sleeps must tee the work, and a
+           profile window cut by that sleep dumps through it. *)
+        (path = 'goal/console') ifTrue: [ self applyConsole: value ].
         ^ self ].
       (* #342 spike: in a debug image whose debugger talks through the space,
          dbg/req belongs to the debugger, as the cable does (supervisor.nsl's
@@ -2063,6 +2067,21 @@ class Kernel usingPlatform: platform = (
       (dbgLink == nil or: [ (path = 'dbg/req') not or: [ (self isDbgLine: value) not ] ]) ifFalse: [
         dbgLink accept: value. ^ self ].
       space out: path value: value.
+      ^ self )
+
+    (* rete#415: `Console{addr, port}` points the console's UDP tee; an empty addr
+       turns it off. Untrusted like every inbound value: a bad record, or an address
+       the platform cannot parse, is logged and changes nothing. *)
+    applyConsole: rec = (
+      | addr port |
+      ((outer rankOf: rec) = 9 and: [ rec tag = #Console ]) ifFalse: [
+        self telLog: #error text: 'console bad record'. ^ self ].
+      addr:: rec at: #addr ifAbsent: [ nil ].
+      port:: rec at: #port ifAbsent: [ nil ].
+      ((outer rankOf: addr) = 4 and: [ (outer rankOf: port) = 2 ]) ifFalse: [
+        self telLog: #error text: 'console bad record'. ^ self ].
+      (outer consoleTee: addr port: port) ifFalse: [
+        self telLog: #error text: 'console bad address' ].
       ^ self )
 
     (* porta's authority, enforced where it can be believed: goal/** and dbg/req,
@@ -3781,6 +3800,14 @@ class Kernel usingPlatform: platform = (
       ^ self
     )
     public close = ( tok:: nil. kernel profileStop. ^ self )
+    (* rete#415 P3: Kernel>>deepSleep: is about to end the VM. An open window is closed
+       now and SAYS it was cut, so a dump shorter than the request is not read as the
+       whole window. *)
+    public cutBySleep = (
+      tok == nil ifTrue: [ ^ self ].
+      timers cancel: tok.
+      'profile: window cut by sleep' println.
+      ^ self close )
     public setKernel: k = ( kernel:: k. space:: k space. timers:: k timers. ^ self )
   ) : (
     public usingKernel: k = ( ^ self new setKernel: k )
@@ -4198,7 +4225,11 @@ class Kernel usingPlatform: platform = (
   (* tuvm#94 stage 5: deepSleep: seconds. NEVER RETURNS — the VM ceases to exist
      until the next timer wake reboots it. There is no wrapper and no answer to coerce:
      the caller's very next line is unreachable by construction. *)
-  public deepSleep: seconds = ( ^ platform deepSleep: seconds )
+  (* rete#415 P3: an open profile window is closed first, so its dump leaves before the
+     VM ends (the table is RAM, and a wake is often shorter than the window). *)
+  public deepSleep: seconds = (
+    profilerOne == nil ifFalse: [ profilerOne cutBySleep ].
+    ^ platform deepSleep: seconds )
   (* tuvm#100: the wall-clock seam — an external RTC (DS3231 over I2C) as the
      timebase. Thin forwarder, deliberately the SAME shape as ntpSyncTz: above:
      nil when there is no RTC or it has never been set, an SMI of seconds-since-
@@ -4308,6 +4339,9 @@ class Kernel usingPlatform: platform = (
   (* rete#312: a complete console line if one is queued, nil if not, false when this
      console cannot announce lines. Never blocks; the first send arms `sys/console`. *)
   public consoleLine       = ( ^ platform consoleLine )
+  (* rete#415: point the console's UDP tee at [addr]:port (a literal IPv6 address; ''
+     turns it off). Answers false when the platform could not parse it. *)
+  public consoleTee: addr port: port = ( ^ platform consoleTee: addr port: port )
   (* #74: the build actually running, so a reader can pick the matching sidecar. *)
   public buildId           = ( ^ platform buildId )
   (* rete#118: which BOARD this is — its factory link address in lowercase hex, read

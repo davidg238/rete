@@ -76,6 +76,23 @@ int  platform_console_arm(int chan_id);
 int  platform_console_take_line(char *buf, int cap);
 int  platform_console_service(void);
 
+/* rete#415 — the console's remote copy, the TEE: every console line also leaves as
+   one UDP datagram to a target set at RUN time, from the goal/console cell (prim
+   consoleTee:port:), so the custos that asked for a profile is the one that hears it.
+     tee      addr6 a literal IPv6 address (the mesh has no name service) and a port:
+              1 when it parsed and the tee now points there; 0 when it did not (the
+              tee is unchanged). "" turns the tee off and answers 1.
+     err      the profile dump's write: stderr, as before, AND the tee. The dump is C,
+              so it reaches neither printk's hook nor `out` (F5 of the #415 plan);
+              this is the one door it leaves by. Thread context only: on a board it
+              may wait for the tee to drain, so a dump larger than the ring is slowed,
+              not truncated (F6).
+     drain    wait, at most max_ms, until the queued tee lines have left: deepSleep:
+              calls it, because a sleep kills the sender with the dump's tail queued. */
+int  platform_console_tee(const char *addr6, size_t addr_len, int port);
+void platform_console_err(const char *bytes, size_t n);
+void platform_console_drain(int max_ms);
+
 /* rete#162/#117 — the node's per-boot identity, a counter incremented once per
    boot and persisted (PROTOCOL-NSL-RECORDS.md §2.4). Backed by NVS on Zephyr
    (the settings key "oevm/bootid") and by an env-named file on posix.

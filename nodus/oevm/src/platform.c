@@ -1501,6 +1501,19 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
         *out = (n < 0) ? NULL : space_make_string_pub(buf, (size_t)n);
         return 1;
     }
+    case PRIM_pf_consoleTee: {         /* rete#415: platform_backend.h */
+        oop a = args[0];
+        if (a == NULL || IS_SMI(a) || StringVtable == NULL || obj_vtable(a) != StringVtable ||
+            !IS_SMI(args[1])) {
+            *out = false_symbol; return 1;     /* a bad record is the kernel's to log, never a raise */
+        }
+        {
+            struct String *s = (struct String *)a;
+            *out = platform_console_tee((const char *)s->bytes, (size_t)s->length,
+                                        (int)UNTAG_SMI(args[1])) ? true_symbol : false_symbol;
+        }
+        return 1;
+    }
     case PRIM_pf_boardName: {          /* rete#118: nil = "this build was not told a board name" */
         char nm[PLATFORM_NODE_ID_MAX];
         size_t n = platform_backend_board_name(nm, sizeof nm);

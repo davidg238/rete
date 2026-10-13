@@ -8,13 +8,74 @@
 #include <signal.h>
 #include <unistd.h>
 #include <poll.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 /* POSIX (x86-linux / macOS desktop) console backend: stdout via ISO C stdio.
    The flush on newline closes the long-deferred std-lib step-1 minor (platform
    print:/printNewline: were unflushed). platform_zephyr.c (printk) /
    platform_esp.c (uart0) replace it on device. */
-void platform_console_write(const char *bytes, size_t n) {
-    if (n) fwrite(bytes, 1, n, stdout);
+/* rete#415: the tee (platform_backend.h), the host twin of the board's log_udp.c, so
+   the host gate exercises the same cell -> prim -> datagram path a board does. One
+   datagram per line, sent at once and never waited on (MSG_DONTWAIT): loopback does not
+   drop, and a host has no ring to overflow. stdout and stderr assemble their lines
+   apart, so a dump row never splices into half a line of `out`. */
+#define TEE_LINE_MAX 256
+struct tee_line { char b[TEE_LINE_MAX]; int n; };
+static struct tee_line tee_out, tee_err;
+static int tee_sock = -1;
+static struct sockaddr_in6 tee_dst;
+
+static void tee_feed(struct tee_line *l, const char *bytes, size_t n) {
+    size_t i;
+    for (i = 0; i < n; i++) {
+        char c = bytes[i];
+        if (c != '\n' && c != '\r') l->b[l->n++] = c;
+        if (c == '\n' || l->n == TEE_LINE_MAX) {
+            if (l->n > 0 && tee_sock >= 0)
+                (void)sendto(tee_sock, l->b, (size_t)l->n, MSG_DONTWAIT,
+                             (struct sockaddr *)&tee_dst, sizeof tee_dst);
+            l->n = 0;
+        }
+    }
 }
+
+int platform_console_tee(const char *addr6, size_t addr_len, int port) {
+    char a[INET6_ADDRSTRLEN];
+    struct sockaddr_in6 dst;
+    if (addr_len == 0) {
+        if (tee_sock >= 0) close(tee_sock);
+        tee_sock = -1;
+        return 1;
+    }
+    if (addr_len >= sizeof a || port < 1 || port > 65535) return 0;
+    memcpy(a, addr6, addr_len);
+    a[addr_len] = '\0';
+    memset(&dst, 0, sizeof dst);
+    dst.sin6_family = AF_INET6;
+    dst.sin6_port = htons((unsigned short)port);
+    if (inet_pton(AF_INET6, a, &dst.sin6_addr) != 1) return 0;
+    if (tee_sock < 0) {
+        tee_sock = socket(AF_INET6, SOCK_DGRAM, 0);
+        if (tee_sock < 0) return 0;
+    }
+    tee_dst = dst;
+    return 1;
+}
+
+void platform_console_write(const char *bytes, size_t n) {
+    if (n) {
+        fwrite(bytes, 1, n, stdout);
+        tee_feed(&tee_out, bytes, n);
+    }
+}
+void platform_console_err(const char *bytes, size_t n) {
+    if (n) {
+        fwrite(bytes, 1, n, stderr);
+        tee_feed(&tee_err, bytes, n);
+    }
+}
+void platform_console_drain(int max_ms) { (void)max_ms; }   /* sent at once: nothing queues */
 void platform_console_flush(void) {
     fflush(stdout);
 }

@@ -329,10 +329,11 @@ if(DEFINED ENV{OEVM_NTP_SERVER6})
   target_compile_definitions(app PRIVATE OEVM_NTP_SERVER6="$ENV{OEVM_NTP_SERVER6}")
 endif()
 
-# THE REMOTE CONSOLE (src/log_udp.c). A LITERAL IPv6 address, for the same reason
-# as OEVM_NTP_SERVER6 above — the mesh has nothing to resolve a name against. Set
-# it and printk is TEED to one UDP datagram per line; leave it unset and the image
-# says so at boot rather than looking like an unreachable gateway.
+# THE REMOTE CONSOLE (src/log_udp.c). Since rete#415 its target is the goal/console
+# cell, set at run time by the custos that wants the lines; this literal is only the
+# target a board starts on, and the cell overrides it. To be deleted once the cell
+# has carried a board (#415 Q2′). A LITERAL IPv6 address, for the same reason as
+# OEVM_NTP_SERVER6 above — the mesh has nothing to resolve a name against.
 #
 #   OEVM_LOG_UDP6=fdc5:9109:9afe:97ea:9541:d963:f8d9:8567 ./run.sh --board esp32c6 ...
 #

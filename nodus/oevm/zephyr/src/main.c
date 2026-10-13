@@ -599,13 +599,15 @@ void deep_sleep_target(int seconds) {
     /* Last console line of this wake, so a silent board distinguishes "never armed"
        from "armed and never woke". */
     printk("deep sleep %d s\n", seconds);
-#ifdef OEVM_LOG_UDP6
     /* The UDP console's sender polls its ring every 50 ms (log_udp.c); the sleep below
-       kills it in under that, so without this wait the last three lines of every wake —
+       kills it in under that, so without a wait the last three lines of every wake —
        `sleep: target`, `space:`, `deep sleep` — never left the board (rete#379 bench note,
-       rete#233 T10: the channel count is one of them). 150 ms of a 15 s wake. */
-    k_msleep(150);
-#endif
+       rete#233 T10: the channel count is one of them). Until rete#415 that wait was a
+       fixed 150 ms; a profile window cut by this sleep now queues its whole dump
+       (~10 KB) just before it, so the wait is a drain: until the ring is empty, at most
+       2 s, and nothing at all when no target is set. The 2 s is a guess at a Thread
+       node's worst case, to be replaced by the bell's measured drain time (#415 Task 8). */
+    log_udp_drain(2000);
     esp_deep_sleep_start();   /* does not return */
 #else
     (void)seconds;
