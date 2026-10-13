@@ -16,6 +16,9 @@ on Q8. Board work (Task 8) waits for David: nothing here flashes or pushes to a 
 
 ## Tasks
 
+Tasks 1–7 were done overnight on 2026-10-12 (commits on `415-profile-porta`; the design's "As built" has the gates).
+Task 8 is open.
+
 1. **protocol: `goal/console`.** `Console{addr: tstr, port: uint}` in `MANIFEST.cddl` (`sym-Console`, `sym-addr`,
    `sym-port`; keys in wire order), `descriptors/records.yaml`, PROTOCOL-NSL's path table, RECORDS (a §4.5 note:
    the rows leave by the tee, whose target is this cell). An empty `addr` turns the tee off.

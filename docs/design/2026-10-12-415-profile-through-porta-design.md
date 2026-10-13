@@ -1,6 +1,6 @@
 # Profile through porta: the last 0.1 lifecycle row (rete#415)
 
-> Status: **Q1, Q3–Q7 DECIDED as recommended (David, 2026-10-12); Q2 reopened as Q2′ below.** #415 asks to settle whether "profile local or OTA" (#26's
+> Status: **Q1, Q3–Q7 and Q2′ DECIDED (David, 2026-10-12); Q8 open. Host half BUILT on branch `415-profile-porta` (see As built); the bench half waits.** #415 asks to settle whether "profile local or OTA" (#26's
 > lifecycle table) is built or open work. **Answer: half built.** The trigger through porta is built and gated; the
 > rows' way back to an agent is not, nor is custos's verb for it, nor the sleepy-node case. Decided upstream
 > and not reopened: profiling is in the standard image, and one command reader in every image is fed by the
