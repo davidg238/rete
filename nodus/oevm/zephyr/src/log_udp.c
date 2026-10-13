@@ -7,6 +7,7 @@
  * printk.h — chaining needs the getter, and the getter is only in this header. */
 #include <zephyr/sys/printk-hooks.h>
 #include <string.h>
+#include <errno.h>
 
 #include "log_udp.h"
 
@@ -24,8 +25,17 @@
  * works. Overflow drops the NEWEST character and counts it — see the report. */
 #define RING_BYTES 4096
 #define LINE_MAX   256
-/* The sender's idle poll. log_udp_tee_paced reads "no progress" as two of them. */
+/* The sender's idle poll. */
 #define POLL_MS    50
+/* rete#415, measured on c6b over Thread (2026-10-13): a dump's lines leave ~4 ms apart
+ * and the stack runs out of net buffers after ~80 of them; sendto then fails with
+ * ENOMEM until frames drain. That is pressure, not a dead route, so it is retried
+ * after BUSY_MS; any other error (no route) after DEAD_MS. The paced writer stops
+ * waiting only after GIVE_UP_MS with no progress, which a DEAD_MS back-off alone
+ * never reaches. */
+#define BUSY_MS    10
+#define DEAD_MS    500
+#define GIVE_UP_MS 2000
 
 static char ring[RING_BYTES];
 static uint32_t r_head, r_tail;
@@ -143,12 +153,13 @@ void log_udp_tee(const char *bytes, size_t n)
 /* rete#415 F6: a profile dump is ~10 KB written in one burst, and the ring is 4 KB,
  * so an unpaced dump lost its tail, `end` line included, which is the line custos
  * waits for. The writer is the VM thread (a window's close, or deepSleep:), so it may
- * wait. It waits only while the sender is moving the tail; a sender that stops
- * (no route: refused sends back off 500 ms) is not waited on, so a dead route costs
- * one stall of two polls per dump, not one per line. */
+ * wait. It waits while the sender is moving the tail; a sender that has not moved
+ * for GIVE_UP_MS (no route) is not waited on until it moves again, so a dead route
+ * costs one stall per dump, not one per line. */
 void log_udp_tee_paced(const char *bytes, size_t n)
 {
 	static int gave_up;
+	static uint32_t gave_up_tail;
 	uint32_t tail = r_tail;
 	int still = 0;
 
@@ -157,14 +168,23 @@ void log_udp_tee_paced(const char *bytes, size_t n)
 		if (r_tail != tail) {
 			tail = r_tail;
 			still = 0;
-		} else if ((still += 2) >= 2 * POLL_MS) {
+		} else if ((still += 2) >= GIVE_UP_MS) {
 			gave_up = 1;
 		}
 	}
-	if (gave_up && ring_used() == 0) {
-		gave_up = 0;              /* the sender caught up: pace the next line again */
+	if (gave_up && r_tail != gave_up_tail) {
+		gave_up = 0;              /* the sender moves again: pace the next line again */
+	}
+	if (gave_up) {
+		gave_up_tail = r_tail;
 	}
 	log_udp_tee(bytes, n);
+}
+
+/* A send refused for want of buffers, which drain on their own. */
+static int busy(int e)
+{
+	return e == ENOMEM || e == ENOBUFS || e == EAGAIN;
 }
 
 static int ring_get(char *out)
@@ -295,7 +315,7 @@ static void log_udp_thread(void *a, void *b, void *c)
 			if (zsock_sendto(sock, line, len, 0,
 					 (struct sockaddr *)&dst, sizeof dst) < 0) {
 				send_errors++;
-				k_msleep(500);
+				k_msleep(busy(errno) ? BUSY_MS : DEAD_MS);
 				continue;
 			}
 			sent_lines++;
@@ -328,7 +348,7 @@ static void log_udp_thread(void *a, void *b, void *c)
 			}
 		}
 		if (pending) {
-			k_msleep(500);
+			k_msleep(busy(errno) ? BUSY_MS : DEAD_MS);
 			continue;
 		}
 
