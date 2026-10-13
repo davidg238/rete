@@ -1,6 +1,6 @@
 # Profile through porta: the last 0.1 lifecycle row (rete#415)
 
-> Status: **DRAFT, Q1–Q7 for David** (2026-10-12). #415 asks to settle whether "profile local or OTA" (#26's
+> Status: **Q1, Q3–Q7 DECIDED as recommended (David, 2026-10-12); Q2 reopened as Q2′ below.** #415 asks to settle whether "profile local or OTA" (#26's
 > lifecycle table) is built or open work. **Answer: half built.** The trigger through porta is built and gated; the
 > rows' way back to an agent is not, nor is custos's verb for it, nor the sleepy-node case. Decided upstream
 > and not reopened: profiling is in the standard image, and one command reader in every image is fed by the
@@ -32,10 +32,12 @@ which is about 20 check-ins at the 512 B batch, or ten minutes on the wall bell'
 states it as a claim of record. "Through porta" therefore means the request goes through porta and the rows come
 back by the node's console tee.
 
-**F2. The tee goes to an address baked into the image.** `OEVM_LOG_UDP6` is a literal ULA chosen at build time.
-The rows land on whichever machine the image names (msi for the MagTag), and the custos that ranks them must run
-there. For 0.1, with one bench and one dev machine, this is fine. It is not "any agent anywhere", which is a gap
-to record rather than fix here.
+**F2. The tee goes to an address baked into the image, and nothing requires the bake.** `OEVM_LOG_UDP6` is a
+literal ULA chosen at build time. The rows land on whichever machine the image names (msi for the MagTag). The
+reason recorded for it (`CMakeLists.txt:332`) is that the mesh has no DNS, so the address must be a literal. That
+argues for a literal, not for a *build-time* one. `log_udp.c` parses the string with `inet_pton` when the socket
+opens, so a target supplied at run time costs one prim. (David, 2026-10-12: "why can't porta tell the device which
+custos to report to?")
 
 **F3. UDP drops rows without saying so.** The mesh loses about 4.6 % of datagrams (PROTOCOL-NSL §batch sizing). One
 console line is one datagram, so a 200-row dump over Thread expects about nine missing rows. The header
@@ -90,8 +92,6 @@ porta board's profile against a fake porta plus a fake sink.
 - **Rows through porta** (F1's rejected alternative). This is Q1, but D4 stands unless David reopens it.
 - **Cold-boot profile** (#381's first half): profiling the boot before porta answers needs the request to be
   waiting at boot, which is the replay question #262 closed.
-- **A tee that follows the agent** (F2): a runtime-set tee target is a `goal/` cell and a reconnect story.
-  What would earn it: a second dev machine that needs a remote node's rows.
 - **Recovering lost rows** (F3). What would earn it: a measured loss on the bell that changes a ranking.
 
 ## Questions for David
@@ -112,3 +112,24 @@ porta board's profile against a fake porta plus a fake sink.
    host leg exercises the same sink. The alternative is a host-only console source in custos, which is a second
    mechanism and the reason D16 has one store.
 7. **Band.** #415 is P3. It is the last 0.1 row, so it should be P1, as #233 was raised.
+
+## Q2′: the console's target as a goal cell (after David's question, 2026-10-12)
+
+**P2′.** Replace the build-time target with a cell: `goal/console` = `Console{addr: tstr, port: uint}`, where an
+empty `addr` turns the tee off. It is the same shape of thing as `goal/debug/main`: a whole-value cell, replayed into every
+cold boot's first check-in, so a deep-sleep node re-tees on each wake. A porta node in custos gains its console
+by custos writing that cell (one `PUT`, the #398 route) with its own reachable ULA (`--advertise <ula>`, since
+a dev machine has several interfaces and only the operator knows which one the border router routes to) and a
+port custos binds for that board. The pairing flag disappears: a porta node *has* a console because custos
+told the node where to send it. Two developers with two custos can profile two nodes on one mesh, each node
+teeing to the custos that last wrote its cell. On one node, the last writer wins, which is the same contention
+`goal/debug/main` already has.
+
+What it costs: one prim (set the tee target), the kernel applying the cell, a manifest record, and custos's
+write. What it gives up: console lines before the first check-in are not teed. The cable still has those, and
+the profile window only opens after a check-in anyway. Admission is CIDR only, as for #398 Q3. The same gap now
+also lets anyone in range redirect a node's console, which belongs in #253's note.
+
+**Q2′. Is the tee target a `goal/console` cell, set by custos through porta, and is `OEVM_LOG_UDP6` deleted?**
+Recommended: yes to both. One mechanism, not a build-time one plus a run-time one. Deletion lands after the
+wall bell shows the cell working (P4 then becomes "push an image without the bake, then write the cell").
