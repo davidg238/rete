@@ -11,5 +11,7 @@ void oevm_thread_bringup(void);
    A UDP sendto is accepted before OpenThread queues the message, and a full pool
    drops it there, out of sight of the sender (log_udp.c paces on this). */
 int  oevm_thread_free_buffers(void);
+/* Messages OpenThread still holds to send (its IPv6 and 6LoWPAN send queues). */
+int  oevm_thread_tx_queued(void);
 
 #endif /* OEVM_THREAD_BRINGUP_H */

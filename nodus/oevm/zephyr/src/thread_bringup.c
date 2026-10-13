@@ -71,3 +71,17 @@ int oevm_thread_free_buffers(void)
 	openthread_mutex_unlock();
 	return info.mFreeBuffers == 0xffff ? -1 : info.mFreeBuffers;
 }
+
+int oevm_thread_tx_queued(void)
+{
+	struct otInstance *ot = openthread_get_default_instance();
+	otBufferInfo info;
+
+	if (ot == NULL) {
+		return 0;
+	}
+	openthread_mutex_lock();
+	otMessageGetBufferInfo(ot, &info);
+	openthread_mutex_unlock();
+	return info.mIp6Queue.mNumMessages + info.m6loSendQueue.mNumMessages;
+}

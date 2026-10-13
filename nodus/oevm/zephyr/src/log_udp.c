@@ -17,6 +17,7 @@
 #ifdef CONFIG_NET_SOCKETS
 
 #include <zephyr/net/socket.h>
+#include <zephyr/net/net_pkt.h>
 
 #ifndef OEVM_LOG_UDP_PORT
 #define OEVM_LOG_UDP_PORT 54330
@@ -65,7 +66,7 @@ K_SEM_DEFINE(tee_wake, 0, 1);
    memory on espressif, as main.c's g_rtc; elsewhere plain .bss, which a boot zeroes,
    and the check fails, as it does on a power-on's garbage. `on` 0 is an off kept. */
 #define TEE_KEEP_MAGIC 0x7EE15415u
-struct tee_keep { uint32_t check; uint16_t port; uint8_t on; char addr[INET6_ADDRSTRLEN]; };
+struct tee_keep { uint32_t check; uint16_t port; uint8_t on; uint16_t drain_ms; char addr[INET6_ADDRSTRLEN]; };
 #if defined(CONFIG_SOC_FAMILY_ESPRESSIF_ESP32)
 #include <esp_attr.h>   /* RTC_NOINIT_ATTR */
 static RTC_NOINIT_ATTR struct tee_keep tee_kept;
@@ -80,6 +81,7 @@ static uint32_t tee_keep_sum(const struct tee_keep *k)
 
 	h = (h ^ k->port) * 16777619u;
 	h = (h ^ k->on) * 16777619u;
+	h = (h ^ k->drain_ms) * 16777619u;
 	for (i = 0; i < sizeof k->addr; i++) {
 		h = (h ^ (uint8_t)k->addr[i]) * 16777619u;
 	}
@@ -278,13 +280,40 @@ int log_udp_set_target(const char *addr6, size_t len, int port)
 	return 1;
 }
 
+/* rete#415, measured on the MagTag (2026-10-13): an empty ring is not a sent console.
+ * The sender has handed the lines to the stack, and a deep sleep then kills them in its
+ * TX queue: `sleep: arming`, `space:` and `deep sleep` never arrived. So the drain also
+ * waits for the stack to hand every queued packet to the radio. */
+static int net_tx_busy(void)
+{
+	struct k_mem_slab *rx, *tx;
+	struct net_buf_pool *rx_data, *tx_data;
+
+	net_pkt_get_info(&rx, &tx, &rx_data, &tx_data);
+	if (tx != NULL && k_mem_slab_num_used_get(tx) > 0) {
+		return 1;
+	}
+#ifdef CONFIG_NET_L2_OPENTHREAD
+	if (oevm_thread_tx_queued() > 0) {
+		return 1;
+	}
+#endif
+	return 0;
+}
+
 void log_udp_drain(int max_ms)
 {
 	int waited = 0;
 
-	while (tee_state == TEE_ON && (ring_used() > 0 || sender_pending) && waited < max_ms) {
+	while (tee_state == TEE_ON && (ring_used() > 0 || sender_pending || net_tx_busy()) &&
+	       waited < max_ms) {
 		k_msleep(10);
 		waited += 10;
+	}
+	/* The measurement the 2 s cap waits on: kept, and printed by the next boot. */
+	if (tee_keep_valid()) {
+		tee_kept.drain_ms = (uint16_t)waited;
+		tee_kept.check = tee_keep_sum(&tee_kept);
 	}
 }
 
@@ -428,6 +457,9 @@ void log_udp_start(void)
 		printk("logudp: off (kept from the last goal/console)\n");
 	} else {
 		printk("logudp: holding the console until goal/console names a target\n");
+	}
+	if (tee_from_keep) {
+		printk("logudp: the last sleep's drain took %u ms\n", tee_kept.drain_ms);
 	}
 }
 
