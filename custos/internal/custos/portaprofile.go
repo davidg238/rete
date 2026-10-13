@@ -6,15 +6,17 @@ package custos
 // 2026-10-12-415). The console: custos binds a mesh sink on a port of its own,
 // and writes goal/console = Console{addr: --advertise, port} through porta, so
 // the node tees its console here, whichever custos asked last. The profile: the
-// request is a `profile <ms>` line on the node's dbg/req, through porta, and
-// the rows come back by that tee, never on the space (RECORDS §4.5). The POST
-// answers at the dbg/req write, Pending, because the window opens at the node's
-// next check-in (design Q3, as load's Q2); /profile/last answers the pending
-// request until the dump's end line arrives, then the cable's Capture.
+// request is a goal/profile cell, Profile{id, ms}, through porta, and the rows
+// come back by that tee, never on the space (RECORDS §4.5). The cell is one
+// request, named by a new id: the node serves it once, and carries a window that
+// deep sleep cuts to its next boot (design Q8/Q9). The POST answers at the write,
+// Pending, because the window opens at the node's next check-in (design Q3, as
+// load's Q2); /profile/last answers the pending request until the dump's end line
+// arrives, then the cable's Capture.
 //
 //	GET  /profile               the page
 //	GET  /profile/last          the last request: Pending, or its capture (404 before the first)
-//	POST /profile/capture?ms=N  write `profile N` through porta; answer {Pending, Seq} at once
+//	POST /profile/capture?ms=N  write goal/profile = Profile{id, N} through porta; answer {Pending, Seq} at once
 
 import (
 	"context"
@@ -76,13 +78,43 @@ func mountPortaConsole(ctx context.Context, mux *http.ServeMux, prefixes []strin
 	return pc, nil
 }
 
-// portaLine is a capture's request half on a porta node: the line goes to the
-// node's dbg/req through porta, and the seq porta answers is handed to the POST
-// waiting on sent. Close ends the capture's view of the sink.
+// portaLine is a capture's request half on a porta node: the request is the
+// node's goal/profile cell, written through porta, and the seq porta answers is
+// handed to the POST waiting on sent. Close ends the capture's view of the sink.
 type portaLine struct {
 	p      load.Porta
+	req    cval.Record
 	cancel func()
 	sent   chan<- portaSent
+}
+
+// profileRecord is goal/profile's value, Profile{id, ms} (MANIFEST.cddl; keys in
+// wire order).
+func profileRecord(id int64, ms int) cval.Record {
+	return cval.Record{Tag: "Profile", Fields: cval.Map{
+		{K: cval.Symbol("id"), V: id},
+		{K: cval.Symbol("ms"), V: int64(ms)},
+	}}
+}
+
+// requestIDs names each request with a new id. The node holds it as a 31-bit SMI
+// and serves an id once, by equality, so an id must differ from the last one the
+// node served even across a custos restart: the clock's seconds below 2^30, and
+// one more than the last when two requests share a second.
+type requestIDs struct {
+	mu   sync.Mutex
+	last int64
+}
+
+func (r *requestIDs) next(now time.Time) int64 {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	id := now.Unix() % (1 << 30)
+	if id <= r.last {
+		id = r.last + 1
+	}
+	r.last = id % (1 << 30)
+	return r.last
 }
 
 type portaSent struct {
@@ -90,8 +122,9 @@ type portaSent struct {
 	err error
 }
 
+// Send writes the cell; the line, `profile <ms>`, is the cable's spelling of it.
 func (l portaLine) Send(line string) error {
-	seq, err := l.p.Write("dbg/req", line, "custos profile")
+	seq, err := l.p.Write("goal/profile", l.req, "custos profile")
 	l.sent <- portaSent{seq, err}
 	return err
 }
@@ -107,6 +140,7 @@ func mountPortaProfile(mux *http.ServeMux, prefixes []string, mapPath string, p 
 		mu   sync.Mutex
 		gen  int
 		last *Capture
+		ids  requestIDs
 	)
 	answer := func(w http.ResponseWriter, c *Capture) {
 		w.Header().Set("Content-Type", "application/json")
@@ -173,7 +207,7 @@ func mountPortaProfile(mux *http.ServeMux, prefixes []string, mapPath string, p 
 		mu.Unlock()
 		sent := make(chan portaSent, 1)
 		open := func(onLine func(string), onEnd func()) (profile.Sender, error) {
-			return portaLine{p: p, cancel: pc.sink.Subscribe(onLine), sent: sent}, nil
+			return portaLine{p: p, req: profileRecord(ids.next(time.Now()), ms), cancel: pc.sink.Subscribe(onLine), sent: sent}, nil
 		}
 		go func() {
 			text, err := profile.Capture(open, ms, 0)

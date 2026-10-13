@@ -83,10 +83,11 @@ func TestPortaProfileThroughTheTee(t *testing.T) {
 		t.Fatalf("POST: %d %+v %v", r.StatusCode, c, err)
 	}
 	f.mu.Lock()
-	req, _ := cval.Decode(f.cells["n1/dbg/req"])
+	req, _ := cval.Decode(f.cells["n1/goal/profile"])
 	f.mu.Unlock()
-	if req != "profile 500" {
-		t.Fatalf("dbg/req is %v", req)
+	if r, ok := req.(cval.Record); !ok || r.Tag != "Profile" || len(r.Fields) != 2 ||
+		r.Fields[0].V.(int64) <= 0 || r.Fields[1].V != int64(500) {
+		t.Fatalf("goal/profile is %v, want Profile{id, ms: 500}", req)
 	}
 	getJSON(t, srv.URL+"/board/bell/profile/last", &c)
 	if !c.Pending {
@@ -133,10 +134,10 @@ func TestPortaProfileRefusesAnotherProgramsMap(t *testing.T) {
 	}
 	r.Body.Close()
 	f.mu.Lock()
-	_, wrote := f.cells["n1/dbg/req"]
+	_, wrote := f.cells["n1/goal/profile"]
 	f.mu.Unlock()
 	if r.StatusCode != http.StatusConflict || wrote {
-		t.Fatalf("status %d, dbg/req written %v", r.StatusCode, wrote)
+		t.Fatalf("status %d, goal/profile written %v", r.StatusCode, wrote)
 	}
 }
 
@@ -154,5 +155,20 @@ func TestPortaProfileNeedsAdvertise(t *testing.T) {
 		"", t.TempDir(), ps.URL, "127.0.0.1")
 	if err == nil || !strings.Contains(err.Error(), "IPv6") {
 		t.Fatalf("a v4 --advertise: err %v", err)
+	}
+}
+
+// Each request is a new id, even two in one second and across a restart's clock:
+// the node serves an id once, by equality, so a repeat would be ignored silently.
+func TestPortaProfileIDsAreNew(t *testing.T) {
+	var r requestIDs
+	now := time.Unix(1_790_000_000, 0)
+	a, b := r.next(now), r.next(now)
+	if a == b || a <= 0 || b >= 1<<30 {
+		t.Fatalf("ids %d, %d", a, b)
+	}
+	var fresh requestIDs // a restarted custos, a second later
+	if c := fresh.next(now.Add(time.Second)); c == a {
+		t.Fatalf("a restart reused %d", c)
 	}
 }

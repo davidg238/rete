@@ -17,8 +17,9 @@
 #      by nodus/tests/23_mprof/04_dbg_req_chain.nsl.
 #   4c. (rete#415) the same window asked for by an AGENT, through custos and porta's
 #      HTTP: custos serves the node as a porta node with a console, writes
-#      goal/console naming its own UDP sink, writes `profile <ms>` to dbg/req,
-#      and ranks the dump that comes back by the console tee — never the space.
+#      goal/console naming its own UDP sink, writes the request as the
+#      goal/profile cell (Profile{id, ms}, rete#415 Q8), and ranks the dump that
+#      comes back by the console tee — never the space.
 # Leg 3 under a DELIBERATE datagram drop is plan 3's, on the C6 over the mesh.
 #
 # Not wired into run_tests_oevm.py — it builds a separate Go binary and a
@@ -413,10 +414,11 @@ echo "  the console line opened a window through the same handler"
 # LEG 8c — rete#415: the agent's path. custos serves the node as a porta node with a
 # console (--advertise ::1) and its map; at start-up it writes goal/console naming its
 # own UDP sink, so the node tees its console there from its next check-in. One POST
-# writes `profile 1000` to dbg/req through porta's HTTP and answers Pending; the dump
+# writes goal/profile = Profile{id, 1000} through porta's HTTP and answers Pending (an
+# always-on node opens the window at once and serves it at 1000 ms, Q9); the dump
 # comes back by the tee (prim consoleTee:port: -> the posix tee, the host twin of
 # log_udp.c) and /profile/last ranks it. The space never carries a row: the only
-# writes are the cell and the line. The host node publishes no obs/apps/main, so the
+# writes are the two cells. The host node publishes no obs/apps/main, so the
 # report carries the UNCHECKED warning, which is asserted too: a node that can say
 # which program it runs would be checked against the map instead.
 echo "[8c/9] an agent's profile through custos and porta, the rows by the console tee"
@@ -434,7 +436,9 @@ curl -sf "http://127.0.0.1:$CUSTOS_PORT/boards" | grep '"profile"' >/dev/null ||
 POSTED=$(curl -sf -X POST "$CUSTOS_URL/profile/capture?ms=1000") || {
   echo "FAIL: custos refused the profile request"; curl -s -X POST "$CUSTOS_URL/profile/capture?ms=1000"; exit 1; }
 echo "$POSTED" | grep '"Pending":true' >/dev/null || {
-  echo "FAIL: a porta node's capture must answer Pending at the dbg/req write, got: $POSTED"; exit 1; }
+  echo "FAIL: a porta node's capture must answer Pending at the goal/profile write, got: $POSTED"; exit 1; }
+/tmp/porta get --db "$DB" "$NODE" goal/profile | grep "Profile" >/dev/null || {
+  echo "FAIL: custos wrote no goal/profile cell"; /tmp/porta get --db "$DB" "$NODE" goal; exit 1; }
 for _ in $(seq 1 150); do
   curl -sf "$CUSTOS_URL/profile/last" | grep '"Pending":true' >/dev/null || break; sleep 0.2
 done

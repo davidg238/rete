@@ -210,7 +210,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			return m, nil
 		}
-		// A profile through porta (rete#415) answers at the dbg/req write: keep
+		// A profile through porta (rete#415) answers at the goal/profile write: keep
 		// the last capture on screen, say what is pending, and re-read every 5 s
 		// until the dump has come back by the console tee, as the page does.
 		if msg.c.Pending {

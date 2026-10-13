@@ -22,8 +22,10 @@ given `--advertise <ipv6>`, this host's address as the nodes reach it (rete#415)
 binds the node a sink on a port of its own choosing and writes `goal/console =
 Console{addr, port}` through porta, so the node tees its console to this custos from its
 next check-in. A sleeping node does so on every wake, because the cell is replayed. The
-node's console verbs below are then served, and with a `--map`, so is `profile`: its rows
-come back on this console, never on the space. Whichever custos wrote the cell last is the
+node's console verbs below are then served, and with a `--map`, so is `profile`. Its request
+is a `goal/profile = Profile{id, ms}` cell with a new id, which the node serves once; a window
+that deep sleep cuts is opened again, whole, at the next boot. Its rows come back on this
+console, never on the space. Whichever custos wrote the cell last is the
 one that hears the node. A custos that has stopped leaves its address in the cell, and the
 node keeps sending to a port nobody binds until another custos writes it.
 

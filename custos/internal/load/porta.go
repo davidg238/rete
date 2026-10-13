@@ -117,7 +117,7 @@ func (p Porta) Push(path string) (Push, error) {
 }
 
 // Write encodes v as one closed cval value and writes it at path on the node:
-// a goal/ cell, or a dbg/req line (rete#415: goal/console, `profile <ms>`).
+// a goal/ cell (rete#415: goal/console and goal/profile), or a dbg/req line.
 // It answers porta's seq for the write.
 func (p Porta) Write(path string, v any, reason string) (int64, error) {
 	enc, err := cval.Encode(v)

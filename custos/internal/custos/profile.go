@@ -35,7 +35,7 @@ type Capture struct {
 	Map        string
 	Report     profile.Report
 	// A porta node's request (rete#415): Pending until the dump's end line
-	// arrives by the console tee, Seq porta's for the dbg/req row, Error why a
+	// arrives by the console tee, Seq porta's for the goal/profile write, Error why a
 	// capture that started could not finish.
 	Pending bool   `json:",omitempty"`
 	Seq     int64  `json:",omitempty"`
