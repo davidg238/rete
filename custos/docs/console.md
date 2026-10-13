@@ -17,6 +17,16 @@ bare `--board <name>` reads its cable from `~/.config/rete/console-<name>.env`
 in a tracked one, because a by-id hash names one physical adapter on one bench.
 A board that logs over the mesh (`log_udp.c`) is `--udp-log <name>=<udp port>`.
 
+A node porta knows (`--porta-node <name>=<node-id>`) gets its console here once custos is
+given `--advertise <ipv6>`, this host's address as the nodes reach it (rete#415). custos
+binds the node a sink on a port of its own choosing and writes `goal/console =
+Console{addr, port}` through porta, so the node tees its console to this custos from its
+next check-in. A sleeping node does so on every wake, because the cell is replayed. The
+node's console verbs below are then served, and with a `--map`, so is `profile`: its rows
+come back on this console, never on the space. Whichever custos wrote the cell last is the
+one that hears the node. A custos that has stopped leaves its address in the cell, and the
+node keeps sending to a port nobody binds until another custos writes it.
+
 ## The verbs, under `/board/<name>/`
 
 | verb | answers |

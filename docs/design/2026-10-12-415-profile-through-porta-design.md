@@ -159,3 +159,41 @@ implements (the #342 spike found it dead), and the boards keep RTC_NOINIT memory
 - **(c) Both.** Two mechanisms.
 
 The build on 2026-10-12 does not depend on Q8. custos's request is one PUT whose path and value follow the answer.
+
+## As built (2026-10-12, overnight, branch `415-profile-porta`, not merged)
+
+Plan: `docs/superpowers/plans/2026-10-12-415-profile-through-porta.md`. Two findings came from reading the code while
+planning. **F5:** the dump never reached the tee. `mprof_report` wrote with `fprintf(stderr)`, which reaches a board's
+UART and nothing else; the tee caught only `printk` and nsl's `out`. No record shows a dump that crossed it. **F6:** the
+tee's ring is 4 KB, and a dump is ~10 KB written in one burst.
+
+- **protocol** (T1): `goal/console` = `Console{addr: tstr, port: uint}` in `MANIFEST.cddl`, the descriptors
+  (with a validity rule: the cell says where the node was told to send, not that anyone listens), PROTOCOL-NSL's table,
+  and RECORDS §4.5 and its path table.
+- **porta** (T2): `PUT /node/{id}/dbg/req` writes a stream row. `goal/**` stays cells, and nothing else is admitted.
+- **VM** (T3): prim 164 `consoleTee:port:`, behind `platform_console_tee` / `_err` / `_drain` (`platform_backend.h`).
+  posix sends one datagram per line. Zephyr's `log_udp.c` is built on `CONFIG_NET_SOCKETS`, not `OEVM_LOG_UDP6`. It
+  holds the boot in the ring until the first target arrives, and discards lines after an off. A cell repeating the
+  current target makes no new socket. The dump writes through `platform_console_err`, paced while the sender makes
+  progress (F6). The fixed 150 ms wait before deep sleep is now a drain of at most 2 s. That 2 s is a guess, to be
+  replaced by the bell's measured drain time. `OEVM_LOG_UDP6` survives only as the target a board boots on.
+- **kernel** (T4): the bridge applies `goal/console` where it hands `goal/debug/main` to the debugger. A bad record,
+  or an address that does not parse, is logged on `tel/log` and changes nothing. `Kernel>>deepSleep:` cuts an open
+  window first (`profile: window cut by sleep`, then the dump).
+- **custos** (T5): `--advertise <ipv6>` gives every porta node a mesh sink on an ephemeral port, its console verbs,
+  and a `goal/console` write at start-up. That write is repeated before every profile request, because porta may be
+  down at start-up. With `--map`, the node also serves `profile`. A map for another program is refused with 409.
+  A node that publishes no `obs/apps/main` is ranked with an `UNCHECKED` warning. A newer request supersedes a
+  pending one. `Capture` gains `Pending`, `Seq` and `Error`. A dump cut by sleep is a `CUT` warning. The page and the
+  TUI re-read a pending capture every 5 s. The sink shares the cable's subscriber list (`console.fanout`).
+- **Gates:** `22_spacesync/30_console_tee` (red with the apply removed); `23_mprof/08_sleep_cut` (red without the
+  cut) and `09_sleep_no_window`; C units 43/0 here; custos Go units, including the whole path against a fake porta
+  and a UDP sender; **`porta_sync_host.sh` leg 8c**, an agent's request through custos and a real `porta serve`,
+  47 methods ranked from the teed dump and no `mprof` row on the space (**PORTA SYNC OK**, 2026-10-12, opti7040).
+- **Board builds (msi, compile only; nothing flashed):** the bell (`ShipsBellNodeC6`, its recipe) links with sram0 at
+  361,792 B against master's 355,344 B. The +6,448 B is the tee's ring and thread, now in an image that had no tee.
+  The MagTag (`MagTagDeepSleepNode`, its T10 recipe) links at dram0 220,176 B against master's 220,048 B with
+  `OEVM_LOG_UDP6` baked: +128 B, 2,032 B left. Found on the way: `MagTagSleepyDebugNode.nsl`'s header recipe overflows
+  dram0 by 9,040 B on master. It is stale, and not this issue's.
+- **Not done, and why:** the bench (plan Task 8: gw's porta manifest, a bell image without the literal pushed
+  through porta, the two board profiles, the drain measurement, deleting `OEVM_LOG_UDP6`) waits for David. Q8 is open.
