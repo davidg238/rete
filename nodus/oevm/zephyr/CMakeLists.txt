@@ -345,6 +345,11 @@ endif()
 if(DEFINED ENV{OEVM_LOG_UDP_PORT})
   target_compile_definitions(app PRIVATE OEVM_LOG_UDP_PORT=$ENV{OEVM_LOG_UDP_PORT})
 endif()
+# rete#415 F10: the console's drain before deep sleep counts the frames the WiFi
+# driver gives the blob (log_udp.c's __wrap_esp_wifi_internal_tx).
+if(CONFIG_WIFI_ESP32)
+  zephyr_ld_options(-Wl,--wrap=esp_wifi_internal_tx)
+endif()
 
 # Hot-path IRAM placement. Routes the interpreter's hottest functions
 # (oevm.h OEVM_HOT) into internal IRAM instead of flash XIP; ends the
