@@ -36,6 +36,7 @@ sym-AppObs      = #6.39("AppObs")
 sym-BlobRef     = #6.39("BlobRef")
 sym-Build       = #6.39("Build")
 sym-CHeap       = #6.39("CHeap")
+sym-Console     = #6.39("Console")
 sym-Debug       = #6.39("Debug")
 sym-DebugObs    = #6.39("DebugObs")
 sym-Health      = #6.39("Health")
@@ -56,6 +57,7 @@ sym-SpanCtl     = #6.39("SpanCtl")
 
 ; --- field keys (shared across records; scoped per record on the wire) ---
 sym-action      = #6.39("action")
+sym-addr        = #6.39("addr")
 sym-alc         = #6.39("alc")
 sym-alg         = #6.39("alg")
 sym-arguments   = #6.39("arguments")
@@ -113,6 +115,7 @@ sym-ovr         = #6.39("ovr")
 sym-path        = #6.39("path")
 sym-pco         = #6.39("pco")
 sym-pdr         = #6.39("pdr")
+sym-port        = #6.39("port")
 sym-pst         = #6.39("pst")
 sym-pto         = #6.39("pto")
 sym-qhw         = #6.39("qhw")
@@ -196,6 +199,16 @@ debug-obs = #6.27([sym-DebugObs, {
   sym-off  => uint,
   sym-blob => uint,
   sym-held => bool,
+}])
+
+;# path=goal/console  kind=cell  class=routine  dir=down
+; Where the node tees its console: one UDP datagram per line to [addr]:port
+; (rete#415). The rows of a profile window leave this way, never on the space
+; (RECORDS §4.5). An empty addr turns the tee off. A cell, so a cold-booting
+; node re-tees from it at its first check-in.
+console = #6.27([sym-Console, {
+  sym-addr => tstr,
+  sym-port => uint,
 }])
 
 ;# path=goal/profile/<app>  kind=cell  class=routine  dir=down

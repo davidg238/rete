@@ -818,6 +818,34 @@ records:
         meaning: true while the program is stopped in the debugger's command loop
         refs: [rete#375]
 
+  console:
+    record: Console
+    paths: [goal/console]
+    status: live
+    summary: >
+      Where the node tees its console, one UDP datagram per line (rete#415). custos
+      writes it with its own address and a port it bound, so the rows of a profile
+      window, which never ride the space, reach the custos that asked. An empty addr
+      turns the tee off. A cell, so a cold-booting node re-tees at its first check-in.
+    fields:
+      - key: addr
+        name: addr
+        unit: text
+        kind: config
+        meaning: a literal IPv6 address (the mesh has no name service); "" = no tee
+        validity: >
+          The cell says where the node was told to send, not that anyone listens: a
+          custos that has stopped leaves its address here, and the node keeps sending
+          to a port nobody binds. A UDP datagram is one line, so lines can be lost
+          without a trace on either end; a profile dump's header counts its rows.
+        refs: [rete#415]
+      - key: port
+        name: port
+        unit: count
+        kind: config
+        meaning: the UDP port at addr
+        refs: [rete#415]
+
   profile:
     record: Profile
     paths: ["goal/profile/<app>"]

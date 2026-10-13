@@ -473,6 +473,7 @@ answer for that path specifically — the decision belongs with #114.
 | `set` (per-app key) | `goal/config/<app>/<key>` | cell | scalar; per-key last-write-wins is per-path, native |
 | `reboot` | `goal/do/reboot` | **stream** | `{}` — exactly-once via cursor; v1's exception paragraph dissolves |
 | `debug` (the breakpoint set) | `goal/debug/<app>` | cell | `{sha:, breaks:}` — the whole set for one image, empty = detach (rete#375); the session itself is the `dbg/req`/`dbg/resp` stream pair; the node reports the hold on `obs/debug` |
+| `console` (the tee) | `goal/console` | cell | `{addr:, port:}` — where the node sends its console, one UDP datagram per line; a profile window's rows leave this way, never on the space (rete#415, RECORDS §4.5); empty `addr` = off |
 | `profile` | `goal/profile/<app>` | cell | `{action:, durationS:, continuous:}` |
 | report `apps` | `obs/apps/<name>` | cell | observed `{crc:, runlevel:, lifecycle:, triggers:}` |
 | report `config` echo | `obs/config/<app>/<key>` | cell | scalar echo |
