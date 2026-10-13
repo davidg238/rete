@@ -20,6 +20,12 @@ type Sender interface {
 // Profiler; no row pattern matches it.
 var endLine = regexp.MustCompile(`mprof\[window\]: end\s*$`)
 
+// startLine opens a window's dump. rete#415: a capture that waits across a dump
+// lost on the way (a tee over Thread, measured on c6b) keeps its rows, and the next
+// dump would be ranked mixed with them; a new header starts the dump again. The
+// kernel's cut line just before it belongs to the new dump and is kept.
+var startLine = regexp.MustCompile(`mprof\[window\]: methods=`)
+
 // after is a timeout's channel; 0 is none (rete#415: a request through porta
 // waits for a node that may be asleep, and a newer request supersedes it).
 func after(d time.Duration) <-chan time.Time {
@@ -57,6 +63,13 @@ func Capture(open func(onLine func(string), onEnd func()) (Sender, error), ms in
 		case <-done:
 			return
 		default:
+		}
+		if startLine.MatchString(l) {
+			keep := 0
+			if n := len(got); n > 0 && cutRE.MatchString(got[n-1]) {
+				keep = 1
+			}
+			got = append(got[:0], got[len(got)-keep:]...)
 		}
 		got = append(got, l)
 		if endLine.MatchString(l) {
