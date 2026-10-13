@@ -43,14 +43,14 @@ key porta signs with):
   OEVM_IRAM_HOT=0 VM_STACK_INIT_WORDS=2048 OEVM_HEAP_SIZE=36864 \
   METHOD_CACHE_SIZE=128 SERIAL_FIFO_CAP=256 OEVM_DEBUG_HOOKS=1 OEVM_METHOD_PROFILE=1 \
   OEVM_NTP_SERVER6=<the LAN's NTP by IPv6 literal> \
-  OEVM_SPACE_MAX_CHANNELS=32 OEVM_MARK_STACK_SIZE=256 OEVM_MPROF_SLOTS=128 \
+  OEVM_SPACE_MAX_CHANNELS=16 OEVM_MARK_STACK_SIZE=256 \
   OEVM_OTA_PUBKEY=<gw ~/porta-v2/porta.pub, 64 hex> \
   ./run.sh --board esp32s2 --model B --node MagTagDeepSleepNode.nsl \
     --conf-extra "prj_esp32s2_wifi.conf;prj_esp32s2_porta.conf;prj_esp32s2_bell.conf;prj_esp32s2_ota.conf" --flash
-  The two extra knobs are the OTA half's price in dram0 (rete#233 §10 T10, measured
-  2026-10-10): the mark stack halved (-1 KB, an overflow is a rescan, never a fault) and
-  the profiler's table halved (-3 KB; the dump prints its overflow count, so a profile
-  that lost rows says so).
+  The two extra knobs are the OTA half's price in dram0 (rete#233 §10 T10): the mark stack
+  halved (-1 KB, an overflow is a rescan, never a fault) and the registry sized from the count
+  (`space: 11 of 32` on two wake kinds, 2026-10-10: 16 frees 2,432 B, the profiler's 256 slots
+  back). Linked 2026-10-12 at dram0 220,048 of 222,208; the first boot read `space: 11 of 16`.
   A program PUSH after that goes through porta (`goal/apps/main`); the first check-in of
   the wake that reads it stages, the second activates; the new program's boot is a
   reboot wake (no strike), and its first check-in confirms the trial.
@@ -114,14 +114,17 @@ class MagTagDeepSleepNode usingPlatform: platform net: net = (
      revert reboot after a program push, and the observer's watchdog, both leave the RTC
      record valid — and a bell struck on them is a bell at a meaningless time. The count
      is untouched: `lastHalf` still names the last bell rung, so the sleep below lands on
-     the NEXT boundary. What is lost is the previous boot's awake window, which never
-     reached `sleepTarget` (it rebooted from its second check-in), so that bell is late by
-     one window until the next watch-end sync re-anchors the clock — the cost T10 accepts.
-     The trial boot still joins porta: its first check-in is the ack that confirms the
-     new program (kernel otaCheck step 1), and that is the whole point of waking. *)
+     the NEXT boundary. What is lost is the time the count never saw: the previous boot's
+     awake window, and the reboot itself — a trial that cannot confirm holds the board for
+     the runner's 150 s before it reverts, and two of them put this node 5 min 46 s behind
+     on 2026-10-12, ringing that late until the 8-bell sync four hours on. So a reboot wake
+     catches up at once: WiFi is already up for the check-in, and the catch-up never scores
+     the gap as drift. The trial boot still joins porta: its first check-in is the ack that
+     confirms the new program (kernel otaCheck step 1), and that is the whole point of waking. *)
   rebootWake = (
     'reboot wake: not a timer wake, no strike' out.
     record bootTicks: record bootTicks + 1.
+    clock tryCatchUp.
     summary:: 'reboot wake'.
     ^ self )
 

@@ -388,7 +388,16 @@ class Bells = () (
        just: return false, schedule nothing — the next attempt is 4 h on. sntp_simple's
        own 4 s timeout spaces the retries. Answers whether the sync landed; the outcome is
        also kept in `syncOk` for the page. *)
-    public trySync = (
+    public trySync = ( ^ self trySyncRecording: true )
+
+    (* A CATCH-UP SYNC: the same sync, but the gap it finds is never scored as drift. For
+       a boot the count did not see coming (rete#233: a trial or revert reboot, a watchdog),
+       where the time spent rebooting never reached elapsedSec — two failed trials put the
+       MagTag 5 min 46 s behind on 2026-10-12, and as drift over that window it would have
+       been ~+87,000 ppm folded into the calibration. *)
+    public tryCatchUp = ( ^ self trySyncRecording: false )
+
+    trySyncRecording: recordDrift = (
       | secs |
       3 timesRepeat: [
         secs:: ntp ntpSyncTz: dial tzOffset.
@@ -396,7 +405,7 @@ class Bells = () (
         secs == nil ifFalse: [
           basisMillis:: 0 millis.
           syncOk:: true.
-          self apply: secs.
+          self apply: secs recording: recordDrift.
           ^ true ].
         'ntp miss' out ].
       syncOk:: false.
@@ -405,7 +414,7 @@ class Bells = () (
 
     (* The §2 ratchet, both directions. NEVER moves the count backward; drift only ever
        adjusts the sleep (phase) via the re-anchored predictedNow next wake. *)
-    apply: trueSec = (
+    apply: trueSec recording: recordDrift = (
       | trueHalf lastHalf predicted d elapsed |
       trueHalf:: dial slotOf: trueSec.
       lastHalf:: record lastHalf.
@@ -426,12 +435,14 @@ class Bells = () (
                        time, over the interval elapsedSec. This is the number the panel
                        reports. *)
                     d:: dial wrapDrift: (trueSec - predicted).
-                    lastDrift:: d.
                     ('sync true ' , trueSec printString , ' predicted ' , predicted printString , ' -> hold half ' , lastHalf printString) out.
                     elapsed:: record elapsedSec.
-                    elapsed < self driftFloorSec
-                       ifTrue:  [ ('drift window ' , elapsed printString , ' s below floor ' , self driftFloorSec printString , ' s; ppm not recorded') out ]
-                       ifFalse: [ drift record: (drift ppmFor: d over: elapsed) ] ].
+                    recordDrift
+                       ifFalse: [ 'catch-up sync: not drift, ppm not recorded' out ]
+                       ifTrue:  [ lastDrift:: d.
+                                  elapsed < self driftFloorSec
+                                     ifTrue:  [ ('drift window ' , elapsed printString , ' s below floor ' , self driftFloorSec printString , ' s; ppm not recorded') out ]
+                                     ifFalse: [ drift record: (drift ppmFor: d over: elapsed) ] ] ].
       (* Re-anchor the wall clock to true time; zero the accumulated sleep + stale. *)
       record anchorSec: trueSec.
       record elapsedSec: 0.

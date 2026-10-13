@@ -37,6 +37,10 @@
 #   * run.sh has custos lend the cable for the flash and takes it back on every
 #     exit path, including failure (rete#154). It and esptool otherwise split the
 #     ROM handshake, and a cable left lent is a bell nobody can see.
+#   * OEVM_OTA_PUBKEY, porta's signing key (gw ~/porta-v2/porta.pub). Without it
+#     the runner refuses every program push ("no OTA"), so the bell could only be
+#     reprogrammed by this script — the cable this script exists to keep off the
+#     wall (rete#233). It was missing until 2026-10-12.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -63,6 +67,7 @@ echo "  bell CP2102N -> $(readlink -f "$BELL_BYID")"
          ESPTOOL_PORT="$BELL_BYID" CONSOLE_PORT="$BELL_BYID" \
          OEVM_NTP_SERVER6=fdc5:9109:9afe:97ea:9541:d963:f8d9:8567 \
          OEVM_DEBUG_HOOKS=1 \
+         OEVM_OTA_PUBKEY=4a484dca9f33f9e54e7a762269de7199ba9b645d149b53a8177fb107d7fee532 \
          I_REALLY_MEAN_THE_BELL=1
   bash zephyr/run.sh --board esp32c6 --node ShipsBellNodeC6.nsl \
        --conf-extra "prj_esp32c6_thread.conf;prj_esp32c6_rtcalarm.conf" \
