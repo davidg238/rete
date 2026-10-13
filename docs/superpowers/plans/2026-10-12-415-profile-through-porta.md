@@ -1,6 +1,6 @@
 # Plan: profile through porta (rete#415)
 
-Design: `docs/design/2026-10-12-415-profile-through-porta-design.md` (Q1–Q7 and Q2′ decided; Q8 open). Branch
+Design: `docs/design/2026-10-12-415-profile-through-porta-design.md` (Q1–Q9 and Q2′ decided). Branch
 `415-profile-porta`. Written overnight 2026-10-12, after David went to bed ("plan overnight"). Tasks 1–7 do not depend
 on Q8. Board work (Task 8) waits for David: nothing here flashes or pushes to a board.
 
@@ -56,7 +56,13 @@ Task 8 is open.
    fake porta and a UDP sender.
 7. **Docs.** The design's "As built"; custos `docs/console.md` (a porta node's console); PROTOCOL rows; FOCUS at
    `/conclude`.
-8. **Bench (morning, with David).** Update gw's porta manifest to one carrying `goal/console`. Push the bell an
+9. **Q8/Q9 (2026-10-13, done): the request is a one-shot `goal/profile` cell.** `Profile{id, ms}` replaces the dead
+   record (`goal/profile/<app>`). The kernel's Profiler keeps it in RTC slots 10–13 (`OEVM_RTC_FIELDS` 10 → 14) with
+   a check word and the last id served. A new id opens a window at once. Reaching `ms` dumps and serves it. A sleep
+   that cuts it carries it, with no dump, and the next boot opens it whole before `main:`. custos writes the cell
+   with a new id per request. Gates: `23_mprof/10_profile_cell`, `test_deepsleep_node`'s four-wake scenario, the
+   golden, leg 8c.
+8. **Bench (with David).** Update gw's porta manifest to one carrying `goal/console`. Push the bell an
    image whose target comes from the cell (Q5/P4). Profile the bell through porta; profile the MagTag across a wake
    (P3); count rows against the header over Thread (F3). Then delete `OEVM_LOG_UDP6` (Q2′).
 

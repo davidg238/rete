@@ -218,4 +218,30 @@ tee's ring is 4 KB, and a dump is ~10 KB written in one burst.
   Most of each overrun is drift already on master; #415 tips both over 2 %. The proposed re-bank is host 76,929 →
   78,837 and MCU 45,930 → 46,893, with the attribution above.
 - **Not done, and why:** the bench (plan Task 8: gw's porta manifest, a bell image without the literal pushed
-  through porta, the two board profiles, the drain measurement, deleting `OEVM_LOG_UDP6`) waits for David. Q8 is open.
+  through porta, the two board profiles, the drain measurement, deleting `OEVM_LOG_UDP6`) waits for David.
+
+## As built, Q8/Q9 (2026-10-13, branch `415-profile-porta`, not merged)
+
+- **Footprint re-banked** (David: "re-bank the footprint"): host 76,929 → 78,837, MCU text 45,930 → 46,893
+  (`ac854ecf`, the attribution in the baseline headers). The Q8 work below adds no C text: it is the kernel's.
+- **protocol:** `goal/profile` = `Profile{id: uint, ms: uint}` replaces `goal/profile/<app>` and its dead
+  `{action, durationS, continuous}` (the three symbols deleted, `sym-id` added). Descriptor `live`, with a
+  validity rule on `id`. Golden `d81b82…a2d82762696407d827626d73191388` (id 7, ms 5000).
+- **kernel:** the bridge applies `goal/profile` beside `goal/console`; a bad record is logged on `tel/log`.
+  The Profiler keeps the request in RTC slots 10–13 (ms, id, served, a check word); `OEVM_RTC_FIELDS` is 14 on
+  host and board, and an app still owns 0–9. The rule is Q9 (a). The cable's and `dbg/req`'s `profile <ms>` line
+  is unchanged: it is #312's command reader, which the debugger shares, and it is not retained.
+- **custos:** the porta node's request is the cell, with a new id per request: the clock's seconds below 2^30, or
+  one more than the last, so a restarted custos never repeats an id the node served. porta's `PUT dbg/req` (T2)
+  stays, as a general route for the debugger's lines, though custos's profile no longer uses it.
+- **Gates:** `23_mprof/10_profile_cell` (red with the served check deleted: `replay 2`); `test_deepsleep_node`'s
+  `test_profile_request_survives_one_sleep`, four wakes over one RTC file (carried, from boot and cut, the replay
+  ignored, a new id served); `porta_sync_host.sh` leg 8c through the cell, **PORTA SYNC OK** (195 methods
+  ranked); the full suite on msi (`415-sync-4`), **303 passed, 0 failed, every aux gate green** (footprint
+  included). Go: protocol and porta green, custos green but #430. Not compiled for a board: the change there is
+  `g_rtc`, 40 → 56 B of RTC memory.
+- **F7 (for the bench).** A window opened from boot dumps at `ms` or at sleep. If `ms` passes before the first
+  check-in delivers `goal/console`, the dump meets a tee with no target. Today the build-time `OEVM_LOG_UDP6`
+  boot target covers it. Once that literal is deleted (Q2′), the ring holds 4 KB and the paced writer gives up,
+  so such a dump would be lost. The bench run will show whether a MagTag wake ever reaches `ms` before its
+  check-in. If one does, the answer is to keep the tee's target in RTC as well.
