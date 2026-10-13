@@ -1,6 +1,6 @@
 # Profile through porta: the last 0.1 lifecycle row (rete#415)
 
-> Status: **Q1, Q3–Q7 and Q2′ DECIDED (David, 2026-10-12); Q8 open. Host half BUILT on branch `415-profile-porta` (see As built); the bench half waits.** #415 asks to settle whether "profile local or OTA" (#26's
+> Status: **Q1, Q3–Q7 and Q2′ DECIDED (David, 2026-10-12); Q8 DECIDED (a), one-shot (2026-10-13); Q9 open; footprint re-banked (2026-10-13). Host half BUILT on branch `415-profile-porta` (see As built); the bench half waits.** #415 asks to settle whether "profile local or OTA" (#26's
 > lifecycle table) is built or open work. **Answer: half built.** The trigger through porta is built and gated; the
 > rows' way back to an agent is not, nor is custos's verb for it, nor the sleepy-node case. Decided upstream
 > and not reopened: profiling is in the standard image, and one command reader in every image is fed by the
@@ -136,7 +136,7 @@ wall bell shows the cell working (P4 then becomes "push an image without the bak
 
 **Q2′ DECIDED (David, 2026-10-12): yes, and build it.**
 
-## Q8: a profile request that survives sleep (David's question, 2026-10-12; awaiting his answer)
+## Q8: a profile request that survives sleep (DECIDED (a), David, 2026-10-13; Q9 open)
 
 David: "can we save the address on the target to nvm, so that ... in wakeA tell it we want to profile + custos
 address, next time it wakes, wakeB, it profiles for the set period or until it sleeps again?"
@@ -148,17 +148,28 @@ the manifest already carries a `goal/profile/<app>` cell (`Profile{action, durat
 implements (the #342 spike found it dead), and the boards keep RTC_NOINIT memory across deep sleep (`g_rtc[]`,
 `main.c`; the boot counter).
 
-**Q8. How does a profile request reach a node through porta?**
-- **(a) A cell, retained.** *Recommended.* Replace the dead record with `Profile{ms}`. On receipt the node opens a
-  window at once, which covers the always-on bell, and keeps `ms` in RTC memory, so every later boot opens a window
-  before `main:` (wake B, from its boot). The window closes at `ms` or at `deepSleep:`, whichever is first. An
-  empty cell clears it, and custos clears the cell once a dump arrives. porta's `dbg/req` stops carrying
-  `profile`, and the cable keeps the same `profile <ms>` line. This revisits #312 Q1's "the same line reaches A and
-  A′".
-- **(b) The `dbg/req` line, as decided.** No NVM, no boot coverage. Delete the dead `goal/profile` record.
-- **(c) Both.** Two mechanisms.
+**Q8. How does a profile request reach a node through porta? DECIDED: (a), a cell, retained** (David, 2026-10-13:
+"a profile is a ONE time trigger, until triggered again"). (b), the `dbg/req` line alone, and (c), both, were the
+alternatives. porta's `dbg/req` stops carrying `profile`; the cable keeps the `profile <ms>` line. This revisits
+#312 Q1's "the same line reaches A and A′".
 
-The build on 2026-10-12 does not depend on Q8. custos's request is one PUT whose path and value follow the answer.
+**One-shot, and why the cell needs an id.** The recommendation as first written ("every later boot opens a window",
+cleared by custos after the dump) profiled every wake until the clear landed. That is not a one-time trigger, and the
+clear races the next boot. A cell is also replayed into every cold boot's first check-in, so a cell alone cannot say
+"already done". Hence `Profile{ms, id}`. `id` is the request's identity: custos's request number, rising. The node keeps
+`(ms, id)` armed and `served` (the last id it dumped) in RTC memory. A cell whose id is `served` does nothing. A new id
+arms it. After its one dump, `served := id`. A new request is a new id. An empty cell disarms.
+
+**Q9. When does a window open on a request that arrives mid-wake?** David: "if a profile request arrives mid-wake,
+it starts next". Taken literally, the always-on bell never boots again, so it would never profile.
+- **(a) At once, and carried once.** *Recommended.* The window opens on receipt. If it reaches `ms`, it dumps and
+  is served: the bell's case, and a long wake's. If sleep cuts it first, it dumps nothing, stays armed, and the next
+  boot opens a fresh window of `ms` before `main:`. That window ends at `ms` or at sleep, whichever is first, and it
+  dumps and is served either way: David's wake B. One request, one dump, one rule, and no per-node mode.
+- **(b) Next boot only, and at once on a node that never sleeps.** Two rules, and the node must know which kind it is.
+- **(c) At once, and the cut dump is kept as well.** Two dumps per request on a sleepy node, and custos must decide
+  which answers the request.
+
 
 ## As built (2026-10-12, overnight, branch `415-profile-porta`, not merged)
 
