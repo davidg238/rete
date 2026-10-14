@@ -46,7 +46,7 @@ Milestone A (2026-07-04, `nodus/oevm/docs/MILESTONE_A.md`) deleted, deliberately
 
 | removed | replaced by |
 |---|---|
-| **Fibers** (`fiberCreate:` / `fiberSwitch:`, per-fiber C stacks) | the reactor: a reaction runs to completion, the next event waits |
+| **Fibers** (`fiberCreate:` / `fiberSwitch:`, per-fiber C stacks) | the reactor: a reaction runs to completion, the next event waits — for sequential code that waits, see below |
 | **Non-local return** (`OP_NLR`, `unwindTo:value:`) | a compile error — `^` out of an escaping closure does not compile |
 | **Growable stacks** | one fixed-capacity stack; overflow aborts loudly |
 
@@ -54,6 +54,13 @@ What was **kept** from the same work and is load-bearing: the **flat non-recursi
 interpreter** (one C loop, no C recursion per nsl call) and the **heap `Context`** that
 lets a block outlive the frame that made it — `whenever: chan do: [:e | …]` captures a
 temp from a frame that has since popped, and that is the whole reactive model.
+
+**Sequential code that waits, without fibers.** `docs/spikes/2026-10-13-sequence-without-fibers/StrikeSequence.nsl`
+(runs on the host: `python3 nodus/nsl/tools/run-one.py <it>`) plays one timed pattern three ways: **A**, a small
+state object stepped by a timer message — its whole position is one integer; **B**, the closure chain a
+compile-time rewrite of `wait:` would emit; **C**, A across a simulated deep sleep, resumed from the one kept integer.
+B cannot survive a sleep (a closure does not fit in an RTC slot), so any `wait:` sugar should compile to A's shape:
+numbered steps.
 
 Above that boundary: **exceptions** — `on:do:` with predicate filtering and `ensure:` —
 land over a `setjmp` crash boundary (Milestone E, `nodus/oevm/docs/MILESTONE_E.md`), and a
