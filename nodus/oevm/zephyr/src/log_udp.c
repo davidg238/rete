@@ -244,10 +244,33 @@ static int wifi_tx_queued(void)
  * sends anyway, so a stack that never frees cannot stop the console. */
 #define OT_RESERVE 32
 #define OT_WAIT_MS 1000
+
+/* Packets the stack holds that it has not yet handed to the radio's driver. */
+static int net_tx_held(void)
+{
+	struct k_mem_slab *rx, *tx;
+	struct net_buf_pool *rx_data, *tx_data;
+
+	net_pkt_get_info(&rx, &tx, &rx_data, &tx_data);
+	return tx != NULL && k_mem_slab_num_used_get(tx) > 0;
+}
+
+/* F11, read from the MagTag's timer wakes (2026-10-13): the boot's lines up to ip-evt
+ * never arrived, and some after it. While the next hop's link address is unresolved,
+ * Zephyr parks ONE packet on the neighbour entry and discards each later one
+ * (ipv6_nbr.c, "already pending") — yet answers every sendto with success. A boot's
+ * ring goes out in a burst at the first route, so the burst died behind the one parked
+ * line. So before each datagram the sender waits for the last one to leave the stack:
+ * a packet still held after a synchronous send is parked on ND, and it leaves when the
+ * neighbour answers (or after the NS timeout, which loses that one line). */
 static void wait_for_radio(void)
 {
 	int waited = 0;
 
+	while (net_tx_held() && waited < OT_WAIT_MS) {
+		k_msleep(2);
+		waited += 2;
+	}
 #ifdef CONFIG_NET_L2_OPENTHREAD
 	int f;
 
@@ -344,11 +367,7 @@ int log_udp_set_target(const char *addr6, size_t len, int port)
  * waits for the stack to hand every queued packet to the radio. */
 static int net_tx_busy(void)
 {
-	struct k_mem_slab *rx, *tx;
-	struct net_buf_pool *rx_data, *tx_data;
-
-	net_pkt_get_info(&rx, &tx, &rx_data, &tx_data);
-	if (tx != NULL && k_mem_slab_num_used_get(tx) > 0) {
+	if (net_tx_held()) {
 		return 1;
 	}
 #ifdef CONFIG_NET_L2_OPENTHREAD
@@ -371,9 +390,9 @@ void log_udp_drain(int max_ms)
 #ifdef CONFIG_WIFI_ESP32
 	/* Printed before the wait, so the drain carries it out: a timer wake tees nothing
 	   of its boot before the network is up, so the next boot's line would not. */
-	printk("logudp: wifi frames given %ld, done %ld, refused %ld\n",
+	printk("logudp: wifi frames given %ld, done %ld, refused %ld; lines sent %u\n",
 	       (long)atomic_get(&wifi_tx_given), (long)atomic_get(&wifi_tx_done),
-	       (long)atomic_get(&wifi_tx_refused));
+	       (long)atomic_get(&wifi_tx_refused), sent_lines);
 #endif
 	while (tee_state == TEE_ON && (ring_used() > 0 || sender_pending || net_tx_busy()) &&
 	       waited < max_ms) {
