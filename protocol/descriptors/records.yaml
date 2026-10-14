@@ -816,6 +816,11 @@ records:
         unit: bool
         kind: instantaneous
         meaning: true while the program is stopped in the debugger's command loop
+        validity: >
+          Read off and blob only beside held true: a continue writes all three, and
+          zeroes both. A node held across many check-ins is an abandoned session,
+          not a slow one (rete#378). Absent until the node's first stop: no row
+          means no stop yet, not a node seen free.
         refs: [rete#375]
 
   profile:
