@@ -302,3 +302,37 @@ tee's ring is 4 KB, and a dump is ~10 KB written in one burst.
     and prints `logudp: the last sleep's drain took N ms` at the next wake's boot, which is the data the 2 s cap waits on.
   - Re-flashing at 12:17 (firmware 2) cleared the RTC request, as an EN reset does. The replayed cell re-arms at the
     next check-in, so the carry test continues at the next wakes.
+
+## As built, F10 and F11 (2026-10-13 afternoon to 2026-10-14, branch `415-profile-porta`, not merged)
+
+- **F10 closed: the WiFi blob's queue.** The driver (`esp32_wifi_send`) copies each frame into the blob with
+  `esp_wifi_internal_tx` and frees the net_pkt at once, so an empty Zephyr TX slab says nothing about WiFi. The
+  firmware now counts what the blob is given (the link wraps the driver's one call: `--wrap=esp_wifi_internal_tx`)
+  and what it reports sent (its TX-done callback, registered at the first frame). The drain before a deep sleep waits
+  until the two agree (`1d70fa23`). That delivered the tail (`space:`, `deep sleep`) at the next sleeps, and the 13:08
+  wake then showed the second loss: a dump lost 116 of 338 lines in runs of 6 to 12, because the blob holds
+  `CONFIG_ESP32_WIFI_DYNAMIC_TX_BUFFER_NUM` frames and refuses the next, which the driver drops out of the sender's
+  sight. So the sender also paces on the count: before each datagram it waits while half that many frames are in
+  flight, as F8 paces Thread (`a6639aaa`).
+  - **Result (firmware 4, the 09:04 wake, 2026-10-14):** a window from boot, cut by the sleep, dumped **256 of 256
+    rows, header and `end` included, in 1.2 s**, then `space:`, `deep sleep` and the drain's own line: `wifi frames
+    given 338, done 338, refused 0`. The callback covers data frames one for one, so the pacer never waited out its
+    1 s cap.
+  - **Open oddity:** 349 lines arrived before that line, 11 more than the frames counted, with no duplicates. Some
+    path reaches the radio without the wrapped call. Firmware 6 prints the sender's own `lines sent` beside the
+    counts, which separates the two.
+- **F11: a timer wake's boot lines, up to `ip-evt`, never arrive** (nor, on some wakes, `wifi: up` and `dbg:ready`
+  after it). The kept target tees from the first line, and a refused line is held, so these were *accepted*. Found
+  in Zephyr (`subsys/net/ip/ipv6_nbr.c`): while the next hop's link address is unresolved, ND parks **one** packet
+  on the neighbour entry and discards each later one ("already pending"), and `net_ipv6_prepare_for_send` still
+  answers `NET_CONTINUE`, so `sendto` reports success. Before association the carrier is off and `sendto` fails, so
+  the lines wait in the ring; the moment it comes up, the ring goes out as a burst behind the one parked line, and
+  the burst dies. **Fix** (`c4d1b187`, `00a165a4`): before each datagram the sender waits until the stack holds no
+  more TX packets than it held just before its last send. A synchronous send (`CONFIG_NET_TC_TX_COUNT=0`) that
+  leaves one more behind is parked on ND, and it leaves when the neighbour answers. The first version waited for an
+  *empty* slab; on c6b (Thread) the slab is never empty, every line waited the whole second, the paced dump stalled
+  the reactor and the observer rebooted it at 30.9 s (`reason=1`). Against the pre-send count, c6b's boot burst goes
+  out at ~4 ms a line and a 211-method window dumped **211 of 211 with `end`**, no reboot.
+  - **Not yet on the MagTag:** firmware 6 (`msi-7d43:~/415-s2/zephyr-6.bin`) needs S2 download mode, David's hand.
+    The test is a timer wake whose log starts at the Zephyr banner and carries `logudp: the last sleep's drain took N
+    ms`, the number the drain's 2 s cap has waited on since `4480c256`.
