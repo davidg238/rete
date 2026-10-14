@@ -43,4 +43,3 @@ committed configs carry the OpenThread default key; the real one is kept out of 
 | Load | Over the cable, the ESP32-C6's program region only (768 KiB, `program_a`). Through porta, any node whose firmware has program slots and the key; proven from custos on the C6 bell, and by `porta put` on the MagTag | `custos/internal/load/load.go`; rete#398, rete#233 |
 | Memory | About 319 KB of heap on the C6 with the radio out of the build | [overview](overview.md) |
 | Profiling | Over the cable only on master: the rows leave over the console. Through porta is rete#415, in flight | rete#415 |
-| The Go gate | Red on master since rete#375: custos's `TestEveryLiveRecordHasReadingRules` fails, because `obs/debug`'s descriptor carries no validity rule (rete#430) | `cd custos && go test ./...` |
