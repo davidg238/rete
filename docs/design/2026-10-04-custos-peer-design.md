@@ -204,7 +204,7 @@ follows the same precedent (an endpoint answering JSON, a host-VM target, a real
 
 | Verb | Proposal | Host target | Why this shape |
 |---|---|---|---|
-| build | `POST /build` with the `.nsl` as the body; it answers `{SHA256, Size, Errors}`, where each error is the compiler's own `file:line:col` (rete#247). `POST /load?build=last` loads it | the same: compiling is a host step | The agent never handles the `.oimg`, and the map lands beside it, where debug and profile already read it |
+| build | `POST /build` with the `.nsl` as the body; it answers `{SHA256, Size, Errors}`, where each error is the compiler's own `file:line:col` (rete#247). `POST /load?build=last` loads it (not built as of 2026-10-14: `/load` takes the image as its body, fetched from `GET /build/last.oimg`) | the same: compiling is a host step | The agent never handles the `.oimg`, and the map lands beside it, where debug and profile already read it |
 | run | `POST /run?ms=N` restarts the program on the target and answers its console lines for N ms, with `Ended` and the exit status when the program finished | starts the VM once | One verb on both targets: on a board it is the reset pulse `load` already sends |
 | log | `GET /log?after=N` answers every console line custos has read from its cables since sequence number N, long-polling as `/debug/state` does | the VM's output | custos already owns the cable (TUI design D2), so it already sees every line |
 | flash (firmware) | **not a custos verb in 0.1**: firmware stays `run.sh --flash` | — | The loop is load, and firmware changes are rare. A front that cannot reach a shell is what would earn it |

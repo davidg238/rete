@@ -3,8 +3,9 @@
 What rete 0.1 promises is a better first hour of embedded development: one node, every verb — load, debug, patch,
 profile — first over one USB cable, then through porta, over the radio, while the node sleeps.
 You change a program on a board in seconds, without reflashing the firmware, and you debug, patch and profile it
-there. This page is that hour, in order. Each step links the page that teaches it. Steps marked **executed** are run
-by the nsl suite on every change, so they work today. The other steps need a board and are checked by hand.
+there. This page is that hour, in order. Each step links the page that teaches it. A step marked **executed** is
+taught by a tutorial whose command blocks the nsl suite runs on every change, so it works today; the commands on this
+page are a summary of those and are not run themselves. The other steps need a board and are checked by hand.
 
 Before you rely on any of it, read [what 0.1 is not](limits.md).
 
@@ -17,6 +18,8 @@ Before you rely on any of it, read [what 0.1 is not](limits.md).
 git clone <this repository> rete && export RETE=$PWD/rete
 cd $RETE/nodus/nsl/grammar && npm install && cd -        # once: the parser's node deps
 go build -C $RETE/custos -o $RETE/custos/custos ./cmd/custos
+go build -C $RETE/porta -o $RETE/porta/porta ./cmd/porta
+export PATH=$RETE/custos:$RETE/porta:$PATH
 ```
 
 `custos` with no verb serves HTTP on port 6971. Each board is one flag: `--board name=tty` for a board on its cable,
@@ -29,11 +32,11 @@ shorthand, and `GET /boards` lists them ([peer design](design/2026-10-04-custos-
 
 | # | Step | Do | A pass looks like | Taught in |
 |--:|---|---|---|---|
-| 1 | Run ten lines of nsl on the desktop | `python3 $RETE/nodus/nsl/tools/run-one.py hello.nsl B` | `Path B: PASS  Output matches expectations.` | [tutorial 1](tutorials/01-host.md), **executed** |
-| 2 | Step through them in the debugger, on the desktop | `custos --host dev=/tmp/oevm_img --map dev=app.oimg.map.json`, then open `http://localhost:6971/debug`, or drive `POST /debug/do` | a stop shown as a file, a line and its source | [tutorial 4](tutorials/04-debugger.md) §1–§6, **executed** |
+| 1 | Run ten lines of nsl on the desktop | write `hello.nsl` from [tutorial 1](tutorials/01-host.md) §2, then `python3 $RETE/nodus/nsl/tools/run-one.py hello.nsl B` (it also builds the host VM, `/tmp/oevm_img`) | `Path B: PASS  Output matches expectations.` | [tutorial 1](tutorials/01-host.md), **executed** |
+| 2 | Step through them in the debugger, on the desktop | `python3 $RETE/nodus/nsl/tools/ns_compile_oevm.py hello.nsl hello.oimg --format=oimg --layout=/tmp/oevm_layout.json` (the image and its map), then `custos --host dev=/tmp/oevm_img --map dev=hello.oimg.map.json`, then open `http://localhost:6971/debug`, or drive `POST /debug/do` | a stop shown as a file, a line and its source | [tutorial 4](tutorials/04-debugger.md) §1–§6, **executed** |
 | 3 | Flash the C6 over the cable | `bash nodus/oevm/zephyr/run.sh --board esp32c6 --node App.nsl --conf-extra "prj_esp32c6_thread.conf;prj_esp32c6_thread_ftd.conf" --pristine --flash --capture 60` (the documented build is the Thread one; a cable-only image is not yet written down, see [limits](limits.md)) | last line `[console] <instance> <port>` | [tutorial 2](tutorials/02-board.md) §5 |
 | 4 | Read what the board prints | `custos --board c6=<tty>`, then `GET /log?since=-180s` | your program's lines | [tutorial 2](tutorials/02-board.md), [console.md](../custos/docs/console.md) |
-| 5 | Change the program and load it without reflashing | `POST /build?for=c6&name=App.nsl` with the source, then `POST /load?name=App.oimg` with the image (`GET /build/last.oimg`), or the pages at `/build` and `/load` | 200, and the `SHA256` the board printed at boot is your file's | [development.md](development.md) §2; peer design D14, D18 |
+| 5 | Change the program and load it without reflashing | `POST /build?for=c6&name=App.nsl` with the source, then `POST /load?name=App.oimg` with the image (`GET /build/last.oimg`), or the pages at `/build` and `/load`; for a host board, `POST /run?for=dev&name=App.nsl` builds and runs in one step | 200, and the `SHA256` the board printed at boot is your file's | [development.md](development.md) §2; peer design D14, D18 |
 | 6 | Profile it on the board | `custos --board c6=<tty> --map c6=App.oimg.map.json`, then `POST /profile/capture?ms=3000` or `/profile` | a table of methods ranked by activations | [tutorial 4](tutorials/04-debugger.md) §8 |
 | 7 | Debug it on the board | flash a debug image (`OEVM_DEBUG_HOOKS=1 run.sh …`), then `custos --board c6=<tty> --map c6=…` | the same page as step 2, on the board | [tutorial 4](tutorials/04-debugger.md) §7 |
 | 8 | Stop, patch a method, restart it, resume | in a debug build, stopped: `POST /debug/patch?method=Class>>sel` with the whole edited `.nsl` as the body, or the page at `/debug` | the stopped call finishes in the new code | [the spike's result](results/2026-10-06-313-patch-restart-spike.md) (desktop, then c6spare); peer design D17, rete#313 |
