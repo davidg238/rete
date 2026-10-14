@@ -246,13 +246,13 @@ static int wifi_tx_queued(void)
 #define OT_WAIT_MS 1000
 
 /* Packets the stack holds that it has not yet handed to the radio's driver. */
-static int net_tx_held(void)
+static uint32_t net_tx_held(void)
 {
 	struct k_mem_slab *rx, *tx;
 	struct net_buf_pool *rx_data, *tx_data;
 
 	net_pkt_get_info(&rx, &tx, &rx_data, &tx_data);
-	return tx != NULL && k_mem_slab_num_used_get(tx) > 0;
+	return tx != NULL ? k_mem_slab_num_used_get(tx) : 0;
 }
 
 /* F11, read from the MagTag's timer wakes (2026-10-13): the boot's lines up to ip-evt
@@ -261,13 +261,18 @@ static int net_tx_held(void)
  * (ipv6_nbr.c, "already pending") — yet answers every sendto with success. A boot's
  * ring goes out in a burst at the first route, so the burst died behind the one parked
  * line. So before each datagram the sender waits for the last one to leave the stack:
- * a packet still held after a synchronous send is parked on ND, and it leaves when the
- * neighbour answers (or after the NS timeout, which loses that one line). */
+ * the stack holding more than it held just before that send means the line is parked
+ * on ND, and it leaves when the neighbour answers (or after the NS timeout, which loses
+ * that one line). Against the count before the send, not against zero: on c6b
+ * (Thread, 2026-10-14) the slab is never empty, so waiting for zero cost every line the
+ * whole OT_WAIT_MS, the paced dump stalled the reactor, and the observer rebooted it. */
+static uint32_t tx_before_send;
+
 static void wait_for_radio(void)
 {
 	int waited = 0;
 
-	while (net_tx_held() && waited < OT_WAIT_MS) {
+	while (net_tx_held() > tx_before_send && waited < OT_WAIT_MS) {
 		k_msleep(2);
 		waited += 2;
 	}
@@ -286,6 +291,7 @@ static void wait_for_radio(void)
 	}
 #endif
 	(void)waited;
+	tx_before_send = net_tx_held();
 }
 
 /* A send refused for want of buffers, which drain on their own. */
