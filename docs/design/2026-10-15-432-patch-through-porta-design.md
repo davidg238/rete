@@ -1,6 +1,7 @@
 # Patch through porta (rete#432)
 
-_DRAFT, 2026-10-15, for iteration with David. Branch `432-patch-porta`._
+_DRAFT, 2026-10-15, for iteration with David. Branch `432-patch-porta`. Q1–Q5 DECIDED (David, 2026-10-15: "agree with
+all five recommendations"); next: the plan, then the build._
 
 ## Where it stands
 
@@ -87,7 +88,7 @@ can read replies. No patch-specific code in porta (D1–D2: porta stays language
 - **Boards:** the wall bell (always on, Thread) and the MagTag (deep sleep, WiFi), each patched through custos, with
   the patch still in force after a wake.
 
-## Questions for David
+## Questions for David (DECIDED 2026-10-15: each as recommended)
 
 1. **The cell, or a cell of its own?** `patches` as a field of `Debug{sha, breaks, patches}` (one record holds
    everything a debug image is told to be, and the sha check covers both), or a separate `goal/patch/main` cell.
@@ -102,3 +103,8 @@ can read replies. No patch-specific code in porta (D1–D2: porta stays language
    in the check-in). Measure it first rather than keep a copy in RTC memory? _Recommend measure first._
 5. **custos's debug verbs over porta come with this issue** (F5): without them no agent can patch through porta.
    That makes #432 the remote debug front as well (`break`, `step`, `bt` …, through custos). In scope?
+
+**Decided (David, 2026-10-15), each as recommended:** Q1 `patches` is a field of `Debug{sha, breaks, patches}`;
+Q2 a patch set that does not extend the applied one reboots the node; Q3 patches are unsigned, and `limits.md` says
+so; Q4 the deep-sleep node fetches its set at every wake, measured before any RTC copy; Q5 custos's debug verbs on a
+porta node are in #432's scope.
