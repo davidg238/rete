@@ -761,7 +761,7 @@ Build (debug + profile image, from nodus/oevm/zephyr; the env is prj_esp32s2_por
 ```
   OEVM_IRAM_HOT=0 VM_STACK_INIT_WORDS=2048 OEVM_HEAP_SIZE=36864 \
   METHOD_CACHE_SIZE=128 SERIAL_FIFO_CAP=256 OEVM_DEBUG_HOOKS=1 OEVM_METHOD_PROFILE=1 \
-  OEVM_NTP_SERVER6=<the LAN's NTP by IPv6 literal> \
+  OEVM_NTP_SERVER6=fd3f:2e87:5f7:5554:6662:66ff:fe2f:710 \
   ./run.sh --board esp32s2 --model B --node MagTagDeepSleepNode.nsl \
     --conf-extra "prj_esp32s2_wifi.conf;prj_esp32s2_porta.conf;prj_esp32s2_bell.conf" --flash
   Bench: add OEVM_LOG_UDP6=<this desktop's STABLE ULA> and listen on UDP 54330 — the

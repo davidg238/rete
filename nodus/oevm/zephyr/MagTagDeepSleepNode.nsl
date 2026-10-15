@@ -42,11 +42,14 @@ from the `space: N of M channels` line this node prints at every deep sleep, the
 key porta signs with):
   OEVM_IRAM_HOT=0 VM_STACK_INIT_WORDS=2048 OEVM_HEAP_SIZE=36864 \
   METHOD_CACHE_SIZE=128 SERIAL_FIFO_CAP=256 OEVM_DEBUG_HOOKS=1 OEVM_METHOD_PROFILE=1 \
-  OEVM_NTP_SERVER6=<the LAN's NTP by IPv6 literal> \
+  OEVM_NTP_SERVER6=fd3f:2e87:5f7:5554:6662:66ff:fe2f:710 \
   OEVM_SPACE_MAX_CHANNELS=16 OEVM_MARK_STACK_SIZE=256 \
   OEVM_OTA_PUBKEY=<gw ~/porta-v2/porta.pub, 64 hex> \
   ./run.sh --board esp32s2 --model B --node MagTagDeepSleepNode.nsl \
     --conf-extra "prj_esp32s2_wifi.conf;prj_esp32s2_porta.conf;prj_esp32s2_bell.conf;prj_esp32s2_ota.conf" --flash
+  NTP is gw's chrony at its stable ULA (gwAddr below). A placeholder literal links and
+  boots, prints `ntp FAIL` at every watch end, and leaves a cold boot free-running from
+  00:00 (2026-10-15: `fd00::2` rang 14 min off the half hour, wrong count, for 15 h).
   The two extra knobs are the OTA half's price in dram0 (rete#233 §10 T10): the mark stack
   halved (-1 KB, an overflow is a rescan, never a fault) and the registry sized from the count
   (`space: 11 of 32` on two wake kinds, 2026-10-10: 16 frees 2,432 B, the profiler's 256 slots
