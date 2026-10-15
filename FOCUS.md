@@ -6,7 +6,7 @@ blocks are in `docs/status/focus-history.md`; live state is in the issues and `d
 - **0.1 (David, 2026-10-09): one node, every verb — load, debug, patch, profile — through porta, over the radio, while it sleeps.**
   Load, debug, profile built through porta on both bells (#415 closed 2026-10-14). **Left: patch through porta, #432 (P1; David 2026-10-14: in 0.1).**
 - **Next session starts with:** branch `432-patch-porta` (pushed), focus #432. Read `docs/design/2026-10-15-432-patch-through-porta-design.md`
-  (Q1–Q5 decided). Write the plan in `docs/superpowers/plans/`, then the host leg in `porta_sync_host.sh`, falsified first, then the build.
+  (Q1–Q5 decided). Plan `docs/superpowers/plans/2026-10-15-432-patch-through-porta.md` (P1–P10 correct the design); build from Task 1, the host leg in `sleepy_debug_host.sh`, falsified first.
 - **Awaiting David:** #368's history rewrite (force-push); #201/#202 for 0.1 or not; build
   `POST /load?build=last` or drop it from the peer design; #396; paper E draft 6 and L (#429); #175's memo; #413 and #424's designs; bands for #294, #295.
 - **Bench:**

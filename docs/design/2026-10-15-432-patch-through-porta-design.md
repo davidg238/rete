@@ -1,7 +1,8 @@
 # Patch through porta (rete#432)
 
 _DRAFT, 2026-10-15, for iteration with David. Branch `432-patch-porta`. Q1–Q5 DECIDED (David, 2026-10-15: "agree with
-all five recommendations"); next: the plan, then the build._
+all five recommendations"); plan `docs/superpowers/plans/2026-10-15-432-patch-through-porta.md`, which
+corrected five points (below)._
 
 ## Where it stands
 
@@ -40,8 +41,8 @@ only (#313). David, 2026-10-14: patch through porta is in 0.1. David, 2026-10-15
 ## Proposal
 
 **One rule: what must survive a sleep is in the cell; everything else is a line.** The cell is
-`Debug{sha, breaks, patches}`. `patches` is the SHA-256 of a blob holding the whole patch set for the image `sha`,
-one patch text per line, applied in order. An empty `patches` means no patches. A session command (`step`, `bt`,
+`Debug{sha, breaks, patches}`. `patches` is a `BlobRef` to a blob holding the whole patch set for the image `sha`,
+one patch text per line, applied in order. An absent `patches` means no patches. A session command (`step`, `bt`,
 `inspect`, `continue`, `restart`) stays a `dbg/req` line, as today.
 
 **Node (kernel and VM).**
@@ -53,8 +54,8 @@ one patch text per line, applied in order. An empty `patches` means no patches. 
     software reset keeps RTC memory, and the next boot applies the new set from the start.
 - The fetch is a new primitive over `fetch_block` that reads a blob into a ByteArray, checking the hash. A patch set
   is a few blocks; nothing is written to flash.
-- Patches are applied before breakpoints are armed and before `main:`, so a wake runs the patched program from its
-  first line.
+- Patches are applied ahead of the breakpoints, at the first stop after the first check-in (as breakpoints are;
+  not before `main:`, which the planning found impossible: see Corrections).
 - Debug images only, like every patch (#313). A standard image ignores `patches`.
 
 **custos.**
@@ -69,8 +70,8 @@ one patch text per line, applied in order. An empty `patches` means no patches. 
 - A `load` (a new image) leaves the old patch set naming the old `sha`, and the node refuses it, as it refuses
   breakpoints for another image today. custos clears both when it loads.
 
-**porta.** One general route: `GET /node/{id}/log?path=dbg/resp&after=<seq>`, the twin of `porta log`, so custos
-can read replies. No patch-specific code in porta (D1–D2: porta stays language-neutral).
+**porta.** Two general routes: `GET /node/{id}/log?path=dbg/resp&after=<event id>`, the twin of `porta log`, so
+custos can read replies, and `GET /blob/{hash}`, so custos can read the set back. No patch-specific code in porta (D1–D2: porta stays language-neutral).
 
 ## Alternatives not taken
 
@@ -81,7 +82,7 @@ can read replies. No patch-specific code in porta (D1–D2: porta stays language
 
 ## Gates
 
-- **Host:** `porta_sync_host.sh` gets a leg in which an agent patches a method through custos and a real porta. The
+- **Host:** `sleepy_debug_host.sh` gets a leg in which an agent patches a method through custos and a real porta. The
   node's output changes; then the node restarts and still runs the patched method. A second patch extends the set
   with no reboot, and removing one reboots the node into the smaller set.
 - **Falsify first:** with the replay of `patches` at boot removed, the restart part goes red.
@@ -108,3 +109,17 @@ can read replies. No patch-specific code in porta (D1–D2: porta stays language
 Q2 a patch set that does not extend the applied one reboots the node; Q3 patches are unsigned, and `limits.md` says
 so; Q4 the deep-sleep node fetches its set at every wake, measured before any RTC copy; Q5 custos's debug verbs on a
 porta node are in #432's scope.
+
+## Corrections from planning (2026-10-15)
+
+Read from the code while writing the plan (its P1–P10); the text above is edited to agree.
+
+- **Not before `main:`.** The cell reaches the node only inside the app's `main:`, at the bridge's check-in, and
+  `acceptGoal:` only queues `dbg:` lines for the next stop. Patches land there, ahead of the breakpoints. On the bell,
+  which strikes before it checks in, a patch to the strike takes effect from the next wake.
+- **`patches` is a `BlobRef`** (RECORDS §2.3, the one indirection), optional: its `size` lets the node refuse before
+  it fetches.
+- **Sixteen methods.** `METHOD_OVERRIDES_MAX` (16) binds before the 64-entry patch table.
+- **A reboot primitive is new.** Q2 needs one; none exists. A Zephyr software reset keeps RTC memory and reads as a
+  reboot wake on the MagTag; the host exits with a code its gate relaunches on.
+- **The gate is `sleepy_debug_host.sh`**, the debug-through-porta gate; `porta_sync_host.sh` runs a standard image.
