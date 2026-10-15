@@ -2724,6 +2724,29 @@ later over Thread.
 Record: `docs/design/2026-10-12-398-load-through-porta-design.md` (Q1–Q5, as built); `porta/docs/ARCHITECTURE.md`
 §3; `nodus/nsl/docs/nsl-embedded-paper.md` Appendix D and §9; `review/tests/CLAIMS.md` (the host and target OTA rows).
 
+## An agent profiles a node that sleeps: profile through porta — 2026-10-14, #415
+
+**The 0.1 lifecycle table's last row.** custos writes two cells through porta: `goal/profile` = `Profile{id, ms}` (the
+request) and `goal/console` = `Console{addr, port}` (where the node's console tee goes, custos's own sink). The rows
+come back on the tee, one UDP datagram per line, never on the space. On the MagTag a window cut by deep sleep dumped
+256 of 256 at the next wake. On the wall bell over Thread an agent's 5 s request was answered in 8 s, 183 of 184 rows,
+with custos warning of the one missing row.
+
+1. **One request mechanism** (Q8, Q9; David): the cell, the cable's `profile <ms>` line and the debugger's command
+   are one request with an id, retained, served once, and carried across a sleep that cuts it.
+2. **The console's target is a goal cell, kept across sleep** (Q2′): the build-time literal `OEVM_LOG_UDP6` is
+   deleted, and a waking node tees from its first line.
+3. **What the radios needed** (F8, F10, F11): pace on OpenThread's buffer pool; drain and pace on the WiFi blob's
+   TX-done count; hold lines until the stack can pick a source the gateway answers. The drain's 2 s cap stays a
+   bound; the one measured drain was 20 ms.
+4. **Not delivered:** a lost line is a lost row, with no retransmit, and custos warns rather than ranks short. The
+   bell's one lost row was not chased. Patch through porta was not tried; the overview lists it apart from the debug
+   row.
+
+Record: `docs/design/2026-10-12-415-profile-through-porta-design.md` (Q1–Q9, Q2′, F5–F11, as built);
+`protocol/PROTOCOL-NSL-RECORDS.md` §4.1, §4.5; `docs/design/2026-10-04-custos-peer-design.md` D19 addendum;
+`nodus/nsl/docs/nsl-embedded-paper.md` §9 and Appendix D; `review/tests/CLAIMS.md` (the profile-through-porta row).
+
 ## Known stale docs (do not treat as current)
 
 `nodus/oevm/docs/archive/ROADMAP.md` (oevm-era backlog; prime directive still valid, task list superseded),

@@ -22,10 +22,10 @@ bench; a gateway holds what a sleeping node is to be told until it next wakes; a
 running it, the code an agent wrote.
 
 *Status: a lifecycle system whose desk half (host VM, USB load, debug, patch, profile) is built and measured, and whose
-field half is built for debug and for program over the air on both demo nodes; version 0.1 ships when every verb is
-shown there (decided 2026-10-09), so nothing in the release is labelled "designed".* Remote debug through a gateway
-was run on two boards on 2026-10-09 and 2026-10-10, a deep-sleep node over WiFi and an always-on node over Thread, and
-a program was pushed through it to each on 2026-10-12 (§9).
+field half is built for debug, program over the air and profile on both demo nodes; version 0.1 ships when every verb
+is shown there (decided 2026-10-09), so nothing in the release is labelled "designed".* Remote debug through a gateway
+was run on two boards on 2026-10-09 and 2026-10-10, a deep-sleep node over WiFi and an always-on node over Thread, a
+program was pushed through it to each on 2026-10-12, and each was profiled through it on 2026-10-14 (§9).
 
 ## 1. The problem
 
@@ -429,7 +429,7 @@ The patch row is one board, one method and one session: a demonstration, not a s
 which deep-sleeps, on 2026-10-09, and the wall-powered ShipsBell C6, which runs continuously, on 2026-10-10
 (#375–#377, #379, #380) [Field]. It was designed on a host spike that runs a real porta and a host VM on the desktop
 and prints `SLEEPY DEBUG OK` [Spike]. Program over-the-air load (#233) was proven on a bench C6 over Thread on 2026-10-10
-and on both demo nodes on 2026-10-12 (below) [Field].
+and on both demo nodes on 2026-10-12, and the profiler on both on 2026-10-14 (below) [Field].
 
 ![Remote debug sequence](img/e-remote-debug-seq.svg)
 
@@ -518,6 +518,31 @@ the push was driven from porta's command line. An agent drives it through custos
 cable (Appendix D): on the wall C6 on 2026-10-12, one request to custos had the new program staged in about a
 minute and its trial confirmed 2 min 37 s later, the agent polling `load/last` until it read `Converged` (#398).
 
+**The profile through the gateway (#415).** The request is intent, so it is a cell: `goal/profile` = `Profile{id, ms}`,
+one window, served once. The rows are not: a dump is about 10 KB, which the gateway's size law keeps off the space, so
+they leave on the console's UDP tee, one datagram per line, to wherever the `goal/console` cell points. custos writes
+both cells, its own address in the second, so the rows come back to the custos that asked; porta relays two writes and
+reads no row [Profile415]. Sleep shapes the rest. The node keeps the request and the tee's target in memory that
+survives deep sleep, so a waking node tees from its first line. A window that a sleep cuts is carried, and the next
+wake opens it whole before `main:`. Before it sleeps, the node drains the console until the radio reports every frame
+sent, at most 2 s. An agent's request is `POST /board/<n>/profile/capture?ms=N` to custos, polled at `profile/last`,
+the same verb as on a cable (Appendix D).
+
+| Measure | MagTag, WiFi, deep sleep (2026-10-14) | wall C6, Thread, always on (2026-10-14) |
+|---|---|---|
+| Request to rows | two wakes: a check-in delivers the request, the sleep cuts the window, and the next wake opens it from boot and dumps it at its own sleep | 8 s to custos's ranked answer, for a 5 s window |
+| Rows | 256 of 256, header and `end` included, in 1.2 s at the wake that dumped the carried window | 183 of 184; custos warned of the missing row rather than ranking short |
+| The radio's count | `given 365, done 365, refused 0` | not counted |
+| Drain before the sleep | 20 ms | no sleep |
+
+Three things the boards needed that the host gate never asked for. Over Thread, `sendto` accepts a datagram that
+OpenThread later drops when its buffer pool is full, so the console waits before each line until the pool has room.
+Over WiFi, the driver hands a frame to the vendor's blob and frees it, so the drain waits on the blob's own TX-done
+count, and the sender keeps at most half the blob's buffers in flight. And at a wake, a line sent before the
+neighbour answers or before the address leaves tentative is lost without an error, so the console holds its lines
+until the stack can pick a source address the gateway can answer. A lost line is a lost row, so custos counts the
+rows against the dump's header and warns.
+
 ## 10. Trusting code an agent wrote
 
 The problem is verification, and an agent verifies by running things and reading what comes back. Two questions
@@ -593,11 +618,10 @@ MicroPython, scored on measured rows; several rows MicroPython wins, which is th
 ### Where this stands
 
 Today rete is a lifecycle system whose desk half (host VM, USB load, debug, patch, profile) is built and measured, and
-whose field half is built for debug and for program over the air (the two bells, through the gateway, over WiFi and
-over Thread, §9). Version 0.1 ships when the
-field half is built (decided 2026-10-09), so nothing in the release is labelled "designed". Not yet shown: the profile
-through the gateway, or an agent writing C against
-an agent writing nsl.
+whose field half is built for debug, program over the air and profile (the two bells, through the gateway, over WiFi
+and over Thread, §9). Version 0.1 ships when the
+field half is built (decided 2026-10-09), so nothing in the release is labelled "designed". Not yet shown: an agent
+writing C against an agent writing nsl.
 
 Version 0.1 is defined as one node, every verb, through the gateway, over the radio, while the node sleeps. By
 lifecycle stage, against the C toolchain the reader already has:
@@ -607,7 +631,7 @@ lifecycle stage, against the C toolchain the reader already has:
 | write | edit, compile, link | the same program runs first on the host VM; authority in the header; 160 closed primitives | the same |
 | deploy | flash the firmware | load an image beside the firmware over the cable (ESP32-C6 only); a manifest-checked wire | over the cable, or through the gateway: built on both bells (#233), and driven by an agent on the wall bell (#398) |
 | debug | `printf`; a probe and gdb | source-line breakpoints, the stack and named locals, patch and restart, over one USB cable; and through the gateway, on a node that sleeps (§9) | the same |
-| observe | nothing | a per-method profile on the shipped image (1.3 %); heap statistics every check-in; a liveness observer that dumps and leaves a note | the profile through the gateway as well |
+| observe | nothing | a per-method profile on the shipped image (1.3 %), over the cable and through the gateway, a window cut by sleep carried to the next wake (§9); heap statistics every check-in; a liveness observer that dumps and leaves a note | the same |
 | manage | a site visit | the gateway holds intent for a node that is asleep and judges its liveness from outside | and keeps each commissioned image with its symbol map |
 
 The cable is the desk. The last column is what 0.1 is.
@@ -1345,14 +1369,14 @@ each serves. The build, load, debug and profile verbs each also have a page for 
 | `POST /debug/do` | one debug command as the body (`break`, `continue`, `step`, `next`, `finish`, `bt`, `locals`, `pause` and the rest); answers `OK`, `Error` and `State` |
 | `GET /debug/source` | the app's lines and which of them have code |
 | `POST /debug/patch?method=Class>>selector` | the edited `.nsl` as the body; patches one method of a program stopped in a debug build and answers as `/debug/do` does |
-| `POST /profile/capture?ms=N` | captures a window of N ms and answers the ranked methods in `Report`. `GET /profile` is the page |
-| `GET /profile/last` | the last capture |
+| `POST /profile/capture?ms=N` | captures a window of N ms and answers the ranked methods in `Report`. On a node through the gateway it writes the request and the console's target as goal cells and answers at once with `Pending`, since a sleeping node answers at its next wake. `GET /profile` is the page |
+| `GET /profile/last` | the last capture; poll it until `Pending` is false. Its warnings name a short or cut window |
 | `GET /log`, `GET /runs`, `GET /panics`, `GET /panics/{n}/bt` | the collected console: lines (`?since=` or `?tail=`), one row per boot with its build id, the panics, and one panic's backtrace |
 | `POST /lend?s=N`, `POST /return` | closes the board's cable so another tool (a flasher) can use it for up to N seconds, and takes it back [BoardTut] |
 | `GET /health` | per board, the console cable's state (for example `up` or `lent`); the board-less path is also the proxy to porta's health |
 | `GET /q/{name}`, `GET /fleet`, `GET /node/{id}` | with a porta store configured: the named queries `liveness`, `convergence` and `node` (`?id=`) as JSON; `/fleet` and `/node/{id}` are the pages. |
 
-An agent uses `build`, `run`, `load`, `debug` and `profile` in that order (on a node through the gateway, it polls `load/last` until `Converged`), reads `log` and `runs` for what the board
+An agent uses `build`, `run`, `load`, `debug` and `profile` in that order (on a node through the gateway, it polls `load/last` until `Converged` and `profile/last` until not `Pending`), reads `log` and `runs` for what the board
 did on its own, and uses `lend` only when a tool outside custos must hold the cable.
 
 <div style="page-break-before: always"></div>
@@ -1409,6 +1433,8 @@ did on its own, and uses `lend` only when a tool outside custos must hold the ca
   C6 transcript of 2026-10-05.
 - **[Patch]** [Stop, patch, restart, resume](../../../docs/results/2026-10-06-313-patch-restart-spike.md).
 - **[Profile]** [Profiling over USB](../../../docs/design/2026-10-05-custos-profile-over-usb.md).
+- **[Profile415]** [Profile through porta, rete#415](../../../docs/design/2026-10-12-415-profile-through-porta-design.md),
+  its "As built" sections.
 - **[Spike]** [Debugging and profiling a sleepy node through porta, host spike for rete#342](../../../docs/results/2026-10-07-342-sleepy-node-debug-spike.md).
 - **[CborAot]** [What would AOT-ing `Cbor>>encode:` return?](../../../docs/results/2026-10-09-cbor-aot-spike.md),
   the spike of 2026-10-09/10 on c6spare (rete#395).

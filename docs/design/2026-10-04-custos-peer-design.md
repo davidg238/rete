@@ -131,6 +131,21 @@ custos's query engine.
   id without NVS (an RTC-retained counter — with bootId 0 porta skipped every wake's rows as replays). The S2's RAM is
   the limit: its IRAM and DRAM are one pool, the bridge+debugger floor is 24 KB (32-bit host), and the arena ran at
   its ceiling — the bell demo's display and DAC do not fit beside it on this part (issue #379).
+  *Addendum 2026-10-14 (#415, built): the profile through porta.* custos's porta node serves `profile` when given
+  `--map <name>=<map>` and `--advertise <ipv6>`, an address of this host the node can reach. It writes two cells.
+  `goal/console` = `Console{addr, port}` aims the node's console tee at a UDP sink custos opens per porta node, written
+  at start-up and again before every request, since porta may have been down. `goal/profile` = `Profile{id, ms}` is the
+  request, a new id each time: the clock's seconds below 2^30, or one more than the last. It is one-shot, retained, and
+  carried across a sleep that cuts it. `POST /board/<n>/profile/capture?ms=N` answers at once with `Pending`, and
+  `profile/last` is polled. custos ranks the dump it reads from the sink (a new `mprof[window]:` header restarts it), refuses a map
+  for another program with 409 against the node's `obs/apps/main`, and warns, rather than ranks short, when rows are
+  missing or a sleep cut the window. porta relays the two writes and reads no row (Q1–Q9, Q2′). There is one request
+  mechanism, the cable's `profile <ms>` line included, through `Profiler>>requestMs:id:`, and the tee's target is kept
+  in RTC memory. The build-time console literal (`OEVM_LOG_UDP6`) is deleted. On the boards, 2026-10-14: the MagTag
+  over WiFi dumped a sleep-cut window 256 of 256 at the next wake, after a 20 ms drain; the wall bell over Thread
+  answered an agent's 5 s request in 8 s, 183 of 184 rows with the warning. Record:
+  `docs/design/2026-10-12-415-profile-through-porta-design.md`; `protocol/PROTOCOL-NSL-RECORDS.md` §4.1, §4.5; gate:
+  `porta_sync_host.sh` leg 8c.
 
 ## 2. The picture
 

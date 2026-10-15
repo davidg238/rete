@@ -338,6 +338,10 @@ TAP bridge-health done pass=3 fail=0
 tick 3 misses 0 cursor 1 acked 22 dropped 0
 ```
 
+Since rete#415 (2026-10-14) the `logudp:` line reads `logudp: holding the console until goal/console names a
+target`: the console's UDP tee is aimed by the gateway's `goal/console` cell, not by a build flag, and the boot waits
+in a ring until it arrives.
+
 Read it in five parts:
 
 - **`build-id`** is the anchor. Every assertion the harness makes is tied to it, and
