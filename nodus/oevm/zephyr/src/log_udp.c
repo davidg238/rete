@@ -18,6 +18,7 @@
 
 #include <zephyr/net/socket.h>
 #include <zephyr/net/net_pkt.h>
+#include <zephyr/net/net_if.h>
 
 /* 4 KB holds the whole Zephyr-side boot chatter with room to spare, which matters
  * because the hook is installed long before the mesh is up: everything printed
@@ -290,6 +291,22 @@ static void wait_for_radio(void)
 	tx_before_send = net_tx_held();
 }
 
+/* F11, the MagTag's first timer wake on the ND fix (2026-10-14 18:32): the boot's lines
+ * up to ip-evt were still lost, and these were SENT — 358 counted, ~11 fewer arrived —
+ * and the blob reported every frame done. Right after association the link-local
+ * address is still tentative (DAD) and the ULA waits for the router's advertisement,
+ * so the stack picks an unspecified or link-local source, and gw drops the datagram.
+ * So a line waits in the ring, as it does for a missing route, until the stack can
+ * pick a source the destination can answer: preferred, and not link-local unless the
+ * destination is. */
+static int source_ready(const struct sockaddr_in6 *dst)
+{
+	const struct in6_addr *src = net_if_ipv6_select_src_addr(NULL, &dst->sin6_addr);
+
+	return src != NULL && !net_ipv6_is_addr_unspecified(src) &&
+	       (net_ipv6_is_ll_addr(&dst->sin6_addr) || !net_ipv6_is_ll_addr(src));
+}
+
 /* A send refused for want of buffers, which drain on their own. */
 static int busy(int e)
 {
@@ -445,6 +462,10 @@ static void log_udp_thread(void *a, void *b, void *c)
 				k_msleep(2000);   /* no stack yet */
 				continue;
 			}
+		}
+		if (!source_ready(&dst)) {
+			k_msleep(POLL_MS);
+			continue;
 		}
 
 		/* HOLD A REFUSED LINE, do not discard it. The first version counted the
