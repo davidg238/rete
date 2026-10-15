@@ -24,7 +24,7 @@ The one-page version is `nodus/oevm/docs/vm.md`.
 ## Tree
 
     porta/       the gateway (Go) — the northbound half
-    custos/      the nsl developer's peer (Go): today the query engine and fleet pages
+    custos/      the nsl developer's peer (Go): load, debug, patch and profile over HTTP, and the fleet pages
     nodus/       the device end
       oevm/      the VM (C) + the Zephyr board ports
       nsl/       the dialect, its compiler and the kernel (which is itself nsl)
@@ -66,7 +66,7 @@ of nsl, compile one by hand, and watch the compiler refuse a non-local return. T
 on loopback: a gateway, a real node, and the tree diff that is the whole convergence
 model. The command blocks on both pages are executed by the suite (`tutorial-host` and
 `tutorial-porta` on the aux line), so they cannot rot silently. `docs/tutorials/02-board.md`
-is the board walkthrough — a real ESP32-C6, the two cables, the radio split, and the eleven
+is the board walkthrough — a real ESP32-C6, the two cables, the radio split, and the fourteen
 target gates. It is **prose, not executed**, and says so at the top: a board tutorial cannot
 be gated on a host, so every transcript on it is copied from a dated bench log instead.
 

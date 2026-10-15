@@ -1,0 +1,130 @@
+(*
+expect:
+A: strike 1 at 0
+A: strike 2 at 500
+A: strike 3 at 2000
+A: strike 4 at 2500
+A: strike 5 at 4000
+B: strike 1 at 4000
+B: strike 2 at 4500
+B: strike 3 at 6000
+B: strike 4 at 6500
+B: strike 5 at 8000
+C: strike 1 at 8000
+C: strike 2 at 8500
+C: asleep after 2, kept 2
+C: strike 3 at 18600
+C: strike 4 at 19100
+C: strike 5 at 20600
+done
+*)
+(* Spike (2026-10-13, David: "sketch/spike an example" of sequential code that waits,
+   without fibers). Five bells: two pairs and a single, 500 ms inside a pair, 1500 ms
+   between pairs. The fiber version would read
+
+       bell strike. wait: 500. bell strike. wait: 1500. bell strike. ...
+
+   with the fiber's stack holding where it is. Neither form below has a stack that
+   outlives a reaction: each strike is one reaction, run to completion.
+
+   A — a state object and a timer pulse. The whole position in the sequence is one
+       integer, `struck`; the timer's message wakes the object, which strikes and arms
+       the next gap.
+   B — what a compiler rewrite of `wait:` into closures would emit: everything after a
+       `wait:` becomes a block, stored under a timer token and run when it fires. Reads
+       like the fiber version, and needs no state class written by hand.
+   C — A across a deep sleep. The node sleeps after strike 2, losing RAM; only
+       `struck` is kept (on a board, an RTC slot), and a fresh Striker resumes from it.
+       B cannot do this: its position is a closure, and a closure does not fit in an
+       RTC slot. So a `wait:` sugar on a sleeping node must compile to A's shape — a
+       numbered step — not to B's.
+
+   Run: python3 nodus/nsl/tools/run-one.py docs/spikes/2026-10-13-sequence-without-fibers/StrikeSequence.nsl *)
+class StrikeSequence packageUsing: manifest = () (
+
+  (* A: the sequence as a state object. `gapAfter:` is the pattern; `struck` is the
+     position, and the only state that must survive anything. *)
+  class Striker = ( | private platform private timers private ch private tag private bells private struck | ) (
+    public struck = ( ^ struck )
+    public strikeNext = (
+      struck:: struck + 1.
+      (tag , ': strike ' , struck printString , ' at ' , platform monotonicMillis printString) out.
+      struck < bells ifTrue: [ timers after: (self gapAfter: struck) post: #next on: ch ]
+    )
+    gapAfter: n = ( ^ (n = ((n // 2) * 2)) ifTrue: [ 1500 ] ifFalse: [ 500 ] )
+    public setPlatform: p timers: t channel: c tag: s bells: b struck: k = (
+      platform:: p. timers:: t. ch:: c. tag:: s. bells:: b. struck:: k. ^ self )
+  ) : (
+    public on: p timers: t channel: c tag: s bells: b struck: k = (
+      ^ self new setPlatform: p timers: t channel: c tag: s bells: b struck: k )
+  )
+
+  (* B: the runtime half of a `wait:` rewrite — run a block after ms. The compiler
+     half would turn `x. wait: 500. y` into `x. later after: 500 do: [ y ]`. *)
+  class Later = ( | private timers private ch private pending private nextKey | ) (
+    public after: ms do: aBlock = (
+      nextKey:: nextKey + 1.
+      pending at: nextKey put: aBlock.
+      timers after: ms post: nextKey on: ch
+    )
+    public fire: k = (
+      | b |
+      b:: pending at: k ifAbsent: [ nil ].
+      b == nil ifFalse: [ pending removeKey: k. b value ]
+    )
+    public setTimers: t channel: c table: d = ( timers:: t. ch:: c. pending:: d. nextKey:: 0. ^ self )
+  ) : (
+    public timers: t channel: c table: d = ( ^ self new setTimers: t channel: c table: d )
+  )
+
+  public main: platform args: args = (
+    | space timers chA chB chC a later strikeB c kept |
+    space:: platform space.
+    timers:: Timers usingSpace: space seam: platform.
+    space whenever: 'sys/timer' do: [ :e | timers dispatch: e ].
+
+    (* A *)
+    chA:: space channel: 'seqA'.
+    a:: Striker on: platform timers: timers channel: chA tag: 'A' bells: 5 struck: 0.
+    chA whenever: '' do: [ :m | a strikeNext ].
+    a strikeNext.
+    self run: 4000 on: platform space: space.
+
+    (* B — the rewritten source, as the compiler would emit it *)
+    chB:: space channel: 'seqB'.
+    later:: Later timers: timers channel: chB table: Dictionary new.
+    chB whenever: '' do: [ :k | later fire: k ].
+    strikeB:: [ :n | ('B: strike ' , n printString , ' at ' , platform monotonicMillis printString) out ].
+    strikeB value: 1.
+    later after: 500 do: [
+      strikeB value: 2.
+      later after: 1500 do: [
+        strikeB value: 3.
+        later after: 500 do: [
+          strikeB value: 4.
+          later after: 1500 do: [ strikeB value: 5 ] ] ] ].
+    self run: 4000 on: platform space: space.
+
+    (* C — A, with a deep sleep after strike 2 *)
+    chC:: space channel: 'seqC'.
+    c:: Striker on: platform timers: timers channel: chC tag: 'C' bells: 5 struck: 0.
+    chC whenever: '' do: [ :m | c strikeNext ].
+    c strikeNext.
+    self run: 600 on: platform space: space.
+    kept:: c struck.                          (* on a board: the RTC slot *)
+    timers cancelAddressedBy: 'seqC'.         (* the sleep: RAM and its timers are gone *)
+    c:: nil.
+    ('C: asleep after 2, kept ' , kept printString) out.
+    platform advanceMillis: 10000. space drain.
+    (* the wake: a fresh object from the kept integer, the next gap re-armed *)
+    c:: Striker on: platform timers: timers channel: chC tag: 'C' bells: 5 struck: kept.
+    c strikeNext.
+    self run: 2000 on: platform space: space.
+    'done' out.
+  )
+
+  run: ms on: platform space: space = (
+    1 to: ms // 100 do: [ :i | platform advanceMillis: 100. space drain ]
+  )
+) : (
+)
