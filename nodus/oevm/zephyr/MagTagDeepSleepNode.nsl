@@ -54,9 +54,9 @@ key porta signs with):
   A program PUSH after that goes through porta (`goal/apps/main`); the first check-in of
   the wake that reads it stages, the second activates; the new program's boot is a
   reboot wake (no strike), and its first check-in confirms the trial.
-  Bench: add OEVM_LOG_UDP6=<this desktop's STABLE ULA> and listen on UDP 54330 — the
-  console with no cable on the board (zephyr/src/log_udp.c; the last line before the sleep
-  never arrives, which is not a hang).
+  Console with no cable: the node tees to whatever custos writes goal/console
+  (zephyr/src/log_udp.c, rete#415), and keeps that target across deep sleep, so a
+  wake tees from its first line.
 
 expect (console, a strike wake):
 wake half 45 bells 5

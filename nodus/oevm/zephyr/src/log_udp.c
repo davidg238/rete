@@ -19,10 +19,6 @@
 #include <zephyr/net/socket.h>
 #include <zephyr/net/net_pkt.h>
 
-#ifndef OEVM_LOG_UDP_PORT
-#define OEVM_LOG_UDP_PORT 54330
-#endif
-
 /* 4 KB holds the whole Zephyr-side boot chatter with room to spare, which matters
  * because the hook is installed long before the mesh is up: everything printed
  * between boot and attach sits here and goes out in one burst once the socket
@@ -536,9 +532,6 @@ static int log_udp_hook_init(void)
 		tee_from_keep = 1;
 		return 0;
 	}
-#ifdef OEVM_LOG_UDP6
-	(void)set_target(OEVM_LOG_UDP6, OEVM_LOG_UDP_PORT);
-#endif
 	return 0;
 }
 SYS_INIT(log_udp_hook_init, POST_KERNEL, CONFIG_KERNEL_INIT_PRIORITY_DEFAULT);
@@ -547,7 +540,7 @@ void log_udp_start(void)
 {
 	if (tee_state == TEE_ON) {
 		printk("logudp: teeing console to [%s]:%d (%s)\n", tee_addr, tee_port,
-		       tee_from_keep ? "kept from the last goal/console" : "build-time; goal/console overrides");
+		       tee_from_keep ? "kept from the last goal/console" : "goal/console");
 	} else if (tee_state == TEE_OFF) {
 		printk("logudp: off (kept from the last goal/console)\n");
 	} else {

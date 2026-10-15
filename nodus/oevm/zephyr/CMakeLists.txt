@@ -329,22 +329,9 @@ if(DEFINED ENV{OEVM_NTP_SERVER6})
   target_compile_definitions(app PRIVATE OEVM_NTP_SERVER6="$ENV{OEVM_NTP_SERVER6}")
 endif()
 
-# THE REMOTE CONSOLE (src/log_udp.c). Since rete#415 its target is the goal/console
-# cell, set at run time by the custos that wants the lines; this literal is only the
-# target a board starts on, and the cell overrides it. To be deleted once the cell
-# has carried a board (#415 Q2′). A LITERAL IPv6 address, for the same reason as
-# OEVM_NTP_SERVER6 above — the mesh has nothing to resolve a name against.
-#
-#   OEVM_LOG_UDP6=fdc5:9109:9afe:97ea:9541:d963:f8d9:8567 ./run.sh --board esp32c6 ...
-#
-# OEVM_LOG_UDP_PORT is optional (default 54330). It is deliberately NOT any of the
-# ports the soak dashboard scores (:54360/:54361) or the gw echo target (:54331).
-if(DEFINED ENV{OEVM_LOG_UDP6})
-  target_compile_definitions(app PRIVATE OEVM_LOG_UDP6="$ENV{OEVM_LOG_UDP6}")
-endif()
-if(DEFINED ENV{OEVM_LOG_UDP_PORT})
-  target_compile_definitions(app PRIVATE OEVM_LOG_UDP_PORT=$ENV{OEVM_LOG_UDP_PORT})
-endif()
+# THE REMOTE CONSOLE (src/log_udp.c) has no build-time target: it tees to the
+# goal/console cell, set at run time by the custos that wants the lines (#415 Q2′;
+# the OEVM_LOG_UDP6 literal was deleted 2026-10-14, after the wall bell ran on the cell).
 # rete#415 F10: the console's drain before deep sleep counts the frames the WiFi
 # driver gives the blob (log_udp.c's __wrap_esp_wifi_internal_tx).
 if(CONFIG_WIFI_ESP32)
