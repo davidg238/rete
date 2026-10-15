@@ -492,6 +492,8 @@ classes that own one responsibility each, authority in the header (ledger row 32
 invariant comments travelling with their class, image and arena deltas measured (notes on
 #379, #380). The reason, David: substituting nsl for C line by line is a losing
 proposition; the lifecycle and the factoring are the value.
+*Addendum 2026-10-14 (David):* **patch is a 0.1 verb through porta**, not only inside the debug row (#432). custos's porta
+node gains the debug verbs, `debug/patch` among them; the node already takes `dbg:patch` on `dbg/req` (#313).
 
 ## 7. On adoption: what changes
 

@@ -4,10 +4,10 @@ _Rewritten (never appended) at every `/conclude`; under ~15 lines. History: `git
 blocks are in `docs/status/focus-history.md`; live state is in the issues and `docs/status/dev-status.html`._
 
 - **0.1 (David, 2026-10-09): one node, every verb — load, debug, patch, profile — through porta, over the radio, while it sleeps.**
-  Every row of #26's lifecycle table is built on both bells; #415 (profile) merged `dc129d01`, promoted `67b11aab`, closed 2026-10-14.
-- **Next session starts with:** master, no focus chosen. David picks one: the front door's history check (#368), patch through porta (#432),
-  or #201/#202. No branch is open.
-- **Awaiting David:** #432 (patch through porta: in 0.1 or not); #368's history rewrite (force-push); #201/#202 for 0.1 or not; build
+  Load, debug, profile built through porta on both bells (#415 closed 2026-10-14). **Left: patch through porta, #432 (P1; David 2026-10-14: in 0.1).**
+- **Next session starts with:** focus #432, from master. Read its 2026-10-14 comment, then draft the design in `docs/design/`: custos's porta
+  node gains the debug verbs (`board.go:273`); the node takes `dbg:patch` on `dbg/req`; questions: patch size vs `MAX_VALUE_BYTES`, a patch across deep sleep.
+- **Awaiting David:** #368's history rewrite (force-push); #201/#202 for 0.1 or not; build
   `POST /load?build=last` or drop it from the peer design; #396; paper E draft 6 and L (#429); #175's memo; #413 and #424's designs; bands for #294, #295.
 - **Bench:**
   - gw: `porta-398 serve --db soak-2026-08-04.db --manifest MANIFEST-415.cddl` (HTTP :6970). Ours, safe to stop: a test porta in
@@ -19,4 +19,4 @@ blocks are in `docs/status/focus-history.md`; live state is in the issues and `d
   addendum; #398 Q1–Q5; hot patch debug-build only (#313); one suite lock (#314); no third node (#384); Apache-2.0 (#368); Opt #9–#19;
   visibility three levels (#372).
 - **Weekly review, not scheduled:** #175, #280, #282–#287, #290, #291, #298, #299, #303, #304, #306–#309, #315–#322, #324–#328,
-  #331–#335, #345–#357, #359–#361, #363, #366, #369–#371, #373, #374, #378, #382–#397, #399–#401, #404–#411, #413, #414, #417–#429, #431, #432.
+  #331–#335, #345–#357, #359–#361, #363, #366, #369–#371, #373, #374, #378, #382–#397, #399–#401, #404–#411, #413, #414, #417–#429, #431.
