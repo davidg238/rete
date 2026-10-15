@@ -55,7 +55,7 @@ Thread or WiFi. No cable.
 | Load | `custos --porta-node bell=<node-id> --porta-http http://<gateway>:6970`, then `POST /board/bell/load?name=App.oimg` with the image; poll `GET /board/bell/load/last` | `Converged: true`; the board prints `ota confirmed` | Built. An agent pushed to the wall-bell C6 this way (rete#398); the node side is proven on the C6 over Thread and the MagTag over WiFi (rete#233) | [design](design/2026-10-12-398-load-through-porta-design.md) |
 | Debug | on the gateway: `porta put --raw <node> goal/debug/main <Debug{sha, breaks}>`, then each command as a `dbg/req` row; the empty set releases the node | the stop in `obs/debug`, the answers in `dbg/resp` | Built, driven by porta writes: custos serves only `load` for a porta node | [result](results/2026-10-10-380-debug-through-porta-on-boards.md) (rete#379, rete#380); peer design D19 |
 | Patch | — | — | Not tried through porta: over the cable only (step 8) | rete#313 |
-| Profile | — | — | **Not on master.** The rows leave over the console, so a profile needs the cable. Through porta is rete#415, in flight | rete#415 |
+| Profile | the same custos with `--map bell=App.oimg.map.json` and `--advertise <an IPv6 address of this machine the node can reach>`, then `POST /board/bell/profile/capture?ms=5000`; poll `GET /board/bell/profile/last` | `Pending` false, the ranked table, no warnings | Built (rete#415): the wall C6 over Thread, and the MagTag over WiFi, where a window cut by deep sleep dumps at the next wake | [design](design/2026-10-12-415-profile-through-porta-design.md) |
 
 ## For an agent
 

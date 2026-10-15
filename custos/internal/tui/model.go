@@ -210,6 +210,18 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			return m, nil
 		}
+		// A profile through porta (rete#415) answers at the goal/profile write: keep
+		// the last capture on screen, say what is pending, and re-read every 5 s
+		// until the dump has come back by the console tee, as the page does.
+		if msg.c.Pending {
+			m.status = fmt.Sprintf("profile: %d ms requested (porta seq %d), waiting for the node's dump", msg.c.Ms, msg.c.Seq)
+			c := m.c
+			return m, tea.Tick(5*time.Second, func(time.Time) tea.Msg { p, err := c.Last(); return profMsg{p, err, true} })
+		}
+		if msg.c.Error != "" {
+			m.status = "profile: " + msg.c.Error
+			return m, nil
+		}
 		m.prof, m.status = &msg.c, ""
 	case loadMsg:
 		m.loading = false

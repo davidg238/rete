@@ -31,10 +31,14 @@ import (
 )
 
 type Config struct {
-	Bind      string   // listen address, e.g. "0.0.0.0"
-	Port      int      // listen port
-	Docs      string   // path to the repo docs/ tree ("" = /dev disabled)
-	PortaHTTP string   // base URL of porta's operator HTTP listener ("" = proxy answers 502)
+	Bind      string // listen address, e.g. "0.0.0.0"
+	Port      int    // listen port
+	Docs      string // path to the repo docs/ tree ("" = /dev disabled)
+	PortaHTTP string // base URL of porta's operator HTTP listener ("" = proxy answers 502)
+	// Advertise is this host's IPv6 address as the nodes reach it: each porta
+	// node is told to tee its console here (goal/console, rete#415). "" = porta
+	// nodes serve load only.
+	Advertise string
 	AllowCIDR []string // peer allowlist, same semantics as porta's --http-allow-cidr
 	// Store is porta's sqlite store, read through the gate's `live` binding for
 	// the fleet page ("" = no fleet page). Descriptors is the reading-rule table
@@ -74,7 +78,7 @@ func Handler(cfg Config) (http.Handler, error) {
 		root = console.DefaultRoot
 	}
 	mountBuild(mux, cfg.Boards)
-	if err := mountBoards(ctx, mux, cfg.Boards, cfg.Esptool, root, cfg.PortaHTTP); err != nil {
+	if err := mountBoards(ctx, mux, cfg.Boards, cfg.Esptool, root, cfg.PortaHTTP, cfg.Advertise); err != nil {
 		return nil, err
 	}
 	if cfg.Store != "" {

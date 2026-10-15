@@ -25,12 +25,22 @@
    bell lines), so a console that loses it locally to gain it remotely is a bad
    trade. */
 /* DECLARED here, DEFINED in zephyr/src/log_udp.c (a no-op there when the image
-   was built without OEVM_LOG_UDP6). The weak stub that used to live here was
+   has no sockets). The weak stub that used to live here was
    defined in THIS translation unit — so the compiler bound the call below to its
    own local definition and the strong one was never reached. The tee silently did
    nothing, and the remote log carried every C line and none of nsl's. A weak
    fallback must not live in the TU that calls it. */
 void log_udp_tee(const char *bytes, size_t n);
+/* rete#415: the tee's run-time target, the dump's paced write, and the drain before a
+   deep sleep (zephyr/src/log_udp.h; no-ops in an image without sockets). */
+void log_udp_tee_paced(const char *bytes, size_t n);
+int  log_udp_set_target(const char *addr6, size_t len, int port);
+void log_udp_drain(int max_ms);
+
+int platform_console_tee(const char *addr6, size_t addr_len, int port) {
+    return log_udp_set_target(addr6, addr_len, port);
+}
+void platform_console_drain(int max_ms) { log_udp_drain(max_ms); }
 
 #ifdef CONFIG_STDOUT_CONSOLE
 
@@ -38,6 +48,14 @@ void platform_console_write(const char *bytes, size_t n) {
     if (n) {
         fwrite(bytes, 1, n, stdout);
         log_udp_tee(bytes, n);
+    }
+}
+/* The profile dump (rete#415 F5): stderr reaches the UART through picolibc and
+   nothing else, so the dump is teed here, paced against the ring (F6). */
+void platform_console_err(const char *bytes, size_t n) {
+    if (n) {
+        fwrite(bytes, 1, n, stderr);
+        log_udp_tee_paced(bytes, n);
     }
 }
 void platform_console_flush(void) {
@@ -65,6 +83,8 @@ void platform_console_flush(void) {
    (see zephyr/ThreadTimerNode.nsl — the self-gating train). So when the board has no
    stdout console, discard the bytes and return immediately. */
 void platform_console_write(const char *bytes, size_t n) { (void)bytes; (void)n; }
+/* No local console, but a headless node is exactly the one whose tee matters. */
+void platform_console_err(const char *bytes, size_t n) { log_udp_tee_paced(bytes, n); }
 void platform_console_flush(void) { }
 
 #endif /* CONFIG_STDOUT_CONSOLE */

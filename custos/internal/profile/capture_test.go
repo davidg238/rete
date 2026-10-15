@@ -66,6 +66,25 @@ func TestCaptureSendsTheRequestAndStopsAtTheEndLine(t *testing.T) {
 	}
 }
 
+// rete#415, seen on c6b over Thread: a dump that lost its end line on the way is
+// followed by the next window's; the capture answers that one alone, and keeps the
+// kernel's cut line that came just before it.
+func TestCaptureStartsAgainAtANewHeader(t *testing.T) {
+	n := &fakeNode{reply: []string{
+		"mprof[window]: methods=2 activations=9 overflow=0 cap=256", "mprof: 4096 5",
+		"profile: window cut by sleep",
+		"mprof[window]: methods=1 activations=3 overflow=0 cap=256", "mprof: 8192 3",
+		"mprof[window]: end"}}
+	text, err := Capture(n.open(), 50, time.Second)
+	if err != nil {
+		t.Fatal(err)
+	}
+	d := Parse(text)
+	if len(d.Rows) != 1 || d.Rows[0] != (Row{"8192", 3}) || !d.Cut {
+		t.Fatalf("rows %v cut %v from\n%s", d.Rows, d.Cut, text)
+	}
+}
+
 func TestCaptureTimesOutNamingWhatItSaw(t *testing.T) {
 	n := &fakeNode{reply: []string{"tick 9"}}
 	_, err := Capture(n.open(), 50, 50*time.Millisecond)

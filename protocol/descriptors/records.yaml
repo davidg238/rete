@@ -823,27 +823,62 @@ records:
           means no stop yet, not a node seen free.
         refs: [rete#375]
 
+  console:
+    record: Console
+    paths: [goal/console]
+    status: live
+    summary: >
+      Where the node tees its console, one UDP datagram per line (rete#415). custos
+      writes it with its own address and a port it bound, so the rows of a profile
+      window, which never ride the space, reach the custos that asked. An empty addr
+      turns the tee off. A cell, so a cold-booting node re-tees at its first check-in.
+    fields:
+      - key: addr
+        name: addr
+        unit: text
+        kind: config
+        meaning: a literal IPv6 address (the mesh has no name service); "" = no tee
+        validity: >
+          The cell says where the node was told to send, not that anyone listens: a
+          custos that has stopped leaves its address here, and the node keeps sending
+          to a port nobody binds. A UDP datagram is one line, so lines can be lost
+          without a trace on either end; a profile dump's header counts its rows.
+        refs: [rete#415]
+      - key: port
+        name: port
+        unit: count
+        kind: config
+        meaning: the UDP port at addr
+        refs: [rete#415]
+
   profile:
     record: Profile
-    paths: ["goal/profile/<app>"]
-    status: specified
-    summary: No producer and no consumer in this tree; profiling is driven over dbg/req today.
+    paths: [goal/profile]
+    status: live
+    summary: >
+      One profile request (rete#415 Q8/Q9). custos writes it with a new id; the node
+      opens a window of ms at once. A window that reaches ms dumps and is served; one
+      that deep sleep cuts dumps nothing and is opened again, whole, at the next boot,
+      from the kernel's RTC slots. The node keeps the last id it served there, so the
+      cell porta replays into every cold boot does not profile again. ms 0 disarms.
+      The rows leave by the console tee (goal/console), never on the space.
     fields:
-      - key: action
-        name: action
-        unit: symbol
+      - key: id
+        name: id
+        unit: count
         kind: config
-        meaning: what the profiler should do
-      - key: durationS
-        name: durationS
-        unit: seconds
+        meaning: the request's identity; a new id is a new request
+        validity: >
+          The node compares it with the id it last served, by equality, and must hold
+          it as a 31-bit SMI: custos writes values below 2^30. A custos that reused a
+          served id would be ignored without a trace.
+        refs: [rete#415]
+      - key: ms
+        name: ms
+        unit: ms
         kind: config
-        meaning: how long to capture
-      - key: continuous
-        name: continuous
-        unit: bool
-        kind: config
-        meaning: whether to keep capturing rather than stopping at durationS
+        meaning: the window's length; 0 disarms
+        refs: [rete#415]
 
   reboot:
     record: Reboot

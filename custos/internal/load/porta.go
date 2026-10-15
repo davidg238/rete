@@ -108,17 +108,36 @@ func (p Porta) Push(path string) (Push, error) {
 		return Push{}, fmt.Errorf("porta POST /blob: Record: %w", err)
 	}
 	name := filepath.Base(path)
-	b, _, err = p.call("PUT", p.cell("goal/apps/main")+"?reason="+url.QueryEscape("custos load "+name), rec,
-		map[string]string{"Content-Type": "application/cbor", "X-Porta-Actor": "custos"})
+	seq, err := p.put("goal/apps/main", rec, "custos load "+name)
 	if err != nil {
 		return Push{}, err
 	}
+	out := Push{Image: name, Size: signed.Size, SHA256: signed.Hash, Seq: seq}
+	return p.Refresh(out)
+}
+
+// Write encodes v as one closed cval value and writes it at path on the node:
+// a goal/ cell (rete#415: goal/console and goal/profile), or a dbg/req line.
+// It answers porta's seq for the write.
+func (p Porta) Write(path string, v any, reason string) (int64, error) {
+	enc, err := cval.Encode(v)
+	if err != nil {
+		return 0, err
+	}
+	return p.put(path, enc, reason)
+}
+
+func (p Porta) put(path string, enc []byte, reason string) (int64, error) {
+	b, _, err := p.call("PUT", p.cell(path)+"?reason="+url.QueryEscape(reason), enc,
+		map[string]string{"Content-Type": "application/cbor", "X-Porta-Actor": "custos"})
+	if err != nil {
+		return 0, err
+	}
 	var w struct{ Seq int64 }
 	if err := json.Unmarshal(b, &w); err != nil {
-		return Push{}, fmt.Errorf("porta PUT goal/apps/main: %w", err)
+		return 0, fmt.Errorf("porta PUT %s: %w", path, err)
 	}
-	out := Push{Image: name, Size: signed.Size, SHA256: signed.Hash, Seq: w.Seq}
-	return p.Refresh(out)
+	return w.Seq, nil
 }
 
 // Refresh re-reads what the node runs.

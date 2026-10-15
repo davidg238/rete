@@ -82,7 +82,7 @@ func (f *fakePorta) runs(t *testing.T, node, hash string) {
 func portaBoard(t *testing.T, porta string) *httptest.Server {
 	t.Helper()
 	mux := http.NewServeMux()
-	if err := mountBoards(context.Background(), mux, []Board{{Name: "bell", Node: "206ef1195438"}}, "", t.TempDir(), porta); err != nil {
+	if err := mountBoards(context.Background(), mux, []Board{{Name: "bell", Node: "206ef1195438"}}, "", t.TempDir(), porta, ""); err != nil {
 		t.Fatal(err)
 	}
 	srv := httptest.NewServer(mux)
@@ -152,7 +152,7 @@ func TestPortaLoadRefusesANonImageBeforePorta(t *testing.T) {
 }
 
 func TestPortaNodeNeedsPortaHTTP(t *testing.T) {
-	err := mountBoards(context.Background(), http.NewServeMux(), []Board{{Name: "bell", Node: "n"}}, "", t.TempDir(), "")
+	err := mountBoards(context.Background(), http.NewServeMux(), []Board{{Name: "bell", Node: "n"}}, "", t.TempDir(), "", "")
 	if err == nil || !strings.Contains(err.Error(), "--porta-http") {
 		t.Fatalf("no porta: %v", err)
 	}

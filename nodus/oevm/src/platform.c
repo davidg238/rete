@@ -424,7 +424,7 @@ int rtc_alarm_arm(int seconds_of_day, int chan_id, int handle_idx) {
    ratchet witnessed ACROSS simulated sleeps (Task 7's harness). With no file set the
    array is cold at process start (magic unwritten -> rtcValid false), which is
    exactly the cold-power-on path. A reusable test feature, not a one-off. */
-#define OEVM_RTC_FIELDS 10
+#define OEVM_RTC_FIELDS 14  /* 0-9 the app's, 10-13 the kernel's retained profile request (rete#415 Q8) */
 #define OEVM_RTC_MAGIC  0x14BE11C0u  /* must fit a 32-bit SMI (31-bit tag): the node
                                         writes it via rtcPut:, and a magnitude >= 2^30
                                         never round-trips on a 32-bit target */
@@ -1499,6 +1499,19 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
         if (!armed) { *out = NULL; return 1; }
         n = platform_console_take_line(buf, (int)sizeof buf);
         *out = (n < 0) ? NULL : space_make_string_pub(buf, (size_t)n);
+        return 1;
+    }
+    case PRIM_pf_consoleTee: {         /* rete#415: platform_backend.h */
+        oop a = args[0];
+        if (a == NULL || IS_SMI(a) || StringVtable == NULL || obj_vtable(a) != StringVtable ||
+            !IS_SMI(args[1])) {
+            *out = false_symbol; return 1;     /* a bad record is the kernel's to log, never a raise */
+        }
+        {
+            struct String *s = (struct String *)a;
+            *out = platform_console_tee((const char *)s->bytes, (size_t)s->length,
+                                        (int)UNTAG_SMI(args[1])) ? true_symbol : false_symbol;
+        }
         return 1;
     }
     case PRIM_pf_boardName: {          /* rete#118: nil = "this build was not told a board name" */

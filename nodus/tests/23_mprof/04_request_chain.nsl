@@ -5,8 +5,9 @@ restarted 0
 ended 1
 done
 *)
-(* #165 D2/D6, rete#312: the WHOLE chain, on host — `dbg/req` -> the kernel's
-   Profiler (installed by the Supervisor before this main: runs) -> its timer ->
+(* #165 D2/D6, rete#312: the WHOLE chain, on host — a `profile <ms>` line (the
+   cable's and the debugger's spelling; rete#415 made porta's a goal/profile cell,
+   10_profile_cell) -> the kernel's Profiler (installed by the Supervisor before this main: runs) -> its timer ->
    `sys/profileEnd`. 02_dbg_req_profile covers only `parseProfileMs:`, a pure
    function.
 
@@ -14,8 +15,8 @@ done
    only dispatches `sys/timer` (which is all a reactor node does) and counts the
    `sys/profileEnd` events beside the kernel's own reaction. Delete the
    Supervisor's `install:` or the Profiler's wiring and `open`/`ended` go wrong.
-   Leg 8 of `nodus/oevm/tests/porta_sync_host.sh` is still the gate for the
-   bridge's half (a real `porta put` over UDP).
+   Leg 8 of `nodus/oevm/tests/porta_sync_host.sh` is the gate for the bridge's
+   half (a real `porta put` of goal/profile over UDP).
 
    The build under test has no OEVM_METHOD_PROFILE, so `profileStart`/
    `profileStop` are no-ops (01_window_lifecycle): the COUNTS are a C unit test
@@ -30,26 +31,26 @@ class DbgReqChainTest packageUsing: manifest = (
   | private ends ::= 0. |
 ) (
   public main: platform args: args = (
-    | space timers req |
+    | space timers prof |
     space:: platform space.
     timers:: platform timers.     (* the kernel's one instance — the Profiler's too *)
     space whenever: 'sys/timer' do: [ :e | timers dispatch: e ].
     (space channel: 'sys/profileEnd') whenever: '' do: [ :m | self ended ].
-    req:: space channel: 'dbg/req'.
+    prof:: platform profiler.
 
     (* A line naming no duration must arm NOTHING. *)
-    req out: '' value: 'reboot now'. space drain.
+    prof request: 'reboot now'. space drain.
     platform advanceMillis: 1000. space drain.
     ('ignored ' , ends printString) println.
 
     (* clock 1000: a 100 ms window opens, due at 1100 *)
-    req out: '' value: 'profile 100'. space drain.
+    prof request: 'profile 100'. space drain.
     platform advanceMillis: 50. space drain.          (* clock 1050, not due *)
     ('open ' , ends printString) println.
 
     (* clock 1050: a start while the window is open RESTARTS it — the 1100
        timer is cancelled and a 200 ms one is armed, due at 1250. *)
-    req out: '' value: 'profile 200'. space drain.
+    prof request: 'profile 200'. space drain.
     platform advanceMillis: 60. space drain.          (* clock 1110, PAST 1100 *)
     ('restarted ' , ends printString) println.
 

@@ -107,6 +107,7 @@ func TestOpsRefusals(t *testing.T) {
 	}{
 		{"an obs/ write is not intent", "PUT", "/node/n1/obs/apps/main", one, 400},
 		{"a gw/ write is not intent", "PUT", "/node/n1/gw/liveness", one, 400},
+		{"dbg/resp is the node's", "PUT", "/node/n1/dbg/resp", one, 400},
 		{"not a closed cval encoding", "PUT", "/node/n1/goal/x", []byte{0xff, 0x00}, 400},
 		{"over the value cap", "PUT", "/node/n1/goal/x", make([]byte, space.MaxValueBytes+1), 413},
 		{"a cell never written", "GET", "/node/n1/goal/x", nil, 404},
@@ -118,6 +119,40 @@ func TestOpsRefusals(t *testing.T) {
 		if resp, body := do(t, srv, c.method, c.path, c.body); resp.StatusCode != c.want {
 			t.Errorf("%s: %d %s, want %d", c.name, resp.StatusCode, body, c.want)
 		}
+	}
+}
+
+// rete#415: a dbg/req line is the one stream porta writes; it lands as a
+// stream row (a second write is a second row, never an overwrite).
+func TestOpsDbgReqIsAStream(t *testing.T) {
+	srv, db := opsServer(t)
+	line, _ := cval.Encode("profile 3000")
+	for i, want := range []string{`{"Seq":1}`, `{"Seq":2}`} {
+		resp, body := do(t, srv, "PUT", "/node/n1/dbg/req", line)
+		if resp.StatusCode != 200 || string(bytes.TrimSpace(body)) != want {
+			t.Fatalf("PUT dbg/req #%d: %d %s", i+1, resp.StatusCode, body)
+		}
+	}
+	st, err := space.Open(db, nowMs)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer st.Close()
+	evs, err := st.Events("n1", 10, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	n := 0
+	for _, e := range evs {
+		if e.Path == "dbg/req" {
+			n++
+			if e.Kind != cval.KindStream {
+				t.Errorf("dbg/req row %d has kind %v, want a stream", e.Seq, e.Kind)
+			}
+		}
+	}
+	if n != 2 {
+		t.Fatalf("%d dbg/req rows, want 2", n)
 	}
 }
 

@@ -367,7 +367,8 @@ forward, `R` reads as "cell". Direction is from the node's point of view.
 | `goal/forward` | R | `Forward { … }` — the whole policy, never a patch |
 | `goal/config/<app>/<key>` | R | scalar (`int`/`str`/`bool`/`sym`) |
 | `goal/debug/<app>` | R | `Debug { sha: bytes, breaks: [[blob: int, off: int] …] }` — the WHOLE breakpoint set for the image `sha` names (an offset means nothing in another image); empty is the detach. Replayed to a fresh boot, so a deep-sleeping node re-arms from it (rete#375) |
-| `goal/profile/<app>` | R | `Profile { action: sym, durationS: int, continuous: bool }` |
+| `goal/console` | R | `Console { addr: str, port: int }` — the console's UDP tee target, a literal IPv6 address (rete#415); `""` turns the tee off. Replayed to a fresh boot, so a waking node re-tees before its work |
+| `goal/profile` | R | `Profile { id: int, ms: int }` — one request; served once, carried across a sleep that cuts it (rete#415) |
 | `goal/do/reboot` | **E** | `Reboot {}` — exactly-once via cursor |
 
 `goal/apps/<name>` is where the size law earns its keep: the image is a `BlobRef`, so
@@ -666,12 +667,17 @@ or a view built on that tooling, look like a violation of "stateless relay" when
 (`docs/design/2026-08-06-method-profile-over-porta-design.md` D7).
 
 **Implemented 2026-08-06** (`docs/design/2026-08-06-method-profile-over-porta-design.md`,
-issues #164/#165) — `dbg/*`'s first implementation since v1 was deleted. The line this
-channel carries today is `profile <ms>`: the node opens a self-limiting per-method
-activation-count window sized in milliseconds, counts for that duration, and reports without
-needing a matching stop request, so a node that never hears from porta again still stops
-counting and still reports. The rows themselves stay off this path — they leave over the
-console already teed to the collector (#56), never over `dbg/resp`, which keeps a profile
+issues #164/#165) — `dbg/*`'s first implementation since v1 was deleted. Its first line
+was `profile <ms>`: the node opens a self-limiting per-method activation-count window sized
+in milliseconds, counts for that duration, and reports without needing a matching stop
+request, so a node that never hears from porta again still stops counting and still reports.
+**Since rete#415 porta asks for a profile by the `goal/profile` cell, not by this channel**
+(`Profile{id, ms}`: one request, retained across sleep and served once, §4.1's table). The
+`profile <ms>` line survives as the cable's spelling of the same request and as one of the
+debugger's commands in a debug image, where `dbg/req` is the debugger's line; the kernel has
+one entry for all of them (`Profiler>>requestMs:id:`). The rows themselves stay off this path — they leave over the
+console's UDP tee, whose target is the `goal/console` cell (rete#415: custos writes its own
+address there, so the rows reach the custos that asked), never over `dbg/resp`, which keeps a profile
 table off the same plane the size law keeps every other blob off (§2.4) rather than testing
 `MAX_VALUE_BYTES`'s pagination story against it.
 

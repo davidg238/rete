@@ -1,0 +1,49 @@
+(* rete#415 Q8/Q9 — a profile request across deep sleep, on the host. Driven by
+   test_deepsleep_node.py (test_profile_request_survives_one_sleep), which re-execs
+   this image with one OEVM_RTC_FILE, so each run is a wake. The wake number is the
+   app's own RTC slot 1; the request is the kernel's, slots 10-13.
+
+     wake 1  the cell arrives (id 5, 60 s) and opens a window; sleep cuts it, so it
+             is carried: no dump.
+     wake 2  the kernel opens it again from boot, before this main: runs; the replayed
+             cell (porta replays every cell) changes nothing; sleep cuts it, and this
+             time it dumps and is served.
+     wake 3  the replay again: nothing opens, nothing is said at sleep.
+     wake 4  a new id (6, 100 ms) opens at once, ends on its timer, and is served.
+
+   The console's tee target is told once, in wake 1 (goal/console, [::1]:54345); every
+   later wake must tee from its first line with no cell, because the platform keeps the
+   target across the sleep (the host keeps it beside OEVM_RTC_FILE). *)
+class ProfileAcrossSleepNode packageUsing: manifest = (
+  | private ends ::= 0. |
+) (
+  batch: platform hi: hi value: value = (
+    ^ platform Cbor encode:
+        (platform Record tag: #batch
+           with: #hi -> hi
+           with: #ent -> (platform List with: (platform List with: hi with: 'goal/profile' with: 2 with: value))) )
+
+  public main: platform args: args = (
+    | space timers bridge wake cell |
+    space:: platform space.
+    timers:: platform timers.
+    space whenever: 'sys/timer' do: [ :e | timers dispatch: e ].
+    (space channel: 'sys/profileEnd') whenever: '' do: [ :m | ends:: ends + 1 ].
+    bridge:: platform PortaBridge socket: nil space: space id: 'n1' peer: '::1' port: 6969 spans: platform Spans new.
+    wake:: (platform rtcGet: 1) + 1.
+    wake = 1 ifTrue: [
+      bridge applyBatch: (platform Cbor encode: (platform Record tag: #batch with: #hi -> 100
+        with: #ent -> (platform List with: (platform List with: 100 with: 'goal/console' with: 2
+          with: (platform Record tag: #Console with: #addr -> '::1' with: #port -> 54345))))) ].
+    platform rtcPut: 1 value: wake.
+    ('wake ' , wake printString) println.
+    cell:: platform Record tag: #Profile with: #id -> 5 with: #ms -> 60000.
+    wake = 4 ifTrue: [
+      cell:: platform Record tag: #Profile with: #id -> 6 with: #ms -> 100 ].
+    bridge applyBatch: (self batch: platform hi: wake value: cell).
+    platform advanceMillis: 200. space drain.
+    ('ends ' , ends printString , ' served ' , (platform rtcGet: 12) printString) println.
+    platform deepSleep: 1.
+    ^ 0 )
+) : (
+)

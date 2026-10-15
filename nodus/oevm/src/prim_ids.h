@@ -585,4 +585,10 @@
    receiver[start .. stop], one block move, both indexables (slot0 = SMI length), bounds-checked. Kernel-only, as
    basicAt:put: is: OrderedCollection's grow, in place of a per-element loop. Appended after timerWake; 163. */
 #define PRIM_ix_basicReplace      163
+/* rete#415: `consoleTee: addr port: n` — point the console's UDP tee at [addr]:n, from the
+   goal/console cell (platform_backend.h platform_console_tee). addr is a String, a literal
+   IPv6 address; '' turns the tee off. Answers true when it took, false when the address or
+   port did not parse (the tee is then unchanged). Appended after basicReplace; 164 by
+   COUNTING PRIM_NAMES (163 entries before this). Platform-dispatched. */
+#define PRIM_pf_consoleTee        164
 #endif /* OEVM_PRIM_IDS_H */

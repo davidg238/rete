@@ -126,12 +126,13 @@ What the gateway *is*:
   rete#398 the HTTP twins of three CLI commands. `POST /blob` is `porta blob put` (the
   bytes stored content-addressed, their SHA-256 signed with `porta.key`; answers `{Hash,
   Size, Sig, Record}`, `Record` the `App` value as hex). `PUT /node/{id}/{path...}` is
-  `porta put --raw`, for `goal/**` cells only (one closed cval encoding through the same
+  `porta put --raw`, for `goal/**` cells and `dbg/req` stream rows, porta's whole inbound
+  authority and nothing else (rete#415; one closed cval encoding through the same
   `Store.Write` door, so the gw/ ban, the 256 B cap and the manifest gate hold; the
   actor is `X-Porta-Actor` or the peer address; answers `{Seq}`). `GET
   /node/{id}/{path...}` is one cell of `porta get`, the raw CBOR with its seq in
   `X-Porta-Seq`. They are general on purpose: a push is a blob and a goal write, the
-  same write carries `goal/debug/main`, and porta never learns what an app is. Admission
+  same write carries `goal/debug/main`, `goal/console`, `goal/profile` and a debugger's `dbg/req` line, and porta never learns what an app is. Admission
   is the listener's CIDR allowlist and nothing else, a known gap for 0.1
   (`../../docs/design/2026-10-12-398-load-through-porta-design.md` Q3). v1's dashboard, JSON API and MCP server are deferred → operator surface
   in the capability audit, not silently dropped; the exposed agent-facing front door is

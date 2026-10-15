@@ -11,10 +11,15 @@
 #      check-in IS the heartbeat, so this is also the liveness proof.
 #   3. `tel/log` entries arrive EXACTLY ONCE: every entry carries a monotone tick
 #      counter, so a re-pushed entry would show up as a repeated 'tick N'.
-#   4. a `dbg/req` written at porta opens a per-method profile window on the node
+#   4. a `goal/profile` cell written at porta opens a per-method profile window on the node
 #      and the window CLOSES ITSELF (#165 D2/D6) — the only off-target proof that
 #      the request survives the wire, since the node-side chain alone is covered
-#      by nodus/tests/23_mprof/04_dbg_req_chain.nsl.
+#      by nodus/tests/23_mprof/10_profile_cell.nsl.
+#   4c. (rete#415) the same window asked for by an AGENT, through custos and porta's
+#      HTTP: custos serves the node as a porta node with a console, writes
+#      goal/console naming its own UDP sink, writes the request as the
+#      goal/profile cell (Profile{id, ms}, rete#415 Q8), and ranks the dump that
+#      comes back by the console tee — never the space.
 # Leg 3 under a DELIBERATE datagram drop is plan 3's, on the C6 over the mesh.
 #
 # Not wired into run_tests_oevm.py — it builds a separate Go binary and a
@@ -56,8 +61,9 @@ if ! command -v go >/dev/null 2>&1; then
   echo "SKIP: go is not on PATH — cannot build the porta counterparty"; exit 0
 fi
 
-echo "[1/9] build porta"
+echo "[1/9] build porta and custos"
 ( cd "$PORTA_DIR" && go build -o /tmp/porta ./cmd/porta )
+( cd "$PORTA_DIR/../custos" && go build -o /tmp/porta_sync_custos ./cmd/custos )
 
 echo "[2/9] host-ABI layout descriptor"
 gcc -std=c99 -Isrc tools/dump_layout.c -o /tmp/dl
@@ -67,7 +73,7 @@ echo "[3/9] compile PortaBridgeNode.nsl -> .oimg"
 python3 "$NSL" zephyr/PortaBridgeNode.nsl /tmp/porta_node.oimg --format=oimg --layout=/tmp/layout.json
 
 echo "[4/9] build the image VM"
-# -DOEVM_METHOD_PROFILE: leg 8 below drives a real dbg/req profile window end
+# -DOEVM_METHOD_PROFILE: leg 8 below drives a real goal/profile window end
 # to end. Without the define `profileStart`/`profileStop` are silent no-ops
 # (platform.c:1217), so the leg would pass on a node that never counted — the
 # gate would be green with the whole feature compiled out. The counter costs
@@ -91,10 +97,16 @@ rm -f "$DB"
 # the real node pushes below must clear the closed manifest, so a green run is
 # also the completeness proof for protocol/MANIFEST.cddl's row table.
 MANIFEST="$(git rev-parse --show-toplevel)/protocol/MANIFEST.cddl"
-/tmp/porta serve --db "$DB" --udp 127.0.0.1:16969 --http-port 0 --sweep-tick 1s --manifest "$MANIFEST" >/tmp/porta_serve.log 2>&1 &
+# rete#415: porta's operator HTTP on 16968 and custos on 16967 (leg 8c), beside the
+# exchange pair; host_ota's 2696x set is its own, so the two gates still coexist.
+PORTA_HTTP=16968
+CUSTOS_PORT=16967
+/tmp/porta serve --db "$DB" --udp 127.0.0.1:16969 --http-port "$PORTA_HTTP" --http-bind 127.0.0.1 \
+  --sweep-tick 1s --manifest "$MANIFEST" >/tmp/porta_serve.log 2>&1 &
 PORTA_PID=$!
 NODE_PID=""
-trap 'kill $PORTA_PID ${NODE_PID:-} 2>/dev/null || true' EXIT
+CUSTOS_PID=""
+trap 'kill $PORTA_PID ${NODE_PID:-} ${CUSTOS_PID:-} 2>/dev/null || true' EXIT
 for _ in $(seq 1 50); do grep -q "serving the space" /tmp/porta_serve.log && break; sleep 0.1; done
 grep -q "serving the space" /tmp/porta_serve.log || {
   echo "FAIL: porta did not start"; cat /tmp/porta_serve.log; exit 1; }
@@ -355,31 +367,29 @@ done
 SPAN_ROWS=$(/tmp/porta get --db "$DB" "$NODE" diag | grep -c "diag/spans/")
 echo "  diag/spans: $SPAN_ROWS cells in porta's tree, rows and summary (tuvm#107)"
 
-# LEG 8 — the #165 profile chain, end to end over the real wire: porta writes
-# dbg/req, the node's inbound filter accepts it (kernel `mayApply:`), the bridge
-# applies it as a STREAM, the channel reaction self-sends `dbgReq:`, the parsed
-# duration arms a one-shot on the app's ONE Timers instance, and the fired timer
-# posts to sys/profileEnd, which closes the window and dumps.
+# LEG 8 — the #165 profile chain, end to end over the real wire: porta writes the
+# goal/profile cell (rete#415 Q8: Profile{id 7, ms 3000}, raw, as an operator would),
+# the node's inbound filter accepts it (kernel `mayApply:`), the bridge applies it as
+# a CELL and hands it to the kernel's Profiler (`requestMs:id:`), which arms a one-shot
+# on the ONE Timers instance, and the fired timer posts to sys/profileEnd, which
+# closes the window and dumps.
 #
-# Every one of those hops was proven ONLY by the C6 hardware gate until now:
-# nodus/tests/23_mprof/04_dbg_req_chain.nsl drives the node-side half on the
-# host virtual clock, but nothing off-target had ever carried a dbg/req across
-# the wire. This leg is the other half, and it is why the wiring was ported to
-# PortaBridgeNode.nsl rather than left C6-only.
+# nodus/tests/23_mprof/10_profile_cell.nsl drives the node-side half on the host
+# virtual clock; this leg is the other half, over the wire.
 #
 # `mprof[window]` is asserted by name, not `mprof`: mprof_report also prints
 # `mprof[exit]` (vm.c's destructor, gated on OEVM_MPROF_DUMP) and `mprof[flip]`
 # / `mprof[dump]` under the old countdown seam, and a grep for the bare prefix
 # would score any of them as a window that closed.
-echo "[8/9] dbg/req opens and closes a profile window"
-/tmp/porta put --db "$DB" "$NODE" dbg/req "profile 3000" --kind stream >/dev/null
+echo "[8/9] goal/profile opens and closes a profile window"
+/tmp/porta put --db "$DB" "$NODE" goal/profile --raw d81b82d8276750726f66696c65a2d82762696407d827626d73190bb8 >/dev/null
 for _ in $(seq 1 100); do
   grep -q 'mprof\[window\]' /tmp/porta_node.log && break; sleep 0.4
 done
 grep -q 'mprof\[window\]' /tmp/porta_node.log || {
-  echo "FAIL: dbg/req 'profile 3000' never closed a window — no mprof[window] in the node log."
-  echo "      The chain is porta put -> mayApply: -> the dbg/req channel reaction ->"
-  echo "      parseProfileMs: -> timers after: -> sys/profileEnd -> profileStop."
+  echo "FAIL: goal/profile {id 7, ms 3000} never closed a window — no mprof[window] in the node log."
+  echo "      The chain is porta put -> mayApply: -> applyProfile: -> requestMs:id: ->"
+  echo "      timers after: -> sys/profileEnd -> profileStop."
   tail -40 /tmp/porta_node.log; exit 1; }
 echo "  the window closed itself and dumped — porta never sent a stop"
 
@@ -398,6 +408,55 @@ done
   echo "      Profiler>>drainConsole -> consoleLine -> request: -> timers after:."
   tail -40 /tmp/porta_node.log; exit 1; }
 echo "  the console line opened a window through the same handler"
+
+# LEG 8c — rete#415: the agent's path. custos serves the node as a porta node with a
+# console (--advertise ::1) and its map; at start-up it writes goal/console naming its
+# own UDP sink, so the node tees its console there from its next check-in. One POST
+# writes goal/profile = Profile{id, 1000} through porta's HTTP and answers Pending (an
+# always-on node opens the window at once and serves it at 1000 ms, Q9); the dump
+# comes back by the tee (prim consoleTee:port: -> the posix tee, the host twin of
+# log_udp.c) and /profile/last ranks it. The space never carries a row: the only
+# writes are the two cells. The host node publishes no obs/apps/main, so the
+# report carries the UNCHECKED warning, which is asserted too: a node that can say
+# which program it runs would be checked against the map instead.
+echo "[8c/9] an agent's profile through custos and porta, the rows by the console tee"
+CUSTOS_HOME=$(mktemp -d)
+HOME="$CUSTOS_HOME" /tmp/porta_sync_custos --bind 127.0.0.1 --port "$CUSTOS_PORT" \
+  --porta-http "http://127.0.0.1:$PORTA_HTTP" --porta-node "node=$NODE" \
+  --map "node=/tmp/porta_node.oimg.map.json" --advertise ::1 >/tmp/porta_sync_custos.log 2>&1 &
+CUSTOS_PID=$!
+CUSTOS_URL="http://127.0.0.1:$CUSTOS_PORT/board/node"
+for _ in $(seq 1 50); do curl -sf "http://127.0.0.1:$CUSTOS_PORT/boards" >/dev/null && break; sleep 0.1; done
+curl -sf "http://127.0.0.1:$CUSTOS_PORT/boards" | grep '"profile"' >/dev/null || {
+  echo "FAIL: custos did not start serving the node's profile"; cat /tmp/porta_sync_custos.log; exit 1; }
+/tmp/porta get --db "$DB" "$NODE" goal/console | grep "Console" >/dev/null || {
+  echo "FAIL: custos wrote no goal/console at start-up"; /tmp/porta get --db "$DB" "$NODE" goal; exit 1; }
+POSTED=$(curl -sf -X POST "$CUSTOS_URL/profile/capture?ms=1000") || {
+  echo "FAIL: custos refused the profile request"; curl -s -X POST "$CUSTOS_URL/profile/capture?ms=1000"; exit 1; }
+echo "$POSTED" | grep '"Pending":true' >/dev/null || {
+  echo "FAIL: a porta node's capture must answer Pending at the goal/profile write, got: $POSTED"; exit 1; }
+/tmp/porta get --db "$DB" "$NODE" goal/profile | grep "Profile" >/dev/null || {
+  echo "FAIL: custos wrote no goal/profile cell"; /tmp/porta get --db "$DB" "$NODE" goal; exit 1; }
+for _ in $(seq 1 150); do
+  curl -sf "$CUSTOS_URL/profile/last" | grep '"Pending":true' >/dev/null || break; sleep 0.2
+done
+LAST=$(curl -sf "$CUSTOS_URL/profile/last")
+python3 - "$LAST" <<'PY' || { echo "FAIL: /profile/last: $LAST" | head -c 2000; echo; tail -20 /tmp/porta_sync_custos.log; exit 1; }
+import json, sys
+c = json.loads(sys.argv[1])
+assert not c.get("Pending"), "still pending after 30 s: the node never teed a dump to custos"
+assert not c.get("Error"), c.get("Error")
+r = c["Report"]
+assert r["Header"]["Methods"] > 0 and len(r["Rows"]) == r["Header"]["Methods"], "rows do not match the header"
+assert any(row["Name"].startswith("PortaBridge") for row in r["Rows"]), "no bridge method ranked"
+assert any(w.startswith("UNCHECKED") for w in r["Warnings"]), "an unchecked node must say so"
+print(f"  {len(r['Rows'])} methods ranked from the teed dump; top: {r['Rows'][0]['Name']} {r['Rows'][0]['Count']}")
+PY
+/tmp/porta log --db "$DB" "$NODE" --limit 400 2>/dev/null | grep "mprof" >/dev/null && {
+  echo "FAIL: a profile row reached the space; the rows must leave by the console tee only"; exit 1; }
+echo "  the request went through porta and the rows came back by the tee, not the space"
+kill "$CUSTOS_PID" 2>/dev/null || true
+rm -rf "$CUSTOS_HOME"
 
 # rete#114 — the leg NO gate had: a sys/panic row actually ARRIVING at porta.
 # Before #114 nothing subscribed the path, so the app-side publication died

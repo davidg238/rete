@@ -10,6 +10,7 @@
 #include <string.h>
 #include <time.h>
 #include <setjmp.h>
+#include <stdarg.h>
 
 /* In-language monotonic millisecond clock. Function-pointer hook so the Zephyr
    appliance can override it with k_uptime_get(). The POSIX path is compiled out
@@ -530,20 +531,35 @@ void mprof_alloc(unsigned heap, size_t bytes) {
    A method outside the blob (Model A / solidified .rodata) has no such offset;
    it prints as `@<pointer>` so it is visibly a different kind of thing rather
    than a plausible wrong offset. */
+/* rete#415 F5: the dump's one door. A board's stderr reaches the UART and nothing
+   else, so a dump written with fprintf(stderr) never reached the UDP tee, and no
+   remote reader could ever have seen one. platform_console_err writes stderr, as
+   before, and the tee; on a board it paces itself against the tee's ring (F6). */
+static void mprof_out(const char *fmt, ...) {
+    char line[160];             /* the widest line, mprofa[...]'s five 10-digit counts, is ~115 */
+    va_list ap;
+    int n;
+    va_start(ap, fmt);
+    n = vsnprintf(line, sizeof line, fmt, ap);
+    va_end(ap);
+    if (n > (int)sizeof line - 1) n = (int)sizeof line - 1;
+    if (n > 0) platform_console_err(line, (size_t)n);
+}
+
 static void mprof_report(const char *why) {
     int i;
     uint32_t total = 0;
     for (i = 0; i < OEVM_MPROF_SLOTS; i++) total += g_mprof_n[i];
-    fprintf(stderr, "mprof[%s]: methods=%u activations=%u overflow=%u cap=%d\n",
+    mprof_out("mprof[%s]: methods=%u activations=%u overflow=%u cap=%d\n",
             why, g_mprof_used, total, g_mprof_overflow, OEVM_MPROF_SLOTS);
     for (i = 0; i < OEVM_MPROF_SLOTS; i++) {
         if (!g_mprof_key[i]) continue;
         if (is_in_blob(g_mprof_key[i])) {
-            fprintf(stderr, "mprof: %lu %u\n",
+            mprof_out("mprof: %lu %u\n",
                     (unsigned long)((const uint8_t *)g_mprof_key[i] - oimg_blob_base),
                     g_mprof_n[i]);
         } else {
-            fprintf(stderr, "mprof: @%p %u\n", g_mprof_key[i], g_mprof_n[i]);
+            mprof_out("mprof: @%p %u\n", g_mprof_key[i], g_mprof_n[i]);
         }
     }
 
@@ -552,7 +568,7 @@ static void mprof_report(const char *why) {
        at exactly two fields, so widening that line makes it match NOTHING and
        report "no mprof: lines found" -- a silent false negative in the only
        tool that reads this. */
-    fprintf(stderr, "mprofa[%s]: noframe_arena=%u/%u noframe_cheap=%u/%u allocOverflow=%u\n",
+    mprof_out("mprofa[%s]: noframe_arena=%u/%u noframe_cheap=%u/%u allocOverflow=%u\n",
             why, g_mprof_nf_bytes[MPROF_HEAP_ARENA], g_mprof_nf_cnt[MPROF_HEAP_ARENA],
             g_mprof_nf_bytes[MPROF_HEAP_CHEAP], g_mprof_nf_cnt[MPROF_HEAP_CHEAP],
             g_mprof_alloc_overflow);
@@ -565,19 +581,19 @@ static void mprof_report(const char *why) {
         if (g_mprof_bytes[MPROF_HEAP_ARENA][i] == 0 &&
             g_mprof_bytes[MPROF_HEAP_CHEAP][i] == 0) continue;
         if (is_in_blob(g_mprof_key[i])) {
-            fprintf(stderr, "mprofa: %lu %u %u %u %u\n",
+            mprof_out("mprofa: %lu %u %u %u %u\n",
                     (unsigned long)((const uint8_t *)g_mprof_key[i] - oimg_blob_base),
                     g_mprof_bytes[MPROF_HEAP_ARENA][i], g_mprof_acnt[MPROF_HEAP_ARENA][i],
                     g_mprof_bytes[MPROF_HEAP_CHEAP][i], g_mprof_acnt[MPROF_HEAP_CHEAP][i]);
         } else {
-            fprintf(stderr, "mprofa: @%p %u %u %u %u\n", g_mprof_key[i],
+            mprof_out("mprofa: @%p %u %u %u %u\n", g_mprof_key[i],
                     g_mprof_bytes[MPROF_HEAP_ARENA][i], g_mprof_acnt[MPROF_HEAP_ARENA][i],
                     g_mprof_bytes[MPROF_HEAP_CHEAP][i], g_mprof_acnt[MPROF_HEAP_CHEAP][i]);
         }
     }
     /* rete#312: the dump is complete. A live reader (custos profile -port) stops here
        instead of guessing from a quiet line; neither reader's row pattern matches it. */
-    fprintf(stderr, "mprof[%s]: end\n", why);
+    mprof_out("mprof[%s]: end\n", why);
 }
 
 /* #165 D1/D6 lifecycle. start = zero + enable; stop = disable + report. Zeroing

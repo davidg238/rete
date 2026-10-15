@@ -410,7 +410,7 @@ delete a capability** (design D8), so every one of those verbs has a recorded fa
 | `container install` | `porta blob put`, then the `goal/apps/<name>` write it prints |
 | `container uninstall` | `goal/apps/<name>` with its lifecycle written to stopped — there is no tombstone |
 | `log -d` | `porta log <node>`, with `actor`/`reason` v1 could not record |
-| `debug` / `profile` | writes to `goal/debug/<app>` and `goal/profile/<app>`; the sessions are `dbg/req` / `dbg/resp` lines |
+| `debug` / `profile` | writes to `goal/debug/<app>` and `goal/profile`; the sessions are `dbg/req` / `dbg/resp` lines |
 | `scan`, `ping`, `monitor` and its tail | **deferred → operator surface.** The data is recorded (`nodes.last_seen_ms`, `exchanges`, `gw/liveness`, `tel/**`); the view that presents it is not built |
 
 ## The other program

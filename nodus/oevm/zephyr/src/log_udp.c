@@ -7,16 +7,18 @@
  * printk.h — chaining needs the getter, and the getter is only in this header. */
 #include <zephyr/sys/printk-hooks.h>
 #include <string.h>
+#include <errno.h>
 
 #include "log_udp.h"
+#ifdef CONFIG_NET_L2_OPENTHREAD
+#include "thread_bringup.h"
+#endif
 
-#ifdef OEVM_LOG_UDP6
+#ifdef CONFIG_NET_SOCKETS
 
 #include <zephyr/net/socket.h>
-
-#ifndef OEVM_LOG_UDP_PORT
-#define OEVM_LOG_UDP_PORT 54330
-#endif
+#include <zephyr/net/net_pkt.h>
+#include <zephyr/net/net_if.h>
 
 /* 4 KB holds the whole Zephyr-side boot chatter with room to spare, which matters
  * because the hook is installed long before the mesh is up: everything printed
@@ -24,12 +26,85 @@
  * works. Overflow drops the NEWEST character and counts it — see the report. */
 #define RING_BYTES 4096
 #define LINE_MAX   256
+/* The sender's idle poll. */
+#define POLL_MS    50
+/* rete#415, measured on c6b over Thread (2026-10-13): a dump's lines leave ~4 ms apart
+ * and the stack runs out of net buffers after ~80 of them; sendto then fails with
+ * ENOMEM until frames drain. That is pressure, not a dead route, so it is retried
+ * after BUSY_MS; any other error (no route) after DEAD_MS. The paced writer stops
+ * waiting only after GIVE_UP_MS with no progress, which a DEAD_MS back-off alone
+ * never reaches. */
+#define BUSY_MS    10
+#define DEAD_MS    500
+#define GIVE_UP_MS 2000
 
 static char ring[RING_BYTES];
 static uint32_t r_head, r_tail;
 static uint32_t dropped_chars, sent_lines, send_errors;
 static struct k_spinlock ring_lock;
 static printk_hook_fn_t prev_hook;
+
+/* rete#415: where the lines go. HOLD until the first target (the boot waits in the
+   ring, as it waited for a route), ON once one is set, OFF after an empty one (lines
+   are discarded: nobody asked for them). `gen` moves on every new target, so the
+   sender re-opens on the next pass. */
+enum { TEE_HOLD, TEE_ON, TEE_OFF };
+static volatile int tee_state = TEE_HOLD;
+static volatile uint32_t tee_gen;
+static struct sockaddr_in6 tee_dst;       /* written under ring_lock */
+static char tee_addr[INET6_ADDRSTRLEN];   /* for the boot and target lines */
+static int tee_port;
+static volatile int sender_pending;       /* a refused line is held for retry */
+K_SEM_DEFINE(tee_wake, 0, 1);
+
+/* rete#415: the target survives deep sleep and a restart, so a waking node tees from
+   its first line rather than holding the boot until its first check-in replays
+   goal/console (a profile window opened from boot can dump before then). RTC_NOINIT
+   memory on espressif, as main.c's g_rtc; elsewhere plain .bss, which a boot zeroes,
+   and the check fails, as it does on a power-on's garbage. `on` 0 is an off kept. */
+#define TEE_KEEP_MAGIC 0x7EE15415u
+struct tee_keep {
+	uint32_t check; uint16_t port; uint8_t on;
+	uint16_t drain_ms;   /* the last drain's, for the next boot to print */
+	char addr[INET6_ADDRSTRLEN];
+};
+#if defined(CONFIG_SOC_FAMILY_ESPRESSIF_ESP32)
+#include <esp_attr.h>   /* RTC_NOINIT_ATTR */
+static RTC_NOINIT_ATTR struct tee_keep tee_kept;
+#else
+static struct tee_keep tee_kept;
+#endif
+
+static uint32_t tee_keep_sum(const struct tee_keep *k)
+{
+	uint32_t h = 2166136261u ^ TEE_KEEP_MAGIC;
+	size_t i;
+
+	h = (h ^ k->port) * 16777619u;
+	h = (h ^ k->on) * 16777619u;
+	h = (h ^ k->drain_ms) * 16777619u;
+	for (i = 0; i < sizeof k->addr; i++) {
+		h = (h ^ (uint8_t)k->addr[i]) * 16777619u;
+	}
+	return h;
+}
+
+static void tee_keep_put(const char *addr, int port, int on)
+{
+	memset(&tee_kept, 0, sizeof tee_kept);
+	strncpy(tee_kept.addr, addr, sizeof tee_kept.addr - 1);
+	tee_kept.port = (uint16_t)port;
+	tee_kept.on = (uint8_t)on;
+	tee_kept.check = tee_keep_sum(&tee_kept);
+}
+
+static int tee_from_keep;
+
+static int tee_keep_valid(void)
+{
+	return tee_kept.check == tee_keep_sum(&tee_kept) &&
+	       tee_kept.addr[sizeof tee_kept.addr - 1] == '\0';
+}
 
 /* Called from EVERY context printk is called from — thread, workqueue, ISR. It
  * must never block and never allocate. A spinlock rather than a lock-free ring
@@ -41,7 +116,9 @@ static int ring_put(char c)
 	uint32_t next = (r_head + 1u) % RING_BYTES;
 	int put = 0;
 
-	if (next == r_tail) {
+	if (tee_state == TEE_OFF) {
+		put = 1;                  /* nobody asked: discard, uncounted */
+	} else if (next == r_tail) {
 		dropped_chars++;          /* full: drop, count, never block */
 	} else {
 		ring[r_head] = c;
@@ -50,6 +127,14 @@ static int ring_put(char c)
 	}
 	k_spin_unlock(&ring_lock, key);
 	return put;
+}
+
+static uint32_t ring_used(void)
+{
+	k_spinlock_key_t key = k_spin_lock(&ring_lock);
+	uint32_t u = (r_head + RING_BYTES - r_tail) % RING_BYTES;
+	k_spin_unlock(&ring_lock, key);
+	return u;
 }
 
 static int tee_char_out(int c)
@@ -71,6 +156,163 @@ void log_udp_tee(const char *bytes, size_t n)
 	}
 }
 
+/* rete#415 F6: a profile dump is ~10 KB written in one burst, and the ring is 4 KB,
+ * so an unpaced dump lost its tail, `end` line included, which is the line custos
+ * waits for. The writer is the VM thread (a window's close, or deepSleep:), so it may
+ * wait. It waits while the sender is moving the tail; a sender that has not moved
+ * for GIVE_UP_MS (no route) is not waited on until it moves again, so a dead route
+ * costs one stall per dump, not one per line. */
+void log_udp_tee_paced(const char *bytes, size_t n)
+{
+	static int gave_up;
+	static uint32_t gave_up_tail;
+	uint32_t tail = r_tail;
+	int still = 0;
+
+	while (tee_state == TEE_ON && !gave_up && RING_BYTES - 1 - ring_used() < n) {
+		k_msleep(2);
+		if (r_tail != tail) {
+			tail = r_tail;
+			still = 0;
+		} else if ((still += 2) >= GIVE_UP_MS) {
+			gave_up = 1;
+		}
+	}
+	if (gave_up && r_tail != gave_up_tail) {
+		gave_up = 0;              /* the sender moves again: pace the next line again */
+	}
+	if (gave_up) {
+		gave_up_tail = r_tail;
+	}
+	log_udp_tee(bytes, n);
+}
+
+#ifdef CONFIG_WIFI_ESP32
+/* F10, the same lines on WiFi: the driver copies a frame into the blob and frees the
+ * net_pkt at once, so an empty TX slab says nothing, and the blob's queue dies with the
+ * sleep. The frames given are counted by wrapping the driver's one call into the blob
+ * (CMakeLists: --wrap=esp_wifi_internal_tx), the frames sent by the blob's TX-done
+ * callback, registered at the first frame so the two counts start together. Until the
+ * callback has fired once it is not trusted to: a blob that never calls it must not
+ * hold every sleep for the drain's whole cap. The same count paces the sender
+ * (wait_for_radio): the blob holds CONFIG_ESP32_WIFI_DYNAMIC_TX_BUFFER_NUM frames and
+ * refuses the next, which the driver drops out of the sender's sight — measured at the
+ * 13:08 wake, a dump lost 116 of 338 lines in runs of 6 to 12. */
+#include <esp_private/wifi.h>
+
+static atomic_t wifi_tx_given, wifi_tx_done, wifi_tx_refused, wifi_tx_hooked;
+
+int __real_esp_wifi_internal_tx(wifi_interface_t ifx, void *buffer, uint16_t len);
+
+static void wifi_tx_done_cb(uint8_t ifidx, uint8_t *data, uint16_t *len, bool ok)
+{
+	ARG_UNUSED(ifidx);
+	ARG_UNUSED(data);
+	ARG_UNUSED(len);
+	ARG_UNUSED(ok);
+	atomic_inc(&wifi_tx_done);
+}
+
+int __wrap_esp_wifi_internal_tx(wifi_interface_t ifx, void *buffer, uint16_t len)
+{
+	int rc;
+
+	if (atomic_cas(&wifi_tx_hooked, 0, 1)) {
+		(void)esp_wifi_set_tx_done_cb(wifi_tx_done_cb);
+	}
+	rc = __real_esp_wifi_internal_tx(ifx, buffer, len);
+	atomic_inc(rc == ESP_OK ? &wifi_tx_given : &wifi_tx_refused);
+	return rc;
+}
+
+static int wifi_tx_queued(void)
+{
+	atomic_val_t done = atomic_get(&wifi_tx_done);
+
+	return done == 0 ? 0 : (int)(atomic_get(&wifi_tx_given) - done);
+}
+#endif
+
+/* rete#415, measured on c6b (2026-10-13): over Thread a sendto succeeds and the
+ * message is dropped later, when OpenThread's pool is full: a 272-line dump teed 82
+ * lines at the radio's ~4.3 ms each, then one in 25, with no error and no ring drop.
+ * So before each datagram the sender waits for the pool to have room, keeping
+ * OT_RESERVE buffers for the node's own check-ins; it waits at most OT_WAIT_MS, then
+ * sends anyway, so a stack that never frees cannot stop the console. */
+#define OT_RESERVE 32
+#define OT_WAIT_MS 1000
+
+/* Packets the stack holds that it has not yet handed to the radio's driver. */
+static uint32_t net_tx_held(void)
+{
+	struct k_mem_slab *rx, *tx;
+	struct net_buf_pool *rx_data, *tx_data;
+
+	net_pkt_get_info(&rx, &tx, &rx_data, &tx_data);
+	return tx != NULL ? k_mem_slab_num_used_get(tx) : 0;
+}
+
+/* F11, read from the MagTag's timer wakes (2026-10-13): the boot's lines up to ip-evt
+ * never arrived, and some after it. While the next hop's link address is unresolved,
+ * Zephyr parks ONE packet on the neighbour entry and discards each later one
+ * (ipv6_nbr.c, "already pending") — yet answers every sendto with success. A boot's
+ * ring goes out in a burst at the first route, so the burst died behind the one parked
+ * line. So before each datagram the sender waits for the last one to leave the stack:
+ * the stack holding more than it held just before that send means the line is parked
+ * on ND, and it leaves when the neighbour answers (or after the NS timeout, which loses
+ * that one line). Against the count before the send, not against zero: on c6b
+ * (Thread, 2026-10-14) the slab is never empty, so waiting for zero cost every line the
+ * whole OT_WAIT_MS, the paced dump stalled the reactor, and the observer rebooted it. */
+static uint32_t tx_before_send;
+
+static void wait_for_radio(void)
+{
+	int waited = 0;
+
+	while (net_tx_held() > tx_before_send && waited < OT_WAIT_MS) {
+		k_msleep(2);
+		waited += 2;
+	}
+#ifdef CONFIG_NET_L2_OPENTHREAD
+	int f;
+
+	while ((f = oevm_thread_free_buffers()) >= 0 && f < OT_RESERVE && waited < OT_WAIT_MS) {
+		k_msleep(2);
+		waited += 2;
+	}
+#endif
+#ifdef CONFIG_WIFI_ESP32
+	while (wifi_tx_queued() >= CONFIG_ESP32_WIFI_DYNAMIC_TX_BUFFER_NUM / 2 && waited < OT_WAIT_MS) {
+		k_msleep(2);
+		waited += 2;
+	}
+#endif
+	(void)waited;
+	tx_before_send = net_tx_held();
+}
+
+/* F11, the MagTag's first timer wake on the ND fix (2026-10-14 18:32): the boot's lines
+ * up to ip-evt were still lost, and these were SENT — 358 counted, ~11 fewer arrived —
+ * and the blob reported every frame done. Right after association the link-local
+ * address is still tentative (DAD) and the ULA waits for the router's advertisement,
+ * so the stack picks an unspecified or link-local source, and gw drops the datagram.
+ * So a line waits in the ring, as it does for a missing route, until the stack can
+ * pick a source the destination can answer: preferred, and not link-local unless the
+ * destination is. */
+static int source_ready(const struct sockaddr_in6 *dst)
+{
+	const struct in6_addr *src = net_if_ipv6_select_src_addr(NULL, &dst->sin6_addr);
+
+	return src != NULL && !net_ipv6_is_addr_unspecified(src) &&
+	       (net_ipv6_is_ll_addr(&dst->sin6_addr) || !net_ipv6_is_ll_addr(src));
+}
+
+/* A send refused for want of buffers, which drain on their own. */
+static int busy(int e)
+{
+	return e == ENOMEM || e == ENOBUFS || e == EAGAIN;
+}
+
 static int ring_get(char *out)
 {
 	k_spinlock_key_t key = k_spin_lock(&ring_lock);
@@ -85,18 +327,102 @@ static int ring_get(char *out)
 	return got;
 }
 
-static int log_udp_socket(struct sockaddr_in6 *dst)
+static int set_target(const char *addr, int port)
 {
-	int s;
+	struct sockaddr_in6 dst;
+	k_spinlock_key_t key;
 
-	memset(dst, 0, sizeof *dst);
-	dst->sin6_family = AF_INET6;
-	dst->sin6_port = htons(OEVM_LOG_UDP_PORT);
-	if (zsock_inet_pton(AF_INET6, OEVM_LOG_UDP6, &dst->sin6_addr) != 1) {
-		return -1;              /* a bad literal is a build error, not a runtime one */
+	memset(&dst, 0, sizeof dst);
+	dst.sin6_family = AF_INET6;
+	dst.sin6_port = htons(port);
+	if (zsock_inet_pton(AF_INET6, addr, &dst.sin6_addr) != 1) {
+		return 0;
 	}
-	s = zsock_socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
-	return s;
+	key = k_spin_lock(&ring_lock);
+	tee_dst = dst;
+	tee_gen++;
+	tee_state = TEE_ON;
+	k_spin_unlock(&ring_lock, key);
+	strncpy(tee_addr, addr, sizeof tee_addr - 1);
+	tee_port = port;
+	k_sem_give(&tee_wake);
+	return 1;
+}
+
+int log_udp_set_target(const char *addr6, size_t len, int port)
+{
+	char a[INET6_ADDRSTRLEN];
+
+	if (len == 0) {
+		k_spinlock_key_t key = k_spin_lock(&ring_lock);
+		if (tee_state != TEE_OFF) {
+			tee_state = TEE_OFF;
+			r_tail = r_head;      /* what was queued for the old target is nobody's */
+		}
+		k_spin_unlock(&ring_lock, key);
+		tee_keep_put("", 0, 0);
+		printk("logudp: off (goal/console)\n");   /* reaches the UART only */
+		return 1;
+	}
+	if (len >= sizeof a || port < 1 || port > 65535) {
+		return 0;
+	}
+	memcpy(a, addr6, len);
+	a[len] = '\0';
+	if (tee_state == TEE_ON && port == tee_port && strcmp(a, tee_addr) == 0) {
+		return 1;                 /* the replayed cell: no new socket, no new line */
+	}
+	if (!set_target(a, port)) {
+		return 0;
+	}
+	tee_keep_put(a, port, 1);
+	printk("logudp: teeing console to [%s]:%d (goal/console)\n", a, port);
+	return 1;
+}
+
+/* rete#415, measured on the MagTag (2026-10-13): an empty ring is not a sent console.
+ * The sender has handed the lines to the stack, and a deep sleep then kills them in its
+ * TX queue: `sleep: arming`, `space:` and `deep sleep` never arrived. So the drain also
+ * waits for the stack to hand every queued packet to the radio. */
+static int net_tx_busy(void)
+{
+	if (net_tx_held()) {
+		return 1;
+	}
+#ifdef CONFIG_NET_L2_OPENTHREAD
+	if (oevm_thread_tx_queued() > 0) {
+		return 1;
+	}
+#endif
+#ifdef CONFIG_WIFI_ESP32
+	if (wifi_tx_queued() > 0) {
+		return 1;
+	}
+#endif
+	return 0;
+}
+
+void log_udp_drain(int max_ms)
+{
+	int waited = 0;
+
+#ifdef CONFIG_WIFI_ESP32
+	/* Printed before the wait, so the drain carries it out: a timer wake tees nothing
+	   of its boot before the network is up, so the next boot's line would not. */
+	printk("logudp: wifi frames given %ld, done %ld, refused %ld; lines sent %u\n",
+	       (long)atomic_get(&wifi_tx_given), (long)atomic_get(&wifi_tx_done),
+	       (long)atomic_get(&wifi_tx_refused), sent_lines);
+#endif
+	while (tee_state == TEE_ON && (ring_used() > 0 || sender_pending || net_tx_busy()) &&
+	       waited < max_ms) {
+		k_msleep(10);
+		waited += 10;
+	}
+	/* The measurement the 2 s cap waits on: kept, and printed by the next boot. */
+	if (tee_keep_valid()) {
+		tee_kept.drain_ms = (uint16_t)waited;
+		tee_kept.check = tee_keep_sum(&tee_kept);
+	}
 }
 
 /* One datagram per line. UDP because a console that can BLOCK is a console that
@@ -112,15 +438,34 @@ static void log_udp_thread(void *a, void *b, void *c)
 	int len = 0;
 	int pending = 0;          /* `line` is assembled and NOT yet accepted */
 	int sock = -1;
+	uint32_t gen = 0;
 	uint32_t reported_drops = 0;
 
 	while (1) {
+		if (tee_state != TEE_ON) {
+			(void)k_sem_take(&tee_wake, K_MSEC(200));
+			continue;
+		}
+		if (gen != tee_gen) {     /* a new target: re-open and aim there */
+			k_spinlock_key_t key = k_spin_lock(&ring_lock);
+			dst = tee_dst;
+			gen = tee_gen;
+			k_spin_unlock(&ring_lock, key);
+			if (sock >= 0) {
+				zsock_close(sock);
+				sock = -1;
+			}
+		}
 		if (sock < 0) {
-			sock = log_udp_socket(&dst);
+			sock = zsock_socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
 			if (sock < 0) {
-				k_msleep(2000);   /* no route yet, or a bad literal */
+				k_msleep(2000);   /* no stack yet */
 				continue;
 			}
+		}
+		if (!source_ready(&dst)) {
+			k_msleep(POLL_MS);
+			continue;
 		}
 
 		/* HOLD A REFUSED LINE, do not discard it. The first version counted the
@@ -132,14 +477,16 @@ static void log_udp_thread(void *a, void *b, void *c)
 		 * overflows, which is the right end to lose: a boot is bounded and a
 		 * running node's chatter is not. Witnessed 2026-08-04, first flash. */
 		if (pending) {
+			wait_for_radio();
 			if (zsock_sendto(sock, line, len, 0,
 					 (struct sockaddr *)&dst, sizeof dst) < 0) {
 				send_errors++;
-				k_msleep(500);
+				k_msleep(busy(errno) ? BUSY_MS : DEAD_MS);
 				continue;
 			}
 			sent_lines++;
 			pending = 0;
+			sender_pending = 0;
 			len = 0;
 		}
 
@@ -150,10 +497,12 @@ static void log_udp_thread(void *a, void *b, void *c)
 			}
 			if (ch == '\n' || len == LINE_MAX - 1) {
 				if (len > 0) {
+					wait_for_radio();
 					if (zsock_sendto(sock, line, len, 0,
 							 (struct sockaddr *)&dst, sizeof dst) < 0) {
 						send_errors++;
 						pending = 1;   /* retry this exact line */
+						sender_pending = 1;
 					} else {
 						sent_lines++;
 						len = 0;
@@ -166,7 +515,7 @@ static void log_udp_thread(void *a, void *b, void *c)
 			}
 		}
 		if (pending) {
-			k_msleep(500);
+			k_msleep(busy(errno) ? BUSY_MS : DEAD_MS);
 			continue;
 		}
 
@@ -180,7 +529,7 @@ static void log_udp_thread(void *a, void *b, void *c)
 			       dropped_chars, send_errors, sent_lines);
 		}
 
-		k_msleep(50);
+		k_msleep(POLL_MS);
 	}
 }
 
@@ -195,32 +544,64 @@ static int log_udp_hook_init(void)
 {
 	prev_hook = __printk_get_hook();
 	__printk_hook_install(tee_char_out);
+	if (tee_keep_valid()) {
+		if (tee_kept.on) {
+			(void)set_target(tee_kept.addr, tee_kept.port);
+		} else {
+			tee_state = TEE_OFF;
+		}
+		tee_from_keep = 1;
+		return 0;
+	}
 	return 0;
 }
 SYS_INIT(log_udp_hook_init, POST_KERNEL, CONFIG_KERNEL_INIT_PRIORITY_DEFAULT);
 
 void log_udp_start(void)
 {
-	printk("logudp: teeing console to [%s]:%d\n", OEVM_LOG_UDP6, OEVM_LOG_UDP_PORT);
+	if (tee_state == TEE_ON) {
+		printk("logudp: teeing console to [%s]:%d (%s)\n", tee_addr, tee_port,
+		       tee_from_keep ? "kept from the last goal/console" : "goal/console");
+	} else if (tee_state == TEE_OFF) {
+		printk("logudp: off (kept from the last goal/console)\n");
+	} else {
+		printk("logudp: holding the console until goal/console names a target\n");
+	}
+	if (tee_from_keep) {
+		printk("logudp: the last sleep's drain took %u ms\n", tee_kept.drain_ms);
+	}
 }
 
-#else  /* !OEVM_LOG_UDP6 */
+#else  /* !CONFIG_NET_SOCKETS */
 
 void log_udp_start(void)
 {
-	/* No remote console in this image. Say it
-	 * out loud. An image built without the address looks identical to one
-	 * whose gateway is unreachable, and this bench has now been bitten twice by a
-	 * build-time omission wearing the costume of a network fault. */
-	printk("logudp: not built in (no OEVM_LOG_UDP6) — console is UART only\n");
+	/* No network in this image, so no remote console. Say it out loud: an image
+	 * that cannot tee looks identical to one whose target is unreachable, and this
+	 * bench has now been bitten twice by a build-time omission wearing the costume
+	 * of a network fault. */
+	printk("logudp: no sockets in this image — console is UART only\n");
 }
 
-/* The no-op the VM's console leaf calls in an image without a remote console.
-   Defined HERE rather than as a weak stub beside the call site, for the reason
-   recorded in platform_zephyr.c. */
+/* The no-ops the VM's console leaves call in an image without a network. Defined
+   HERE rather than as weak stubs beside the call sites, for the reason recorded in
+   platform_zephyr.c. */
 void log_udp_tee(const char *bytes, size_t n)
 {
 	(void)bytes; (void)n;
 }
+void log_udp_tee_paced(const char *bytes, size_t n)
+{
+	(void)bytes; (void)n;
+}
+int log_udp_set_target(const char *addr6, size_t len, int port)
+{
+	(void)addr6; (void)len; (void)port;
+	return 0;
+}
+void log_udp_drain(int max_ms)
+{
+	(void)max_ms;
+}
 
-#endif /* OEVM_LOG_UDP6 */
+#endif /* CONFIG_NET_SOCKETS */

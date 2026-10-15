@@ -25,6 +25,7 @@ type Sink struct {
 	Lock      io.Closer     // the board's one-reader lock, kept alive with the sink
 	Now       func() time.Time
 
+	fanout   // rete#415: a profile through porta reads its dump here
 	mu       sync.Mutex
 	since    time.Time
 	up       bool
@@ -112,6 +113,7 @@ func (s *Sink) Run(ctx context.Context, conn net.PacketConn) {
 		s.mu.Lock()
 		s.lastLine = now
 		s.mu.Unlock()
+		s.publish(text)
 	}
 	s.set(false, "stopped")
 	s.Store.Note("udpsink stopped", s.now())

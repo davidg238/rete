@@ -1,0 +1,13 @@
+(* expect:
+closed
+sleep: arming 3 s
+*)
+(* rete#415 P3, the other arm: with no window open, deepSleep: says nothing about a
+   profile. A cut line here would claim a dump that never happened. *)
+class SleepNoWindowTest packageUsing: manifest = () (
+  public main: platform args: args = (
+    'closed' println.
+    platform deepSleep: 3.
+    ^ 0 )
+) : (
+)

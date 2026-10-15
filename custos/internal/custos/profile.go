@@ -34,6 +34,12 @@ type Capture struct {
 	Ms         int
 	Map        string
 	Report     profile.Report
+	// A porta node's request (rete#415): Pending until the dump's end line
+	// arrives by the console tee, Seq porta's for the goal/profile write, Error why a
+	// capture that started could not finish.
+	Pending bool   `json:",omitempty"`
+	Seq     int64  `json:",omitempty"`
+	Error   string `json:",omitempty"`
 }
 
 // mountProfile serves captures through open. busy is the board's: its other
@@ -83,7 +89,7 @@ func mountProfile(mux *http.ServeMux, prefixes []string, mapPath string, open fu
 			http.Error(w, err.Error(), http.StatusBadGateway)
 			return
 		}
-		c := &Capture{time.Now().UnixMilli(), ms, mapPath, profile.NewReport(profile.Parse(text), m)}
+		c := &Capture{CapturedMs: time.Now().UnixMilli(), Ms: ms, Map: mapPath, Report: profile.NewReport(profile.Parse(text), m)}
 		mu.Lock()
 		last = c
 		mu.Unlock()

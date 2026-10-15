@@ -2055,6 +2055,12 @@ class Kernel usingPlatform: platform = (
            work before any drain set the breakpoint. *)
         (dbgLink == nil or: [ (path = 'goal/debug/main') not ]) ifFalse: [
           dbgLink acceptGoal: value ].
+        (* rete#415: the console's tee target, applied here for the same reason: a
+           node that wakes, checks in, works and sleeps must tee the work, and a
+           profile window cut by that sleep dumps through it. *)
+        (path = 'goal/console') ifTrue: [ self applyConsole: value ].
+        (* rete#415 Q8: the profile request, a one-shot cell retained across sleep. *)
+        (path = 'goal/profile') ifTrue: [ self applyProfile: value ].
         ^ self ].
       (* #342 spike: in a debug image whose debugger talks through the space,
          dbg/req belongs to the debugger, as the cable does (supervisor.nsl's
@@ -2063,6 +2069,34 @@ class Kernel usingPlatform: platform = (
       (dbgLink == nil or: [ (path = 'dbg/req') not or: [ (self isDbgLine: value) not ] ]) ifFalse: [
         dbgLink accept: value. ^ self ].
       space out: path value: value.
+      ^ self )
+
+    (* rete#415: `Console{addr, port}` points the console's UDP tee; an empty addr
+       turns it off. Untrusted like every inbound value: a bad record, or an address
+       the platform cannot parse, is logged and changes nothing. *)
+    applyConsole: rec = (
+      | addr port |
+      ((outer rankOf: rec) = 9 and: [ rec tag = #Console ]) ifFalse: [
+        self telLog: #error text: 'console bad record'. ^ self ].
+      addr:: rec at: #addr ifAbsent: [ nil ].
+      port:: rec at: #port ifAbsent: [ nil ].
+      ((outer rankOf: addr) = 4 and: [ (outer rankOf: port) = 2 ]) ifFalse: [
+        self telLog: #error text: 'console bad record'. ^ self ].
+      (outer consoleTee: addr port: port) ifFalse: [
+        self telLog: #error text: 'console bad address' ].
+      ^ self )
+
+    (* rete#415 Q8: `Profile{ms, id}` is one request, identified by id; ms 0 disarms.
+       Checked here, as applyConsole: checks its record; the Profiler owns the rest. *)
+    applyProfile: rec = (
+      | ms id |
+      ((outer rankOf: rec) = 9 and: [ rec tag = #Profile ]) ifFalse: [
+        self telLog: #error text: 'profile bad record'. ^ self ].
+      ms:: rec at: #ms ifAbsent: [ nil ].
+      id:: rec at: #id ifAbsent: [ nil ].
+      ((outer rankOf: ms) = 2 and: [ (outer rankOf: id) = 2 ]) ifFalse: [
+        self telLog: #error text: 'profile bad record'. ^ self ].
+      outer profiler requestMs: ms id: id.
       ^ self )
 
     (* porta's authority, enforced where it can be believed: goal/** and dbg/req,
@@ -3732,24 +3766,28 @@ class Kernel usingPlatform: platform = (
   )
 
   (* rete#312 Q1: THE one profile handler, owned by the kernel so no app carries a copy.
-     A `profile <ms>` line opens a per-method window for ms and its close dumps the rows
-     to the console (vm.c mprof_report); a second request while one is open restarts it.
-     Three feeders, one grammar (`parseProfileMs:`): porta's `dbg/req`, the console cable
-     in a standard image (`sys/console`, announced by the UART interrupt), and the
-     debugger's command loop in a debug image (supervisor.nsl), where the cable belongs
-     to the debugger. Installed by the Supervisor before every app's `main:`.
+     A request opens a per-method window for ms and its close dumps the rows to the
+     console (vm.c mprof_report); a second request while one is open restarts it.
+     rete#415: ONE mechanism, `requestMs:id:`, whatever carried the request: porta's
+     `goal/profile` cell (Profile{id, ms}), or a `profile <ms>` line (`parseProfileMs:`)
+     on the console cable in a standard image (`sys/console`, announced by the UART
+     interrupt) or through the debugger's command loop in a debug image (supervisor.nsl),
+     which owns the cable and `dbg/req` there. A line names no id, so one is minted:
+     negative, so it never meets a cell's. Installed by the Supervisor before every
+     app's `main:`.
 
      The window closes on the kernel's one Timers, so it closes only in an app that
      dispatches `sys/timer` -- every reactor node does. An app with no reactor never
      drains its space, so nothing here reaches it; its profile is a build option
      (OEVM_MPROF_FLIP_AT/DUMP_AT). The console is read with `consoleLine`, which never
      blocks: an app that reads the cable itself may already have taken the line. *)
-  class Profiler = ( | private kernel private space private timers private tok ::= nil. private endCh | ) (
+  class Profiler = ( | private kernel private space private timers private tok ::= nil. private endCh
+                       private reqId ::= nil. private fromBoot ::= false. | ) (
     public install: withCable = (
       | first |
-      (space channel: 'dbg/req') whenever: '' do: [ :v | self request: v ].
       endCh:: space channel: 'sys/profileEnd'.
       endCh whenever: '' do: [ :m | self close ].
+      self resumeRetained.
       withCable ifTrue: [
         (* rete#364: the call that arms the console also takes a line already waiting
            (custos sends `profile <ms>` as a host VM starts); dropping it lost the
@@ -3765,7 +3803,7 @@ class Kernel usingPlatform: platform = (
     public request: line = (
       | ms |
       ms:: kernel parseProfileMs: line.
-      ms > 0 ifTrue: [ self open: ms ].
+      ms > 0 ifTrue: [ self requestMs: ms id: self mintId ].
       ^ ms
     )
     (* One announcement may stand for several lines: take every complete one. *)
@@ -3774,13 +3812,74 @@ class Kernel usingPlatform: platform = (
       [ line:: kernel consoleLine. line == nil ] whileFalse: [ self request: line ].
       ^ self
     )
+
+    (* A line's id: below every id this node has armed or served, so it is new. *)
+    mintId = (
+      | low |
+      self retained ifFalse: [ ^ -1 ].
+      low:: kernel rtcGet: 11.
+      (kernel rtcGet: 12) < low ifTrue: [ low:: kernel rtcGet: 12 ].
+      low < 0 ifTrue: [ ^ low - 1 ].
+      ^ -1 )
+    (* rete#415 Q8/Q9: a request is ONE request, named by its id, and it
+       survives deep sleep in the kernel's RTC slots (10 ms, 11 id, 12 served, 13 check;
+       an app owns 0-9). A cell is replayed into every cold boot, so `served` is what
+       makes it one-shot. The rule, one for every node: a new id opens a window at once.
+       A window that reaches its ms dumps and is served (the always-on bell). A window
+       that sleep cuts dumps nothing and stays armed, and the next boot opens a fresh
+       window before main:, which dumps and is served at its ms or at sleep (a sleepy
+       node's next wake). ms 0 disarms. *)
+    public requestMs: ms id: id = (
+      ms > 0 ifFalse: [ self retainMs: 0 id: 0 served: self served. ^ self ].
+      id = self served ifTrue: [ ^ self ].
+      ((tok == nil) not and: [ reqId = id ]) ifTrue: [ ^ self ].   (* the boot window's replay *)
+      self retainMs: ms id: id served: self served.
+      self open: ms.
+      reqId:: id. fromBoot:: false.
+      ^ self )
+    resumeRetained = (
+      | ms id |
+      self retained ifFalse: [ ^ self ].
+      ms:: kernel rtcGet: 10. id:: kernel rtcGet: 11.
+      (ms > 0 and: [ (id = self served) not ]) ifFalse: [ ^ self ].
+      ('profile: window from boot, request ' , id printString) println.
+      self open: ms.
+      reqId:: id. fromBoot:: true.
+      ^ self )
+    retained = ( ^ (kernel rtcGet: 13) = (self checkMs: (kernel rtcGet: 10) id: (kernel rtcGet: 11) served: (kernel rtcGet: 12)) )
+    served = ( self retained ifFalse: [ ^ nil ]. ^ kernel rtcGet: 12 )
+    checkMs: ms id: id served: s = ( ^ ((ms bitXor: id) bitXor: (s bitXor: 789516773)) bitAnd: 1073741823 )
+    retainMs: ms id: id served: s = (
+      | s0 |
+      s0:: s == nil ifTrue: [ 0 ] ifFalse: [ s ].
+      kernel rtcPut: 10 value: ms. kernel rtcPut: 11 value: id. kernel rtcPut: 12 value: s0.
+      kernel rtcPut: 13 value: (self checkMs: ms id: id served: s0).
+      ^ self )
+
     open: ms = (
       tok == nil ifFalse: [ timers cancel: tok ].
       kernel profileStart.
       tok:: timers after: ms post: #profileEnd on: endCh.
       ^ self
     )
-    public close = ( tok:: nil. kernel profileStop. ^ self )
+    public close = (
+      reqId == nil ifFalse: [
+        self retainMs: (kernel rtcGet: 10) id: (kernel rtcGet: 11) served: reqId.
+        reqId:: nil ].
+      tok:: nil. kernel profileStop. ^ self )
+    (* rete#415 P3, Q9: Kernel>>deepSleep: is about to end the VM. A window opened from
+       boot is closed now and SAYS it was cut, so a dump shorter than the request is not
+       read as the whole window. A window opened mid-wake is carried instead: it dumps
+       nothing, and the next boot opens it again whole. *)
+    public cutBySleep = (
+      tok == nil ifTrue: [ ^ self ].
+      timers cancel: tok.
+      fromBoot ifFalse: [
+        tok:: nil. reqId:: nil.
+        'profile: window carried to the next wake' println.
+        ^ self ].
+      'profile: window cut by sleep' println.
+      ^ self close )
     public setKernel: k = ( kernel:: k. space:: k space. timers:: k timers. ^ self )
   ) : (
     public usingKernel: k = ( ^ self new setKernel: k )
@@ -4198,7 +4297,11 @@ class Kernel usingPlatform: platform = (
   (* tuvm#94 stage 5: deepSleep: seconds. NEVER RETURNS — the VM ceases to exist
      until the next timer wake reboots it. There is no wrapper and no answer to coerce:
      the caller's very next line is unreachable by construction. *)
-  public deepSleep: seconds = ( ^ platform deepSleep: seconds )
+  (* rete#415 P3: an open profile window is closed first, so its dump leaves before the
+     VM ends (the table is RAM, and a wake is often shorter than the window). *)
+  public deepSleep: seconds = (
+    profilerOne == nil ifFalse: [ profilerOne cutBySleep ].
+    ^ platform deepSleep: seconds )
   (* tuvm#100: the wall-clock seam — an external RTC (DS3231 over I2C) as the
      timebase. Thin forwarder, deliberately the SAME shape as ntpSyncTz: above:
      nil when there is no RTC or it has never been set, an SMI of seconds-since-
@@ -4308,6 +4411,9 @@ class Kernel usingPlatform: platform = (
   (* rete#312: a complete console line if one is queued, nil if not, false when this
      console cannot announce lines. Never blocks; the first send arms `sys/console`. *)
   public consoleLine       = ( ^ platform consoleLine )
+  (* rete#415: point the console's UDP tee at [addr]:port (a literal IPv6 address; ''
+     turns it off). Answers false when the platform could not parse it. *)
+  public consoleTee: addr port: port = ( ^ platform consoleTee: addr port: port )
   (* #74: the build actually running, so a reader can pick the matching sidecar. *)
   public buildId           = ( ^ platform buildId )
   (* rete#118: which BOARD this is — its factory link address in lowercase hex, read

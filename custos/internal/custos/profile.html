@@ -50,7 +50,16 @@ async function load(resp) {
   $('error').style.display = 'none';
   if (resp.status === 404) return;
   if (!resp.ok) return fail(await resp.text());
-  render(await resp.json());
+  const c = await resp.json();
+  // rete#415: a porta node answers at the goal/profile write; the window opens at the
+  // node's next check-in and its rows come back by the console tee. Re-read until then.
+  if (c.Pending) {
+    $('stamp').textContent = `requested ${c.Ms} ms (porta seq ${c.Seq}) — waiting for the node's next check-in and its dump…`;
+    setTimeout(() => fetch('profile/last').then(load).catch(err => fail(String(err))), 5000);
+    return;
+  }
+  if (c.Error) return fail(c.Error);
+  render(c);
 }
 $('go').onsubmit = async e => {
   e.preventDefault();

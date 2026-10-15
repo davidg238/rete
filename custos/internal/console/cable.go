@@ -35,8 +35,7 @@ type Cable struct {
 	port io.ReadWriteCloser
 	up   bool
 	lent chan struct{} // non-nil while lent: closed when it comes back
-	subs map[int]func(string)
-	next int
+	fanout
 	// The health the cable answers from memory: since when it has been up,
 	// down or lent, why it went down, and when the board last said anything.
 	since    time.Time
@@ -86,23 +85,6 @@ func (c *Cable) Up() bool {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	return c.up
-}
-
-// Subscribe hands every line read from now on to fn; the answer stops it.
-func (c *Cable) Subscribe(fn func(string)) (cancel func()) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	if c.subs == nil {
-		c.subs = map[int]func(string){}
-	}
-	id := c.next
-	c.next++
-	c.subs[id] = fn
-	return func() {
-		c.mu.Lock()
-		delete(c.subs, id)
-		c.mu.Unlock()
-	}
 }
 
 // Send writes one line down the cable.
@@ -301,12 +283,6 @@ func (c *Cable) line(b []byte) {
 	c.Store.Append(text, now)
 	c.mu.Lock()
 	c.lastLine = now
-	subs := make([]func(string), 0, len(c.subs))
-	for _, fn := range c.subs {
-		subs = append(subs, fn)
-	}
 	c.mu.Unlock()
-	for _, fn := range subs {
-		fn(text)
-	}
+	c.publish(text)
 }

@@ -1,0 +1,24 @@
+(* expect:
+open
+profile: window carried to the next wake
+sleep: arming 3 s
+*)
+(* rete#415 P3, Q9: Kernel>>deepSleep: reaches the Profiler before the VM ends. A window
+   opened mid-wake is carried, not dumped: the next boot opens it again, whole
+   (test_deepsleep_node's test_profile_request_survives_one_sleep crosses the sleep).
+   The build under test has no OEVM_METHOD_PROFILE, so a dump would be silent anyway
+   (01_window_lifecycle); what this gates is that deepSleep: reaches the Profiler.
+   Delete the cut in deepSleep: and the middle line goes. *)
+class SleepCutTest packageUsing: manifest = () (
+  public main: platform args: args = (
+    | space timers |
+    space:: platform space.
+    timers:: platform timers.
+    space whenever: 'sys/timer' do: [ :e | timers dispatch: e ].
+    platform profiler request: 'profile 60000'. space drain.
+    'open' println.
+    platform deepSleep: 3.
+    'after sleep' println.   (* unreachable *)
+    ^ 0 )
+) : (
+)

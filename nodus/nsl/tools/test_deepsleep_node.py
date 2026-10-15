@@ -3,7 +3,7 @@
 # Host deepSleep: exits(0); OEVM_RTC_FILE persists the .rtc.data-equivalent struct to
 # disk, so re-exec'ing the node is a real wake/sleep cycle with no hardware. A reusable
 # feature (David, 2026-07-24), grown by Tasks 5-7.
-import os, struct, subprocess, sys, tempfile
+import os, socket, struct, subprocess, sys, tempfile
 from pathlib import Path
 
 TOOLS = Path(__file__).resolve().parent
@@ -52,6 +52,57 @@ def run_wake(rtc_file, ntp=None, no_ntp=False, awake_ms=None):
     # deepSleep: exits 0; a nonzero rc means an unhandled raise — surface it.
     assert p.returncode == 0, f"node rc={p.returncode}\nSTDOUT:\n{p.stdout}\nSTDERR:\n{p.stderr}"
     return p.stdout
+
+# rete#415 Q8/Q9: the kernel's profile request across sleeps, in its own small node.
+PROFILE_NODE = TOOLS / "fixtures" / "ProfileAcrossSleepNode.nsl"
+_PROFILE_OIMG = None
+def run_profile_wake(rtc_file):
+    global _PROFILE_OIMG
+    if not _PROFILE_OIMG:
+        ok, err = R._build_pathb_once()
+        if not ok: raise RuntimeError(err)
+        oimg = "/tmp/profile_across_sleep.oimg"
+        comp = subprocess.run(
+            [sys.executable, str(TOOLS / "ns_compile_oevm.py"),
+             str(PROFILE_NODE), oimg, "--format=oimg", "--layout=/tmp/oevm_layout.json"],
+            capture_output=True, text=True)
+        if comp.returncode != 0:
+            raise RuntimeError("compile failed:\n" + (comp.stderr or comp.stdout))
+        _PROFILE_OIMG = oimg
+    env = dict(os.environ, OEVM_RTC_FILE=str(rtc_file), OEVM_NO_NET="1", OEVM_NODE_ID="7cdfa11aaaaa")
+    rx = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)   # the node's tee target, told in wake 1
+    rx.bind(("::1", 54345))
+    try:
+        p = subprocess.run(["/tmp/oevm_img", _PROFILE_OIMG], capture_output=True, text=True, timeout=30, env=env)
+        teed = []
+        rx.setblocking(False)
+        while True:
+            try: teed.append(rx.recv(512).decode())
+            except BlockingIOError: break
+    finally:
+        rx.close()
+    assert p.returncode == 0, f"node rc={p.returncode}\nSTDOUT:\n{p.stdout}\nSTDERR:\n{p.stderr}"
+    return [l for l in p.stdout.splitlines() if l.startswith(("wake", "ends", "profile:"))], teed
+
+def test_profile_request_survives_one_sleep():
+    # One request, one dump, one rule (Q9 a): opened at once; cut by sleep, so carried;
+    # opened again from boot, before main:; cut again, and this time served; then the
+    # replayed cell opens nothing, and only a new id profiles again.
+    with tempfile.TemporaryDirectory() as d:
+        rtc = Path(d) / "rtc.bin"
+        w1, _ = run_profile_wake(rtc)
+        assert w1 == ["wake 1", "ends 0 served 0", "profile: window carried to the next wake"], w1
+        w2, teed = run_profile_wake(rtc)
+        assert w2 == ["profile: window from boot, request 5", "wake 2", "ends 0 served 0",
+                      "profile: window cut by sleep"], w2
+        # The kept tee target: wake 2 had no goal/console, and its FIRST line, printed
+        # before main: and before any check-in could replay the cell, is teed.
+        assert teed[:1] == ["profile: window from boot, request 5"], teed
+        w3, _ = run_profile_wake(rtc)
+        assert w3 == ["wake 3", "ends 0 served 5"], w3
+        w4, teed = run_profile_wake(rtc)
+        assert w4 == ["wake 4", "ends 1 served 6"], w4
+        assert "wake 4" in teed, teed
 
 def read_rtc(path):
     with open(path, "rb") as f: return struct.unpack("<10i", f.read(40))
@@ -432,4 +483,5 @@ if __name__ == "__main__":
     test_cold_boot_adopts_true_time_late_at_night()
     test_a_simulated_day_on_a_fast_oscillator_keeps_every_bell_on_its_boundary()
     test_ratchet_monotonic_across_sleeps()
+    test_profile_request_survives_one_sleep()
     print("ok")
