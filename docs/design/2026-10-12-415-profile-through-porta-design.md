@@ -318,9 +318,9 @@ tee's ring is 4 KB, and a dump is ~10 KB written in one burst.
     rows, header and `end` included, in 1.2 s**, then `space:`, `deep sleep` and the drain's own line: `wifi frames
     given 338, done 338, refused 0`. The callback covers data frames one for one, so the pacer never waited out its
     1 s cap.
-  - **Open oddity:** 349 lines arrived before that line, 11 more than the frames counted, with no duplicates. Some
-    path reaches the radio without the wrapped call. Firmware 6 prints the sender's own `lines sent` beside the
-    counts, which separates the two.
+  - 349 lines arrived before that line, 11 more than the frames counted, with no duplicates. Not a second path: the
+    drain prints its counts *before* it waits, while the dump's tail is still in the ring. Firmware 6's cold boot
+    shows it directly: `given 59, done 59, refused 0; lines sent 34`, with 38 lines arrived before it.
 - **F11: a timer wake's boot lines, up to `ip-evt`, never arrive** (nor, on some wakes, `wifi: up` and `dbg:ready`
   after it). The kept target tees from the first line, and a refused line is held, so these were *accepted*. Found
   in Zephyr (`subsys/net/ip/ipv6_nbr.c`): while the next hop's link address is unresolved, ND parks **one** packet
