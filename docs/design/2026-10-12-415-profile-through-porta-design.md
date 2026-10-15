@@ -336,3 +336,13 @@ tee's ring is 4 KB, and a dump is ~10 KB written in one burst.
   - **Not yet on the MagTag:** firmware 6 (`msi-7d43:~/415-s2/zephyr-6.bin`) needs S2 download mode, David's hand.
     The test is a timer wake whose log starts at the Zephyr banner and carries `logudp: the last sleep's drain took N
     ms`, the number the drain's 2 s cap has waited on since `4480c256`.
+- **The wall bell (2026-10-14 evening).** Cabled to msi (David), its goal first pointed at the cable's image (#426:
+  `ShipsBellNodeC6-415.oimg`, `35eff2a1…`, blob-put and `goal/apps/main` seq 10), then `flash-bell.sh` from the
+  branch (`c5b0b66d`): `slot a was written by the cable … active, unsigned, no trial`, no restage. A third test
+  custos on gw (127.0.0.1:6992, `--porta-node bell=206ef1195438` against the production porta, advertising gw's
+  mesh-local address) wrote `goal/console` at the first check-in, and the bell's boot arrived **whole from the
+  Zephyr banner, over Thread, with no build-time literal**. That is Q2′'s condition, so **`OEVM_LOG_UDP6` is
+  deleted**, with its port. An agent's `POST /board/bell/profile/capture?ms=5000` answered 8 s later: 183 rows for
+  `methods=184`, custos warning of the missing row (5,700 of 5,701 activations), `Kernel_Socket>>receive` first at
+  19 %. One line of 186 lost over Thread with no gap over 40 ms in the dump; c6b's 211 of 211 says it is not the
+  rule. Not chased.
