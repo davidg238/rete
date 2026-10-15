@@ -333,9 +333,19 @@ tee's ring is 4 KB, and a dump is ~10 KB written in one burst.
   *empty* slab; on c6b (Thread) the slab is never empty, every line waited the whole second, the paced dump stalled
   the reactor and the observer rebooted it at 30.9 s (`reason=1`). Against the pre-send count, c6b's boot burst goes
   out at ~4 ms a line and a 211-method window dumped **211 of 211 with `end`**, no reboot.
-  - **Not yet on the MagTag:** firmware 6 (`msi-7d43:~/415-s2/zephyr-6.bin`) needs S2 download mode, David's hand.
-    The test is a timer wake whose log starts at the Zephyr banner and carries `logudp: the last sleep's drain took N
-    ms`, the number the drain's 2 s cap has waited on since `4480c256`.
+  - **On the MagTag the ND fix was not enough** (firmware 6, the 18:32 wake): `wifi: up` and `dbg:ready` now arrived,
+    but the boot up to `ip-evt` still did not, and these lines were *sent* (`lines sent 358`, about 11 more than
+    arrived) and reported done by the blob. Right after association the link-local address is still tentative and the
+    ULA waits for the router's advertisement, so the stack picks an unspecified or link-local source, and gw drops the
+    datagram. (gw has no tcpdump and no root, so this is inferred from the counts, not seen on the wire.) **Fix**
+    (`3719e108`): a line waits in the ring, as for a missing route, until the stack can pick a source the destination
+    can answer: preferred, and not link-local unless the destination is.
+  - **Result (firmware 7, the 19:17 wake):** the log starts at `*** Booting Zephyr`, then `build-id`, `teeing … (kept
+    from the last goal/console)` and **`logudp: the last sleep's drain took 20 ms`**; the cut window dumped 256 of 256
+    with `end`; `given 365, done 365, refused 0`. c6b on firmware 7: 211 of 211, no reboot. **F11 closed.**
+  - **The drain's cap.** The 2 s cap has waited since `4480c256` on that number: one sleep's drain, 20 ms, with an
+    idle tail. A dump's tail was measured only as its whole send (1.2 s for 256 rows, paced). The cap stays at 2 s, a
+    bound no measured drain approaches, rather than a tuned number; a sleep that hits it says so in the next boot's line.
 - **The wall bell (2026-10-14 evening).** Cabled to msi (David), its goal first pointed at the cable's image (#426:
   `ShipsBellNodeC6-415.oimg`, `35eff2a1…`, blob-put and `goal/apps/main` seq 10), then `flash-bell.sh` from the
   branch (`c5b0b66d`): `slot a was written by the cable … active, unsigned, no trial`, no restage. A third test
