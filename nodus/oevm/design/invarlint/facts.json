@@ -1,5 +1,5 @@
 {
-  "commit": "9503e340",
+  "commit": "fe424770",
   "root": "/home/david/rete-invarlint/nodus/oevm",
   "config": "build-esp32c6-B",
   "partial": false,
@@ -22573,6 +22573,12 @@
     },
     {
       "kind": "reads_global",
+      "from": "func:context_alloc",
+      "to": "global:gc_temp_roots_count",
+      "loc": "src/dispatch.c:80"
+    },
+    {
+      "kind": "reads_global",
       "from": "func:float_alloc",
       "to": "global:_impure_ptr",
       "loc": "src/gc.c:477"
@@ -22730,6 +22736,126 @@
     {
       "kind": "reads_global",
       "from": "func:gc_collect",
+      "to": "global:BytecodeClosureVtable",
+      "loc": "src/gc.c:876"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:gc_collect",
+      "to": "global:ContextVtable",
+      "loc": "src/gc.c:900"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:gc_collect",
+      "to": "global:FloatVtable",
+      "loc": "src/gc.c:869"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:gc_collect",
+      "to": "global:IntegerVtable",
+      "loc": "src/gc.c:868"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:gc_collect",
+      "to": "global:MethodContextVtable",
+      "loc": "src/gc.c:870"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:gc_collect",
+      "to": "global:PrimitiveClosureVtable",
+      "loc": "src/gc.c:875"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:gc_collect",
+      "to": "global:RawBytesVtable",
+      "loc": "src/gc.c:873"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:gc_collect",
+      "to": "global:StackVtable",
+      "loc": "src/gc.c:899"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:gc_collect",
+      "to": "global:StringVtable",
+      "loc": "src/gc.c:872"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:gc_collect",
+      "to": "global:SymbolVtable",
+      "loc": "src/gc.c:871"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:gc_collect",
+      "to": "global:Symbol_debug_",
+      "loc": "src/gc.c:909"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:gc_collect",
+      "to": "global:Symbol_value",
+      "loc": "src/gc.c:877"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:gc_collect",
+      "to": "global:VtableVtable",
+      "loc": "src/gc.c:874"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:gc_collect",
+      "to": "global:debugger_hook",
+      "loc": "src/gc.c:908"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:gc_collect",
+      "to": "global:g_active_stack",
+      "loc": "src/gc.c:901"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:gc_collect",
+      "to": "global:g_boot_inflight_argc",
+      "loc": "src/gc.c:939"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:gc_collect",
+      "to": "global:g_boot_inflight_args",
+      "loc": "src/gc.c:940"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:gc_collect",
+      "to": "global:g_boot_inflight_receiver",
+      "loc": "src/gc.c:938"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:gc_collect",
+      "to": "global:g_kernel_instance",
+      "loc": "src/gc.c:928"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:gc_collect",
+      "to": "global:g_raised_condition",
+      "loc": "src/gc.c:921"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:gc_collect",
       "to": "global:gc_additional_roots_hook",
       "loc": "src/gc.c:951"
     },
@@ -22738,6 +22864,18 @@
       "from": "func:gc_collect",
       "to": "global:gc_additional_roots_hook",
       "loc": "src/gc.c:952"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:gc_collect",
+      "to": "global:gc_temp_roots",
+      "loc": "src/gc.c:947"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:gc_collect",
+      "to": "global:gc_temp_roots_count",
+      "loc": "src/gc.c:946"
     },
     {
       "kind": "reads_global",
@@ -23362,6 +23500,30 @@
       "from": "func:make_closure",
       "to": "global:BytecodeClosureVtable",
       "loc": "src/dispatch.c:1108"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:make_closure",
+      "to": "global:current_frame",
+      "loc": "src/dispatch.c:1112"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:make_closure",
+      "to": "global:current_frame",
+      "loc": "src/dispatch.c:1121"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:make_closure",
+      "to": "global:current_frame",
+      "loc": "src/dispatch.c:1124"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:make_closure",
+      "to": "global:vm_stack",
+      "loc": "src/dispatch.c:1112"
     },
     {
       "kind": "reads_global",
@@ -24368,6 +24530,18 @@
     {
       "kind": "reads_global",
       "from": "func:platform_dispatch",
+      "to": "global:gc_temp_roots_count",
+      "loc": "src/platform.c:1067"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:platform_dispatch",
+      "to": "global:gc_temp_roots_count",
+      "loc": "src/platform.c:1408"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:platform_dispatch",
       "to": "global:oevm_manifest_pin_len",
       "loc": "src/platform.c:1543"
     },
@@ -24592,6 +24766,18 @@
       "from": "func:primitive_compiled_method_set_instruction_at",
       "to": "global:_impure_ptr",
       "loc": "src/vm.c:2308"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:primitive_compiled_method_set_instruction_at",
+      "to": "global:flash_rom_end",
+      "loc": "src/vm.c:2297"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:primitive_compiled_method_set_instruction_at",
+      "to": "global:flash_rom_start",
+      "loc": "src/vm.c:2297"
     },
     {
       "kind": "reads_global",
@@ -25874,6 +26060,12 @@
     {
       "kind": "reads_global",
       "from": "func:space_dequeue",
+      "to": "global:gc_temp_roots_count",
+      "loc": "src/space.c:387"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:space_dequeue",
       "to": "global:src/space.c:q_count",
       "loc": "src/space.c:361"
     },
@@ -26257,6 +26449,12 @@
     },
     {
       "kind": "reads_global",
+      "from": "func:src/dispatch.c:build_and_raise",
+      "to": "global:gc_temp_roots_count",
+      "loc": "src/dispatch.c:1183"
+    },
+    {
+      "kind": "reads_global",
       "from": "func:src/dispatch.c:build_and_raise_default",
       "to": "global:SymbolVtable",
       "loc": "src/dispatch.c:1220"
@@ -26278,6 +26476,12 @@
       "from": "func:src/dispatch.c:build_and_raise_default",
       "to": "global:g_kernel_instance",
       "loc": "src/dispatch.c:1237"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:src/dispatch.c:build_and_raise_default",
+      "to": "global:gc_temp_roots_count",
+      "loc": "src/dispatch.c:1234"
     },
     {
       "kind": "reads_global",
@@ -26656,6 +26860,54 @@
       "from": "func:src/gc.c:scan_vm_stack",
       "to": "global:vm_stack_ptr",
       "loc": "src/gc.c:782"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:src/gc.c:trace_one",
+      "to": "global:ContextVtable",
+      "loc": "src/gc.c:702"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:src/gc.c:trace_one",
+      "to": "global:FloatVtable",
+      "loc": "src/gc.c:670"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:src/gc.c:trace_one",
+      "to": "global:RawBytesVtable",
+      "loc": "src/gc.c:656"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:src/gc.c:trace_one",
+      "to": "global:StackVtable",
+      "loc": "src/gc.c:672"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:src/gc.c:trace_one",
+      "to": "global:StringVtable",
+      "loc": "src/gc.c:654"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:src/gc.c:trace_one",
+      "to": "global:SymbolVtable",
+      "loc": "src/gc.c:663"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:src/gc.c:trace_one",
+      "to": "global:VtableVtable",
+      "loc": "src/gc.c:645"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:src/gc.c:trace_one",
+      "to": "global:g_active_stack",
+      "loc": "src/gc.c:685"
     },
     {
       "kind": "reads_global",
@@ -27376,6 +27628,12 @@
       "from": "func:src/vm.c:vm_condition_text",
       "to": "global:SymbolVtable",
       "loc": "src/vm.c:108"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:src/vm.c:vm_condition_text",
+      "to": "global:gc_temp_roots_count",
+      "loc": "src/vm.c:121"
     },
     {
       "kind": "reads_global",
@@ -28143,6 +28401,15 @@
     },
     {
       "kind": "writes_global",
+      "from": "func:context_alloc",
+      "to": "global:gc_temp_roots_count",
+      "loc": "src/dispatch.c:88",
+      "attrs": {
+        "op": "assign"
+      }
+    },
+    {
+      "kind": "writes_global",
       "from": "func:float_alloc",
       "to": "global:src/gc.c:float_arena_hi",
       "loc": "src/gc.c:490",
@@ -28875,6 +29142,24 @@
       "from": "func:kernel_boot",
       "to": "global:SymbolVtable",
       "loc": "src/kernel_boot.c:123",
+      "attrs": {
+        "op": "assign"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:kernel_boot",
+      "to": "global:Symbol_debug_",
+      "loc": "src/kernel_boot.c:141",
+      "attrs": {
+        "op": "assign"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:kernel_boot",
+      "to": "global:Symbol_value",
+      "loc": "src/kernel_boot.c:140",
       "attrs": {
         "op": "assign"
       }
@@ -30461,6 +30746,24 @@
       "loc": "src/platform.c:890",
       "attrs": {
         "op": "addr"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:platform_dispatch",
+      "to": "global:gc_temp_roots_count",
+      "loc": "src/platform.c:1081",
+      "attrs": {
+        "op": "assign"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:platform_dispatch",
+      "to": "global:gc_temp_roots_count",
+      "loc": "src/platform.c:1416",
+      "attrs": {
+        "op": "assign"
       }
     },
     {
@@ -32302,6 +32605,15 @@
     {
       "kind": "writes_global",
       "from": "func:space_dequeue",
+      "to": "global:gc_temp_roots_count",
+      "loc": "src/space.c:409",
+      "attrs": {
+        "op": "assign"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:space_dequeue",
       "to": "global:src/space.c:channels",
       "loc": "src/space.c:366",
       "attrs": {
@@ -32747,6 +33059,24 @@
       "loc": "src/dispatch.c:660",
       "attrs": {
         "op": "addr"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:src/dispatch.c:build_and_raise",
+      "to": "global:gc_temp_roots_count",
+      "loc": "src/dispatch.c:1188",
+      "attrs": {
+        "op": "assign"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:src/dispatch.c:build_and_raise_default",
+      "to": "global:gc_temp_roots_count",
+      "loc": "src/dispatch.c:1238",
+      "attrs": {
+        "op": "assign"
       }
     },
     {
@@ -33296,6 +33626,15 @@
       "loc": "src/vm.c:940",
       "attrs": {
         "op": "compound"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:src/vm.c:vm_condition_text",
+      "to": "global:gc_temp_roots_count",
+      "loc": "src/vm.c:128",
+      "attrs": {
+        "op": "assign"
       }
     },
     {
