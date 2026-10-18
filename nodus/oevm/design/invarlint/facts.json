@@ -1,5 +1,5 @@
 {
-  "commit": "e88b1213",
+  "commit": "e9ef1a02",
   "root": "/home/david/rete-invarlint/nodus/oevm",
   "config": "build-esp32c6-B",
   "partial": false,
@@ -811,61 +811,61 @@
     {
       "id": "func:log_udp_drain",
       "kind": "func",
-      "loc": "zephyr/src/log_udp.c:405",
+      "loc": "src/backend/zephyr/log_udp.c:405",
       "attrs": {
         "exported": "true",
         "is_handler": "false",
         "loc_count": "21",
         "sig": "void (int)",
-        "unit": "unit:zephyr/src"
+        "unit": "unit:src/backend/zephyr"
       }
     },
     {
       "id": "func:log_udp_set_target",
       "kind": "func",
-      "loc": "zephyr/src/log_udp.c:352",
+      "loc": "src/backend/zephyr/log_udp.c:352",
       "attrs": {
         "exported": "true",
         "is_handler": "false",
         "loc_count": "29",
         "sig": "int (const char *, size_t, int)",
-        "unit": "unit:zephyr/src"
+        "unit": "unit:src/backend/zephyr"
       }
     },
     {
       "id": "func:log_udp_start",
       "kind": "func",
-      "loc": "zephyr/src/log_udp.c:560",
+      "loc": "src/backend/zephyr/log_udp.c:560",
       "attrs": {
         "exported": "true",
         "is_handler": "false",
         "loc_count": "13",
         "sig": "void (void)",
-        "unit": "unit:zephyr/src"
+        "unit": "unit:src/backend/zephyr"
       }
     },
     {
       "id": "func:log_udp_tee",
       "kind": "func",
-      "loc": "zephyr/src/log_udp.c:152",
+      "loc": "src/backend/zephyr/log_udp.c:152",
       "attrs": {
         "exported": "true",
         "is_handler": "false",
         "loc_count": "5",
         "sig": "void (const char *, size_t)",
-        "unit": "unit:zephyr/src"
+        "unit": "unit:src/backend/zephyr"
       }
     },
     {
       "id": "func:log_udp_tee_paced",
       "kind": "func",
-      "loc": "zephyr/src/log_udp.c:165",
+      "loc": "src/backend/zephyr/log_udp.c:165",
       "attrs": {
         "exported": "true",
         "is_handler": "false",
         "loc_count": "23",
         "sig": "void (const char *, size_t)",
-        "unit": "unit:zephyr/src"
+        "unit": "unit:src/backend/zephyr"
       }
     },
     {
@@ -2395,73 +2395,73 @@
     {
       "id": "func:runner_confirm",
       "kind": "func",
-      "loc": "zephyr/src/runner.c:260",
+      "loc": "src/backend/zephyr/runner.c:260",
       "attrs": {
         "exported": "true",
         "is_handler": "false",
         "loc_count": "7",
         "sig": "void (void)",
-        "unit": "unit:zephyr/src"
+        "unit": "unit:src/backend/zephyr"
       }
     },
     {
       "id": "func:runner_has_key",
       "kind": "func",
-      "loc": "zephyr/src/runner.c:80",
+      "loc": "src/backend/zephyr/runner.c:80",
       "attrs": {
         "exported": "true",
         "is_handler": "false",
         "loc_count": "1",
         "sig": "int (void)",
-        "unit": "unit:zephyr/src"
+        "unit": "unit:src/backend/zephyr"
       }
     },
     {
       "id": "func:runner_inactive_slot_id",
       "kind": "func",
-      "loc": "zephyr/src/runner.c:269",
+      "loc": "src/backend/zephyr/runner.c:269",
       "attrs": {
         "exported": "true",
         "is_handler": "false",
         "loc_count": "1",
         "sig": "uint8_t (void)",
-        "unit": "unit:zephyr/src"
+        "unit": "unit:src/backend/zephyr"
       }
     },
     {
       "id": "func:runner_ready",
       "kind": "func",
-      "loc": "zephyr/src/runner.c:248",
+      "loc": "src/backend/zephyr/runner.c:248",
       "attrs": {
         "exported": "true",
         "is_handler": "false",
         "loc_count": "11",
         "sig": "int (const uint8_t *, const uint8_t *, int)",
-        "unit": "unit:zephyr/src"
+        "unit": "unit:src/backend/zephyr"
       }
     },
     {
       "id": "func:runner_select",
       "kind": "func",
-      "loc": "zephyr/src/runner.c:188",
+      "loc": "src/backend/zephyr/runner.c:188",
       "attrs": {
         "exported": "true",
         "is_handler": "false",
         "loc_count": "59",
         "sig": "int (const uint8_t **, size_t *)",
-        "unit": "unit:zephyr/src"
+        "unit": "unit:src/backend/zephyr"
       }
     },
     {
       "id": "func:runner_trial",
       "kind": "func",
-      "loc": "zephyr/src/runner.c:268",
+      "loc": "src/backend/zephyr/runner.c:268",
       "attrs": {
         "exported": "true",
         "is_handler": "false",
         "loc_count": "1",
         "sig": "int (void)",
-        "unit": "unit:zephyr/src"
+        "unit": "unit:src/backend/zephyr"
       }
     },
     {
@@ -2981,6 +2981,186 @@
       }
     },
     {
+      "id": "func:src/backend/zephyr/log_udp.c:busy",
+      "kind": "func",
+      "loc": "src/backend/zephyr/log_udp.c:311",
+      "attrs": {
+        "exported": "false",
+        "is_handler": "false",
+        "loc_count": "3",
+        "sig": "int (int)",
+        "unit": "unit:src/backend/zephyr"
+      }
+    },
+    {
+      "id": "func:src/backend/zephyr/log_udp.c:log_udp_hook_init",
+      "kind": "func",
+      "loc": "src/backend/zephyr/log_udp.c:543",
+      "attrs": {
+        "exported": "false",
+        "is_handler": "false",
+        "loc_count": "14",
+        "sig": "int (void)",
+        "unit": "unit:src/backend/zephyr"
+      }
+    },
+    {
+      "id": "func:src/backend/zephyr/log_udp.c:log_udp_thread",
+      "kind": "func",
+      "loc": "src/backend/zephyr/log_udp.c:432",
+      "attrs": {
+        "exported": "false",
+        "is_handler": "false",
+        "loc_count": "102",
+        "sig": "void (void *, void *, void *)",
+        "unit": "unit:src/backend/zephyr"
+      }
+    },
+    {
+      "id": "func:src/backend/zephyr/log_udp.c:net_tx_busy",
+      "kind": "func",
+      "loc": "src/backend/zephyr/log_udp.c:387",
+      "attrs": {
+        "exported": "false",
+        "is_handler": "false",
+        "loc_count": "16",
+        "sig": "int (void)",
+        "unit": "unit:src/backend/zephyr"
+      }
+    },
+    {
+      "id": "func:src/backend/zephyr/log_udp.c:net_tx_held",
+      "kind": "func",
+      "loc": "src/backend/zephyr/log_udp.c:246",
+      "attrs": {
+        "exported": "false",
+        "is_handler": "false",
+        "loc_count": "7",
+        "sig": "uint32_t (void)",
+        "unit": "unit:src/backend/zephyr"
+      }
+    },
+    {
+      "id": "func:src/backend/zephyr/log_udp.c:ring_get",
+      "kind": "func",
+      "loc": "src/backend/zephyr/log_udp.c:316",
+      "attrs": {
+        "exported": "false",
+        "is_handler": "false",
+        "loc_count": "12",
+        "sig": "int (char *)",
+        "unit": "unit:src/backend/zephyr"
+      }
+    },
+    {
+      "id": "func:src/backend/zephyr/log_udp.c:ring_put",
+      "kind": "func",
+      "loc": "src/backend/zephyr/log_udp.c:113",
+      "attrs": {
+        "exported": "false",
+        "is_handler": "false",
+        "loc_count": "17",
+        "sig": "int (char)",
+        "unit": "unit:src/backend/zephyr"
+      }
+    },
+    {
+      "id": "func:src/backend/zephyr/log_udp.c:ring_used",
+      "kind": "func",
+      "loc": "src/backend/zephyr/log_udp.c:132",
+      "attrs": {
+        "exported": "false",
+        "is_handler": "false",
+        "loc_count": "6",
+        "sig": "uint32_t (void)",
+        "unit": "unit:src/backend/zephyr"
+      }
+    },
+    {
+      "id": "func:src/backend/zephyr/log_udp.c:set_target",
+      "kind": "func",
+      "loc": "src/backend/zephyr/log_udp.c:330",
+      "attrs": {
+        "exported": "false",
+        "is_handler": "false",
+        "loc_count": "20",
+        "sig": "int (const char *, int)",
+        "unit": "unit:src/backend/zephyr"
+      }
+    },
+    {
+      "id": "func:src/backend/zephyr/log_udp.c:source_ready",
+      "kind": "func",
+      "loc": "src/backend/zephyr/log_udp.c:302",
+      "attrs": {
+        "exported": "false",
+        "is_handler": "false",
+        "loc_count": "6",
+        "sig": "int (const struct sockaddr_in6 *)",
+        "unit": "unit:src/backend/zephyr"
+      }
+    },
+    {
+      "id": "func:src/backend/zephyr/log_udp.c:tee_char_out",
+      "kind": "func",
+      "loc": "src/backend/zephyr/log_udp.c:140",
+      "attrs": {
+        "exported": "false",
+        "is_handler": "false",
+        "loc_count": "5",
+        "sig": "int (int)",
+        "unit": "unit:src/backend/zephyr"
+      }
+    },
+    {
+      "id": "func:src/backend/zephyr/log_udp.c:tee_keep_put",
+      "kind": "func",
+      "loc": "src/backend/zephyr/log_udp.c:92",
+      "attrs": {
+        "exported": "false",
+        "is_handler": "false",
+        "loc_count": "7",
+        "sig": "void (const char *, int, int)",
+        "unit": "unit:src/backend/zephyr"
+      }
+    },
+    {
+      "id": "func:src/backend/zephyr/log_udp.c:tee_keep_sum",
+      "kind": "func",
+      "loc": "src/backend/zephyr/log_udp.c:78",
+      "attrs": {
+        "exported": "false",
+        "is_handler": "false",
+        "loc_count": "12",
+        "sig": "uint32_t (const struct tee_keep *)",
+        "unit": "unit:src/backend/zephyr"
+      }
+    },
+    {
+      "id": "func:src/backend/zephyr/log_udp.c:tee_keep_valid",
+      "kind": "func",
+      "loc": "src/backend/zephyr/log_udp.c:103",
+      "attrs": {
+        "exported": "false",
+        "is_handler": "false",
+        "loc_count": "4",
+        "sig": "int (void)",
+        "unit": "unit:src/backend/zephyr"
+      }
+    },
+    {
+      "id": "func:src/backend/zephyr/log_udp.c:wait_for_radio",
+      "kind": "func",
+      "loc": "src/backend/zephyr/log_udp.c:268",
+      "attrs": {
+        "exported": "false",
+        "is_handler": "false",
+        "loc_count": "24",
+        "sig": "void (void)",
+        "unit": "unit:src/backend/zephyr"
+      }
+    },
+    {
       "id": "func:src/backend/zephyr/ota_zephyr.c:ota_entry",
       "kind": "func",
       "loc": "src/backend/zephyr/ota_zephyr.c:181",
@@ -3133,6 +3313,126 @@
         "is_handler": "false",
         "loc_count": "8",
         "sig": "void (void)",
+        "unit": "unit:src/backend/zephyr"
+      }
+    },
+    {
+      "id": "func:src/backend/zephyr/runner.c:hash_slot",
+      "kind": "func",
+      "loc": "src/backend/zephyr/runner.c:148",
+      "attrs": {
+        "exported": "false",
+        "is_handler": "false",
+        "loc_count": "6",
+        "sig": "int (int, uint8_t *)",
+        "unit": "unit:src/backend/zephyr"
+      }
+    },
+    {
+      "id": "func:src/backend/zephyr/runner.c:hex8",
+      "kind": "func",
+      "loc": "src/backend/zephyr/runner.c:171",
+      "attrs": {
+        "exported": "false",
+        "is_handler": "false",
+        "loc_count": "5",
+        "sig": "void (const uint8_t *, char *)",
+        "unit": "unit:src/backend/zephyr"
+      }
+    },
+    {
+      "id": "func:src/backend/zephyr/runner.c:key_init",
+      "kind": "func",
+      "loc": "src/backend/zephyr/runner.c:58",
+      "attrs": {
+        "exported": "false",
+        "is_handler": "false",
+        "loc_count": "17",
+        "sig": "void (void)",
+        "unit": "unit:src/backend/zephyr"
+      }
+    },
+    {
+      "id": "func:src/backend/zephyr/runner.c:m_load",
+      "kind": "func",
+      "loc": "src/backend/zephyr/runner.c:120",
+      "attrs": {
+        "exported": "false",
+        "is_handler": "false",
+        "loc_count": "7",
+        "sig": "void (void)",
+        "unit": "unit:src/backend/zephyr"
+      }
+    },
+    {
+      "id": "func:src/backend/zephyr/runner.c:m_save",
+      "kind": "func",
+      "loc": "src/backend/zephyr/runner.c:105",
+      "attrs": {
+        "exported": "false",
+        "is_handler": "false",
+        "loc_count": "14",
+        "sig": "void (void)",
+        "unit": "unit:src/backend/zephyr"
+      }
+    },
+    {
+      "id": "func:src/backend/zephyr/runner.c:m_set",
+      "kind": "func",
+      "loc": "src/backend/zephyr/runner.c:83",
+      "attrs": {
+        "exported": "false",
+        "is_handler": "false",
+        "loc_count": "20",
+        "sig": "int (const char *, size_t, settings_read_cb, void *)",
+        "unit": "unit:src/backend/zephyr"
+      }
+    },
+    {
+      "id": "func:src/backend/zephyr/runner.c:map_slot",
+      "kind": "func",
+      "loc": "src/backend/zephyr/runner.c:132",
+      "attrs": {
+        "exported": "false",
+        "is_handler": "false",
+        "loc_count": "15",
+        "sig": "int (int, const uint8_t **, size_t *)",
+        "unit": "unit:src/backend/zephyr"
+      }
+    },
+    {
+      "id": "func:src/backend/zephyr/runner.c:spoil",
+      "kind": "func",
+      "loc": "src/backend/zephyr/runner.c:163",
+      "attrs": {
+        "exported": "false",
+        "is_handler": "false",
+        "loc_count": "7",
+        "sig": "void (int)",
+        "unit": "unit:src/backend/zephyr"
+      }
+    },
+    {
+      "id": "func:src/backend/zephyr/runner.c:trial_expired",
+      "kind": "func",
+      "loc": "src/backend/zephyr/runner.c:178",
+      "attrs": {
+        "exported": "false",
+        "is_handler": "false",
+        "loc_count": "7",
+        "sig": "void (struct k_work *)",
+        "unit": "unit:src/backend/zephyr"
+      }
+    },
+    {
+      "id": "func:src/backend/zephyr/runner.c:verified",
+      "kind": "func",
+      "loc": "src/backend/zephyr/runner.c:155",
+      "attrs": {
+        "exported": "false",
+        "is_handler": "false",
+        "loc_count": "4",
+        "sig": "int (const uint8_t *, const uint8_t *, int)",
         "unit": "unit:src/backend/zephyr"
       }
     },
@@ -5693,186 +5993,6 @@
       }
     },
     {
-      "id": "func:zephyr/src/log_udp.c:busy",
-      "kind": "func",
-      "loc": "zephyr/src/log_udp.c:311",
-      "attrs": {
-        "exported": "false",
-        "is_handler": "false",
-        "loc_count": "3",
-        "sig": "int (int)",
-        "unit": "unit:zephyr/src"
-      }
-    },
-    {
-      "id": "func:zephyr/src/log_udp.c:log_udp_hook_init",
-      "kind": "func",
-      "loc": "zephyr/src/log_udp.c:543",
-      "attrs": {
-        "exported": "false",
-        "is_handler": "false",
-        "loc_count": "14",
-        "sig": "int (void)",
-        "unit": "unit:zephyr/src"
-      }
-    },
-    {
-      "id": "func:zephyr/src/log_udp.c:log_udp_thread",
-      "kind": "func",
-      "loc": "zephyr/src/log_udp.c:432",
-      "attrs": {
-        "exported": "false",
-        "is_handler": "false",
-        "loc_count": "102",
-        "sig": "void (void *, void *, void *)",
-        "unit": "unit:zephyr/src"
-      }
-    },
-    {
-      "id": "func:zephyr/src/log_udp.c:net_tx_busy",
-      "kind": "func",
-      "loc": "zephyr/src/log_udp.c:387",
-      "attrs": {
-        "exported": "false",
-        "is_handler": "false",
-        "loc_count": "16",
-        "sig": "int (void)",
-        "unit": "unit:zephyr/src"
-      }
-    },
-    {
-      "id": "func:zephyr/src/log_udp.c:net_tx_held",
-      "kind": "func",
-      "loc": "zephyr/src/log_udp.c:246",
-      "attrs": {
-        "exported": "false",
-        "is_handler": "false",
-        "loc_count": "7",
-        "sig": "uint32_t (void)",
-        "unit": "unit:zephyr/src"
-      }
-    },
-    {
-      "id": "func:zephyr/src/log_udp.c:ring_get",
-      "kind": "func",
-      "loc": "zephyr/src/log_udp.c:316",
-      "attrs": {
-        "exported": "false",
-        "is_handler": "false",
-        "loc_count": "12",
-        "sig": "int (char *)",
-        "unit": "unit:zephyr/src"
-      }
-    },
-    {
-      "id": "func:zephyr/src/log_udp.c:ring_put",
-      "kind": "func",
-      "loc": "zephyr/src/log_udp.c:113",
-      "attrs": {
-        "exported": "false",
-        "is_handler": "false",
-        "loc_count": "17",
-        "sig": "int (char)",
-        "unit": "unit:zephyr/src"
-      }
-    },
-    {
-      "id": "func:zephyr/src/log_udp.c:ring_used",
-      "kind": "func",
-      "loc": "zephyr/src/log_udp.c:132",
-      "attrs": {
-        "exported": "false",
-        "is_handler": "false",
-        "loc_count": "6",
-        "sig": "uint32_t (void)",
-        "unit": "unit:zephyr/src"
-      }
-    },
-    {
-      "id": "func:zephyr/src/log_udp.c:set_target",
-      "kind": "func",
-      "loc": "zephyr/src/log_udp.c:330",
-      "attrs": {
-        "exported": "false",
-        "is_handler": "false",
-        "loc_count": "20",
-        "sig": "int (const char *, int)",
-        "unit": "unit:zephyr/src"
-      }
-    },
-    {
-      "id": "func:zephyr/src/log_udp.c:source_ready",
-      "kind": "func",
-      "loc": "zephyr/src/log_udp.c:302",
-      "attrs": {
-        "exported": "false",
-        "is_handler": "false",
-        "loc_count": "6",
-        "sig": "int (const struct sockaddr_in6 *)",
-        "unit": "unit:zephyr/src"
-      }
-    },
-    {
-      "id": "func:zephyr/src/log_udp.c:tee_char_out",
-      "kind": "func",
-      "loc": "zephyr/src/log_udp.c:140",
-      "attrs": {
-        "exported": "false",
-        "is_handler": "false",
-        "loc_count": "5",
-        "sig": "int (int)",
-        "unit": "unit:zephyr/src"
-      }
-    },
-    {
-      "id": "func:zephyr/src/log_udp.c:tee_keep_put",
-      "kind": "func",
-      "loc": "zephyr/src/log_udp.c:92",
-      "attrs": {
-        "exported": "false",
-        "is_handler": "false",
-        "loc_count": "7",
-        "sig": "void (const char *, int, int)",
-        "unit": "unit:zephyr/src"
-      }
-    },
-    {
-      "id": "func:zephyr/src/log_udp.c:tee_keep_sum",
-      "kind": "func",
-      "loc": "zephyr/src/log_udp.c:78",
-      "attrs": {
-        "exported": "false",
-        "is_handler": "false",
-        "loc_count": "12",
-        "sig": "uint32_t (const struct tee_keep *)",
-        "unit": "unit:zephyr/src"
-      }
-    },
-    {
-      "id": "func:zephyr/src/log_udp.c:tee_keep_valid",
-      "kind": "func",
-      "loc": "zephyr/src/log_udp.c:103",
-      "attrs": {
-        "exported": "false",
-        "is_handler": "false",
-        "loc_count": "4",
-        "sig": "int (void)",
-        "unit": "unit:zephyr/src"
-      }
-    },
-    {
-      "id": "func:zephyr/src/log_udp.c:wait_for_radio",
-      "kind": "func",
-      "loc": "zephyr/src/log_udp.c:268",
-      "attrs": {
-        "exported": "false",
-        "is_handler": "false",
-        "loc_count": "24",
-        "sig": "void (void)",
-        "unit": "unit:zephyr/src"
-      }
-    },
-    {
       "id": "func:zephyr/src/main.c:gpio_outputs_early_init",
       "kind": "func",
       "loc": "zephyr/src/main.c:1493",
@@ -6013,126 +6133,6 @@
         "is_handler": "false",
         "loc_count": "8",
         "sig": "uint32_t (unsigned int)",
-        "unit": "unit:zephyr/src"
-      }
-    },
-    {
-      "id": "func:zephyr/src/runner.c:hash_slot",
-      "kind": "func",
-      "loc": "zephyr/src/runner.c:148",
-      "attrs": {
-        "exported": "false",
-        "is_handler": "false",
-        "loc_count": "6",
-        "sig": "int (int, uint8_t *)",
-        "unit": "unit:zephyr/src"
-      }
-    },
-    {
-      "id": "func:zephyr/src/runner.c:hex8",
-      "kind": "func",
-      "loc": "zephyr/src/runner.c:171",
-      "attrs": {
-        "exported": "false",
-        "is_handler": "false",
-        "loc_count": "5",
-        "sig": "void (const uint8_t *, char *)",
-        "unit": "unit:zephyr/src"
-      }
-    },
-    {
-      "id": "func:zephyr/src/runner.c:key_init",
-      "kind": "func",
-      "loc": "zephyr/src/runner.c:58",
-      "attrs": {
-        "exported": "false",
-        "is_handler": "false",
-        "loc_count": "17",
-        "sig": "void (void)",
-        "unit": "unit:zephyr/src"
-      }
-    },
-    {
-      "id": "func:zephyr/src/runner.c:m_load",
-      "kind": "func",
-      "loc": "zephyr/src/runner.c:120",
-      "attrs": {
-        "exported": "false",
-        "is_handler": "false",
-        "loc_count": "7",
-        "sig": "void (void)",
-        "unit": "unit:zephyr/src"
-      }
-    },
-    {
-      "id": "func:zephyr/src/runner.c:m_save",
-      "kind": "func",
-      "loc": "zephyr/src/runner.c:105",
-      "attrs": {
-        "exported": "false",
-        "is_handler": "false",
-        "loc_count": "14",
-        "sig": "void (void)",
-        "unit": "unit:zephyr/src"
-      }
-    },
-    {
-      "id": "func:zephyr/src/runner.c:m_set",
-      "kind": "func",
-      "loc": "zephyr/src/runner.c:83",
-      "attrs": {
-        "exported": "false",
-        "is_handler": "false",
-        "loc_count": "20",
-        "sig": "int (const char *, size_t, settings_read_cb, void *)",
-        "unit": "unit:zephyr/src"
-      }
-    },
-    {
-      "id": "func:zephyr/src/runner.c:map_slot",
-      "kind": "func",
-      "loc": "zephyr/src/runner.c:132",
-      "attrs": {
-        "exported": "false",
-        "is_handler": "false",
-        "loc_count": "15",
-        "sig": "int (int, const uint8_t **, size_t *)",
-        "unit": "unit:zephyr/src"
-      }
-    },
-    {
-      "id": "func:zephyr/src/runner.c:spoil",
-      "kind": "func",
-      "loc": "zephyr/src/runner.c:163",
-      "attrs": {
-        "exported": "false",
-        "is_handler": "false",
-        "loc_count": "7",
-        "sig": "void (int)",
-        "unit": "unit:zephyr/src"
-      }
-    },
-    {
-      "id": "func:zephyr/src/runner.c:trial_expired",
-      "kind": "func",
-      "loc": "zephyr/src/runner.c:178",
-      "attrs": {
-        "exported": "false",
-        "is_handler": "false",
-        "loc_count": "7",
-        "sig": "void (struct k_work *)",
-        "unit": "unit:zephyr/src"
-      }
-    },
-    {
-      "id": "func:zephyr/src/runner.c:verified",
-      "kind": "func",
-      "loc": "zephyr/src/runner.c:155",
-      "attrs": {
-        "exported": "false",
-        "is_handler": "false",
-        "loc_count": "4",
-        "sig": "int (const uint8_t *, const uint8_t *, int)",
         "unit": "unit:zephyr/src"
       }
     },
@@ -6400,28 +6400,28 @@
     {
       "id": "global:_k_thread_data_log_udp_tid",
       "kind": "global",
-      "loc": "zephyr/src/log_udp.c:536",
+      "loc": "src/backend/zephyr/log_udp.c:536",
       "attrs": {
         "type": "struct _static_thread_data",
-        "unit": "unit:zephyr/src"
+        "unit": "unit:src/backend/zephyr"
       }
     },
     {
       "id": "global:_k_thread_obj_log_udp_tid",
       "kind": "global",
-      "loc": "zephyr/src/log_udp.c:536",
+      "loc": "src/backend/zephyr/log_udp.c:536",
       "attrs": {
         "type": "struct k_thread",
-        "unit": "unit:zephyr/src"
+        "unit": "unit:src/backend/zephyr"
       }
     },
     {
       "id": "global:_k_thread_stack_log_udp_tid",
       "kind": "global",
-      "loc": "zephyr/src/log_udp.c:536",
+      "loc": "src/backend/zephyr/log_udp.c:536",
       "attrs": {
         "type": "struct z_thread_stack_element[2048]",
-        "unit": "unit:zephyr/src"
+        "unit": "unit:src/backend/zephyr"
       }
     },
     {
@@ -6589,10 +6589,10 @@
     {
       "id": "global:log_udp_tid",
       "kind": "global",
-      "loc": "zephyr/src/log_udp.c:536",
+      "loc": "src/backend/zephyr/log_udp.c:536",
       "attrs": {
         "type": "const k_tid_t",
-        "unit": "unit:zephyr/src"
+        "unit": "unit:src/backend/zephyr"
       }
     },
     {
@@ -6697,10 +6697,10 @@
     {
       "id": "global:settings_handler_oevm_ota",
       "kind": "global",
-      "loc": "zephyr/src/runner.c:103",
+      "loc": "src/backend/zephyr/runner.c:103",
       "attrs": {
         "type": "const struct settings_handler_static",
-        "unit": "unit:zephyr/src"
+        "unit": "unit:src/backend/zephyr"
       }
     },
     {
@@ -6718,6 +6718,186 @@
       "loc": "src/backend/zephyr/http_zephyr.c:26",
       "attrs": {
         "type": "int",
+        "unit": "unit:src/backend/zephyr"
+      }
+    },
+    {
+      "id": "global:src/backend/zephyr/log_udp.c:__init_log_udp_hook_init",
+      "kind": "global",
+      "loc": "src/backend/zephyr/log_udp.c:558",
+      "attrs": {
+        "type": "const struct init_entry",
+        "unit": "unit:src/backend/zephyr"
+      }
+    },
+    {
+      "id": "global:src/backend/zephyr/log_udp.c:dropped_chars",
+      "kind": "global",
+      "loc": "src/backend/zephyr/log_udp.c:43",
+      "attrs": {
+        "type": "uint32_t",
+        "unit": "unit:src/backend/zephyr"
+      }
+    },
+    {
+      "id": "global:src/backend/zephyr/log_udp.c:log_udp_tee_paced.gave_up",
+      "kind": "global",
+      "loc": "src/backend/zephyr/log_udp.c:167",
+      "attrs": {
+        "type": "int",
+        "unit": "unit:src/backend/zephyr"
+      }
+    },
+    {
+      "id": "global:src/backend/zephyr/log_udp.c:log_udp_tee_paced.gave_up_tail",
+      "kind": "global",
+      "loc": "src/backend/zephyr/log_udp.c:168",
+      "attrs": {
+        "type": "uint32_t",
+        "unit": "unit:src/backend/zephyr"
+      }
+    },
+    {
+      "id": "global:src/backend/zephyr/log_udp.c:prev_hook",
+      "kind": "global",
+      "loc": "src/backend/zephyr/log_udp.c:45",
+      "attrs": {
+        "type": "printk_hook_fn_t",
+        "unit": "unit:src/backend/zephyr"
+      }
+    },
+    {
+      "id": "global:src/backend/zephyr/log_udp.c:r_head",
+      "kind": "global",
+      "loc": "src/backend/zephyr/log_udp.c:42",
+      "attrs": {
+        "type": "uint32_t",
+        "unit": "unit:src/backend/zephyr"
+      }
+    },
+    {
+      "id": "global:src/backend/zephyr/log_udp.c:r_tail",
+      "kind": "global",
+      "loc": "src/backend/zephyr/log_udp.c:42",
+      "attrs": {
+        "type": "uint32_t",
+        "unit": "unit:src/backend/zephyr"
+      }
+    },
+    {
+      "id": "global:src/backend/zephyr/log_udp.c:ring",
+      "kind": "global",
+      "loc": "src/backend/zephyr/log_udp.c:41",
+      "attrs": {
+        "type": "char[4096]",
+        "unit": "unit:src/backend/zephyr"
+      }
+    },
+    {
+      "id": "global:src/backend/zephyr/log_udp.c:ring_lock",
+      "kind": "global",
+      "loc": "src/backend/zephyr/log_udp.c:44",
+      "attrs": {
+        "type": "struct k_spinlock",
+        "unit": "unit:src/backend/zephyr"
+      }
+    },
+    {
+      "id": "global:src/backend/zephyr/log_udp.c:send_errors",
+      "kind": "global",
+      "loc": "src/backend/zephyr/log_udp.c:43",
+      "attrs": {
+        "type": "uint32_t",
+        "unit": "unit:src/backend/zephyr"
+      }
+    },
+    {
+      "id": "global:src/backend/zephyr/log_udp.c:sender_pending",
+      "kind": "global",
+      "loc": "src/backend/zephyr/log_udp.c:57",
+      "attrs": {
+        "type": "volatile int",
+        "unit": "unit:src/backend/zephyr"
+      }
+    },
+    {
+      "id": "global:src/backend/zephyr/log_udp.c:sent_lines",
+      "kind": "global",
+      "loc": "src/backend/zephyr/log_udp.c:43",
+      "attrs": {
+        "type": "uint32_t",
+        "unit": "unit:src/backend/zephyr"
+      }
+    },
+    {
+      "id": "global:src/backend/zephyr/log_udp.c:tee_addr",
+      "kind": "global",
+      "loc": "src/backend/zephyr/log_udp.c:55",
+      "attrs": {
+        "type": "char[46]",
+        "unit": "unit:src/backend/zephyr"
+      }
+    },
+    {
+      "id": "global:src/backend/zephyr/log_udp.c:tee_dst",
+      "kind": "global",
+      "loc": "src/backend/zephyr/log_udp.c:54",
+      "attrs": {
+        "type": "struct sockaddr_in6",
+        "unit": "unit:src/backend/zephyr"
+      }
+    },
+    {
+      "id": "global:src/backend/zephyr/log_udp.c:tee_from_keep",
+      "kind": "global",
+      "loc": "src/backend/zephyr/log_udp.c:101",
+      "attrs": {
+        "type": "int",
+        "unit": "unit:src/backend/zephyr"
+      }
+    },
+    {
+      "id": "global:src/backend/zephyr/log_udp.c:tee_gen",
+      "kind": "global",
+      "loc": "src/backend/zephyr/log_udp.c:53",
+      "attrs": {
+        "type": "volatile uint32_t",
+        "unit": "unit:src/backend/zephyr"
+      }
+    },
+    {
+      "id": "global:src/backend/zephyr/log_udp.c:tee_kept",
+      "kind": "global",
+      "loc": "src/backend/zephyr/log_udp.c:73",
+      "attrs": {
+        "type": "struct tee_keep",
+        "unit": "unit:src/backend/zephyr"
+      }
+    },
+    {
+      "id": "global:src/backend/zephyr/log_udp.c:tee_port",
+      "kind": "global",
+      "loc": "src/backend/zephyr/log_udp.c:56",
+      "attrs": {
+        "type": "int",
+        "unit": "unit:src/backend/zephyr"
+      }
+    },
+    {
+      "id": "global:src/backend/zephyr/log_udp.c:tee_state",
+      "kind": "global",
+      "loc": "src/backend/zephyr/log_udp.c:52",
+      "attrs": {
+        "type": "volatile int",
+        "unit": "unit:src/backend/zephyr"
+      }
+    },
+    {
+      "id": "global:src/backend/zephyr/log_udp.c:tx_before_send",
+      "kind": "global",
+      "loc": "src/backend/zephyr/log_udp.c:266",
+      "attrs": {
+        "type": "uint32_t",
         "unit": "unit:src/backend/zephyr"
       }
     },
@@ -6934,6 +7114,78 @@
       "loc": "src/backend/zephyr/pulse_zephyr.c:26",
       "attrs": {
         "type": "struct PulseItem[16]",
+        "unit": "unit:src/backend/zephyr"
+      }
+    },
+    {
+      "id": "global:src/backend/zephyr/runner.c:bases",
+      "kind": "global",
+      "loc": "src/backend/zephyr/runner.c:130",
+      "attrs": {
+        "type": "const uint8_t *[2]",
+        "unit": "unit:src/backend/zephyr"
+      }
+    },
+    {
+      "id": "global:src/backend/zephyr/runner.c:handles",
+      "kind": "global",
+      "loc": "src/backend/zephyr/runner.c:129",
+      "attrs": {
+        "type": "spi_flash_mmap_handle_t[2]",
+        "unit": "unit:src/backend/zephyr"
+      }
+    },
+    {
+      "id": "global:src/backend/zephyr/runner.c:have_key",
+      "kind": "global",
+      "loc": "src/backend/zephyr/runner.c:57",
+      "attrs": {
+        "type": "int",
+        "unit": "unit:src/backend/zephyr"
+      }
+    },
+    {
+      "id": "global:src/backend/zephyr/runner.c:hex8.d",
+      "kind": "global",
+      "loc": "src/backend/zephyr/runner.c:172",
+      "attrs": {
+        "type": "const char[17]",
+        "unit": "unit:src/backend/zephyr"
+      }
+    },
+    {
+      "id": "global:src/backend/zephyr/runner.c:m",
+      "kind": "global",
+      "loc": "src/backend/zephyr/runner.c:52",
+      "attrs": {
+        "type": "struct (unnamed struct at /home/david/rete-invarlint/nodus/oevm/src/backend/zephyr/runner.c:44:8)",
+        "unit": "unit:src/backend/zephyr"
+      }
+    },
+    {
+      "id": "global:src/backend/zephyr/runner.c:pubkey",
+      "kind": "global",
+      "loc": "src/backend/zephyr/runner.c:56",
+      "attrs": {
+        "type": "uint8_t[32]",
+        "unit": "unit:src/backend/zephyr"
+      }
+    },
+    {
+      "id": "global:src/backend/zephyr/runner.c:slots",
+      "kind": "global",
+      "loc": "src/backend/zephyr/runner.c:39",
+      "attrs": {
+        "type": "const struct (unnamed struct at /home/david/rete-invarlint/nodus/oevm/src/backend/zephyr/runner.c:39:14)[2]",
+        "unit": "unit:src/backend/zephyr"
+      }
+    },
+    {
+      "id": "global:src/backend/zephyr/runner.c:trial_work",
+      "kind": "global",
+      "loc": "src/backend/zephyr/runner.c:185",
+      "attrs": {
+        "type": "struct k_work_delayable",
         "unit": "unit:src/backend/zephyr"
       }
     },
@@ -8056,10 +8308,10 @@
     {
       "id": "global:tee_wake",
       "kind": "global",
-      "loc": "zephyr/src/log_udp.c:58",
+      "loc": "src/backend/zephyr/log_udp.c:58",
       "attrs": {
         "type": "struct k_sem",
-        "unit": "unit:zephyr/src"
+        "unit": "unit:src/backend/zephyr"
       }
     },
     {
@@ -8159,186 +8411,6 @@
       "attrs": {
         "type": "const uint64_t[80]",
         "unit": "unit:zephyr/src/ed25519"
-      }
-    },
-    {
-      "id": "global:zephyr/src/log_udp.c:__init_log_udp_hook_init",
-      "kind": "global",
-      "loc": "zephyr/src/log_udp.c:558",
-      "attrs": {
-        "type": "const struct init_entry",
-        "unit": "unit:zephyr/src"
-      }
-    },
-    {
-      "id": "global:zephyr/src/log_udp.c:dropped_chars",
-      "kind": "global",
-      "loc": "zephyr/src/log_udp.c:43",
-      "attrs": {
-        "type": "uint32_t",
-        "unit": "unit:zephyr/src"
-      }
-    },
-    {
-      "id": "global:zephyr/src/log_udp.c:log_udp_tee_paced.gave_up",
-      "kind": "global",
-      "loc": "zephyr/src/log_udp.c:167",
-      "attrs": {
-        "type": "int",
-        "unit": "unit:zephyr/src"
-      }
-    },
-    {
-      "id": "global:zephyr/src/log_udp.c:log_udp_tee_paced.gave_up_tail",
-      "kind": "global",
-      "loc": "zephyr/src/log_udp.c:168",
-      "attrs": {
-        "type": "uint32_t",
-        "unit": "unit:zephyr/src"
-      }
-    },
-    {
-      "id": "global:zephyr/src/log_udp.c:prev_hook",
-      "kind": "global",
-      "loc": "zephyr/src/log_udp.c:45",
-      "attrs": {
-        "type": "printk_hook_fn_t",
-        "unit": "unit:zephyr/src"
-      }
-    },
-    {
-      "id": "global:zephyr/src/log_udp.c:r_head",
-      "kind": "global",
-      "loc": "zephyr/src/log_udp.c:42",
-      "attrs": {
-        "type": "uint32_t",
-        "unit": "unit:zephyr/src"
-      }
-    },
-    {
-      "id": "global:zephyr/src/log_udp.c:r_tail",
-      "kind": "global",
-      "loc": "zephyr/src/log_udp.c:42",
-      "attrs": {
-        "type": "uint32_t",
-        "unit": "unit:zephyr/src"
-      }
-    },
-    {
-      "id": "global:zephyr/src/log_udp.c:ring",
-      "kind": "global",
-      "loc": "zephyr/src/log_udp.c:41",
-      "attrs": {
-        "type": "char[4096]",
-        "unit": "unit:zephyr/src"
-      }
-    },
-    {
-      "id": "global:zephyr/src/log_udp.c:ring_lock",
-      "kind": "global",
-      "loc": "zephyr/src/log_udp.c:44",
-      "attrs": {
-        "type": "struct k_spinlock",
-        "unit": "unit:zephyr/src"
-      }
-    },
-    {
-      "id": "global:zephyr/src/log_udp.c:send_errors",
-      "kind": "global",
-      "loc": "zephyr/src/log_udp.c:43",
-      "attrs": {
-        "type": "uint32_t",
-        "unit": "unit:zephyr/src"
-      }
-    },
-    {
-      "id": "global:zephyr/src/log_udp.c:sender_pending",
-      "kind": "global",
-      "loc": "zephyr/src/log_udp.c:57",
-      "attrs": {
-        "type": "volatile int",
-        "unit": "unit:zephyr/src"
-      }
-    },
-    {
-      "id": "global:zephyr/src/log_udp.c:sent_lines",
-      "kind": "global",
-      "loc": "zephyr/src/log_udp.c:43",
-      "attrs": {
-        "type": "uint32_t",
-        "unit": "unit:zephyr/src"
-      }
-    },
-    {
-      "id": "global:zephyr/src/log_udp.c:tee_addr",
-      "kind": "global",
-      "loc": "zephyr/src/log_udp.c:55",
-      "attrs": {
-        "type": "char[46]",
-        "unit": "unit:zephyr/src"
-      }
-    },
-    {
-      "id": "global:zephyr/src/log_udp.c:tee_dst",
-      "kind": "global",
-      "loc": "zephyr/src/log_udp.c:54",
-      "attrs": {
-        "type": "struct sockaddr_in6",
-        "unit": "unit:zephyr/src"
-      }
-    },
-    {
-      "id": "global:zephyr/src/log_udp.c:tee_from_keep",
-      "kind": "global",
-      "loc": "zephyr/src/log_udp.c:101",
-      "attrs": {
-        "type": "int",
-        "unit": "unit:zephyr/src"
-      }
-    },
-    {
-      "id": "global:zephyr/src/log_udp.c:tee_gen",
-      "kind": "global",
-      "loc": "zephyr/src/log_udp.c:53",
-      "attrs": {
-        "type": "volatile uint32_t",
-        "unit": "unit:zephyr/src"
-      }
-    },
-    {
-      "id": "global:zephyr/src/log_udp.c:tee_kept",
-      "kind": "global",
-      "loc": "zephyr/src/log_udp.c:73",
-      "attrs": {
-        "type": "struct tee_keep",
-        "unit": "unit:zephyr/src"
-      }
-    },
-    {
-      "id": "global:zephyr/src/log_udp.c:tee_port",
-      "kind": "global",
-      "loc": "zephyr/src/log_udp.c:56",
-      "attrs": {
-        "type": "int",
-        "unit": "unit:zephyr/src"
-      }
-    },
-    {
-      "id": "global:zephyr/src/log_udp.c:tee_state",
-      "kind": "global",
-      "loc": "zephyr/src/log_udp.c:52",
-      "attrs": {
-        "type": "volatile int",
-        "unit": "unit:zephyr/src"
-      }
-    },
-    {
-      "id": "global:zephyr/src/log_udp.c:tx_before_send",
-      "kind": "global",
-      "loc": "zephyr/src/log_udp.c:266",
-      "attrs": {
-        "type": "uint32_t",
-        "unit": "unit:zephyr/src"
       }
     },
     {
@@ -8482,78 +8554,6 @@
       "loc": "zephyr/src/reboot_note.c:30",
       "attrs": {
         "type": "struct RebootNote",
-        "unit": "unit:zephyr/src"
-      }
-    },
-    {
-      "id": "global:zephyr/src/runner.c:bases",
-      "kind": "global",
-      "loc": "zephyr/src/runner.c:130",
-      "attrs": {
-        "type": "const uint8_t *[2]",
-        "unit": "unit:zephyr/src"
-      }
-    },
-    {
-      "id": "global:zephyr/src/runner.c:handles",
-      "kind": "global",
-      "loc": "zephyr/src/runner.c:129",
-      "attrs": {
-        "type": "spi_flash_mmap_handle_t[2]",
-        "unit": "unit:zephyr/src"
-      }
-    },
-    {
-      "id": "global:zephyr/src/runner.c:have_key",
-      "kind": "global",
-      "loc": "zephyr/src/runner.c:57",
-      "attrs": {
-        "type": "int",
-        "unit": "unit:zephyr/src"
-      }
-    },
-    {
-      "id": "global:zephyr/src/runner.c:hex8.d",
-      "kind": "global",
-      "loc": "zephyr/src/runner.c:172",
-      "attrs": {
-        "type": "const char[17]",
-        "unit": "unit:zephyr/src"
-      }
-    },
-    {
-      "id": "global:zephyr/src/runner.c:m",
-      "kind": "global",
-      "loc": "zephyr/src/runner.c:52",
-      "attrs": {
-        "type": "struct (unnamed struct at /home/david/rete-invarlint/nodus/oevm/zephyr/src/runner.c:44:8)",
-        "unit": "unit:zephyr/src"
-      }
-    },
-    {
-      "id": "global:zephyr/src/runner.c:pubkey",
-      "kind": "global",
-      "loc": "zephyr/src/runner.c:56",
-      "attrs": {
-        "type": "uint8_t[32]",
-        "unit": "unit:zephyr/src"
-      }
-    },
-    {
-      "id": "global:zephyr/src/runner.c:slots",
-      "kind": "global",
-      "loc": "zephyr/src/runner.c:39",
-      "attrs": {
-        "type": "const struct (unnamed struct at /home/david/rete-invarlint/nodus/oevm/zephyr/src/runner.c:39:14)[2]",
-        "unit": "unit:zephyr/src"
-      }
-    },
-    {
-      "id": "global:zephyr/src/runner.c:trial_work",
-      "kind": "global",
-      "loc": "zephyr/src/runner.c:185",
-      "attrs": {
-        "type": "struct k_work_delayable",
         "unit": "unit:zephyr/src"
       }
     },
@@ -9789,133 +9789,133 @@
       "kind": "calls",
       "from": "func:log_udp_drain",
       "to": "func:k_msleep",
-      "loc": "zephyr/src/log_udp.c:418"
+      "loc": "src/backend/zephyr/log_udp.c:418"
     },
     {
       "kind": "calls",
       "from": "func:log_udp_drain",
-      "to": "func:zephyr/src/log_udp.c:net_tx_busy",
-      "loc": "zephyr/src/log_udp.c:416"
+      "to": "func:src/backend/zephyr/log_udp.c:net_tx_busy",
+      "loc": "src/backend/zephyr/log_udp.c:416"
     },
     {
       "kind": "calls",
       "from": "func:log_udp_drain",
-      "to": "func:zephyr/src/log_udp.c:ring_used",
-      "loc": "zephyr/src/log_udp.c:416"
+      "to": "func:src/backend/zephyr/log_udp.c:ring_used",
+      "loc": "src/backend/zephyr/log_udp.c:416"
     },
     {
       "kind": "calls",
       "from": "func:log_udp_drain",
-      "to": "func:zephyr/src/log_udp.c:tee_keep_sum",
-      "loc": "zephyr/src/log_udp.c:424"
+      "to": "func:src/backend/zephyr/log_udp.c:tee_keep_sum",
+      "loc": "src/backend/zephyr/log_udp.c:424"
     },
     {
       "kind": "calls",
       "from": "func:log_udp_drain",
-      "to": "func:zephyr/src/log_udp.c:tee_keep_valid",
-      "loc": "zephyr/src/log_udp.c:422"
+      "to": "func:src/backend/zephyr/log_udp.c:tee_keep_valid",
+      "loc": "src/backend/zephyr/log_udp.c:422"
     },
     {
       "kind": "calls",
       "from": "func:log_udp_set_target",
       "to": "func:k_spin_lock",
-      "loc": "zephyr/src/log_udp.c:357"
+      "loc": "src/backend/zephyr/log_udp.c:357"
     },
     {
       "kind": "calls",
       "from": "func:log_udp_set_target",
       "to": "func:k_spin_unlock",
-      "loc": "zephyr/src/log_udp.c:362"
+      "loc": "src/backend/zephyr/log_udp.c:362"
     },
     {
       "kind": "calls",
       "from": "func:log_udp_set_target",
       "to": "func:memcpy",
-      "loc": "zephyr/src/log_udp.c:370"
+      "loc": "src/backend/zephyr/log_udp.c:370"
     },
     {
       "kind": "calls",
       "from": "func:log_udp_set_target",
       "to": "func:printk",
-      "loc": "zephyr/src/log_udp.c:364"
+      "loc": "src/backend/zephyr/log_udp.c:364"
     },
     {
       "kind": "calls",
       "from": "func:log_udp_set_target",
       "to": "func:printk",
-      "loc": "zephyr/src/log_udp.c:379"
+      "loc": "src/backend/zephyr/log_udp.c:379"
+    },
+    {
+      "kind": "calls",
+      "from": "func:log_udp_set_target",
+      "to": "func:src/backend/zephyr/log_udp.c:set_target",
+      "loc": "src/backend/zephyr/log_udp.c:375"
+    },
+    {
+      "kind": "calls",
+      "from": "func:log_udp_set_target",
+      "to": "func:src/backend/zephyr/log_udp.c:tee_keep_put",
+      "loc": "src/backend/zephyr/log_udp.c:363"
+    },
+    {
+      "kind": "calls",
+      "from": "func:log_udp_set_target",
+      "to": "func:src/backend/zephyr/log_udp.c:tee_keep_put",
+      "loc": "src/backend/zephyr/log_udp.c:378"
     },
     {
       "kind": "calls",
       "from": "func:log_udp_set_target",
       "to": "func:strcmp",
-      "loc": "zephyr/src/log_udp.c:372"
-    },
-    {
-      "kind": "calls",
-      "from": "func:log_udp_set_target",
-      "to": "func:zephyr/src/log_udp.c:set_target",
-      "loc": "zephyr/src/log_udp.c:375"
-    },
-    {
-      "kind": "calls",
-      "from": "func:log_udp_set_target",
-      "to": "func:zephyr/src/log_udp.c:tee_keep_put",
-      "loc": "zephyr/src/log_udp.c:363"
-    },
-    {
-      "kind": "calls",
-      "from": "func:log_udp_set_target",
-      "to": "func:zephyr/src/log_udp.c:tee_keep_put",
-      "loc": "zephyr/src/log_udp.c:378"
+      "loc": "src/backend/zephyr/log_udp.c:372"
     },
     {
       "kind": "calls",
       "from": "func:log_udp_start",
       "to": "func:printk",
-      "loc": "zephyr/src/log_udp.c:563"
+      "loc": "src/backend/zephyr/log_udp.c:563"
     },
     {
       "kind": "calls",
       "from": "func:log_udp_start",
       "to": "func:printk",
-      "loc": "zephyr/src/log_udp.c:566"
+      "loc": "src/backend/zephyr/log_udp.c:566"
     },
     {
       "kind": "calls",
       "from": "func:log_udp_start",
       "to": "func:printk",
-      "loc": "zephyr/src/log_udp.c:568"
+      "loc": "src/backend/zephyr/log_udp.c:568"
     },
     {
       "kind": "calls",
       "from": "func:log_udp_start",
       "to": "func:printk",
-      "loc": "zephyr/src/log_udp.c:571"
+      "loc": "src/backend/zephyr/log_udp.c:571"
     },
     {
       "kind": "calls",
       "from": "func:log_udp_tee",
-      "to": "func:zephyr/src/log_udp.c:ring_put",
-      "loc": "zephyr/src/log_udp.c:155"
+      "to": "func:src/backend/zephyr/log_udp.c:ring_put",
+      "loc": "src/backend/zephyr/log_udp.c:155"
     },
     {
       "kind": "calls",
       "from": "func:log_udp_tee_paced",
       "to": "func:k_msleep",
-      "loc": "zephyr/src/log_udp.c:173"
+      "loc": "src/backend/zephyr/log_udp.c:173"
     },
     {
       "kind": "calls",
       "from": "func:log_udp_tee_paced",
       "to": "func:log_udp_tee",
-      "loc": "zephyr/src/log_udp.c:187"
+      "loc": "src/backend/zephyr/log_udp.c:187"
     },
     {
       "kind": "calls",
       "from": "func:log_udp_tee_paced",
-      "to": "func:zephyr/src/log_udp.c:ring_used",
-      "loc": "zephyr/src/log_udp.c:172"
+      "to": "func:src/backend/zephyr/log_udp.c:ring_used",
+      "loc": "src/backend/zephyr/log_udp.c:172"
     },
     {
       "kind": "calls",
@@ -14877,223 +14877,223 @@
       "kind": "calls",
       "from": "func:runner_confirm",
       "to": "func:k_work_cancel_delayable",
-      "loc": "zephyr/src/runner.c:263"
+      "loc": "src/backend/zephyr/runner.c:263"
     },
     {
       "kind": "calls",
       "from": "func:runner_confirm",
       "to": "func:printk",
-      "loc": "zephyr/src/runner.c:265"
+      "loc": "src/backend/zephyr/runner.c:265"
     },
     {
       "kind": "calls",
       "from": "func:runner_confirm",
-      "to": "func:zephyr/src/runner.c:m_save",
-      "loc": "zephyr/src/runner.c:264"
+      "to": "func:src/backend/zephyr/runner.c:m_save",
+      "loc": "src/backend/zephyr/runner.c:264"
     },
     {
       "kind": "calls",
       "from": "func:runner_ready",
       "to": "func:memcpy",
-      "loc": "zephyr/src/runner.c:252"
+      "loc": "src/backend/zephyr/runner.c:252"
     },
     {
       "kind": "calls",
       "from": "func:runner_ready",
       "to": "func:memcpy",
-      "loc": "zephyr/src/runner.c:253"
+      "loc": "src/backend/zephyr/runner.c:253"
     },
     {
       "kind": "calls",
       "from": "func:runner_ready",
-      "to": "func:zephyr/src/runner.c:m_save",
-      "loc": "zephyr/src/runner.c:256"
+      "to": "func:src/backend/zephyr/runner.c:m_save",
+      "loc": "src/backend/zephyr/runner.c:256"
     },
     {
       "kind": "calls",
       "from": "func:runner_select",
       "to": "func:k_work_schedule",
-      "loc": "zephyr/src/runner.c:235"
+      "loc": "src/backend/zephyr/runner.c:235"
     },
     {
       "kind": "calls",
       "from": "func:runner_select",
       "to": "func:memcmp",
-      "loc": "zephyr/src/runner.c:197"
+      "loc": "src/backend/zephyr/runner.c:197"
     },
     {
       "kind": "calls",
       "from": "func:runner_select",
       "to": "func:memcmp",
-      "loc": "zephyr/src/runner.c:219"
+      "loc": "src/backend/zephyr/runner.c:219"
     },
     {
       "kind": "calls",
       "from": "func:runner_select",
       "to": "func:memcmp",
-      "loc": "zephyr/src/runner.c:229"
+      "loc": "src/backend/zephyr/runner.c:229"
     },
     {
       "kind": "calls",
       "from": "func:runner_select",
       "to": "func:memcpy",
-      "loc": "zephyr/src/runner.c:205"
+      "loc": "src/backend/zephyr/runner.c:205"
     },
     {
       "kind": "calls",
       "from": "func:runner_select",
       "to": "func:memcpy",
-      "loc": "zephyr/src/runner.c:223"
+      "loc": "src/backend/zephyr/runner.c:223"
     },
     {
       "kind": "calls",
       "from": "func:runner_select",
       "to": "func:printk",
-      "loc": "zephyr/src/runner.c:198"
+      "loc": "src/backend/zephyr/runner.c:198"
     },
     {
       "kind": "calls",
       "from": "func:runner_select",
       "to": "func:printk",
-      "loc": "zephyr/src/runner.c:201"
+      "loc": "src/backend/zephyr/runner.c:201"
     },
     {
       "kind": "calls",
       "from": "func:runner_select",
       "to": "func:printk",
-      "loc": "zephyr/src/runner.c:207"
+      "loc": "src/backend/zephyr/runner.c:207"
     },
     {
       "kind": "calls",
       "from": "func:runner_select",
       "to": "func:printk",
-      "loc": "zephyr/src/runner.c:214"
+      "loc": "src/backend/zephyr/runner.c:214"
     },
     {
       "kind": "calls",
       "from": "func:runner_select",
       "to": "func:printk",
-      "loc": "zephyr/src/runner.c:221"
+      "loc": "src/backend/zephyr/runner.c:221"
     },
     {
       "kind": "calls",
       "from": "func:runner_select",
       "to": "func:printk",
-      "loc": "zephyr/src/runner.c:233"
+      "loc": "src/backend/zephyr/runner.c:233"
     },
     {
       "kind": "calls",
       "from": "func:runner_select",
       "to": "func:printk",
-      "loc": "zephyr/src/runner.c:238"
+      "loc": "src/backend/zephyr/runner.c:238"
     },
     {
       "kind": "calls",
       "from": "func:runner_select",
       "to": "func:printk",
-      "loc": "zephyr/src/runner.c:243"
+      "loc": "src/backend/zephyr/runner.c:243"
     },
     {
       "kind": "calls",
       "from": "func:runner_select",
-      "to": "func:zephyr/src/runner.c:hash_slot",
-      "loc": "zephyr/src/runner.c:197"
+      "to": "func:src/backend/zephyr/runner.c:hash_slot",
+      "loc": "src/backend/zephyr/runner.c:197"
     },
     {
       "kind": "calls",
       "from": "func:runner_select",
-      "to": "func:zephyr/src/runner.c:hash_slot",
-      "loc": "zephyr/src/runner.c:219"
+      "to": "func:src/backend/zephyr/runner.c:hash_slot",
+      "loc": "src/backend/zephyr/runner.c:219"
     },
     {
       "kind": "calls",
       "from": "func:runner_select",
-      "to": "func:zephyr/src/runner.c:hash_slot",
-      "loc": "zephyr/src/runner.c:229"
+      "to": "func:src/backend/zephyr/runner.c:hash_slot",
+      "loc": "src/backend/zephyr/runner.c:229"
     },
     {
       "kind": "calls",
       "from": "func:runner_select",
-      "to": "func:zephyr/src/runner.c:hex8",
-      "loc": "zephyr/src/runner.c:200"
+      "to": "func:src/backend/zephyr/runner.c:hex8",
+      "loc": "src/backend/zephyr/runner.c:200"
     },
     {
       "kind": "calls",
       "from": "func:runner_select",
-      "to": "func:zephyr/src/runner.c:hex8",
-      "loc": "zephyr/src/runner.c:206"
+      "to": "func:src/backend/zephyr/runner.c:hex8",
+      "loc": "src/backend/zephyr/runner.c:206"
     },
     {
       "kind": "calls",
       "from": "func:runner_select",
-      "to": "func:zephyr/src/runner.c:hex8",
-      "loc": "zephyr/src/runner.c:220"
+      "to": "func:src/backend/zephyr/runner.c:hex8",
+      "loc": "src/backend/zephyr/runner.c:220"
     },
     {
       "kind": "calls",
       "from": "func:runner_select",
-      "to": "func:zephyr/src/runner.c:hex8",
-      "loc": "zephyr/src/runner.c:232"
+      "to": "func:src/backend/zephyr/runner.c:hex8",
+      "loc": "src/backend/zephyr/runner.c:232"
     },
     {
       "kind": "calls",
       "from": "func:runner_select",
-      "to": "func:zephyr/src/runner.c:key_init",
-      "loc": "zephyr/src/runner.c:191"
+      "to": "func:src/backend/zephyr/runner.c:key_init",
+      "loc": "src/backend/zephyr/runner.c:191"
     },
     {
       "kind": "calls",
       "from": "func:runner_select",
-      "to": "func:zephyr/src/runner.c:m_load",
-      "loc": "zephyr/src/runner.c:192"
+      "to": "func:src/backend/zephyr/runner.c:m_load",
+      "loc": "src/backend/zephyr/runner.c:192"
     },
     {
       "kind": "calls",
       "from": "func:runner_select",
-      "to": "func:zephyr/src/runner.c:m_save",
-      "loc": "zephyr/src/runner.c:209"
+      "to": "func:src/backend/zephyr/runner.c:m_save",
+      "loc": "src/backend/zephyr/runner.c:209"
     },
     {
       "kind": "calls",
       "from": "func:runner_select",
-      "to": "func:zephyr/src/runner.c:m_save",
-      "loc": "zephyr/src/runner.c:216"
+      "to": "func:src/backend/zephyr/runner.c:m_save",
+      "loc": "src/backend/zephyr/runner.c:216"
     },
     {
       "kind": "calls",
       "from": "func:runner_select",
-      "to": "func:zephyr/src/runner.c:m_save",
-      "loc": "zephyr/src/runner.c:224"
+      "to": "func:src/backend/zephyr/runner.c:m_save",
+      "loc": "src/backend/zephyr/runner.c:224"
     },
     {
       "kind": "calls",
       "from": "func:runner_select",
-      "to": "func:zephyr/src/runner.c:m_save",
-      "loc": "zephyr/src/runner.c:241"
+      "to": "func:src/backend/zephyr/runner.c:m_save",
+      "loc": "src/backend/zephyr/runner.c:241"
     },
     {
       "kind": "calls",
       "from": "func:runner_select",
-      "to": "func:zephyr/src/runner.c:map_slot",
-      "loc": "zephyr/src/runner.c:236"
+      "to": "func:src/backend/zephyr/runner.c:map_slot",
+      "loc": "src/backend/zephyr/runner.c:236"
     },
     {
       "kind": "calls",
       "from": "func:runner_select",
-      "to": "func:zephyr/src/runner.c:spoil",
-      "loc": "zephyr/src/runner.c:202"
+      "to": "func:src/backend/zephyr/runner.c:spoil",
+      "loc": "src/backend/zephyr/runner.c:202"
     },
     {
       "kind": "calls",
       "from": "func:runner_select",
-      "to": "func:zephyr/src/runner.c:verified",
-      "loc": "zephyr/src/runner.c:199"
+      "to": "func:src/backend/zephyr/runner.c:verified",
+      "loc": "src/backend/zephyr/runner.c:199"
     },
     {
       "kind": "calls",
       "from": "func:runner_select",
-      "to": "func:zephyr/src/runner.c:verified",
-      "loc": "zephyr/src/runner.c:230"
+      "to": "func:src/backend/zephyr/runner.c:verified",
+      "loc": "src/backend/zephyr/runner.c:230"
     },
     {
       "kind": "calls",
@@ -16723,6 +16723,330 @@
     },
     {
       "kind": "calls",
+      "from": "func:src/backend/zephyr/log_udp.c:log_udp_hook_init",
+      "to": "func:__printk_get_hook",
+      "loc": "src/backend/zephyr/log_udp.c:545"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/log_udp.c:log_udp_hook_init",
+      "to": "func:__printk_hook_install",
+      "loc": "src/backend/zephyr/log_udp.c:546"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/log_udp.c:log_udp_hook_init",
+      "to": "func:src/backend/zephyr/log_udp.c:set_target",
+      "loc": "src/backend/zephyr/log_udp.c:549"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/log_udp.c:log_udp_hook_init",
+      "to": "func:src/backend/zephyr/log_udp.c:tee_keep_valid",
+      "loc": "src/backend/zephyr/log_udp.c:547"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/log_udp.c:log_udp_thread",
+      "to": "func:__errno",
+      "loc": "src/backend/zephyr/log_udp.c:484"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/log_udp.c:log_udp_thread",
+      "to": "func:__errno",
+      "loc": "src/backend/zephyr/log_udp.c:518"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/log_udp.c:log_udp_thread",
+      "to": "func:k_msleep",
+      "loc": "src/backend/zephyr/log_udp.c:462"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/log_udp.c:log_udp_thread",
+      "to": "func:k_msleep",
+      "loc": "src/backend/zephyr/log_udp.c:467"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/log_udp.c:log_udp_thread",
+      "to": "func:k_msleep",
+      "loc": "src/backend/zephyr/log_udp.c:484"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/log_udp.c:log_udp_thread",
+      "to": "func:k_msleep",
+      "loc": "src/backend/zephyr/log_udp.c:518"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/log_udp.c:log_udp_thread",
+      "to": "func:k_msleep",
+      "loc": "src/backend/zephyr/log_udp.c:532"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/log_udp.c:log_udp_thread",
+      "to": "func:k_sem_take",
+      "loc": "src/backend/zephyr/log_udp.c:446"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/log_udp.c:log_udp_thread",
+      "to": "func:k_spin_lock",
+      "loc": "src/backend/zephyr/log_udp.c:450"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/log_udp.c:log_udp_thread",
+      "to": "func:k_spin_unlock",
+      "loc": "src/backend/zephyr/log_udp.c:453"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/log_udp.c:log_udp_thread",
+      "to": "func:printk",
+      "loc": "src/backend/zephyr/log_udp.c:528"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/log_udp.c:log_udp_thread",
+      "to": "func:src/backend/zephyr/log_udp.c:busy",
+      "loc": "src/backend/zephyr/log_udp.c:484"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/log_udp.c:log_udp_thread",
+      "to": "func:src/backend/zephyr/log_udp.c:busy",
+      "loc": "src/backend/zephyr/log_udp.c:518"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/log_udp.c:log_udp_thread",
+      "to": "func:src/backend/zephyr/log_udp.c:ring_get",
+      "loc": "src/backend/zephyr/log_udp.c:494"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/log_udp.c:log_udp_thread",
+      "to": "func:src/backend/zephyr/log_udp.c:source_ready",
+      "loc": "src/backend/zephyr/log_udp.c:466"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/log_udp.c:log_udp_thread",
+      "to": "func:src/backend/zephyr/log_udp.c:wait_for_radio",
+      "loc": "src/backend/zephyr/log_udp.c:480"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/log_udp.c:log_udp_thread",
+      "to": "func:src/backend/zephyr/log_udp.c:wait_for_radio",
+      "loc": "src/backend/zephyr/log_udp.c:500"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/log_udp.c:log_udp_thread",
+      "to": "func:zsock_close",
+      "loc": "src/backend/zephyr/log_udp.c:455"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/log_udp.c:log_udp_thread",
+      "to": "func:zsock_sendto",
+      "loc": "src/backend/zephyr/log_udp.c:481"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/log_udp.c:log_udp_thread",
+      "to": "func:zsock_sendto",
+      "loc": "src/backend/zephyr/log_udp.c:501"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/log_udp.c:log_udp_thread",
+      "to": "func:zsock_socket",
+      "loc": "src/backend/zephyr/log_udp.c:460"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/log_udp.c:net_tx_busy",
+      "to": "func:oevm_thread_tx_queued",
+      "loc": "src/backend/zephyr/log_udp.c:393"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/log_udp.c:net_tx_busy",
+      "to": "func:src/backend/zephyr/log_udp.c:net_tx_held",
+      "loc": "src/backend/zephyr/log_udp.c:389"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/log_udp.c:net_tx_held",
+      "to": "func:k_mem_slab_num_used_get",
+      "loc": "src/backend/zephyr/log_udp.c:252"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/log_udp.c:net_tx_held",
+      "to": "func:net_pkt_get_info",
+      "loc": "src/backend/zephyr/log_udp.c:251"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/log_udp.c:ring_get",
+      "to": "func:k_spin_lock",
+      "loc": "src/backend/zephyr/log_udp.c:318"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/log_udp.c:ring_get",
+      "to": "func:k_spin_unlock",
+      "loc": "src/backend/zephyr/log_udp.c:326"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/log_udp.c:ring_put",
+      "to": "func:k_spin_lock",
+      "loc": "src/backend/zephyr/log_udp.c:115"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/log_udp.c:ring_put",
+      "to": "func:k_spin_unlock",
+      "loc": "src/backend/zephyr/log_udp.c:128"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/log_udp.c:ring_used",
+      "to": "func:k_spin_lock",
+      "loc": "src/backend/zephyr/log_udp.c:134"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/log_udp.c:ring_used",
+      "to": "func:k_spin_unlock",
+      "loc": "src/backend/zephyr/log_udp.c:136"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/log_udp.c:set_target",
+      "to": "func:k_sem_give",
+      "loc": "src/backend/zephyr/log_udp.c:348"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/log_udp.c:set_target",
+      "to": "func:k_spin_lock",
+      "loc": "src/backend/zephyr/log_udp.c:341"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/log_udp.c:set_target",
+      "to": "func:k_spin_unlock",
+      "loc": "src/backend/zephyr/log_udp.c:345"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/log_udp.c:set_target",
+      "to": "func:memset",
+      "loc": "src/backend/zephyr/log_udp.c:335"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/log_udp.c:set_target",
+      "to": "func:strncpy",
+      "loc": "src/backend/zephyr/log_udp.c:346"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/log_udp.c:set_target",
+      "to": "func:zsock_inet_pton",
+      "loc": "src/backend/zephyr/log_udp.c:338"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/log_udp.c:source_ready",
+      "to": "func:net_if_ipv6_select_src_addr",
+      "loc": "src/backend/zephyr/log_udp.c:304"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/log_udp.c:source_ready",
+      "to": "func:net_ipv6_is_addr_unspecified",
+      "loc": "src/backend/zephyr/log_udp.c:306"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/log_udp.c:source_ready",
+      "to": "func:net_ipv6_is_ll_addr",
+      "loc": "src/backend/zephyr/log_udp.c:307"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/log_udp.c:tee_char_out",
+      "to": "func:src/backend/zephyr/log_udp.c:ring_put",
+      "loc": "src/backend/zephyr/log_udp.c:142"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/log_udp.c:tee_keep_put",
+      "to": "func:memset",
+      "loc": "src/backend/zephyr/log_udp.c:94"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/log_udp.c:tee_keep_put",
+      "to": "func:src/backend/zephyr/log_udp.c:tee_keep_sum",
+      "loc": "src/backend/zephyr/log_udp.c:98"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/log_udp.c:tee_keep_put",
+      "to": "func:strncpy",
+      "loc": "src/backend/zephyr/log_udp.c:95"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/log_udp.c:tee_keep_valid",
+      "to": "func:src/backend/zephyr/log_udp.c:tee_keep_sum",
+      "loc": "src/backend/zephyr/log_udp.c:105"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/log_udp.c:wait_for_radio",
+      "to": "func:k_msleep",
+      "loc": "src/backend/zephyr/log_udp.c:273"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/log_udp.c:wait_for_radio",
+      "to": "func:k_msleep",
+      "loc": "src/backend/zephyr/log_udp.c:280"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/log_udp.c:wait_for_radio",
+      "to": "func:oevm_thread_free_buffers",
+      "loc": "src/backend/zephyr/log_udp.c:279"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/log_udp.c:wait_for_radio",
+      "to": "func:src/backend/zephyr/log_udp.c:net_tx_held",
+      "loc": "src/backend/zephyr/log_udp.c:272"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/log_udp.c:wait_for_radio",
+      "to": "func:src/backend/zephyr/log_udp.c:net_tx_held",
+      "loc": "src/backend/zephyr/log_udp.c:291"
+    },
+    {
+      "kind": "calls",
       "from": "func:src/backend/zephyr/ota_zephyr.c:ota_entry",
       "to": "func:k_current_get",
       "loc": "src/backend/zephyr/ota_zephyr.c:186"
@@ -16906,6 +17230,240 @@
       "from": "func:src/backend/zephyr/pulse_zephyr.c:shadow_pop",
       "to": "func:arch_irq_unlock",
       "loc": "src/backend/zephyr/pulse_zephyr.c:84"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/runner.c:hash_slot",
+      "to": "func:ota_sha256",
+      "loc": "src/backend/zephyr/runner.c:151"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/runner.c:hash_slot",
+      "to": "func:src/backend/zephyr/runner.c:map_slot",
+      "loc": "src/backend/zephyr/runner.c:150"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/runner.c:key_init",
+      "to": "func:printk",
+      "loc": "src/backend/zephyr/runner.c:60"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/runner.c:key_init",
+      "to": "func:printk",
+      "loc": "src/backend/zephyr/runner.c:69"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/runner.c:key_init",
+      "to": "func:strlen",
+      "loc": "src/backend/zephyr/runner.c:60"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/runner.c:m_load",
+      "to": "func:memset",
+      "loc": "src/backend/zephyr/runner.c:122"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/runner.c:m_load",
+      "to": "func:settings_load_subtree",
+      "loc": "src/backend/zephyr/runner.c:124"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/runner.c:m_load",
+      "to": "func:settings_subsys_init",
+      "loc": "src/backend/zephyr/runner.c:121"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/runner.c:m_save",
+      "to": "func:printk",
+      "loc": "src/backend/zephyr/runner.c:117"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/runner.c:m_save",
+      "to": "func:settings_save_one",
+      "loc": "src/backend/zephyr/runner.c:107"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/runner.c:m_save",
+      "to": "func:settings_save_one",
+      "loc": "src/backend/zephyr/runner.c:108"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/runner.c:m_save",
+      "to": "func:settings_save_one",
+      "loc": "src/backend/zephyr/runner.c:109"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/runner.c:m_save",
+      "to": "func:settings_save_one",
+      "loc": "src/backend/zephyr/runner.c:110"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/runner.c:m_save",
+      "to": "func:settings_save_one",
+      "loc": "src/backend/zephyr/runner.c:111"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/runner.c:m_save",
+      "to": "func:settings_save_one",
+      "loc": "src/backend/zephyr/runner.c:112"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/runner.c:m_save",
+      "to": "func:settings_save_one",
+      "loc": "src/backend/zephyr/runner.c:113"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/runner.c:m_save",
+      "to": "func:settings_save_one",
+      "loc": "src/backend/zephyr/runner.c:114"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/runner.c:m_save",
+      "to": "func:settings_save_one",
+      "loc": "src/backend/zephyr/runner.c:115"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/runner.c:m_save",
+      "to": "func:settings_save_one",
+      "loc": "src/backend/zephyr/runner.c:116"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/runner.c:m_set",
+      "to": "func:settings_name_steq",
+      "loc": "src/backend/zephyr/runner.c:85"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/runner.c:m_set",
+      "to": "func:settings_name_steq",
+      "loc": "src/backend/zephyr/runner.c:86"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/runner.c:m_set",
+      "to": "func:settings_name_steq",
+      "loc": "src/backend/zephyr/runner.c:87"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/runner.c:m_set",
+      "to": "func:settings_name_steq",
+      "loc": "src/backend/zephyr/runner.c:88"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/runner.c:m_set",
+      "to": "func:settings_name_steq",
+      "loc": "src/backend/zephyr/runner.c:89"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/runner.c:m_set",
+      "to": "func:settings_name_steq",
+      "loc": "src/backend/zephyr/runner.c:90"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/runner.c:m_set",
+      "to": "func:settings_name_steq",
+      "loc": "src/backend/zephyr/runner.c:91"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/runner.c:m_set",
+      "to": "func:settings_name_steq",
+      "loc": "src/backend/zephyr/runner.c:92"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/runner.c:m_set",
+      "to": "func:settings_name_steq",
+      "loc": "src/backend/zephyr/runner.c:93"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/runner.c:m_set",
+      "to": "func:settings_name_steq",
+      "loc": "src/backend/zephyr/runner.c:94"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/runner.c:map_slot",
+      "to": "func:memcpy",
+      "loc": "src/backend/zephyr/runner.c:142"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/runner.c:map_slot",
+      "to": "func:printk",
+      "loc": "src/backend/zephyr/runner.c:136"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/runner.c:map_slot",
+      "to": "func:spi_flash_mmap",
+      "loc": "src/backend/zephyr/runner.c:135"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/runner.c:spoil",
+      "to": "func:flash_area_close",
+      "loc": "src/backend/zephyr/runner.c:167"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/runner.c:spoil",
+      "to": "func:flash_area_erase",
+      "loc": "src/backend/zephyr/runner.c:166"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/runner.c:spoil",
+      "to": "func:flash_area_open",
+      "loc": "src/backend/zephyr/runner.c:165"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/runner.c:trial_expired",
+      "to": "func:k_msleep",
+      "loc": "src/backend/zephyr/runner.c:182"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/runner.c:trial_expired",
+      "to": "func:printk",
+      "loc": "src/backend/zephyr/runner.c:180"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/runner.c:trial_expired",
+      "to": "func:sys_reboot",
+      "loc": "src/backend/zephyr/runner.c:183"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/runner.c:verified",
+      "to": "func:ED25519_verify",
+      "loc": "src/backend/zephyr/runner.c:157"
     },
     {
       "kind": "calls",
@@ -21691,330 +22249,6 @@
     },
     {
       "kind": "calls",
-      "from": "func:zephyr/src/log_udp.c:log_udp_hook_init",
-      "to": "func:__printk_get_hook",
-      "loc": "zephyr/src/log_udp.c:545"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/log_udp.c:log_udp_hook_init",
-      "to": "func:__printk_hook_install",
-      "loc": "zephyr/src/log_udp.c:546"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/log_udp.c:log_udp_hook_init",
-      "to": "func:zephyr/src/log_udp.c:set_target",
-      "loc": "zephyr/src/log_udp.c:549"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/log_udp.c:log_udp_hook_init",
-      "to": "func:zephyr/src/log_udp.c:tee_keep_valid",
-      "loc": "zephyr/src/log_udp.c:547"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/log_udp.c:log_udp_thread",
-      "to": "func:__errno",
-      "loc": "zephyr/src/log_udp.c:484"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/log_udp.c:log_udp_thread",
-      "to": "func:__errno",
-      "loc": "zephyr/src/log_udp.c:518"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/log_udp.c:log_udp_thread",
-      "to": "func:k_msleep",
-      "loc": "zephyr/src/log_udp.c:462"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/log_udp.c:log_udp_thread",
-      "to": "func:k_msleep",
-      "loc": "zephyr/src/log_udp.c:467"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/log_udp.c:log_udp_thread",
-      "to": "func:k_msleep",
-      "loc": "zephyr/src/log_udp.c:484"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/log_udp.c:log_udp_thread",
-      "to": "func:k_msleep",
-      "loc": "zephyr/src/log_udp.c:518"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/log_udp.c:log_udp_thread",
-      "to": "func:k_msleep",
-      "loc": "zephyr/src/log_udp.c:532"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/log_udp.c:log_udp_thread",
-      "to": "func:k_sem_take",
-      "loc": "zephyr/src/log_udp.c:446"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/log_udp.c:log_udp_thread",
-      "to": "func:k_spin_lock",
-      "loc": "zephyr/src/log_udp.c:450"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/log_udp.c:log_udp_thread",
-      "to": "func:k_spin_unlock",
-      "loc": "zephyr/src/log_udp.c:453"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/log_udp.c:log_udp_thread",
-      "to": "func:printk",
-      "loc": "zephyr/src/log_udp.c:528"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/log_udp.c:log_udp_thread",
-      "to": "func:zephyr/src/log_udp.c:busy",
-      "loc": "zephyr/src/log_udp.c:484"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/log_udp.c:log_udp_thread",
-      "to": "func:zephyr/src/log_udp.c:busy",
-      "loc": "zephyr/src/log_udp.c:518"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/log_udp.c:log_udp_thread",
-      "to": "func:zephyr/src/log_udp.c:ring_get",
-      "loc": "zephyr/src/log_udp.c:494"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/log_udp.c:log_udp_thread",
-      "to": "func:zephyr/src/log_udp.c:source_ready",
-      "loc": "zephyr/src/log_udp.c:466"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/log_udp.c:log_udp_thread",
-      "to": "func:zephyr/src/log_udp.c:wait_for_radio",
-      "loc": "zephyr/src/log_udp.c:480"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/log_udp.c:log_udp_thread",
-      "to": "func:zephyr/src/log_udp.c:wait_for_radio",
-      "loc": "zephyr/src/log_udp.c:500"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/log_udp.c:log_udp_thread",
-      "to": "func:zsock_close",
-      "loc": "zephyr/src/log_udp.c:455"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/log_udp.c:log_udp_thread",
-      "to": "func:zsock_sendto",
-      "loc": "zephyr/src/log_udp.c:481"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/log_udp.c:log_udp_thread",
-      "to": "func:zsock_sendto",
-      "loc": "zephyr/src/log_udp.c:501"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/log_udp.c:log_udp_thread",
-      "to": "func:zsock_socket",
-      "loc": "zephyr/src/log_udp.c:460"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/log_udp.c:net_tx_busy",
-      "to": "func:oevm_thread_tx_queued",
-      "loc": "zephyr/src/log_udp.c:393"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/log_udp.c:net_tx_busy",
-      "to": "func:zephyr/src/log_udp.c:net_tx_held",
-      "loc": "zephyr/src/log_udp.c:389"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/log_udp.c:net_tx_held",
-      "to": "func:k_mem_slab_num_used_get",
-      "loc": "zephyr/src/log_udp.c:252"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/log_udp.c:net_tx_held",
-      "to": "func:net_pkt_get_info",
-      "loc": "zephyr/src/log_udp.c:251"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/log_udp.c:ring_get",
-      "to": "func:k_spin_lock",
-      "loc": "zephyr/src/log_udp.c:318"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/log_udp.c:ring_get",
-      "to": "func:k_spin_unlock",
-      "loc": "zephyr/src/log_udp.c:326"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/log_udp.c:ring_put",
-      "to": "func:k_spin_lock",
-      "loc": "zephyr/src/log_udp.c:115"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/log_udp.c:ring_put",
-      "to": "func:k_spin_unlock",
-      "loc": "zephyr/src/log_udp.c:128"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/log_udp.c:ring_used",
-      "to": "func:k_spin_lock",
-      "loc": "zephyr/src/log_udp.c:134"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/log_udp.c:ring_used",
-      "to": "func:k_spin_unlock",
-      "loc": "zephyr/src/log_udp.c:136"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/log_udp.c:set_target",
-      "to": "func:k_sem_give",
-      "loc": "zephyr/src/log_udp.c:348"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/log_udp.c:set_target",
-      "to": "func:k_spin_lock",
-      "loc": "zephyr/src/log_udp.c:341"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/log_udp.c:set_target",
-      "to": "func:k_spin_unlock",
-      "loc": "zephyr/src/log_udp.c:345"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/log_udp.c:set_target",
-      "to": "func:memset",
-      "loc": "zephyr/src/log_udp.c:335"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/log_udp.c:set_target",
-      "to": "func:strncpy",
-      "loc": "zephyr/src/log_udp.c:346"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/log_udp.c:set_target",
-      "to": "func:zsock_inet_pton",
-      "loc": "zephyr/src/log_udp.c:338"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/log_udp.c:source_ready",
-      "to": "func:net_if_ipv6_select_src_addr",
-      "loc": "zephyr/src/log_udp.c:304"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/log_udp.c:source_ready",
-      "to": "func:net_ipv6_is_addr_unspecified",
-      "loc": "zephyr/src/log_udp.c:306"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/log_udp.c:source_ready",
-      "to": "func:net_ipv6_is_ll_addr",
-      "loc": "zephyr/src/log_udp.c:307"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/log_udp.c:tee_char_out",
-      "to": "func:zephyr/src/log_udp.c:ring_put",
-      "loc": "zephyr/src/log_udp.c:142"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/log_udp.c:tee_keep_put",
-      "to": "func:memset",
-      "loc": "zephyr/src/log_udp.c:94"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/log_udp.c:tee_keep_put",
-      "to": "func:strncpy",
-      "loc": "zephyr/src/log_udp.c:95"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/log_udp.c:tee_keep_put",
-      "to": "func:zephyr/src/log_udp.c:tee_keep_sum",
-      "loc": "zephyr/src/log_udp.c:98"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/log_udp.c:tee_keep_valid",
-      "to": "func:zephyr/src/log_udp.c:tee_keep_sum",
-      "loc": "zephyr/src/log_udp.c:105"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/log_udp.c:wait_for_radio",
-      "to": "func:k_msleep",
-      "loc": "zephyr/src/log_udp.c:273"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/log_udp.c:wait_for_radio",
-      "to": "func:k_msleep",
-      "loc": "zephyr/src/log_udp.c:280"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/log_udp.c:wait_for_radio",
-      "to": "func:oevm_thread_free_buffers",
-      "loc": "zephyr/src/log_udp.c:279"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/log_udp.c:wait_for_radio",
-      "to": "func:zephyr/src/log_udp.c:net_tx_held",
-      "loc": "zephyr/src/log_udp.c:272"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/log_udp.c:wait_for_radio",
-      "to": "func:zephyr/src/log_udp.c:net_tx_held",
-      "loc": "zephyr/src/log_udp.c:291"
-    },
-    {
-      "kind": "calls",
       "from": "func:zephyr/src/main.c:gpio_outputs_early_init",
       "to": "func:zephyr/src/main.c:wire_gpio_outputs",
       "loc": "zephyr/src/main.c:1494"
@@ -22242,240 +22476,6 @@
       "loc": "zephyr/src/observer.c:149"
     },
     {
-      "kind": "calls",
-      "from": "func:zephyr/src/runner.c:hash_slot",
-      "to": "func:ota_sha256",
-      "loc": "zephyr/src/runner.c:151"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/runner.c:hash_slot",
-      "to": "func:zephyr/src/runner.c:map_slot",
-      "loc": "zephyr/src/runner.c:150"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/runner.c:key_init",
-      "to": "func:printk",
-      "loc": "zephyr/src/runner.c:60"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/runner.c:key_init",
-      "to": "func:printk",
-      "loc": "zephyr/src/runner.c:69"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/runner.c:key_init",
-      "to": "func:strlen",
-      "loc": "zephyr/src/runner.c:60"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/runner.c:m_load",
-      "to": "func:memset",
-      "loc": "zephyr/src/runner.c:122"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/runner.c:m_load",
-      "to": "func:settings_load_subtree",
-      "loc": "zephyr/src/runner.c:124"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/runner.c:m_load",
-      "to": "func:settings_subsys_init",
-      "loc": "zephyr/src/runner.c:121"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/runner.c:m_save",
-      "to": "func:printk",
-      "loc": "zephyr/src/runner.c:117"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/runner.c:m_save",
-      "to": "func:settings_save_one",
-      "loc": "zephyr/src/runner.c:107"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/runner.c:m_save",
-      "to": "func:settings_save_one",
-      "loc": "zephyr/src/runner.c:108"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/runner.c:m_save",
-      "to": "func:settings_save_one",
-      "loc": "zephyr/src/runner.c:109"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/runner.c:m_save",
-      "to": "func:settings_save_one",
-      "loc": "zephyr/src/runner.c:110"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/runner.c:m_save",
-      "to": "func:settings_save_one",
-      "loc": "zephyr/src/runner.c:111"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/runner.c:m_save",
-      "to": "func:settings_save_one",
-      "loc": "zephyr/src/runner.c:112"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/runner.c:m_save",
-      "to": "func:settings_save_one",
-      "loc": "zephyr/src/runner.c:113"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/runner.c:m_save",
-      "to": "func:settings_save_one",
-      "loc": "zephyr/src/runner.c:114"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/runner.c:m_save",
-      "to": "func:settings_save_one",
-      "loc": "zephyr/src/runner.c:115"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/runner.c:m_save",
-      "to": "func:settings_save_one",
-      "loc": "zephyr/src/runner.c:116"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/runner.c:m_set",
-      "to": "func:settings_name_steq",
-      "loc": "zephyr/src/runner.c:85"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/runner.c:m_set",
-      "to": "func:settings_name_steq",
-      "loc": "zephyr/src/runner.c:86"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/runner.c:m_set",
-      "to": "func:settings_name_steq",
-      "loc": "zephyr/src/runner.c:87"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/runner.c:m_set",
-      "to": "func:settings_name_steq",
-      "loc": "zephyr/src/runner.c:88"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/runner.c:m_set",
-      "to": "func:settings_name_steq",
-      "loc": "zephyr/src/runner.c:89"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/runner.c:m_set",
-      "to": "func:settings_name_steq",
-      "loc": "zephyr/src/runner.c:90"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/runner.c:m_set",
-      "to": "func:settings_name_steq",
-      "loc": "zephyr/src/runner.c:91"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/runner.c:m_set",
-      "to": "func:settings_name_steq",
-      "loc": "zephyr/src/runner.c:92"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/runner.c:m_set",
-      "to": "func:settings_name_steq",
-      "loc": "zephyr/src/runner.c:93"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/runner.c:m_set",
-      "to": "func:settings_name_steq",
-      "loc": "zephyr/src/runner.c:94"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/runner.c:map_slot",
-      "to": "func:memcpy",
-      "loc": "zephyr/src/runner.c:142"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/runner.c:map_slot",
-      "to": "func:printk",
-      "loc": "zephyr/src/runner.c:136"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/runner.c:map_slot",
-      "to": "func:spi_flash_mmap",
-      "loc": "zephyr/src/runner.c:135"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/runner.c:spoil",
-      "to": "func:flash_area_close",
-      "loc": "zephyr/src/runner.c:167"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/runner.c:spoil",
-      "to": "func:flash_area_erase",
-      "loc": "zephyr/src/runner.c:166"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/runner.c:spoil",
-      "to": "func:flash_area_open",
-      "loc": "zephyr/src/runner.c:165"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/runner.c:trial_expired",
-      "to": "func:k_msleep",
-      "loc": "zephyr/src/runner.c:182"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/runner.c:trial_expired",
-      "to": "func:printk",
-      "loc": "zephyr/src/runner.c:180"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/runner.c:trial_expired",
-      "to": "func:sys_reboot",
-      "loc": "zephyr/src/runner.c:183"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/runner.c:verified",
-      "to": "func:ED25519_verify",
-      "loc": "zephyr/src/runner.c:157"
-    },
-    {
       "kind": "calls_indirect",
       "from": "func:gc_allocate",
       "to": "fnptr:oop (*)(size_t)",
@@ -22513,6 +22513,12 @@
     },
     {
       "kind": "calls_indirect",
+      "from": "func:src/backend/zephyr/log_udp.c:tee_char_out",
+      "to": "fnptr:int (*)(int)",
+      "loc": "src/backend/zephyr/log_udp.c:144"
+    },
+    {
+      "kind": "calls_indirect",
       "from": "func:src/backend/zephyr/ota_zephyr.c:ota_entry",
       "to": "fnptr:void (*)(void *)",
       "loc": "src/backend/zephyr/ota_zephyr.c:183"
@@ -22525,6 +22531,12 @@
     },
     {
       "kind": "calls_indirect",
+      "from": "func:src/backend/zephyr/runner.c:m_set",
+      "to": "fnptr:ssize_t (*)(void *, void *, size_t)",
+      "loc": "src/backend/zephyr/runner.c:98"
+    },
+    {
+      "kind": "calls_indirect",
       "from": "func:src/dispatch.c:does_not_understand",
       "to": "fnptr:oop (*)(oop, int, oop *)",
       "loc": "src/dispatch.c:561"
@@ -22534,18 +22546,6 @@
       "from": "func:src/dispatch.c:run_method_on",
       "to": "fnptr:oop (*)(oop, int, oop *)",
       "loc": "src/dispatch.c:633"
-    },
-    {
-      "kind": "calls_indirect",
-      "from": "func:zephyr/src/log_udp.c:tee_char_out",
-      "to": "fnptr:int (*)(int)",
-      "loc": "zephyr/src/log_udp.c:144"
-    },
-    {
-      "kind": "calls_indirect",
-      "from": "func:zephyr/src/runner.c:m_set",
-      "to": "fnptr:ssize_t (*)(void *, void *, size_t)",
-      "loc": "zephyr/src/runner.c:98"
     },
     {
       "kind": "reads_global",
@@ -23354,134 +23354,134 @@
     {
       "kind": "reads_global",
       "from": "func:log_udp_drain",
-      "to": "global:zephyr/src/log_udp.c:sender_pending",
-      "loc": "zephyr/src/log_udp.c:416"
+      "to": "global:src/backend/zephyr/log_udp.c:sender_pending",
+      "loc": "src/backend/zephyr/log_udp.c:416"
     },
     {
       "kind": "reads_global",
       "from": "func:log_udp_drain",
-      "to": "global:zephyr/src/log_udp.c:tee_state",
-      "loc": "zephyr/src/log_udp.c:416"
+      "to": "global:src/backend/zephyr/log_udp.c:tee_state",
+      "loc": "src/backend/zephyr/log_udp.c:416"
     },
     {
       "kind": "reads_global",
       "from": "func:log_udp_set_target",
-      "to": "global:zephyr/src/log_udp.c:r_head",
-      "loc": "zephyr/src/log_udp.c:360"
+      "to": "global:src/backend/zephyr/log_udp.c:r_head",
+      "loc": "src/backend/zephyr/log_udp.c:360"
     },
     {
       "kind": "reads_global",
       "from": "func:log_udp_set_target",
-      "to": "global:zephyr/src/log_udp.c:tee_port",
-      "loc": "zephyr/src/log_udp.c:372"
+      "to": "global:src/backend/zephyr/log_udp.c:tee_port",
+      "loc": "src/backend/zephyr/log_udp.c:372"
     },
     {
       "kind": "reads_global",
       "from": "func:log_udp_set_target",
-      "to": "global:zephyr/src/log_udp.c:tee_state",
-      "loc": "zephyr/src/log_udp.c:358"
+      "to": "global:src/backend/zephyr/log_udp.c:tee_state",
+      "loc": "src/backend/zephyr/log_udp.c:358"
     },
     {
       "kind": "reads_global",
       "from": "func:log_udp_set_target",
-      "to": "global:zephyr/src/log_udp.c:tee_state",
-      "loc": "zephyr/src/log_udp.c:372"
+      "to": "global:src/backend/zephyr/log_udp.c:tee_state",
+      "loc": "src/backend/zephyr/log_udp.c:372"
     },
     {
       "kind": "reads_global",
       "from": "func:log_udp_start",
-      "to": "global:zephyr/src/log_udp.c:tee_from_keep",
-      "loc": "zephyr/src/log_udp.c:564"
+      "to": "global:src/backend/zephyr/log_udp.c:tee_from_keep",
+      "loc": "src/backend/zephyr/log_udp.c:564"
     },
     {
       "kind": "reads_global",
       "from": "func:log_udp_start",
-      "to": "global:zephyr/src/log_udp.c:tee_from_keep",
-      "loc": "zephyr/src/log_udp.c:570"
+      "to": "global:src/backend/zephyr/log_udp.c:tee_from_keep",
+      "loc": "src/backend/zephyr/log_udp.c:570"
     },
     {
       "kind": "reads_global",
       "from": "func:log_udp_start",
-      "to": "global:zephyr/src/log_udp.c:tee_kept",
-      "loc": "zephyr/src/log_udp.c:571"
+      "to": "global:src/backend/zephyr/log_udp.c:tee_kept",
+      "loc": "src/backend/zephyr/log_udp.c:571"
     },
     {
       "kind": "reads_global",
       "from": "func:log_udp_start",
-      "to": "global:zephyr/src/log_udp.c:tee_port",
-      "loc": "zephyr/src/log_udp.c:563"
+      "to": "global:src/backend/zephyr/log_udp.c:tee_port",
+      "loc": "src/backend/zephyr/log_udp.c:563"
     },
     {
       "kind": "reads_global",
       "from": "func:log_udp_start",
-      "to": "global:zephyr/src/log_udp.c:tee_state",
-      "loc": "zephyr/src/log_udp.c:562"
+      "to": "global:src/backend/zephyr/log_udp.c:tee_state",
+      "loc": "src/backend/zephyr/log_udp.c:562"
     },
     {
       "kind": "reads_global",
       "from": "func:log_udp_start",
-      "to": "global:zephyr/src/log_udp.c:tee_state",
-      "loc": "zephyr/src/log_udp.c:565"
+      "to": "global:src/backend/zephyr/log_udp.c:tee_state",
+      "loc": "src/backend/zephyr/log_udp.c:565"
     },
     {
       "kind": "reads_global",
       "from": "func:log_udp_tee_paced",
-      "to": "global:zephyr/src/log_udp.c:log_udp_tee_paced.gave_up",
-      "loc": "zephyr/src/log_udp.c:172"
+      "to": "global:src/backend/zephyr/log_udp.c:log_udp_tee_paced.gave_up",
+      "loc": "src/backend/zephyr/log_udp.c:172"
     },
     {
       "kind": "reads_global",
       "from": "func:log_udp_tee_paced",
-      "to": "global:zephyr/src/log_udp.c:log_udp_tee_paced.gave_up",
-      "loc": "zephyr/src/log_udp.c:181"
+      "to": "global:src/backend/zephyr/log_udp.c:log_udp_tee_paced.gave_up",
+      "loc": "src/backend/zephyr/log_udp.c:181"
     },
     {
       "kind": "reads_global",
       "from": "func:log_udp_tee_paced",
-      "to": "global:zephyr/src/log_udp.c:log_udp_tee_paced.gave_up",
-      "loc": "zephyr/src/log_udp.c:184"
+      "to": "global:src/backend/zephyr/log_udp.c:log_udp_tee_paced.gave_up",
+      "loc": "src/backend/zephyr/log_udp.c:184"
     },
     {
       "kind": "reads_global",
       "from": "func:log_udp_tee_paced",
-      "to": "global:zephyr/src/log_udp.c:log_udp_tee_paced.gave_up_tail",
-      "loc": "zephyr/src/log_udp.c:181"
+      "to": "global:src/backend/zephyr/log_udp.c:log_udp_tee_paced.gave_up_tail",
+      "loc": "src/backend/zephyr/log_udp.c:181"
     },
     {
       "kind": "reads_global",
       "from": "func:log_udp_tee_paced",
-      "to": "global:zephyr/src/log_udp.c:r_tail",
-      "loc": "zephyr/src/log_udp.c:169"
+      "to": "global:src/backend/zephyr/log_udp.c:r_tail",
+      "loc": "src/backend/zephyr/log_udp.c:169"
     },
     {
       "kind": "reads_global",
       "from": "func:log_udp_tee_paced",
-      "to": "global:zephyr/src/log_udp.c:r_tail",
-      "loc": "zephyr/src/log_udp.c:174"
+      "to": "global:src/backend/zephyr/log_udp.c:r_tail",
+      "loc": "src/backend/zephyr/log_udp.c:174"
     },
     {
       "kind": "reads_global",
       "from": "func:log_udp_tee_paced",
-      "to": "global:zephyr/src/log_udp.c:r_tail",
-      "loc": "zephyr/src/log_udp.c:175"
+      "to": "global:src/backend/zephyr/log_udp.c:r_tail",
+      "loc": "src/backend/zephyr/log_udp.c:175"
     },
     {
       "kind": "reads_global",
       "from": "func:log_udp_tee_paced",
-      "to": "global:zephyr/src/log_udp.c:r_tail",
-      "loc": "zephyr/src/log_udp.c:181"
+      "to": "global:src/backend/zephyr/log_udp.c:r_tail",
+      "loc": "src/backend/zephyr/log_udp.c:181"
     },
     {
       "kind": "reads_global",
       "from": "func:log_udp_tee_paced",
-      "to": "global:zephyr/src/log_udp.c:r_tail",
-      "loc": "zephyr/src/log_udp.c:185"
+      "to": "global:src/backend/zephyr/log_udp.c:r_tail",
+      "loc": "src/backend/zephyr/log_udp.c:185"
     },
     {
       "kind": "reads_global",
       "from": "func:log_udp_tee_paced",
-      "to": "global:zephyr/src/log_udp.c:tee_state",
-      "loc": "zephyr/src/log_udp.c:172"
+      "to": "global:src/backend/zephyr/log_udp.c:tee_state",
+      "loc": "src/backend/zephyr/log_udp.c:172"
     },
     {
       "kind": "reads_global",
@@ -25214,164 +25214,164 @@
     {
       "kind": "reads_global",
       "from": "func:runner_confirm",
-      "to": "global:zephyr/src/runner.c:m",
-      "loc": "zephyr/src/runner.c:261"
+      "to": "global:src/backend/zephyr/runner.c:m",
+      "loc": "src/backend/zephyr/runner.c:261"
     },
     {
       "kind": "reads_global",
       "from": "func:runner_confirm",
-      "to": "global:zephyr/src/runner.c:m",
-      "loc": "zephyr/src/runner.c:265"
+      "to": "global:src/backend/zephyr/runner.c:m",
+      "loc": "src/backend/zephyr/runner.c:265"
     },
     {
       "kind": "reads_global",
       "from": "func:runner_confirm",
-      "to": "global:zephyr/src/runner.c:slots",
-      "loc": "zephyr/src/runner.c:265"
+      "to": "global:src/backend/zephyr/runner.c:slots",
+      "loc": "src/backend/zephyr/runner.c:265"
     },
     {
       "kind": "reads_global",
       "from": "func:runner_has_key",
-      "to": "global:zephyr/src/runner.c:have_key",
-      "loc": "zephyr/src/runner.c:80"
+      "to": "global:src/backend/zephyr/runner.c:have_key",
+      "loc": "src/backend/zephyr/runner.c:80"
     },
     {
       "kind": "reads_global",
       "from": "func:runner_inactive_slot_id",
-      "to": "global:zephyr/src/runner.c:m",
-      "loc": "zephyr/src/runner.c:269"
+      "to": "global:src/backend/zephyr/runner.c:m",
+      "loc": "src/backend/zephyr/runner.c:269"
     },
     {
       "kind": "reads_global",
       "from": "func:runner_inactive_slot_id",
-      "to": "global:zephyr/src/runner.c:slots",
-      "loc": "zephyr/src/runner.c:269"
+      "to": "global:src/backend/zephyr/runner.c:slots",
+      "loc": "src/backend/zephyr/runner.c:269"
     },
     {
       "kind": "reads_global",
       "from": "func:runner_ready",
-      "to": "global:zephyr/src/runner.c:have_key",
-      "loc": "zephyr/src/runner.c:249"
+      "to": "global:src/backend/zephyr/runner.c:have_key",
+      "loc": "src/backend/zephyr/runner.c:249"
     },
     {
       "kind": "reads_global",
       "from": "func:runner_select",
-      "to": "global:zephyr/src/runner.c:m",
-      "loc": "zephyr/src/runner.c:194"
+      "to": "global:src/backend/zephyr/runner.c:m",
+      "loc": "src/backend/zephyr/runner.c:194"
     },
     {
       "kind": "reads_global",
       "from": "func:runner_select",
-      "to": "global:zephyr/src/runner.c:m",
-      "loc": "zephyr/src/runner.c:195"
+      "to": "global:src/backend/zephyr/runner.c:m",
+      "loc": "src/backend/zephyr/runner.c:195"
     },
     {
       "kind": "reads_global",
       "from": "func:runner_select",
-      "to": "global:zephyr/src/runner.c:m",
-      "loc": "zephyr/src/runner.c:199"
+      "to": "global:src/backend/zephyr/runner.c:m",
+      "loc": "src/backend/zephyr/runner.c:199"
     },
     {
       "kind": "reads_global",
       "from": "func:runner_select",
-      "to": "global:zephyr/src/runner.c:m",
-      "loc": "zephyr/src/runner.c:204"
+      "to": "global:src/backend/zephyr/runner.c:m",
+      "loc": "src/backend/zephyr/runner.c:204"
     },
     {
       "kind": "reads_global",
       "from": "func:runner_select",
-      "to": "global:zephyr/src/runner.c:m",
-      "loc": "zephyr/src/runner.c:210"
+      "to": "global:src/backend/zephyr/runner.c:m",
+      "loc": "src/backend/zephyr/runner.c:210"
     },
     {
       "kind": "reads_global",
       "from": "func:runner_select",
-      "to": "global:zephyr/src/runner.c:m",
-      "loc": "zephyr/src/runner.c:211"
+      "to": "global:src/backend/zephyr/runner.c:m",
+      "loc": "src/backend/zephyr/runner.c:211"
     },
     {
       "kind": "reads_global",
       "from": "func:runner_select",
-      "to": "global:zephyr/src/runner.c:m",
-      "loc": "zephyr/src/runner.c:212"
+      "to": "global:src/backend/zephyr/runner.c:m",
+      "loc": "src/backend/zephyr/runner.c:212"
     },
     {
       "kind": "reads_global",
       "from": "func:runner_select",
-      "to": "global:zephyr/src/runner.c:m",
-      "loc": "zephyr/src/runner.c:215"
+      "to": "global:src/backend/zephyr/runner.c:m",
+      "loc": "src/backend/zephyr/runner.c:215"
     },
     {
       "kind": "reads_global",
       "from": "func:runner_select",
-      "to": "global:zephyr/src/runner.c:m",
-      "loc": "zephyr/src/runner.c:228"
+      "to": "global:src/backend/zephyr/runner.c:m",
+      "loc": "src/backend/zephyr/runner.c:228"
     },
     {
       "kind": "reads_global",
       "from": "func:runner_select",
-      "to": "global:zephyr/src/runner.c:m",
-      "loc": "zephyr/src/runner.c:230"
+      "to": "global:src/backend/zephyr/runner.c:m",
+      "loc": "src/backend/zephyr/runner.c:230"
     },
     {
       "kind": "reads_global",
       "from": "func:runner_select",
-      "to": "global:zephyr/src/runner.c:m",
-      "loc": "zephyr/src/runner.c:234"
+      "to": "global:src/backend/zephyr/runner.c:m",
+      "loc": "src/backend/zephyr/runner.c:234"
     },
     {
       "kind": "reads_global",
       "from": "func:runner_select",
-      "to": "global:zephyr/src/runner.c:m",
-      "loc": "zephyr/src/runner.c:235"
+      "to": "global:src/backend/zephyr/runner.c:m",
+      "loc": "src/backend/zephyr/runner.c:235"
     },
     {
       "kind": "reads_global",
       "from": "func:runner_select",
-      "to": "global:zephyr/src/runner.c:m",
-      "loc": "zephyr/src/runner.c:239"
+      "to": "global:src/backend/zephyr/runner.c:m",
+      "loc": "src/backend/zephyr/runner.c:239"
     },
     {
       "kind": "reads_global",
       "from": "func:runner_select",
-      "to": "global:zephyr/src/runner.c:m",
-      "loc": "zephyr/src/runner.c:240"
+      "to": "global:src/backend/zephyr/runner.c:m",
+      "loc": "src/backend/zephyr/runner.c:240"
     },
     {
       "kind": "reads_global",
       "from": "func:runner_select",
-      "to": "global:zephyr/src/runner.c:slots",
-      "loc": "zephyr/src/runner.c:198"
+      "to": "global:src/backend/zephyr/runner.c:slots",
+      "loc": "src/backend/zephyr/runner.c:198"
     },
     {
       "kind": "reads_global",
       "from": "func:runner_select",
-      "to": "global:zephyr/src/runner.c:slots",
-      "loc": "zephyr/src/runner.c:207"
+      "to": "global:src/backend/zephyr/runner.c:slots",
+      "loc": "src/backend/zephyr/runner.c:207"
     },
     {
       "kind": "reads_global",
       "from": "func:runner_select",
-      "to": "global:zephyr/src/runner.c:slots",
-      "loc": "zephyr/src/runner.c:215"
+      "to": "global:src/backend/zephyr/runner.c:slots",
+      "loc": "src/backend/zephyr/runner.c:215"
     },
     {
       "kind": "reads_global",
       "from": "func:runner_select",
-      "to": "global:zephyr/src/runner.c:slots",
-      "loc": "zephyr/src/runner.c:233"
+      "to": "global:src/backend/zephyr/runner.c:slots",
+      "loc": "src/backend/zephyr/runner.c:233"
     },
     {
       "kind": "reads_global",
       "from": "func:runner_select",
-      "to": "global:zephyr/src/runner.c:slots",
-      "loc": "zephyr/src/runner.c:238"
+      "to": "global:src/backend/zephyr/runner.c:slots",
+      "loc": "src/backend/zephyr/runner.c:238"
     },
     {
       "kind": "reads_global",
       "from": "func:runner_trial",
-      "to": "global:zephyr/src/runner.c:m",
-      "loc": "zephyr/src/runner.c:268"
+      "to": "global:src/backend/zephyr/runner.c:m",
+      "loc": "src/backend/zephyr/runner.c:268"
     },
     {
       "kind": "reads_global",
@@ -26311,6 +26311,162 @@
     },
     {
       "kind": "reads_global",
+      "from": "func:src/backend/zephyr/log_udp.c:log_udp_hook_init",
+      "to": "global:src/backend/zephyr/log_udp.c:tee_kept",
+      "loc": "src/backend/zephyr/log_udp.c:548"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:src/backend/zephyr/log_udp.c:log_udp_hook_init",
+      "to": "global:src/backend/zephyr/log_udp.c:tee_kept",
+      "loc": "src/backend/zephyr/log_udp.c:549"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:src/backend/zephyr/log_udp.c:log_udp_thread",
+      "to": "global:src/backend/zephyr/log_udp.c:dropped_chars",
+      "loc": "src/backend/zephyr/log_udp.c:526"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:src/backend/zephyr/log_udp.c:log_udp_thread",
+      "to": "global:src/backend/zephyr/log_udp.c:dropped_chars",
+      "loc": "src/backend/zephyr/log_udp.c:527"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:src/backend/zephyr/log_udp.c:log_udp_thread",
+      "to": "global:src/backend/zephyr/log_udp.c:dropped_chars",
+      "loc": "src/backend/zephyr/log_udp.c:529"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:src/backend/zephyr/log_udp.c:log_udp_thread",
+      "to": "global:src/backend/zephyr/log_udp.c:send_errors",
+      "loc": "src/backend/zephyr/log_udp.c:529"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:src/backend/zephyr/log_udp.c:log_udp_thread",
+      "to": "global:src/backend/zephyr/log_udp.c:sent_lines",
+      "loc": "src/backend/zephyr/log_udp.c:529"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:src/backend/zephyr/log_udp.c:log_udp_thread",
+      "to": "global:src/backend/zephyr/log_udp.c:tee_dst",
+      "loc": "src/backend/zephyr/log_udp.c:451"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:src/backend/zephyr/log_udp.c:log_udp_thread",
+      "to": "global:src/backend/zephyr/log_udp.c:tee_gen",
+      "loc": "src/backend/zephyr/log_udp.c:449"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:src/backend/zephyr/log_udp.c:log_udp_thread",
+      "to": "global:src/backend/zephyr/log_udp.c:tee_gen",
+      "loc": "src/backend/zephyr/log_udp.c:452"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:src/backend/zephyr/log_udp.c:log_udp_thread",
+      "to": "global:src/backend/zephyr/log_udp.c:tee_state",
+      "loc": "src/backend/zephyr/log_udp.c:445"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:src/backend/zephyr/log_udp.c:ring_get",
+      "to": "global:src/backend/zephyr/log_udp.c:r_head",
+      "loc": "src/backend/zephyr/log_udp.c:321"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:src/backend/zephyr/log_udp.c:ring_get",
+      "to": "global:src/backend/zephyr/log_udp.c:r_tail",
+      "loc": "src/backend/zephyr/log_udp.c:321"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:src/backend/zephyr/log_udp.c:ring_get",
+      "to": "global:src/backend/zephyr/log_udp.c:r_tail",
+      "loc": "src/backend/zephyr/log_udp.c:322"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:src/backend/zephyr/log_udp.c:ring_get",
+      "to": "global:src/backend/zephyr/log_udp.c:r_tail",
+      "loc": "src/backend/zephyr/log_udp.c:323"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:src/backend/zephyr/log_udp.c:ring_get",
+      "to": "global:src/backend/zephyr/log_udp.c:ring",
+      "loc": "src/backend/zephyr/log_udp.c:322"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:src/backend/zephyr/log_udp.c:ring_put",
+      "to": "global:src/backend/zephyr/log_udp.c:r_head",
+      "loc": "src/backend/zephyr/log_udp.c:116"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:src/backend/zephyr/log_udp.c:ring_put",
+      "to": "global:src/backend/zephyr/log_udp.c:r_head",
+      "loc": "src/backend/zephyr/log_udp.c:124"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:src/backend/zephyr/log_udp.c:ring_put",
+      "to": "global:src/backend/zephyr/log_udp.c:r_tail",
+      "loc": "src/backend/zephyr/log_udp.c:121"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:src/backend/zephyr/log_udp.c:ring_put",
+      "to": "global:src/backend/zephyr/log_udp.c:tee_state",
+      "loc": "src/backend/zephyr/log_udp.c:119"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:src/backend/zephyr/log_udp.c:ring_used",
+      "to": "global:src/backend/zephyr/log_udp.c:r_head",
+      "loc": "src/backend/zephyr/log_udp.c:135"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:src/backend/zephyr/log_udp.c:ring_used",
+      "to": "global:src/backend/zephyr/log_udp.c:r_tail",
+      "loc": "src/backend/zephyr/log_udp.c:135"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:src/backend/zephyr/log_udp.c:tee_char_out",
+      "to": "global:src/backend/zephyr/log_udp.c:prev_hook",
+      "loc": "src/backend/zephyr/log_udp.c:144"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:src/backend/zephyr/log_udp.c:tee_keep_valid",
+      "to": "global:src/backend/zephyr/log_udp.c:tee_kept",
+      "loc": "src/backend/zephyr/log_udp.c:105"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:src/backend/zephyr/log_udp.c:tee_keep_valid",
+      "to": "global:src/backend/zephyr/log_udp.c:tee_kept",
+      "loc": "src/backend/zephyr/log_udp.c:106"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:src/backend/zephyr/log_udp.c:wait_for_radio",
+      "to": "global:src/backend/zephyr/log_udp.c:tx_before_send",
+      "loc": "src/backend/zephyr/log_udp.c:272"
+    },
+    {
+      "kind": "reads_global",
       "from": "func:src/backend/zephyr/ota_zephyr.c:ota_entry",
       "to": "global:src/backend/zephyr/ota_zephyr.c:ota_fn",
       "loc": "src/backend/zephyr/ota_zephyr.c:183"
@@ -26392,6 +26548,96 @@
       "from": "func:src/backend/zephyr/pulse_zephyr.c:shadow_pop",
       "to": "global:src/backend/zephyr/pulse_zephyr.c:sh_head",
       "loc": "src/backend/zephyr/pulse_zephyr.c:81"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:src/backend/zephyr/runner.c:hex8",
+      "to": "global:src/backend/zephyr/runner.c:hex8.d",
+      "loc": "src/backend/zephyr/runner.c:173"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:src/backend/zephyr/runner.c:m_load",
+      "to": "global:src/backend/zephyr/runner.c:m",
+      "loc": "src/backend/zephyr/runner.c:125"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:src/backend/zephyr/runner.c:m_save",
+      "to": "global:src/backend/zephyr/runner.c:m",
+      "loc": "src/backend/zephyr/runner.c:113"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:src/backend/zephyr/runner.c:m_save",
+      "to": "global:src/backend/zephyr/runner.c:m",
+      "loc": "src/backend/zephyr/runner.c:114"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:src/backend/zephyr/runner.c:m_save",
+      "to": "global:src/backend/zephyr/runner.c:m",
+      "loc": "src/backend/zephyr/runner.c:116"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:src/backend/zephyr/runner.c:map_slot",
+      "to": "global:src/backend/zephyr/runner.c:bases",
+      "loc": "src/backend/zephyr/runner.c:133"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:src/backend/zephyr/runner.c:map_slot",
+      "to": "global:src/backend/zephyr/runner.c:bases",
+      "loc": "src/backend/zephyr/runner.c:142"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:src/backend/zephyr/runner.c:map_slot",
+      "to": "global:src/backend/zephyr/runner.c:bases",
+      "loc": "src/backend/zephyr/runner.c:143"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:src/backend/zephyr/runner.c:map_slot",
+      "to": "global:src/backend/zephyr/runner.c:slots",
+      "loc": "src/backend/zephyr/runner.c:135"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:src/backend/zephyr/runner.c:map_slot",
+      "to": "global:src/backend/zephyr/runner.c:slots",
+      "loc": "src/backend/zephyr/runner.c:136"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:src/backend/zephyr/runner.c:map_slot",
+      "to": "global:src/backend/zephyr/runner.c:slots",
+      "loc": "src/backend/zephyr/runner.c:144"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:src/backend/zephyr/runner.c:spoil",
+      "to": "global:src/backend/zephyr/runner.c:slots",
+      "loc": "src/backend/zephyr/runner.c:165"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:src/backend/zephyr/runner.c:trial_expired",
+      "to": "global:src/backend/zephyr/runner.c:m",
+      "loc": "src/backend/zephyr/runner.c:181"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:src/backend/zephyr/runner.c:trial_expired",
+      "to": "global:src/backend/zephyr/runner.c:slots",
+      "loc": "src/backend/zephyr/runner.c:181"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:src/backend/zephyr/runner.c:verified",
+      "to": "global:src/backend/zephyr/runner.c:have_key",
+      "loc": "src/backend/zephyr/runner.c:156"
     },
     {
       "kind": "reads_global",
@@ -27907,162 +28153,6 @@
     },
     {
       "kind": "reads_global",
-      "from": "func:zephyr/src/log_udp.c:log_udp_hook_init",
-      "to": "global:zephyr/src/log_udp.c:tee_kept",
-      "loc": "zephyr/src/log_udp.c:548"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:zephyr/src/log_udp.c:log_udp_hook_init",
-      "to": "global:zephyr/src/log_udp.c:tee_kept",
-      "loc": "zephyr/src/log_udp.c:549"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:zephyr/src/log_udp.c:log_udp_thread",
-      "to": "global:zephyr/src/log_udp.c:dropped_chars",
-      "loc": "zephyr/src/log_udp.c:526"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:zephyr/src/log_udp.c:log_udp_thread",
-      "to": "global:zephyr/src/log_udp.c:dropped_chars",
-      "loc": "zephyr/src/log_udp.c:527"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:zephyr/src/log_udp.c:log_udp_thread",
-      "to": "global:zephyr/src/log_udp.c:dropped_chars",
-      "loc": "zephyr/src/log_udp.c:529"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:zephyr/src/log_udp.c:log_udp_thread",
-      "to": "global:zephyr/src/log_udp.c:send_errors",
-      "loc": "zephyr/src/log_udp.c:529"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:zephyr/src/log_udp.c:log_udp_thread",
-      "to": "global:zephyr/src/log_udp.c:sent_lines",
-      "loc": "zephyr/src/log_udp.c:529"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:zephyr/src/log_udp.c:log_udp_thread",
-      "to": "global:zephyr/src/log_udp.c:tee_dst",
-      "loc": "zephyr/src/log_udp.c:451"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:zephyr/src/log_udp.c:log_udp_thread",
-      "to": "global:zephyr/src/log_udp.c:tee_gen",
-      "loc": "zephyr/src/log_udp.c:449"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:zephyr/src/log_udp.c:log_udp_thread",
-      "to": "global:zephyr/src/log_udp.c:tee_gen",
-      "loc": "zephyr/src/log_udp.c:452"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:zephyr/src/log_udp.c:log_udp_thread",
-      "to": "global:zephyr/src/log_udp.c:tee_state",
-      "loc": "zephyr/src/log_udp.c:445"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:zephyr/src/log_udp.c:ring_get",
-      "to": "global:zephyr/src/log_udp.c:r_head",
-      "loc": "zephyr/src/log_udp.c:321"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:zephyr/src/log_udp.c:ring_get",
-      "to": "global:zephyr/src/log_udp.c:r_tail",
-      "loc": "zephyr/src/log_udp.c:321"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:zephyr/src/log_udp.c:ring_get",
-      "to": "global:zephyr/src/log_udp.c:r_tail",
-      "loc": "zephyr/src/log_udp.c:322"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:zephyr/src/log_udp.c:ring_get",
-      "to": "global:zephyr/src/log_udp.c:r_tail",
-      "loc": "zephyr/src/log_udp.c:323"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:zephyr/src/log_udp.c:ring_get",
-      "to": "global:zephyr/src/log_udp.c:ring",
-      "loc": "zephyr/src/log_udp.c:322"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:zephyr/src/log_udp.c:ring_put",
-      "to": "global:zephyr/src/log_udp.c:r_head",
-      "loc": "zephyr/src/log_udp.c:116"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:zephyr/src/log_udp.c:ring_put",
-      "to": "global:zephyr/src/log_udp.c:r_head",
-      "loc": "zephyr/src/log_udp.c:124"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:zephyr/src/log_udp.c:ring_put",
-      "to": "global:zephyr/src/log_udp.c:r_tail",
-      "loc": "zephyr/src/log_udp.c:121"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:zephyr/src/log_udp.c:ring_put",
-      "to": "global:zephyr/src/log_udp.c:tee_state",
-      "loc": "zephyr/src/log_udp.c:119"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:zephyr/src/log_udp.c:ring_used",
-      "to": "global:zephyr/src/log_udp.c:r_head",
-      "loc": "zephyr/src/log_udp.c:135"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:zephyr/src/log_udp.c:ring_used",
-      "to": "global:zephyr/src/log_udp.c:r_tail",
-      "loc": "zephyr/src/log_udp.c:135"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:zephyr/src/log_udp.c:tee_char_out",
-      "to": "global:zephyr/src/log_udp.c:prev_hook",
-      "loc": "zephyr/src/log_udp.c:144"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:zephyr/src/log_udp.c:tee_keep_valid",
-      "to": "global:zephyr/src/log_udp.c:tee_kept",
-      "loc": "zephyr/src/log_udp.c:105"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:zephyr/src/log_udp.c:tee_keep_valid",
-      "to": "global:zephyr/src/log_udp.c:tee_kept",
-      "loc": "zephyr/src/log_udp.c:106"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:zephyr/src/log_udp.c:wait_for_radio",
-      "to": "global:zephyr/src/log_udp.c:tx_before_send",
-      "loc": "zephyr/src/log_udp.c:272"
-    },
-    {
-      "kind": "reads_global",
       "from": "func:zephyr/src/observer.c:obs_trace_dump",
       "to": "global:zephyr/src/observer.c:g_trace_w",
       "loc": "zephyr/src/observer.c:117"
@@ -28096,96 +28186,6 @@
       "from": "func:zephyr/src/observer.c:observer_thread_fn",
       "to": "global:zephyr/src/observer.c:g_wdt_channel",
       "loc": "zephyr/src/observer.c:375"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:zephyr/src/runner.c:hex8",
-      "to": "global:zephyr/src/runner.c:hex8.d",
-      "loc": "zephyr/src/runner.c:173"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:zephyr/src/runner.c:m_load",
-      "to": "global:zephyr/src/runner.c:m",
-      "loc": "zephyr/src/runner.c:125"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:zephyr/src/runner.c:m_save",
-      "to": "global:zephyr/src/runner.c:m",
-      "loc": "zephyr/src/runner.c:113"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:zephyr/src/runner.c:m_save",
-      "to": "global:zephyr/src/runner.c:m",
-      "loc": "zephyr/src/runner.c:114"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:zephyr/src/runner.c:m_save",
-      "to": "global:zephyr/src/runner.c:m",
-      "loc": "zephyr/src/runner.c:116"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:zephyr/src/runner.c:map_slot",
-      "to": "global:zephyr/src/runner.c:bases",
-      "loc": "zephyr/src/runner.c:133"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:zephyr/src/runner.c:map_slot",
-      "to": "global:zephyr/src/runner.c:bases",
-      "loc": "zephyr/src/runner.c:142"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:zephyr/src/runner.c:map_slot",
-      "to": "global:zephyr/src/runner.c:bases",
-      "loc": "zephyr/src/runner.c:143"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:zephyr/src/runner.c:map_slot",
-      "to": "global:zephyr/src/runner.c:slots",
-      "loc": "zephyr/src/runner.c:135"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:zephyr/src/runner.c:map_slot",
-      "to": "global:zephyr/src/runner.c:slots",
-      "loc": "zephyr/src/runner.c:136"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:zephyr/src/runner.c:map_slot",
-      "to": "global:zephyr/src/runner.c:slots",
-      "loc": "zephyr/src/runner.c:144"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:zephyr/src/runner.c:spoil",
-      "to": "global:zephyr/src/runner.c:slots",
-      "loc": "zephyr/src/runner.c:165"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:zephyr/src/runner.c:trial_expired",
-      "to": "global:zephyr/src/runner.c:m",
-      "loc": "zephyr/src/runner.c:181"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:zephyr/src/runner.c:trial_expired",
-      "to": "global:zephyr/src/runner.c:slots",
-      "loc": "zephyr/src/runner.c:181"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:zephyr/src/runner.c:verified",
-      "to": "global:zephyr/src/runner.c:have_key",
-      "loc": "zephyr/src/runner.c:156"
     },
     {
       "kind": "reads_path",
@@ -28284,6 +28284,15 @@
     },
     {
       "kind": "stores_fn",
+      "from": "func:src/backend/zephyr/log_udp.c:log_udp_hook_init",
+      "to": "func:src/backend/zephyr/log_udp.c:tee_char_out",
+      "loc": "src/backend/zephyr/log_udp.c:546",
+      "attrs": {
+        "into": ""
+      }
+    },
+    {
+      "kind": "stores_fn",
       "from": "func:src/backend/zephyr/platform_zephyr.c:rl_arm",
       "to": "func:src/backend/zephyr/platform_zephyr.c:rl_isr",
       "loc": "src/backend/zephyr/platform_zephyr.c:161",
@@ -28302,18 +28311,9 @@
     },
     {
       "kind": "stores_fn",
-      "from": "func:zephyr/src/log_udp.c:log_udp_hook_init",
-      "to": "func:zephyr/src/log_udp.c:tee_char_out",
-      "loc": "zephyr/src/log_udp.c:546",
-      "attrs": {
-        "into": ""
-      }
-    },
-    {
-      "kind": "stores_fn",
       "from": "global:_k_thread_data_log_udp_tid",
-      "to": "func:zephyr/src/log_udp.c:log_udp_thread",
-      "loc": "zephyr/src/log_udp.c:536",
+      "to": "func:src/backend/zephyr/log_udp.c:log_udp_thread",
+      "loc": "src/backend/zephyr/log_udp.c:536",
       "attrs": {
         "into": "global:_k_thread_data_log_udp_tid"
       }
@@ -28348,19 +28348,28 @@
     {
       "kind": "stores_fn",
       "from": "global:settings_handler_oevm_ota",
-      "to": "func:zephyr/src/runner.c:m_set",
-      "loc": "zephyr/src/runner.c:103",
+      "to": "func:src/backend/zephyr/runner.c:m_set",
+      "loc": "src/backend/zephyr/runner.c:103",
       "attrs": {
         "into": "global:settings_handler_oevm_ota"
       }
     },
     {
       "kind": "stores_fn",
-      "from": "global:zephyr/src/log_udp.c:__init_log_udp_hook_init",
-      "to": "func:zephyr/src/log_udp.c:log_udp_hook_init",
-      "loc": "zephyr/src/log_udp.c:558",
+      "from": "global:src/backend/zephyr/log_udp.c:__init_log_udp_hook_init",
+      "to": "func:src/backend/zephyr/log_udp.c:log_udp_hook_init",
+      "loc": "src/backend/zephyr/log_udp.c:558",
       "attrs": {
-        "into": "global:zephyr/src/log_udp.c:__init_log_udp_hook_init"
+        "into": "global:src/backend/zephyr/log_udp.c:__init_log_udp_hook_init"
+      }
+    },
+    {
+      "kind": "stores_fn",
+      "from": "global:src/backend/zephyr/runner.c:trial_work",
+      "to": "func:src/backend/zephyr/runner.c:trial_expired",
+      "loc": "src/backend/zephyr/runner.c:185",
+      "attrs": {
+        "into": "global:src/backend/zephyr/runner.c:trial_work"
       }
     },
     {
@@ -28370,15 +28379,6 @@
       "loc": "zephyr/src/main.c:1497",
       "attrs": {
         "into": "global:zephyr/src/main.c:__init_gpio_outputs_early_init"
-      }
-    },
-    {
-      "kind": "stores_fn",
-      "from": "global:zephyr/src/runner.c:trial_work",
-      "to": "func:zephyr/src/runner.c:trial_expired",
-      "loc": "zephyr/src/runner.c:185",
-      "attrs": {
-        "into": "global:zephyr/src/runner.c:trial_work"
       }
     },
     {
@@ -29563,8 +29563,8 @@
     {
       "kind": "writes_global",
       "from": "func:log_udp_drain",
-      "to": "global:zephyr/src/log_udp.c:tee_kept",
-      "loc": "zephyr/src/log_udp.c:423",
+      "to": "global:src/backend/zephyr/log_udp.c:tee_kept",
+      "loc": "src/backend/zephyr/log_udp.c:423",
       "attrs": {
         "op": "assign"
       }
@@ -29572,8 +29572,8 @@
     {
       "kind": "writes_global",
       "from": "func:log_udp_drain",
-      "to": "global:zephyr/src/log_udp.c:tee_kept",
-      "loc": "zephyr/src/log_udp.c:424",
+      "to": "global:src/backend/zephyr/log_udp.c:tee_kept",
+      "loc": "src/backend/zephyr/log_udp.c:424",
       "attrs": {
         "op": "assign"
       }
@@ -29581,8 +29581,8 @@
     {
       "kind": "writes_global",
       "from": "func:log_udp_set_target",
-      "to": "global:zephyr/src/log_udp.c:r_tail",
-      "loc": "zephyr/src/log_udp.c:360",
+      "to": "global:src/backend/zephyr/log_udp.c:r_tail",
+      "loc": "src/backend/zephyr/log_udp.c:360",
       "attrs": {
         "op": "assign"
       }
@@ -29590,8 +29590,8 @@
     {
       "kind": "writes_global",
       "from": "func:log_udp_set_target",
-      "to": "global:zephyr/src/log_udp.c:ring_lock",
-      "loc": "zephyr/src/log_udp.c:357",
+      "to": "global:src/backend/zephyr/log_udp.c:ring_lock",
+      "loc": "src/backend/zephyr/log_udp.c:357",
       "attrs": {
         "op": "addr"
       }
@@ -29599,8 +29599,8 @@
     {
       "kind": "writes_global",
       "from": "func:log_udp_set_target",
-      "to": "global:zephyr/src/log_udp.c:ring_lock",
-      "loc": "zephyr/src/log_udp.c:362",
+      "to": "global:src/backend/zephyr/log_udp.c:ring_lock",
+      "loc": "src/backend/zephyr/log_udp.c:362",
       "attrs": {
         "op": "addr"
       }
@@ -29608,8 +29608,8 @@
     {
       "kind": "writes_global",
       "from": "func:log_udp_set_target",
-      "to": "global:zephyr/src/log_udp.c:tee_addr",
-      "loc": "zephyr/src/log_udp.c:372",
+      "to": "global:src/backend/zephyr/log_udp.c:tee_addr",
+      "loc": "src/backend/zephyr/log_udp.c:372",
       "attrs": {
         "op": "decay"
       }
@@ -29617,8 +29617,8 @@
     {
       "kind": "writes_global",
       "from": "func:log_udp_set_target",
-      "to": "global:zephyr/src/log_udp.c:tee_state",
-      "loc": "zephyr/src/log_udp.c:359",
+      "to": "global:src/backend/zephyr/log_udp.c:tee_state",
+      "loc": "src/backend/zephyr/log_udp.c:359",
       "attrs": {
         "op": "assign"
       }
@@ -29626,8 +29626,8 @@
     {
       "kind": "writes_global",
       "from": "func:log_udp_start",
-      "to": "global:zephyr/src/log_udp.c:tee_addr",
-      "loc": "zephyr/src/log_udp.c:563",
+      "to": "global:src/backend/zephyr/log_udp.c:tee_addr",
+      "loc": "src/backend/zephyr/log_udp.c:563",
       "attrs": {
         "op": "decay"
       }
@@ -29635,8 +29635,8 @@
     {
       "kind": "writes_global",
       "from": "func:log_udp_tee_paced",
-      "to": "global:zephyr/src/log_udp.c:log_udp_tee_paced.gave_up",
-      "loc": "zephyr/src/log_udp.c:178",
+      "to": "global:src/backend/zephyr/log_udp.c:log_udp_tee_paced.gave_up",
+      "loc": "src/backend/zephyr/log_udp.c:178",
       "attrs": {
         "op": "assign"
       }
@@ -29644,8 +29644,8 @@
     {
       "kind": "writes_global",
       "from": "func:log_udp_tee_paced",
-      "to": "global:zephyr/src/log_udp.c:log_udp_tee_paced.gave_up",
-      "loc": "zephyr/src/log_udp.c:182",
+      "to": "global:src/backend/zephyr/log_udp.c:log_udp_tee_paced.gave_up",
+      "loc": "src/backend/zephyr/log_udp.c:182",
       "attrs": {
         "op": "assign"
       }
@@ -29653,8 +29653,8 @@
     {
       "kind": "writes_global",
       "from": "func:log_udp_tee_paced",
-      "to": "global:zephyr/src/log_udp.c:log_udp_tee_paced.gave_up_tail",
-      "loc": "zephyr/src/log_udp.c:185",
+      "to": "global:src/backend/zephyr/log_udp.c:log_udp_tee_paced.gave_up_tail",
+      "loc": "src/backend/zephyr/log_udp.c:185",
       "attrs": {
         "op": "assign"
       }
@@ -31588,8 +31588,8 @@
     {
       "kind": "writes_global",
       "from": "func:runner_confirm",
-      "to": "global:zephyr/src/runner.c:m",
-      "loc": "zephyr/src/runner.c:262",
+      "to": "global:src/backend/zephyr/runner.c:m",
+      "loc": "src/backend/zephyr/runner.c:262",
       "attrs": {
         "op": "assign"
       }
@@ -31597,8 +31597,8 @@
     {
       "kind": "writes_global",
       "from": "func:runner_confirm",
-      "to": "global:zephyr/src/runner.c:trial_work",
-      "loc": "zephyr/src/runner.c:263",
+      "to": "global:src/backend/zephyr/runner.c:trial_work",
+      "loc": "src/backend/zephyr/runner.c:263",
       "attrs": {
         "op": "addr"
       }
@@ -31606,8 +31606,8 @@
     {
       "kind": "writes_global",
       "from": "func:runner_ready",
-      "to": "global:zephyr/src/runner.c:m",
-      "loc": "zephyr/src/runner.c:252",
+      "to": "global:src/backend/zephyr/runner.c:m",
+      "loc": "src/backend/zephyr/runner.c:252",
       "attrs": {
         "op": "decay"
       }
@@ -31615,8 +31615,8 @@
     {
       "kind": "writes_global",
       "from": "func:runner_ready",
-      "to": "global:zephyr/src/runner.c:m",
-      "loc": "zephyr/src/runner.c:253",
+      "to": "global:src/backend/zephyr/runner.c:m",
+      "loc": "src/backend/zephyr/runner.c:253",
       "attrs": {
         "op": "decay"
       }
@@ -31624,8 +31624,8 @@
     {
       "kind": "writes_global",
       "from": "func:runner_ready",
-      "to": "global:zephyr/src/runner.c:m",
-      "loc": "zephyr/src/runner.c:254",
+      "to": "global:src/backend/zephyr/runner.c:m",
+      "loc": "src/backend/zephyr/runner.c:254",
       "attrs": {
         "op": "assign"
       }
@@ -31633,8 +31633,8 @@
     {
       "kind": "writes_global",
       "from": "func:runner_ready",
-      "to": "global:zephyr/src/runner.c:m",
-      "loc": "zephyr/src/runner.c:255",
+      "to": "global:src/backend/zephyr/runner.c:m",
+      "loc": "src/backend/zephyr/runner.c:255",
       "attrs": {
         "op": "assign"
       }
@@ -31642,8 +31642,8 @@
     {
       "kind": "writes_global",
       "from": "func:runner_select",
-      "to": "global:zephyr/src/runner.c:m",
-      "loc": "zephyr/src/runner.c:196",
+      "to": "global:src/backend/zephyr/runner.c:m",
+      "loc": "src/backend/zephyr/runner.c:196",
       "attrs": {
         "op": "assign"
       }
@@ -31651,8 +31651,8 @@
     {
       "kind": "writes_global",
       "from": "func:runner_select",
-      "to": "global:zephyr/src/runner.c:m",
-      "loc": "zephyr/src/runner.c:197",
+      "to": "global:src/backend/zephyr/runner.c:m",
+      "loc": "src/backend/zephyr/runner.c:197",
       "attrs": {
         "op": "decay"
       }
@@ -31660,8 +31660,8 @@
     {
       "kind": "writes_global",
       "from": "func:runner_select",
-      "to": "global:zephyr/src/runner.c:m",
-      "loc": "zephyr/src/runner.c:199",
+      "to": "global:src/backend/zephyr/runner.c:m",
+      "loc": "src/backend/zephyr/runner.c:199",
       "attrs": {
         "op": "decay"
       }
@@ -31669,8 +31669,8 @@
     {
       "kind": "writes_global",
       "from": "func:runner_select",
-      "to": "global:zephyr/src/runner.c:m",
-      "loc": "zephyr/src/runner.c:204",
+      "to": "global:src/backend/zephyr/runner.c:m",
+      "loc": "src/backend/zephyr/runner.c:204",
       "attrs": {
         "op": "assign"
       }
@@ -31678,8 +31678,8 @@
     {
       "kind": "writes_global",
       "from": "func:runner_select",
-      "to": "global:zephyr/src/runner.c:m",
-      "loc": "zephyr/src/runner.c:205",
+      "to": "global:src/backend/zephyr/runner.c:m",
+      "loc": "src/backend/zephyr/runner.c:205",
       "attrs": {
         "op": "decay"
       }
@@ -31687,8 +31687,8 @@
     {
       "kind": "writes_global",
       "from": "func:runner_select",
-      "to": "global:zephyr/src/runner.c:m",
-      "loc": "zephyr/src/runner.c:212",
+      "to": "global:src/backend/zephyr/runner.c:m",
+      "loc": "src/backend/zephyr/runner.c:212",
       "attrs": {
         "op": "assign"
       }
@@ -31696,8 +31696,8 @@
     {
       "kind": "writes_global",
       "from": "func:runner_select",
-      "to": "global:zephyr/src/runner.c:m",
-      "loc": "zephyr/src/runner.c:213",
+      "to": "global:src/backend/zephyr/runner.c:m",
+      "loc": "src/backend/zephyr/runner.c:213",
       "attrs": {
         "op": "assign"
       }
@@ -31705,8 +31705,8 @@
     {
       "kind": "writes_global",
       "from": "func:runner_select",
-      "to": "global:zephyr/src/runner.c:m",
-      "loc": "zephyr/src/runner.c:219",
+      "to": "global:src/backend/zephyr/runner.c:m",
+      "loc": "src/backend/zephyr/runner.c:219",
       "attrs": {
         "op": "decay"
       }
@@ -31714,8 +31714,8 @@
     {
       "kind": "writes_global",
       "from": "func:runner_select",
-      "to": "global:zephyr/src/runner.c:m",
-      "loc": "zephyr/src/runner.c:222",
+      "to": "global:src/backend/zephyr/runner.c:m",
+      "loc": "src/backend/zephyr/runner.c:222",
       "attrs": {
         "op": "assign"
       }
@@ -31723,8 +31723,8 @@
     {
       "kind": "writes_global",
       "from": "func:runner_select",
-      "to": "global:zephyr/src/runner.c:m",
-      "loc": "zephyr/src/runner.c:223",
+      "to": "global:src/backend/zephyr/runner.c:m",
+      "loc": "src/backend/zephyr/runner.c:223",
       "attrs": {
         "op": "decay"
       }
@@ -31732,8 +31732,8 @@
     {
       "kind": "writes_global",
       "from": "func:runner_select",
-      "to": "global:zephyr/src/runner.c:m",
-      "loc": "zephyr/src/runner.c:229",
+      "to": "global:src/backend/zephyr/runner.c:m",
+      "loc": "src/backend/zephyr/runner.c:229",
       "attrs": {
         "op": "decay"
       }
@@ -31741,8 +31741,8 @@
     {
       "kind": "writes_global",
       "from": "func:runner_select",
-      "to": "global:zephyr/src/runner.c:m",
-      "loc": "zephyr/src/runner.c:230",
+      "to": "global:src/backend/zephyr/runner.c:m",
+      "loc": "src/backend/zephyr/runner.c:230",
       "attrs": {
         "op": "decay"
       }
@@ -31750,8 +31750,8 @@
     {
       "kind": "writes_global",
       "from": "func:runner_select",
-      "to": "global:zephyr/src/runner.c:m",
-      "loc": "zephyr/src/runner.c:240",
+      "to": "global:src/backend/zephyr/runner.c:m",
+      "loc": "src/backend/zephyr/runner.c:240",
       "attrs": {
         "op": "assign"
       }
@@ -31759,8 +31759,8 @@
     {
       "kind": "writes_global",
       "from": "func:runner_select",
-      "to": "global:zephyr/src/runner.c:trial_work",
-      "loc": "zephyr/src/runner.c:235",
+      "to": "global:src/backend/zephyr/runner.c:trial_work",
+      "loc": "src/backend/zephyr/runner.c:235",
       "attrs": {
         "op": "addr"
       }
@@ -32865,6 +32865,348 @@
     },
     {
       "kind": "writes_global",
+      "from": "func:src/backend/zephyr/log_udp.c:log_udp_hook_init",
+      "to": "global:src/backend/zephyr/log_udp.c:prev_hook",
+      "loc": "src/backend/zephyr/log_udp.c:545",
+      "attrs": {
+        "op": "assign"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:src/backend/zephyr/log_udp.c:log_udp_hook_init",
+      "to": "global:src/backend/zephyr/log_udp.c:tee_from_keep",
+      "loc": "src/backend/zephyr/log_udp.c:553",
+      "attrs": {
+        "op": "assign"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:src/backend/zephyr/log_udp.c:log_udp_hook_init",
+      "to": "global:src/backend/zephyr/log_udp.c:tee_kept",
+      "loc": "src/backend/zephyr/log_udp.c:549",
+      "attrs": {
+        "op": "decay"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:src/backend/zephyr/log_udp.c:log_udp_hook_init",
+      "to": "global:src/backend/zephyr/log_udp.c:tee_state",
+      "loc": "src/backend/zephyr/log_udp.c:551",
+      "attrs": {
+        "op": "assign"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:src/backend/zephyr/log_udp.c:log_udp_thread",
+      "to": "global:src/backend/zephyr/log_udp.c:ring_lock",
+      "loc": "src/backend/zephyr/log_udp.c:450",
+      "attrs": {
+        "op": "addr"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:src/backend/zephyr/log_udp.c:log_udp_thread",
+      "to": "global:src/backend/zephyr/log_udp.c:ring_lock",
+      "loc": "src/backend/zephyr/log_udp.c:453",
+      "attrs": {
+        "op": "addr"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:src/backend/zephyr/log_udp.c:log_udp_thread",
+      "to": "global:src/backend/zephyr/log_udp.c:send_errors",
+      "loc": "src/backend/zephyr/log_udp.c:483",
+      "attrs": {
+        "op": "incdec"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:src/backend/zephyr/log_udp.c:log_udp_thread",
+      "to": "global:src/backend/zephyr/log_udp.c:send_errors",
+      "loc": "src/backend/zephyr/log_udp.c:503",
+      "attrs": {
+        "op": "incdec"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:src/backend/zephyr/log_udp.c:log_udp_thread",
+      "to": "global:src/backend/zephyr/log_udp.c:sender_pending",
+      "loc": "src/backend/zephyr/log_udp.c:489",
+      "attrs": {
+        "op": "assign"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:src/backend/zephyr/log_udp.c:log_udp_thread",
+      "to": "global:src/backend/zephyr/log_udp.c:sender_pending",
+      "loc": "src/backend/zephyr/log_udp.c:505",
+      "attrs": {
+        "op": "assign"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:src/backend/zephyr/log_udp.c:log_udp_thread",
+      "to": "global:src/backend/zephyr/log_udp.c:sent_lines",
+      "loc": "src/backend/zephyr/log_udp.c:487",
+      "attrs": {
+        "op": "incdec"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:src/backend/zephyr/log_udp.c:log_udp_thread",
+      "to": "global:src/backend/zephyr/log_udp.c:sent_lines",
+      "loc": "src/backend/zephyr/log_udp.c:507",
+      "attrs": {
+        "op": "incdec"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:src/backend/zephyr/log_udp.c:log_udp_thread",
+      "to": "global:tee_wake",
+      "loc": "src/backend/zephyr/log_udp.c:446",
+      "attrs": {
+        "op": "addr"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:src/backend/zephyr/log_udp.c:ring_get",
+      "to": "global:src/backend/zephyr/log_udp.c:r_tail",
+      "loc": "src/backend/zephyr/log_udp.c:323",
+      "attrs": {
+        "op": "assign"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:src/backend/zephyr/log_udp.c:ring_get",
+      "to": "global:src/backend/zephyr/log_udp.c:ring_lock",
+      "loc": "src/backend/zephyr/log_udp.c:318",
+      "attrs": {
+        "op": "addr"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:src/backend/zephyr/log_udp.c:ring_get",
+      "to": "global:src/backend/zephyr/log_udp.c:ring_lock",
+      "loc": "src/backend/zephyr/log_udp.c:326",
+      "attrs": {
+        "op": "addr"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:src/backend/zephyr/log_udp.c:ring_put",
+      "to": "global:src/backend/zephyr/log_udp.c:dropped_chars",
+      "loc": "src/backend/zephyr/log_udp.c:122",
+      "attrs": {
+        "op": "incdec"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:src/backend/zephyr/log_udp.c:ring_put",
+      "to": "global:src/backend/zephyr/log_udp.c:r_head",
+      "loc": "src/backend/zephyr/log_udp.c:125",
+      "attrs": {
+        "op": "assign"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:src/backend/zephyr/log_udp.c:ring_put",
+      "to": "global:src/backend/zephyr/log_udp.c:ring",
+      "loc": "src/backend/zephyr/log_udp.c:124",
+      "attrs": {
+        "op": "assign"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:src/backend/zephyr/log_udp.c:ring_put",
+      "to": "global:src/backend/zephyr/log_udp.c:ring_lock",
+      "loc": "src/backend/zephyr/log_udp.c:115",
+      "attrs": {
+        "op": "addr"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:src/backend/zephyr/log_udp.c:ring_put",
+      "to": "global:src/backend/zephyr/log_udp.c:ring_lock",
+      "loc": "src/backend/zephyr/log_udp.c:128",
+      "attrs": {
+        "op": "addr"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:src/backend/zephyr/log_udp.c:ring_used",
+      "to": "global:src/backend/zephyr/log_udp.c:ring_lock",
+      "loc": "src/backend/zephyr/log_udp.c:134",
+      "attrs": {
+        "op": "addr"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:src/backend/zephyr/log_udp.c:ring_used",
+      "to": "global:src/backend/zephyr/log_udp.c:ring_lock",
+      "loc": "src/backend/zephyr/log_udp.c:136",
+      "attrs": {
+        "op": "addr"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:src/backend/zephyr/log_udp.c:set_target",
+      "to": "global:src/backend/zephyr/log_udp.c:ring_lock",
+      "loc": "src/backend/zephyr/log_udp.c:341",
+      "attrs": {
+        "op": "addr"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:src/backend/zephyr/log_udp.c:set_target",
+      "to": "global:src/backend/zephyr/log_udp.c:ring_lock",
+      "loc": "src/backend/zephyr/log_udp.c:345",
+      "attrs": {
+        "op": "addr"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:src/backend/zephyr/log_udp.c:set_target",
+      "to": "global:src/backend/zephyr/log_udp.c:tee_addr",
+      "loc": "src/backend/zephyr/log_udp.c:346",
+      "attrs": {
+        "op": "decay"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:src/backend/zephyr/log_udp.c:set_target",
+      "to": "global:src/backend/zephyr/log_udp.c:tee_dst",
+      "loc": "src/backend/zephyr/log_udp.c:342",
+      "attrs": {
+        "op": "assign"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:src/backend/zephyr/log_udp.c:set_target",
+      "to": "global:src/backend/zephyr/log_udp.c:tee_gen",
+      "loc": "src/backend/zephyr/log_udp.c:343",
+      "attrs": {
+        "op": "incdec"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:src/backend/zephyr/log_udp.c:set_target",
+      "to": "global:src/backend/zephyr/log_udp.c:tee_port",
+      "loc": "src/backend/zephyr/log_udp.c:347",
+      "attrs": {
+        "op": "assign"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:src/backend/zephyr/log_udp.c:set_target",
+      "to": "global:src/backend/zephyr/log_udp.c:tee_state",
+      "loc": "src/backend/zephyr/log_udp.c:344",
+      "attrs": {
+        "op": "assign"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:src/backend/zephyr/log_udp.c:set_target",
+      "to": "global:tee_wake",
+      "loc": "src/backend/zephyr/log_udp.c:348",
+      "attrs": {
+        "op": "addr"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:src/backend/zephyr/log_udp.c:tee_keep_put",
+      "to": "global:src/backend/zephyr/log_udp.c:tee_kept",
+      "loc": "src/backend/zephyr/log_udp.c:94",
+      "attrs": {
+        "op": "addr"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:src/backend/zephyr/log_udp.c:tee_keep_put",
+      "to": "global:src/backend/zephyr/log_udp.c:tee_kept",
+      "loc": "src/backend/zephyr/log_udp.c:95",
+      "attrs": {
+        "op": "decay"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:src/backend/zephyr/log_udp.c:tee_keep_put",
+      "to": "global:src/backend/zephyr/log_udp.c:tee_kept",
+      "loc": "src/backend/zephyr/log_udp.c:96",
+      "attrs": {
+        "op": "assign"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:src/backend/zephyr/log_udp.c:tee_keep_put",
+      "to": "global:src/backend/zephyr/log_udp.c:tee_kept",
+      "loc": "src/backend/zephyr/log_udp.c:97",
+      "attrs": {
+        "op": "assign"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:src/backend/zephyr/log_udp.c:tee_keep_put",
+      "to": "global:src/backend/zephyr/log_udp.c:tee_kept",
+      "loc": "src/backend/zephyr/log_udp.c:98",
+      "attrs": {
+        "op": "assign"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:src/backend/zephyr/log_udp.c:tee_keep_valid",
+      "to": "global:src/backend/zephyr/log_udp.c:tee_kept",
+      "loc": "src/backend/zephyr/log_udp.c:105",
+      "attrs": {
+        "op": "addr"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:src/backend/zephyr/log_udp.c:wait_for_radio",
+      "to": "global:src/backend/zephyr/log_udp.c:tx_before_send",
+      "loc": "src/backend/zephyr/log_udp.c:291",
+      "attrs": {
+        "op": "assign"
+      }
+    },
+    {
+      "kind": "writes_global",
       "from": "func:src/backend/zephyr/platform_zephyr.c:boot_id_set",
       "to": "global:src/backend/zephyr/platform_zephyr.c:boot_id_stored",
       "loc": "src/backend/zephyr/platform_zephyr.c:320",
@@ -33023,6 +33365,258 @@
       "loc": "src/backend/zephyr/pulse_zephyr.c:81",
       "attrs": {
         "op": "assign"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:src/backend/zephyr/runner.c:key_init",
+      "to": "global:src/backend/zephyr/runner.c:have_key",
+      "loc": "src/backend/zephyr/runner.c:73",
+      "attrs": {
+        "op": "assign"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:src/backend/zephyr/runner.c:key_init",
+      "to": "global:src/backend/zephyr/runner.c:pubkey",
+      "loc": "src/backend/zephyr/runner.c:71",
+      "attrs": {
+        "op": "assign"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:src/backend/zephyr/runner.c:m_load",
+      "to": "global:src/backend/zephyr/runner.c:m",
+      "loc": "src/backend/zephyr/runner.c:122",
+      "attrs": {
+        "op": "addr"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:src/backend/zephyr/runner.c:m_load",
+      "to": "global:src/backend/zephyr/runner.c:m",
+      "loc": "src/backend/zephyr/runner.c:123",
+      "attrs": {
+        "op": "assign"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:src/backend/zephyr/runner.c:m_load",
+      "to": "global:src/backend/zephyr/runner.c:m",
+      "loc": "src/backend/zephyr/runner.c:125",
+      "attrs": {
+        "op": "assign"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:src/backend/zephyr/runner.c:m_save",
+      "to": "global:src/backend/zephyr/runner.c:m",
+      "loc": "src/backend/zephyr/runner.c:107",
+      "attrs": {
+        "op": "addr"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:src/backend/zephyr/runner.c:m_save",
+      "to": "global:src/backend/zephyr/runner.c:m",
+      "loc": "src/backend/zephyr/runner.c:108",
+      "attrs": {
+        "op": "addr"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:src/backend/zephyr/runner.c:m_save",
+      "to": "global:src/backend/zephyr/runner.c:m",
+      "loc": "src/backend/zephyr/runner.c:109",
+      "attrs": {
+        "op": "addr"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:src/backend/zephyr/runner.c:m_save",
+      "to": "global:src/backend/zephyr/runner.c:m",
+      "loc": "src/backend/zephyr/runner.c:110",
+      "attrs": {
+        "op": "addr"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:src/backend/zephyr/runner.c:m_save",
+      "to": "global:src/backend/zephyr/runner.c:m",
+      "loc": "src/backend/zephyr/runner.c:111",
+      "attrs": {
+        "op": "decay"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:src/backend/zephyr/runner.c:m_save",
+      "to": "global:src/backend/zephyr/runner.c:m",
+      "loc": "src/backend/zephyr/runner.c:112",
+      "attrs": {
+        "op": "decay"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:src/backend/zephyr/runner.c:m_save",
+      "to": "global:src/backend/zephyr/runner.c:m",
+      "loc": "src/backend/zephyr/runner.c:113",
+      "attrs": {
+        "op": "decay"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:src/backend/zephyr/runner.c:m_save",
+      "to": "global:src/backend/zephyr/runner.c:m",
+      "loc": "src/backend/zephyr/runner.c:114",
+      "attrs": {
+        "op": "decay"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:src/backend/zephyr/runner.c:m_save",
+      "to": "global:src/backend/zephyr/runner.c:m",
+      "loc": "src/backend/zephyr/runner.c:115",
+      "attrs": {
+        "op": "decay"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:src/backend/zephyr/runner.c:m_save",
+      "to": "global:src/backend/zephyr/runner.c:m",
+      "loc": "src/backend/zephyr/runner.c:116",
+      "attrs": {
+        "op": "decay"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:src/backend/zephyr/runner.c:m_set",
+      "to": "global:src/backend/zephyr/runner.c:m",
+      "loc": "src/backend/zephyr/runner.c:85",
+      "attrs": {
+        "op": "addr"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:src/backend/zephyr/runner.c:m_set",
+      "to": "global:src/backend/zephyr/runner.c:m",
+      "loc": "src/backend/zephyr/runner.c:86",
+      "attrs": {
+        "op": "addr"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:src/backend/zephyr/runner.c:m_set",
+      "to": "global:src/backend/zephyr/runner.c:m",
+      "loc": "src/backend/zephyr/runner.c:87",
+      "attrs": {
+        "op": "addr"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:src/backend/zephyr/runner.c:m_set",
+      "to": "global:src/backend/zephyr/runner.c:m",
+      "loc": "src/backend/zephyr/runner.c:88",
+      "attrs": {
+        "op": "addr"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:src/backend/zephyr/runner.c:m_set",
+      "to": "global:src/backend/zephyr/runner.c:m",
+      "loc": "src/backend/zephyr/runner.c:89",
+      "attrs": {
+        "op": "decay"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:src/backend/zephyr/runner.c:m_set",
+      "to": "global:src/backend/zephyr/runner.c:m",
+      "loc": "src/backend/zephyr/runner.c:90",
+      "attrs": {
+        "op": "decay"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:src/backend/zephyr/runner.c:m_set",
+      "to": "global:src/backend/zephyr/runner.c:m",
+      "loc": "src/backend/zephyr/runner.c:91",
+      "attrs": {
+        "op": "decay"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:src/backend/zephyr/runner.c:m_set",
+      "to": "global:src/backend/zephyr/runner.c:m",
+      "loc": "src/backend/zephyr/runner.c:92",
+      "attrs": {
+        "op": "decay"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:src/backend/zephyr/runner.c:m_set",
+      "to": "global:src/backend/zephyr/runner.c:m",
+      "loc": "src/backend/zephyr/runner.c:93",
+      "attrs": {
+        "op": "decay"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:src/backend/zephyr/runner.c:m_set",
+      "to": "global:src/backend/zephyr/runner.c:m",
+      "loc": "src/backend/zephyr/runner.c:94",
+      "attrs": {
+        "op": "decay"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:src/backend/zephyr/runner.c:map_slot",
+      "to": "global:src/backend/zephyr/runner.c:bases",
+      "loc": "src/backend/zephyr/runner.c:139",
+      "attrs": {
+        "op": "assign"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:src/backend/zephyr/runner.c:map_slot",
+      "to": "global:src/backend/zephyr/runner.c:handles",
+      "loc": "src/backend/zephyr/runner.c:135",
+      "attrs": {
+        "op": "addr"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:src/backend/zephyr/runner.c:verified",
+      "to": "global:src/backend/zephyr/runner.c:pubkey",
+      "loc": "src/backend/zephyr/runner.c:157",
+      "attrs": {
+        "op": "decay"
       }
     },
     {
@@ -34053,348 +34647,6 @@
     },
     {
       "kind": "writes_global",
-      "from": "func:zephyr/src/log_udp.c:log_udp_hook_init",
-      "to": "global:zephyr/src/log_udp.c:prev_hook",
-      "loc": "zephyr/src/log_udp.c:545",
-      "attrs": {
-        "op": "assign"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:zephyr/src/log_udp.c:log_udp_hook_init",
-      "to": "global:zephyr/src/log_udp.c:tee_from_keep",
-      "loc": "zephyr/src/log_udp.c:553",
-      "attrs": {
-        "op": "assign"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:zephyr/src/log_udp.c:log_udp_hook_init",
-      "to": "global:zephyr/src/log_udp.c:tee_kept",
-      "loc": "zephyr/src/log_udp.c:549",
-      "attrs": {
-        "op": "decay"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:zephyr/src/log_udp.c:log_udp_hook_init",
-      "to": "global:zephyr/src/log_udp.c:tee_state",
-      "loc": "zephyr/src/log_udp.c:551",
-      "attrs": {
-        "op": "assign"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:zephyr/src/log_udp.c:log_udp_thread",
-      "to": "global:tee_wake",
-      "loc": "zephyr/src/log_udp.c:446",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:zephyr/src/log_udp.c:log_udp_thread",
-      "to": "global:zephyr/src/log_udp.c:ring_lock",
-      "loc": "zephyr/src/log_udp.c:450",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:zephyr/src/log_udp.c:log_udp_thread",
-      "to": "global:zephyr/src/log_udp.c:ring_lock",
-      "loc": "zephyr/src/log_udp.c:453",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:zephyr/src/log_udp.c:log_udp_thread",
-      "to": "global:zephyr/src/log_udp.c:send_errors",
-      "loc": "zephyr/src/log_udp.c:483",
-      "attrs": {
-        "op": "incdec"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:zephyr/src/log_udp.c:log_udp_thread",
-      "to": "global:zephyr/src/log_udp.c:send_errors",
-      "loc": "zephyr/src/log_udp.c:503",
-      "attrs": {
-        "op": "incdec"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:zephyr/src/log_udp.c:log_udp_thread",
-      "to": "global:zephyr/src/log_udp.c:sender_pending",
-      "loc": "zephyr/src/log_udp.c:489",
-      "attrs": {
-        "op": "assign"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:zephyr/src/log_udp.c:log_udp_thread",
-      "to": "global:zephyr/src/log_udp.c:sender_pending",
-      "loc": "zephyr/src/log_udp.c:505",
-      "attrs": {
-        "op": "assign"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:zephyr/src/log_udp.c:log_udp_thread",
-      "to": "global:zephyr/src/log_udp.c:sent_lines",
-      "loc": "zephyr/src/log_udp.c:487",
-      "attrs": {
-        "op": "incdec"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:zephyr/src/log_udp.c:log_udp_thread",
-      "to": "global:zephyr/src/log_udp.c:sent_lines",
-      "loc": "zephyr/src/log_udp.c:507",
-      "attrs": {
-        "op": "incdec"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:zephyr/src/log_udp.c:ring_get",
-      "to": "global:zephyr/src/log_udp.c:r_tail",
-      "loc": "zephyr/src/log_udp.c:323",
-      "attrs": {
-        "op": "assign"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:zephyr/src/log_udp.c:ring_get",
-      "to": "global:zephyr/src/log_udp.c:ring_lock",
-      "loc": "zephyr/src/log_udp.c:318",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:zephyr/src/log_udp.c:ring_get",
-      "to": "global:zephyr/src/log_udp.c:ring_lock",
-      "loc": "zephyr/src/log_udp.c:326",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:zephyr/src/log_udp.c:ring_put",
-      "to": "global:zephyr/src/log_udp.c:dropped_chars",
-      "loc": "zephyr/src/log_udp.c:122",
-      "attrs": {
-        "op": "incdec"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:zephyr/src/log_udp.c:ring_put",
-      "to": "global:zephyr/src/log_udp.c:r_head",
-      "loc": "zephyr/src/log_udp.c:125",
-      "attrs": {
-        "op": "assign"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:zephyr/src/log_udp.c:ring_put",
-      "to": "global:zephyr/src/log_udp.c:ring",
-      "loc": "zephyr/src/log_udp.c:124",
-      "attrs": {
-        "op": "assign"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:zephyr/src/log_udp.c:ring_put",
-      "to": "global:zephyr/src/log_udp.c:ring_lock",
-      "loc": "zephyr/src/log_udp.c:115",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:zephyr/src/log_udp.c:ring_put",
-      "to": "global:zephyr/src/log_udp.c:ring_lock",
-      "loc": "zephyr/src/log_udp.c:128",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:zephyr/src/log_udp.c:ring_used",
-      "to": "global:zephyr/src/log_udp.c:ring_lock",
-      "loc": "zephyr/src/log_udp.c:134",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:zephyr/src/log_udp.c:ring_used",
-      "to": "global:zephyr/src/log_udp.c:ring_lock",
-      "loc": "zephyr/src/log_udp.c:136",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:zephyr/src/log_udp.c:set_target",
-      "to": "global:tee_wake",
-      "loc": "zephyr/src/log_udp.c:348",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:zephyr/src/log_udp.c:set_target",
-      "to": "global:zephyr/src/log_udp.c:ring_lock",
-      "loc": "zephyr/src/log_udp.c:341",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:zephyr/src/log_udp.c:set_target",
-      "to": "global:zephyr/src/log_udp.c:ring_lock",
-      "loc": "zephyr/src/log_udp.c:345",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:zephyr/src/log_udp.c:set_target",
-      "to": "global:zephyr/src/log_udp.c:tee_addr",
-      "loc": "zephyr/src/log_udp.c:346",
-      "attrs": {
-        "op": "decay"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:zephyr/src/log_udp.c:set_target",
-      "to": "global:zephyr/src/log_udp.c:tee_dst",
-      "loc": "zephyr/src/log_udp.c:342",
-      "attrs": {
-        "op": "assign"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:zephyr/src/log_udp.c:set_target",
-      "to": "global:zephyr/src/log_udp.c:tee_gen",
-      "loc": "zephyr/src/log_udp.c:343",
-      "attrs": {
-        "op": "incdec"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:zephyr/src/log_udp.c:set_target",
-      "to": "global:zephyr/src/log_udp.c:tee_port",
-      "loc": "zephyr/src/log_udp.c:347",
-      "attrs": {
-        "op": "assign"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:zephyr/src/log_udp.c:set_target",
-      "to": "global:zephyr/src/log_udp.c:tee_state",
-      "loc": "zephyr/src/log_udp.c:344",
-      "attrs": {
-        "op": "assign"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:zephyr/src/log_udp.c:tee_keep_put",
-      "to": "global:zephyr/src/log_udp.c:tee_kept",
-      "loc": "zephyr/src/log_udp.c:94",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:zephyr/src/log_udp.c:tee_keep_put",
-      "to": "global:zephyr/src/log_udp.c:tee_kept",
-      "loc": "zephyr/src/log_udp.c:95",
-      "attrs": {
-        "op": "decay"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:zephyr/src/log_udp.c:tee_keep_put",
-      "to": "global:zephyr/src/log_udp.c:tee_kept",
-      "loc": "zephyr/src/log_udp.c:96",
-      "attrs": {
-        "op": "assign"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:zephyr/src/log_udp.c:tee_keep_put",
-      "to": "global:zephyr/src/log_udp.c:tee_kept",
-      "loc": "zephyr/src/log_udp.c:97",
-      "attrs": {
-        "op": "assign"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:zephyr/src/log_udp.c:tee_keep_put",
-      "to": "global:zephyr/src/log_udp.c:tee_kept",
-      "loc": "zephyr/src/log_udp.c:98",
-      "attrs": {
-        "op": "assign"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:zephyr/src/log_udp.c:tee_keep_valid",
-      "to": "global:zephyr/src/log_udp.c:tee_kept",
-      "loc": "zephyr/src/log_udp.c:105",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:zephyr/src/log_udp.c:wait_for_radio",
-      "to": "global:zephyr/src/log_udp.c:tx_before_send",
-      "loc": "zephyr/src/log_udp.c:291",
-      "attrs": {
-        "op": "assign"
-      }
-    },
-    {
-      "kind": "writes_global",
       "from": "func:zephyr/src/main.c:wire_gpio_outputs",
       "to": "global:zephyr/src/main.c:gpio_outputs",
       "loc": "zephyr/src/main.c:1445",
@@ -34454,258 +34706,6 @@
       "loc": "zephyr/src/observer.c:154",
       "attrs": {
         "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:zephyr/src/runner.c:key_init",
-      "to": "global:zephyr/src/runner.c:have_key",
-      "loc": "zephyr/src/runner.c:73",
-      "attrs": {
-        "op": "assign"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:zephyr/src/runner.c:key_init",
-      "to": "global:zephyr/src/runner.c:pubkey",
-      "loc": "zephyr/src/runner.c:71",
-      "attrs": {
-        "op": "assign"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:zephyr/src/runner.c:m_load",
-      "to": "global:zephyr/src/runner.c:m",
-      "loc": "zephyr/src/runner.c:122",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:zephyr/src/runner.c:m_load",
-      "to": "global:zephyr/src/runner.c:m",
-      "loc": "zephyr/src/runner.c:123",
-      "attrs": {
-        "op": "assign"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:zephyr/src/runner.c:m_load",
-      "to": "global:zephyr/src/runner.c:m",
-      "loc": "zephyr/src/runner.c:125",
-      "attrs": {
-        "op": "assign"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:zephyr/src/runner.c:m_save",
-      "to": "global:zephyr/src/runner.c:m",
-      "loc": "zephyr/src/runner.c:107",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:zephyr/src/runner.c:m_save",
-      "to": "global:zephyr/src/runner.c:m",
-      "loc": "zephyr/src/runner.c:108",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:zephyr/src/runner.c:m_save",
-      "to": "global:zephyr/src/runner.c:m",
-      "loc": "zephyr/src/runner.c:109",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:zephyr/src/runner.c:m_save",
-      "to": "global:zephyr/src/runner.c:m",
-      "loc": "zephyr/src/runner.c:110",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:zephyr/src/runner.c:m_save",
-      "to": "global:zephyr/src/runner.c:m",
-      "loc": "zephyr/src/runner.c:111",
-      "attrs": {
-        "op": "decay"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:zephyr/src/runner.c:m_save",
-      "to": "global:zephyr/src/runner.c:m",
-      "loc": "zephyr/src/runner.c:112",
-      "attrs": {
-        "op": "decay"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:zephyr/src/runner.c:m_save",
-      "to": "global:zephyr/src/runner.c:m",
-      "loc": "zephyr/src/runner.c:113",
-      "attrs": {
-        "op": "decay"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:zephyr/src/runner.c:m_save",
-      "to": "global:zephyr/src/runner.c:m",
-      "loc": "zephyr/src/runner.c:114",
-      "attrs": {
-        "op": "decay"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:zephyr/src/runner.c:m_save",
-      "to": "global:zephyr/src/runner.c:m",
-      "loc": "zephyr/src/runner.c:115",
-      "attrs": {
-        "op": "decay"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:zephyr/src/runner.c:m_save",
-      "to": "global:zephyr/src/runner.c:m",
-      "loc": "zephyr/src/runner.c:116",
-      "attrs": {
-        "op": "decay"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:zephyr/src/runner.c:m_set",
-      "to": "global:zephyr/src/runner.c:m",
-      "loc": "zephyr/src/runner.c:85",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:zephyr/src/runner.c:m_set",
-      "to": "global:zephyr/src/runner.c:m",
-      "loc": "zephyr/src/runner.c:86",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:zephyr/src/runner.c:m_set",
-      "to": "global:zephyr/src/runner.c:m",
-      "loc": "zephyr/src/runner.c:87",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:zephyr/src/runner.c:m_set",
-      "to": "global:zephyr/src/runner.c:m",
-      "loc": "zephyr/src/runner.c:88",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:zephyr/src/runner.c:m_set",
-      "to": "global:zephyr/src/runner.c:m",
-      "loc": "zephyr/src/runner.c:89",
-      "attrs": {
-        "op": "decay"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:zephyr/src/runner.c:m_set",
-      "to": "global:zephyr/src/runner.c:m",
-      "loc": "zephyr/src/runner.c:90",
-      "attrs": {
-        "op": "decay"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:zephyr/src/runner.c:m_set",
-      "to": "global:zephyr/src/runner.c:m",
-      "loc": "zephyr/src/runner.c:91",
-      "attrs": {
-        "op": "decay"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:zephyr/src/runner.c:m_set",
-      "to": "global:zephyr/src/runner.c:m",
-      "loc": "zephyr/src/runner.c:92",
-      "attrs": {
-        "op": "decay"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:zephyr/src/runner.c:m_set",
-      "to": "global:zephyr/src/runner.c:m",
-      "loc": "zephyr/src/runner.c:93",
-      "attrs": {
-        "op": "decay"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:zephyr/src/runner.c:m_set",
-      "to": "global:zephyr/src/runner.c:m",
-      "loc": "zephyr/src/runner.c:94",
-      "attrs": {
-        "op": "decay"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:zephyr/src/runner.c:map_slot",
-      "to": "global:zephyr/src/runner.c:bases",
-      "loc": "zephyr/src/runner.c:139",
-      "attrs": {
-        "op": "assign"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:zephyr/src/runner.c:map_slot",
-      "to": "global:zephyr/src/runner.c:handles",
-      "loc": "zephyr/src/runner.c:135",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:zephyr/src/runner.c:verified",
-      "to": "global:zephyr/src/runner.c:pubkey",
-      "loc": "zephyr/src/runner.c:157",
-      "attrs": {
-        "op": "decay"
       }
     },
     {

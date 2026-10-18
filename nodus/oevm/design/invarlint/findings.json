@@ -682,61 +682,81 @@
   },
   {
     "rule": "context-coupling",
-    "subject": "context:src/backend/zephyr -\u003e context:zephyr/src",
-    "message": "src/backend/zephyr uses 9 functions of zephyr/src from 9 sites",
-    "count": 9,
+    "subject": "context:zephyr/src -\u003e context:src/backend/zephyr",
+    "message": "zephyr/src uses 11 functions of src/backend/zephyr from 13 sites",
+    "count": 11,
     "sites": [
       {
-        "func": "func:ota_write_ready",
-        "loc": "src/backend/zephyr/ota_zephyr.c:144",
-        "via": "runner_ready"
+        "func": "func:main",
+        "loc": "zephyr/src/main.c:1890",
+        "via": "log_udp_start"
       },
       {
-        "func": "func:ota_touch_confirm",
-        "loc": "src/backend/zephyr/ota_zephyr.c:153",
-        "via": "runner_confirm"
+        "func": "func:main",
+        "loc": "zephyr/src/main.c:1921",
+        "via": "runner_select"
       },
       {
-        "func": "func:ota_env",
-        "loc": "src/backend/zephyr/ota_zephyr.c:65",
-        "via": "runner_trial"
+        "func": "func:main",
+        "loc": "zephyr/src/main.c:1947",
+        "via": "ota_note_running_hash"
       },
       {
-        "func": "func:src/backend/zephyr/ota_zephyr.c:slot",
-        "loc": "src/backend/zephyr/ota_zephyr.c:74",
-        "via": "runner_inactive_slot_id"
+        "func": "func:main",
+        "loc": "zephyr/src/main.c:1948",
+        "via": "ota_env"
       },
       {
-        "func": "func:ota_stage_size",
-        "loc": "src/backend/zephyr/ota_zephyr.c:79",
-        "via": "runner_has_key"
+        "func": "func:zephyr/src/observer.c:obs_trace_record",
+        "loc": "zephyr/src/observer.c:110",
+        "via": "pulse_pending"
       },
       {
-        "func": "func:platform_console_tee",
-        "loc": "src/backend/zephyr/platform_zephyr.c:41",
-        "via": "log_udp_set_target"
+        "func": "func:zephyr/src/observer.c:obs_trace_record",
+        "loc": "zephyr/src/observer.c:111",
+        "via": "pulse_drained"
       },
       {
-        "func": "func:platform_console_drain",
-        "loc": "src/backend/zephyr/platform_zephyr.c:43",
-        "via": "log_udp_drain"
+        "func": "func:zephyr/src/observer.c:observer_verdict",
+        "loc": "zephyr/src/observer.c:149",
+        "via": "timer_target_snapshot"
       },
       {
-        "func": "func:platform_console_write",
-        "loc": "src/backend/zephyr/platform_zephyr.c:50",
-        "via": "log_udp_tee"
+        "func": "func:zephyr/src/observer.c:observer_verdict",
+        "loc": "zephyr/src/observer.c:151",
+        "via": "pulse_drained"
       },
       {
-        "func": "func:platform_console_err",
-        "loc": "src/backend/zephyr/platform_zephyr.c:58",
-        "via": "log_udp_tee_paced"
+        "func": "func:zephyr/src/observer.c:observer_verdict",
+        "loc": "zephyr/src/observer.c:153",
+        "via": "platform_debug_held"
+      },
+      {
+        "func": "func:zephyr/src/observer.c:observer_dump",
+        "loc": "zephyr/src/observer.c:325",
+        "via": "pulse_drops"
+      },
+      {
+        "func": "func:zephyr/src/observer.c:observer_dump",
+        "loc": "zephyr/src/observer.c:325",
+        "via": "pulse_pending"
+      },
+      {
+        "func": "func:zephyr/src/observer.c:observer_dump",
+        "loc": "zephyr/src/observer.c:326",
+        "via": "pulse_coalesced"
+      },
+      {
+        "func": "func:zephyr/src/observer.c:observer_dump",
+        "loc": "zephyr/src/observer.c:326",
+        "via": "pulse_stale"
       }
     ]
   },
   {
     "rule": "context-coupling",
     "subject": "context:zephyr/src -\u003e context:src",
-    "message": "zephyr/src uses 9 functions of src from 14 sites",
+    "message": "zephyr/src uses 9 functions of src from 13 sites",
     "count": 9,
     "sites": [
       {
@@ -803,82 +823,14 @@
         "func": "func:reboot_note_consecutive",
         "loc": "zephyr/src/reboot_note.c:72",
         "via": "reboot_note_is_valid"
-      },
-      {
-        "func": "func:zephyr/src/runner.c:hash_slot",
-        "loc": "zephyr/src/runner.c:151",
-        "via": "ota_sha256"
-      }
-    ]
-  },
-  {
-    "rule": "context-coupling",
-    "subject": "context:zephyr/src -\u003e context:src/backend/zephyr",
-    "message": "zephyr/src uses 9 functions of src/backend/zephyr from 11 sites",
-    "count": 9,
-    "sites": [
-      {
-        "func": "func:main",
-        "loc": "zephyr/src/main.c:1947",
-        "via": "ota_note_running_hash"
-      },
-      {
-        "func": "func:main",
-        "loc": "zephyr/src/main.c:1948",
-        "via": "ota_env"
-      },
-      {
-        "func": "func:zephyr/src/observer.c:obs_trace_record",
-        "loc": "zephyr/src/observer.c:110",
-        "via": "pulse_pending"
-      },
-      {
-        "func": "func:zephyr/src/observer.c:obs_trace_record",
-        "loc": "zephyr/src/observer.c:111",
-        "via": "pulse_drained"
-      },
-      {
-        "func": "func:zephyr/src/observer.c:observer_verdict",
-        "loc": "zephyr/src/observer.c:149",
-        "via": "timer_target_snapshot"
-      },
-      {
-        "func": "func:zephyr/src/observer.c:observer_verdict",
-        "loc": "zephyr/src/observer.c:151",
-        "via": "pulse_drained"
-      },
-      {
-        "func": "func:zephyr/src/observer.c:observer_verdict",
-        "loc": "zephyr/src/observer.c:153",
-        "via": "platform_debug_held"
-      },
-      {
-        "func": "func:zephyr/src/observer.c:observer_dump",
-        "loc": "zephyr/src/observer.c:325",
-        "via": "pulse_drops"
-      },
-      {
-        "func": "func:zephyr/src/observer.c:observer_dump",
-        "loc": "zephyr/src/observer.c:325",
-        "via": "pulse_pending"
-      },
-      {
-        "func": "func:zephyr/src/observer.c:observer_dump",
-        "loc": "zephyr/src/observer.c:326",
-        "via": "pulse_coalesced"
-      },
-      {
-        "func": "func:zephyr/src/observer.c:observer_dump",
-        "loc": "zephyr/src/observer.c:326",
-        "via": "pulse_stale"
       }
     ]
   },
   {
     "rule": "context-coupling",
     "subject": "context:src/backend/zephyr -\u003e context:src",
-    "message": "src/backend/zephyr uses 6 functions of src from 8 sites",
-    "count": 6,
+    "message": "src/backend/zephyr uses 7 functions of src from 9 sites",
+    "count": 7,
     "sites": [
       {
         "func": "func:http_poll",
@@ -916,6 +868,11 @@
         "via": "handle_get"
       },
       {
+        "func": "func:src/backend/zephyr/runner.c:hash_slot",
+        "loc": "src/backend/zephyr/runner.c:151",
+        "via": "ota_sha256"
+      },
+      {
         "func": "func:src/backend/zephyr/timer_zephyr.c:timer_start",
         "loc": "src/backend/zephyr/timer_zephyr.c:71",
         "via": "space_intern"
@@ -924,13 +881,31 @@
   },
   {
     "rule": "context-coupling",
-    "subject": "context:zephyr/src -\u003e context:zephyr/src/ed25519",
-    "message": "zephyr/src uses 1 functions of zephyr/src/ed25519 from 1 sites",
+    "subject": "context:src/backend/zephyr -\u003e context:zephyr/src",
+    "message": "src/backend/zephyr uses 2 functions of zephyr/src from 2 sites",
+    "count": 2,
+    "sites": [
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:wait_for_radio",
+        "loc": "src/backend/zephyr/log_udp.c:279",
+        "via": "oevm_thread_free_buffers"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:net_tx_busy",
+        "loc": "src/backend/zephyr/log_udp.c:393",
+        "via": "oevm_thread_tx_queued"
+      }
+    ]
+  },
+  {
+    "rule": "context-coupling",
+    "subject": "context:src/backend/zephyr -\u003e context:zephyr/src/ed25519",
+    "message": "src/backend/zephyr uses 1 functions of zephyr/src/ed25519 from 1 sites",
     "count": 1,
     "sites": [
       {
-        "func": "func:zephyr/src/runner.c:verified",
-        "loc": "zephyr/src/runner.c:157",
+        "func": "func:src/backend/zephyr/runner.c:verified",
+        "loc": "src/backend/zephyr/runner.c:157",
         "via": "ED25519_verify"
       }
     ]
@@ -943,12 +918,12 @@
   {
     "rule": "context-map",
     "subject": "context:src/backend/zephyr",
-    "message": "src/backend/zephyr: 1 unit, 79 funcs, 0 handlers, writes 0 tables, calls into 2 contexts (src, zephyr/src)"
+    "message": "src/backend/zephyr: 1 unit, 115 funcs, 0 handlers, writes 0 tables, calls into 3 contexts (src, zephyr/src, zephyr/src/ed25519)"
   },
   {
     "rule": "context-map",
     "subject": "context:zephyr/src",
-    "message": "zephyr/src: 1 unit, 79 funcs, 0 handlers, writes 0 tables, calls into 3 contexts (src, src/backend/zephyr, zephyr/src/ed25519)"
+    "message": "zephyr/src: 1 unit, 43 funcs, 0 handlers, writes 0 tables, calls into 2 contexts (src, src/backend/zephyr)"
   },
   {
     "rule": "context-map",
@@ -2475,328 +2450,328 @@
   },
   {
     "rule": "global-flow",
-    "subject": "global:zephyr/src/runner.c:m",
-    "message": "zephyr/src/runner.c:m: written by 6, read by 7 functions",
+    "subject": "global:src/backend/zephyr/runner.c:m",
+    "message": "src/backend/zephyr/runner.c:m: written by 6, read by 7 functions",
     "count": 13,
     "sites": [
       {
         "func": "func:runner_confirm",
-        "loc": "zephyr/src/runner.c:261",
+        "loc": "src/backend/zephyr/runner.c:261",
         "via": "reads"
       },
       {
         "func": "func:runner_confirm",
-        "loc": "zephyr/src/runner.c:262",
+        "loc": "src/backend/zephyr/runner.c:262",
         "via": "writes"
       },
       {
         "func": "func:runner_confirm",
-        "loc": "zephyr/src/runner.c:265",
+        "loc": "src/backend/zephyr/runner.c:265",
         "via": "reads"
       },
       {
         "func": "func:runner_inactive_slot_id",
-        "loc": "zephyr/src/runner.c:269",
+        "loc": "src/backend/zephyr/runner.c:269",
         "via": "reads"
       },
       {
         "func": "func:runner_ready",
-        "loc": "zephyr/src/runner.c:252",
+        "loc": "src/backend/zephyr/runner.c:252",
         "via": "writes"
       },
       {
         "func": "func:runner_ready",
-        "loc": "zephyr/src/runner.c:253",
+        "loc": "src/backend/zephyr/runner.c:253",
         "via": "writes"
       },
       {
         "func": "func:runner_ready",
-        "loc": "zephyr/src/runner.c:254",
+        "loc": "src/backend/zephyr/runner.c:254",
         "via": "writes"
       },
       {
         "func": "func:runner_ready",
-        "loc": "zephyr/src/runner.c:255",
+        "loc": "src/backend/zephyr/runner.c:255",
         "via": "writes"
       },
       {
         "func": "func:runner_select",
-        "loc": "zephyr/src/runner.c:194",
+        "loc": "src/backend/zephyr/runner.c:194",
         "via": "reads"
       },
       {
         "func": "func:runner_select",
-        "loc": "zephyr/src/runner.c:195",
+        "loc": "src/backend/zephyr/runner.c:195",
         "via": "reads"
       },
       {
         "func": "func:runner_select",
-        "loc": "zephyr/src/runner.c:196",
+        "loc": "src/backend/zephyr/runner.c:196",
         "via": "writes"
       },
       {
         "func": "func:runner_select",
-        "loc": "zephyr/src/runner.c:197",
+        "loc": "src/backend/zephyr/runner.c:197",
         "via": "writes"
       },
       {
         "func": "func:runner_select",
-        "loc": "zephyr/src/runner.c:199",
+        "loc": "src/backend/zephyr/runner.c:199",
         "via": "writes"
       },
       {
         "func": "func:runner_select",
-        "loc": "zephyr/src/runner.c:199",
+        "loc": "src/backend/zephyr/runner.c:199",
         "via": "reads"
       },
       {
         "func": "func:runner_select",
-        "loc": "zephyr/src/runner.c:204",
+        "loc": "src/backend/zephyr/runner.c:204",
         "via": "writes"
       },
       {
         "func": "func:runner_select",
-        "loc": "zephyr/src/runner.c:204",
+        "loc": "src/backend/zephyr/runner.c:204",
         "via": "reads"
       },
       {
         "func": "func:runner_select",
-        "loc": "zephyr/src/runner.c:205",
+        "loc": "src/backend/zephyr/runner.c:205",
         "via": "writes"
       },
       {
         "func": "func:runner_select",
-        "loc": "zephyr/src/runner.c:210",
+        "loc": "src/backend/zephyr/runner.c:210",
         "via": "reads"
       },
       {
         "func": "func:runner_select",
-        "loc": "zephyr/src/runner.c:211",
+        "loc": "src/backend/zephyr/runner.c:211",
         "via": "reads"
       },
       {
         "func": "func:runner_select",
-        "loc": "zephyr/src/runner.c:212",
+        "loc": "src/backend/zephyr/runner.c:212",
         "via": "reads"
       },
       {
         "func": "func:runner_select",
-        "loc": "zephyr/src/runner.c:212",
+        "loc": "src/backend/zephyr/runner.c:212",
         "via": "writes"
       },
       {
         "func": "func:runner_select",
-        "loc": "zephyr/src/runner.c:213",
+        "loc": "src/backend/zephyr/runner.c:213",
         "via": "writes"
       },
       {
         "func": "func:runner_select",
-        "loc": "zephyr/src/runner.c:215",
+        "loc": "src/backend/zephyr/runner.c:215",
         "via": "reads"
       },
       {
         "func": "func:runner_select",
-        "loc": "zephyr/src/runner.c:219",
+        "loc": "src/backend/zephyr/runner.c:219",
         "via": "writes"
       },
       {
         "func": "func:runner_select",
-        "loc": "zephyr/src/runner.c:222",
+        "loc": "src/backend/zephyr/runner.c:222",
         "via": "writes"
       },
       {
         "func": "func:runner_select",
-        "loc": "zephyr/src/runner.c:223",
+        "loc": "src/backend/zephyr/runner.c:223",
         "via": "writes"
       },
       {
         "func": "func:runner_select",
-        "loc": "zephyr/src/runner.c:228",
+        "loc": "src/backend/zephyr/runner.c:228",
         "via": "reads"
       },
       {
         "func": "func:runner_select",
-        "loc": "zephyr/src/runner.c:229",
+        "loc": "src/backend/zephyr/runner.c:229",
         "via": "writes"
       },
       {
         "func": "func:runner_select",
-        "loc": "zephyr/src/runner.c:230",
+        "loc": "src/backend/zephyr/runner.c:230",
         "via": "writes"
       },
       {
         "func": "func:runner_select",
-        "loc": "zephyr/src/runner.c:230",
+        "loc": "src/backend/zephyr/runner.c:230",
         "via": "reads"
       },
       {
         "func": "func:runner_select",
-        "loc": "zephyr/src/runner.c:234",
+        "loc": "src/backend/zephyr/runner.c:234",
         "via": "reads"
       },
       {
         "func": "func:runner_select",
-        "loc": "zephyr/src/runner.c:235",
+        "loc": "src/backend/zephyr/runner.c:235",
         "via": "reads"
       },
       {
         "func": "func:runner_select",
-        "loc": "zephyr/src/runner.c:239",
+        "loc": "src/backend/zephyr/runner.c:239",
         "via": "reads"
       },
       {
         "func": "func:runner_select",
-        "loc": "zephyr/src/runner.c:240",
+        "loc": "src/backend/zephyr/runner.c:240",
         "via": "reads"
       },
       {
         "func": "func:runner_select",
-        "loc": "zephyr/src/runner.c:240",
+        "loc": "src/backend/zephyr/runner.c:240",
         "via": "writes"
       },
       {
         "func": "func:runner_trial",
-        "loc": "zephyr/src/runner.c:268",
+        "loc": "src/backend/zephyr/runner.c:268",
         "via": "reads"
       },
       {
-        "func": "func:zephyr/src/runner.c:m_load",
-        "loc": "zephyr/src/runner.c:122",
+        "func": "func:src/backend/zephyr/runner.c:m_load",
+        "loc": "src/backend/zephyr/runner.c:122",
         "via": "writes"
       },
       {
-        "func": "func:zephyr/src/runner.c:m_load",
-        "loc": "zephyr/src/runner.c:123",
+        "func": "func:src/backend/zephyr/runner.c:m_load",
+        "loc": "src/backend/zephyr/runner.c:123",
         "via": "writes"
       },
       {
-        "func": "func:zephyr/src/runner.c:m_load",
-        "loc": "zephyr/src/runner.c:125",
+        "func": "func:src/backend/zephyr/runner.c:m_load",
+        "loc": "src/backend/zephyr/runner.c:125",
         "via": "reads"
       },
       {
-        "func": "func:zephyr/src/runner.c:m_load",
-        "loc": "zephyr/src/runner.c:125",
+        "func": "func:src/backend/zephyr/runner.c:m_load",
+        "loc": "src/backend/zephyr/runner.c:125",
         "via": "writes"
       },
       {
-        "func": "func:zephyr/src/runner.c:m_save",
-        "loc": "zephyr/src/runner.c:107",
+        "func": "func:src/backend/zephyr/runner.c:m_save",
+        "loc": "src/backend/zephyr/runner.c:107",
         "via": "writes"
       },
       {
-        "func": "func:zephyr/src/runner.c:m_save",
-        "loc": "zephyr/src/runner.c:108",
+        "func": "func:src/backend/zephyr/runner.c:m_save",
+        "loc": "src/backend/zephyr/runner.c:108",
         "via": "writes"
       },
       {
-        "func": "func:zephyr/src/runner.c:m_save",
-        "loc": "zephyr/src/runner.c:109",
+        "func": "func:src/backend/zephyr/runner.c:m_save",
+        "loc": "src/backend/zephyr/runner.c:109",
         "via": "writes"
       },
       {
-        "func": "func:zephyr/src/runner.c:m_save",
-        "loc": "zephyr/src/runner.c:110",
+        "func": "func:src/backend/zephyr/runner.c:m_save",
+        "loc": "src/backend/zephyr/runner.c:110",
         "via": "writes"
       },
       {
-        "func": "func:zephyr/src/runner.c:m_save",
-        "loc": "zephyr/src/runner.c:111",
+        "func": "func:src/backend/zephyr/runner.c:m_save",
+        "loc": "src/backend/zephyr/runner.c:111",
         "via": "writes"
       },
       {
-        "func": "func:zephyr/src/runner.c:m_save",
-        "loc": "zephyr/src/runner.c:112",
+        "func": "func:src/backend/zephyr/runner.c:m_save",
+        "loc": "src/backend/zephyr/runner.c:112",
         "via": "writes"
       },
       {
-        "func": "func:zephyr/src/runner.c:m_save",
-        "loc": "zephyr/src/runner.c:113",
+        "func": "func:src/backend/zephyr/runner.c:m_save",
+        "loc": "src/backend/zephyr/runner.c:113",
         "via": "reads"
       },
       {
-        "func": "func:zephyr/src/runner.c:m_save",
-        "loc": "zephyr/src/runner.c:113",
+        "func": "func:src/backend/zephyr/runner.c:m_save",
+        "loc": "src/backend/zephyr/runner.c:113",
         "via": "writes"
       },
       {
-        "func": "func:zephyr/src/runner.c:m_save",
-        "loc": "zephyr/src/runner.c:114",
+        "func": "func:src/backend/zephyr/runner.c:m_save",
+        "loc": "src/backend/zephyr/runner.c:114",
         "via": "writes"
       },
       {
-        "func": "func:zephyr/src/runner.c:m_save",
-        "loc": "zephyr/src/runner.c:114",
+        "func": "func:src/backend/zephyr/runner.c:m_save",
+        "loc": "src/backend/zephyr/runner.c:114",
         "via": "reads"
       },
       {
-        "func": "func:zephyr/src/runner.c:m_save",
-        "loc": "zephyr/src/runner.c:115",
+        "func": "func:src/backend/zephyr/runner.c:m_save",
+        "loc": "src/backend/zephyr/runner.c:115",
         "via": "writes"
       },
       {
-        "func": "func:zephyr/src/runner.c:m_save",
-        "loc": "zephyr/src/runner.c:116",
+        "func": "func:src/backend/zephyr/runner.c:m_save",
+        "loc": "src/backend/zephyr/runner.c:116",
         "via": "writes"
       },
       {
-        "func": "func:zephyr/src/runner.c:m_save",
-        "loc": "zephyr/src/runner.c:116",
+        "func": "func:src/backend/zephyr/runner.c:m_save",
+        "loc": "src/backend/zephyr/runner.c:116",
         "via": "reads"
       },
       {
-        "func": "func:zephyr/src/runner.c:m_set",
-        "loc": "zephyr/src/runner.c:85",
+        "func": "func:src/backend/zephyr/runner.c:m_set",
+        "loc": "src/backend/zephyr/runner.c:85",
         "via": "writes"
       },
       {
-        "func": "func:zephyr/src/runner.c:m_set",
-        "loc": "zephyr/src/runner.c:86",
+        "func": "func:src/backend/zephyr/runner.c:m_set",
+        "loc": "src/backend/zephyr/runner.c:86",
         "via": "writes"
       },
       {
-        "func": "func:zephyr/src/runner.c:m_set",
-        "loc": "zephyr/src/runner.c:87",
+        "func": "func:src/backend/zephyr/runner.c:m_set",
+        "loc": "src/backend/zephyr/runner.c:87",
         "via": "writes"
       },
       {
-        "func": "func:zephyr/src/runner.c:m_set",
-        "loc": "zephyr/src/runner.c:88",
+        "func": "func:src/backend/zephyr/runner.c:m_set",
+        "loc": "src/backend/zephyr/runner.c:88",
         "via": "writes"
       },
       {
-        "func": "func:zephyr/src/runner.c:m_set",
-        "loc": "zephyr/src/runner.c:89",
+        "func": "func:src/backend/zephyr/runner.c:m_set",
+        "loc": "src/backend/zephyr/runner.c:89",
         "via": "writes"
       },
       {
-        "func": "func:zephyr/src/runner.c:m_set",
-        "loc": "zephyr/src/runner.c:90",
+        "func": "func:src/backend/zephyr/runner.c:m_set",
+        "loc": "src/backend/zephyr/runner.c:90",
         "via": "writes"
       },
       {
-        "func": "func:zephyr/src/runner.c:m_set",
-        "loc": "zephyr/src/runner.c:91",
+        "func": "func:src/backend/zephyr/runner.c:m_set",
+        "loc": "src/backend/zephyr/runner.c:91",
         "via": "writes"
       },
       {
-        "func": "func:zephyr/src/runner.c:m_set",
-        "loc": "zephyr/src/runner.c:92",
+        "func": "func:src/backend/zephyr/runner.c:m_set",
+        "loc": "src/backend/zephyr/runner.c:92",
         "via": "writes"
       },
       {
-        "func": "func:zephyr/src/runner.c:m_set",
-        "loc": "zephyr/src/runner.c:93",
+        "func": "func:src/backend/zephyr/runner.c:m_set",
+        "loc": "src/backend/zephyr/runner.c:93",
         "via": "writes"
       },
       {
-        "func": "func:zephyr/src/runner.c:m_set",
-        "loc": "zephyr/src/runner.c:94",
+        "func": "func:src/backend/zephyr/runner.c:m_set",
+        "loc": "src/backend/zephyr/runner.c:94",
         "via": "writes"
       },
       {
-        "func": "func:zephyr/src/runner.c:trial_expired",
-        "loc": "zephyr/src/runner.c:181",
+        "func": "func:src/backend/zephyr/runner.c:trial_expired",
+        "loc": "src/backend/zephyr/runner.c:181",
         "via": "reads"
       }
     ]
@@ -3675,6 +3650,69 @@
   },
   {
     "rule": "global-flow",
+    "subject": "global:src/backend/zephyr/log_udp.c:tee_state",
+    "message": "src/backend/zephyr/log_udp.c:tee_state: written by 3, read by 6 functions",
+    "count": 9,
+    "sites": [
+      {
+        "func": "func:log_udp_drain",
+        "loc": "src/backend/zephyr/log_udp.c:416",
+        "via": "reads"
+      },
+      {
+        "func": "func:log_udp_set_target",
+        "loc": "src/backend/zephyr/log_udp.c:358",
+        "via": "reads"
+      },
+      {
+        "func": "func:log_udp_set_target",
+        "loc": "src/backend/zephyr/log_udp.c:359",
+        "via": "writes"
+      },
+      {
+        "func": "func:log_udp_set_target",
+        "loc": "src/backend/zephyr/log_udp.c:372",
+        "via": "reads"
+      },
+      {
+        "func": "func:log_udp_start",
+        "loc": "src/backend/zephyr/log_udp.c:562",
+        "via": "reads"
+      },
+      {
+        "func": "func:log_udp_start",
+        "loc": "src/backend/zephyr/log_udp.c:565",
+        "via": "reads"
+      },
+      {
+        "func": "func:log_udp_tee_paced",
+        "loc": "src/backend/zephyr/log_udp.c:172",
+        "via": "reads"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:log_udp_hook_init",
+        "loc": "src/backend/zephyr/log_udp.c:551",
+        "via": "writes"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:log_udp_thread",
+        "loc": "src/backend/zephyr/log_udp.c:445",
+        "via": "reads"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:ring_put",
+        "loc": "src/backend/zephyr/log_udp.c:119",
+        "via": "reads"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:set_target",
+        "loc": "src/backend/zephyr/log_udp.c:344",
+        "via": "writes"
+      }
+    ]
+  },
+  {
+    "rule": "global-flow",
     "subject": "global:src/gc.c:heap_top",
     "message": "src/gc.c:heap_top: written by 3, read by 6 functions",
     "count": 9,
@@ -3801,69 +3839,6 @@
         "func": "func:src/http_core.c:fd_for_id",
         "loc": "src/http_core.c:197",
         "via": "reads"
-      }
-    ]
-  },
-  {
-    "rule": "global-flow",
-    "subject": "global:zephyr/src/log_udp.c:tee_state",
-    "message": "zephyr/src/log_udp.c:tee_state: written by 3, read by 6 functions",
-    "count": 9,
-    "sites": [
-      {
-        "func": "func:log_udp_drain",
-        "loc": "zephyr/src/log_udp.c:416",
-        "via": "reads"
-      },
-      {
-        "func": "func:log_udp_set_target",
-        "loc": "zephyr/src/log_udp.c:358",
-        "via": "reads"
-      },
-      {
-        "func": "func:log_udp_set_target",
-        "loc": "zephyr/src/log_udp.c:359",
-        "via": "writes"
-      },
-      {
-        "func": "func:log_udp_set_target",
-        "loc": "zephyr/src/log_udp.c:372",
-        "via": "reads"
-      },
-      {
-        "func": "func:log_udp_start",
-        "loc": "zephyr/src/log_udp.c:562",
-        "via": "reads"
-      },
-      {
-        "func": "func:log_udp_start",
-        "loc": "zephyr/src/log_udp.c:565",
-        "via": "reads"
-      },
-      {
-        "func": "func:log_udp_tee_paced",
-        "loc": "zephyr/src/log_udp.c:172",
-        "via": "reads"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:log_udp_hook_init",
-        "loc": "zephyr/src/log_udp.c:551",
-        "via": "writes"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:log_udp_thread",
-        "loc": "zephyr/src/log_udp.c:445",
-        "via": "reads"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:ring_put",
-        "loc": "zephyr/src/log_udp.c:119",
-        "via": "reads"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:set_target",
-        "loc": "zephyr/src/log_udp.c:344",
-        "via": "writes"
       }
     ]
   },
@@ -4484,6 +4459,84 @@
   },
   {
     "rule": "global-flow",
+    "subject": "global:src/backend/zephyr/log_udp.c:tee_kept",
+    "message": "src/backend/zephyr/log_udp.c:tee_kept: written by 4, read by 3 functions",
+    "count": 7,
+    "sites": [
+      {
+        "func": "func:log_udp_drain",
+        "loc": "src/backend/zephyr/log_udp.c:423",
+        "via": "writes"
+      },
+      {
+        "func": "func:log_udp_drain",
+        "loc": "src/backend/zephyr/log_udp.c:424",
+        "via": "writes"
+      },
+      {
+        "func": "func:log_udp_start",
+        "loc": "src/backend/zephyr/log_udp.c:571",
+        "via": "reads"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:log_udp_hook_init",
+        "loc": "src/backend/zephyr/log_udp.c:548",
+        "via": "reads"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:log_udp_hook_init",
+        "loc": "src/backend/zephyr/log_udp.c:549",
+        "via": "writes"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:log_udp_hook_init",
+        "loc": "src/backend/zephyr/log_udp.c:549",
+        "via": "reads"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:tee_keep_put",
+        "loc": "src/backend/zephyr/log_udp.c:94",
+        "via": "writes"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:tee_keep_put",
+        "loc": "src/backend/zephyr/log_udp.c:95",
+        "via": "writes"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:tee_keep_put",
+        "loc": "src/backend/zephyr/log_udp.c:96",
+        "via": "writes"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:tee_keep_put",
+        "loc": "src/backend/zephyr/log_udp.c:97",
+        "via": "writes"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:tee_keep_put",
+        "loc": "src/backend/zephyr/log_udp.c:98",
+        "via": "writes"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:tee_keep_valid",
+        "loc": "src/backend/zephyr/log_udp.c:105",
+        "via": "reads"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:tee_keep_valid",
+        "loc": "src/backend/zephyr/log_udp.c:105",
+        "via": "writes"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:tee_keep_valid",
+        "loc": "src/backend/zephyr/log_udp.c:106",
+        "via": "reads"
+      }
+    ]
+  },
+  {
+    "rule": "global-flow",
     "subject": "global:src/gc.c:free_bins",
     "message": "src/gc.c:free_bins: written by 4, read by 3 functions",
     "count": 7,
@@ -5090,78 +5143,204 @@
   },
   {
     "rule": "global-flow",
-    "subject": "global:zephyr/src/log_udp.c:tee_kept",
-    "message": "zephyr/src/log_udp.c:tee_kept: written by 4, read by 3 functions",
-    "count": 7,
+    "subject": "global:src/backend/zephyr/log_udp.c:r_tail",
+    "message": "src/backend/zephyr/log_udp.c:r_tail: written by 2, read by 4 functions",
+    "count": 6,
     "sites": [
       {
-        "func": "func:log_udp_drain",
-        "loc": "zephyr/src/log_udp.c:423",
+        "func": "func:log_udp_set_target",
+        "loc": "src/backend/zephyr/log_udp.c:360",
         "via": "writes"
       },
       {
-        "func": "func:log_udp_drain",
-        "loc": "zephyr/src/log_udp.c:424",
-        "via": "writes"
-      },
-      {
-        "func": "func:log_udp_start",
-        "loc": "zephyr/src/log_udp.c:571",
+        "func": "func:log_udp_tee_paced",
+        "loc": "src/backend/zephyr/log_udp.c:169",
         "via": "reads"
       },
       {
-        "func": "func:zephyr/src/log_udp.c:log_udp_hook_init",
-        "loc": "zephyr/src/log_udp.c:548",
+        "func": "func:log_udp_tee_paced",
+        "loc": "src/backend/zephyr/log_udp.c:174",
         "via": "reads"
       },
       {
-        "func": "func:zephyr/src/log_udp.c:log_udp_hook_init",
-        "loc": "zephyr/src/log_udp.c:549",
-        "via": "writes"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:log_udp_hook_init",
-        "loc": "zephyr/src/log_udp.c:549",
+        "func": "func:log_udp_tee_paced",
+        "loc": "src/backend/zephyr/log_udp.c:175",
         "via": "reads"
       },
       {
-        "func": "func:zephyr/src/log_udp.c:tee_keep_put",
-        "loc": "zephyr/src/log_udp.c:94",
-        "via": "writes"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:tee_keep_put",
-        "loc": "zephyr/src/log_udp.c:95",
-        "via": "writes"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:tee_keep_put",
-        "loc": "zephyr/src/log_udp.c:96",
-        "via": "writes"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:tee_keep_put",
-        "loc": "zephyr/src/log_udp.c:97",
-        "via": "writes"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:tee_keep_put",
-        "loc": "zephyr/src/log_udp.c:98",
-        "via": "writes"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:tee_keep_valid",
-        "loc": "zephyr/src/log_udp.c:105",
+        "func": "func:log_udp_tee_paced",
+        "loc": "src/backend/zephyr/log_udp.c:181",
         "via": "reads"
       },
       {
-        "func": "func:zephyr/src/log_udp.c:tee_keep_valid",
-        "loc": "zephyr/src/log_udp.c:105",
+        "func": "func:log_udp_tee_paced",
+        "loc": "src/backend/zephyr/log_udp.c:185",
+        "via": "reads"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:ring_get",
+        "loc": "src/backend/zephyr/log_udp.c:321",
+        "via": "reads"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:ring_get",
+        "loc": "src/backend/zephyr/log_udp.c:322",
+        "via": "reads"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:ring_get",
+        "loc": "src/backend/zephyr/log_udp.c:323",
+        "via": "reads"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:ring_get",
+        "loc": "src/backend/zephyr/log_udp.c:323",
         "via": "writes"
       },
       {
-        "func": "func:zephyr/src/log_udp.c:tee_keep_valid",
-        "loc": "zephyr/src/log_udp.c:106",
+        "func": "func:src/backend/zephyr/log_udp.c:ring_put",
+        "loc": "src/backend/zephyr/log_udp.c:121",
+        "via": "reads"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:ring_used",
+        "loc": "src/backend/zephyr/log_udp.c:135",
+        "via": "reads"
+      }
+    ]
+  },
+  {
+    "rule": "global-flow",
+    "subject": "global:src/backend/zephyr/log_udp.c:ring_lock",
+    "message": "src/backend/zephyr/log_udp.c:ring_lock: written by 6, read by 0 functions",
+    "count": 6,
+    "sites": [
+      {
+        "func": "func:log_udp_set_target",
+        "loc": "src/backend/zephyr/log_udp.c:357",
+        "via": "writes"
+      },
+      {
+        "func": "func:log_udp_set_target",
+        "loc": "src/backend/zephyr/log_udp.c:362",
+        "via": "writes"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:log_udp_thread",
+        "loc": "src/backend/zephyr/log_udp.c:450",
+        "via": "writes"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:log_udp_thread",
+        "loc": "src/backend/zephyr/log_udp.c:453",
+        "via": "writes"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:ring_get",
+        "loc": "src/backend/zephyr/log_udp.c:318",
+        "via": "writes"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:ring_get",
+        "loc": "src/backend/zephyr/log_udp.c:326",
+        "via": "writes"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:ring_put",
+        "loc": "src/backend/zephyr/log_udp.c:115",
+        "via": "writes"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:ring_put",
+        "loc": "src/backend/zephyr/log_udp.c:128",
+        "via": "writes"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:ring_used",
+        "loc": "src/backend/zephyr/log_udp.c:134",
+        "via": "writes"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:ring_used",
+        "loc": "src/backend/zephyr/log_udp.c:136",
+        "via": "writes"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:set_target",
+        "loc": "src/backend/zephyr/log_udp.c:341",
+        "via": "writes"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:set_target",
+        "loc": "src/backend/zephyr/log_udp.c:345",
+        "via": "writes"
+      }
+    ]
+  },
+  {
+    "rule": "global-flow",
+    "subject": "global:src/backend/zephyr/runner.c:slots",
+    "message": "src/backend/zephyr/runner.c:slots: written by 0, read by 6 functions; no writer in the module",
+    "count": 6,
+    "sites": [
+      {
+        "func": "func:runner_confirm",
+        "loc": "src/backend/zephyr/runner.c:265",
+        "via": "reads"
+      },
+      {
+        "func": "func:runner_inactive_slot_id",
+        "loc": "src/backend/zephyr/runner.c:269",
+        "via": "reads"
+      },
+      {
+        "func": "func:runner_select",
+        "loc": "src/backend/zephyr/runner.c:198",
+        "via": "reads"
+      },
+      {
+        "func": "func:runner_select",
+        "loc": "src/backend/zephyr/runner.c:207",
+        "via": "reads"
+      },
+      {
+        "func": "func:runner_select",
+        "loc": "src/backend/zephyr/runner.c:215",
+        "via": "reads"
+      },
+      {
+        "func": "func:runner_select",
+        "loc": "src/backend/zephyr/runner.c:233",
+        "via": "reads"
+      },
+      {
+        "func": "func:runner_select",
+        "loc": "src/backend/zephyr/runner.c:238",
+        "via": "reads"
+      },
+      {
+        "func": "func:src/backend/zephyr/runner.c:map_slot",
+        "loc": "src/backend/zephyr/runner.c:135",
+        "via": "reads"
+      },
+      {
+        "func": "func:src/backend/zephyr/runner.c:map_slot",
+        "loc": "src/backend/zephyr/runner.c:136",
+        "via": "reads"
+      },
+      {
+        "func": "func:src/backend/zephyr/runner.c:map_slot",
+        "loc": "src/backend/zephyr/runner.c:144",
+        "via": "reads"
+      },
+      {
+        "func": "func:src/backend/zephyr/runner.c:spoil",
+        "loc": "src/backend/zephyr/runner.c:165",
+        "via": "reads"
+      },
+      {
+        "func": "func:src/backend/zephyr/runner.c:trial_expired",
+        "loc": "src/backend/zephyr/runner.c:181",
         "via": "reads"
       }
     ]
@@ -5627,210 +5806,6 @@
   },
   {
     "rule": "global-flow",
-    "subject": "global:zephyr/src/log_udp.c:r_tail",
-    "message": "zephyr/src/log_udp.c:r_tail: written by 2, read by 4 functions",
-    "count": 6,
-    "sites": [
-      {
-        "func": "func:log_udp_set_target",
-        "loc": "zephyr/src/log_udp.c:360",
-        "via": "writes"
-      },
-      {
-        "func": "func:log_udp_tee_paced",
-        "loc": "zephyr/src/log_udp.c:169",
-        "via": "reads"
-      },
-      {
-        "func": "func:log_udp_tee_paced",
-        "loc": "zephyr/src/log_udp.c:174",
-        "via": "reads"
-      },
-      {
-        "func": "func:log_udp_tee_paced",
-        "loc": "zephyr/src/log_udp.c:175",
-        "via": "reads"
-      },
-      {
-        "func": "func:log_udp_tee_paced",
-        "loc": "zephyr/src/log_udp.c:181",
-        "via": "reads"
-      },
-      {
-        "func": "func:log_udp_tee_paced",
-        "loc": "zephyr/src/log_udp.c:185",
-        "via": "reads"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:ring_get",
-        "loc": "zephyr/src/log_udp.c:321",
-        "via": "reads"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:ring_get",
-        "loc": "zephyr/src/log_udp.c:322",
-        "via": "reads"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:ring_get",
-        "loc": "zephyr/src/log_udp.c:323",
-        "via": "reads"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:ring_get",
-        "loc": "zephyr/src/log_udp.c:323",
-        "via": "writes"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:ring_put",
-        "loc": "zephyr/src/log_udp.c:121",
-        "via": "reads"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:ring_used",
-        "loc": "zephyr/src/log_udp.c:135",
-        "via": "reads"
-      }
-    ]
-  },
-  {
-    "rule": "global-flow",
-    "subject": "global:zephyr/src/log_udp.c:ring_lock",
-    "message": "zephyr/src/log_udp.c:ring_lock: written by 6, read by 0 functions",
-    "count": 6,
-    "sites": [
-      {
-        "func": "func:log_udp_set_target",
-        "loc": "zephyr/src/log_udp.c:357",
-        "via": "writes"
-      },
-      {
-        "func": "func:log_udp_set_target",
-        "loc": "zephyr/src/log_udp.c:362",
-        "via": "writes"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:log_udp_thread",
-        "loc": "zephyr/src/log_udp.c:450",
-        "via": "writes"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:log_udp_thread",
-        "loc": "zephyr/src/log_udp.c:453",
-        "via": "writes"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:ring_get",
-        "loc": "zephyr/src/log_udp.c:318",
-        "via": "writes"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:ring_get",
-        "loc": "zephyr/src/log_udp.c:326",
-        "via": "writes"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:ring_put",
-        "loc": "zephyr/src/log_udp.c:115",
-        "via": "writes"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:ring_put",
-        "loc": "zephyr/src/log_udp.c:128",
-        "via": "writes"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:ring_used",
-        "loc": "zephyr/src/log_udp.c:134",
-        "via": "writes"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:ring_used",
-        "loc": "zephyr/src/log_udp.c:136",
-        "via": "writes"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:set_target",
-        "loc": "zephyr/src/log_udp.c:341",
-        "via": "writes"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:set_target",
-        "loc": "zephyr/src/log_udp.c:345",
-        "via": "writes"
-      }
-    ]
-  },
-  {
-    "rule": "global-flow",
-    "subject": "global:zephyr/src/runner.c:slots",
-    "message": "zephyr/src/runner.c:slots: written by 0, read by 6 functions; no writer in the module",
-    "count": 6,
-    "sites": [
-      {
-        "func": "func:runner_confirm",
-        "loc": "zephyr/src/runner.c:265",
-        "via": "reads"
-      },
-      {
-        "func": "func:runner_inactive_slot_id",
-        "loc": "zephyr/src/runner.c:269",
-        "via": "reads"
-      },
-      {
-        "func": "func:runner_select",
-        "loc": "zephyr/src/runner.c:198",
-        "via": "reads"
-      },
-      {
-        "func": "func:runner_select",
-        "loc": "zephyr/src/runner.c:207",
-        "via": "reads"
-      },
-      {
-        "func": "func:runner_select",
-        "loc": "zephyr/src/runner.c:215",
-        "via": "reads"
-      },
-      {
-        "func": "func:runner_select",
-        "loc": "zephyr/src/runner.c:233",
-        "via": "reads"
-      },
-      {
-        "func": "func:runner_select",
-        "loc": "zephyr/src/runner.c:238",
-        "via": "reads"
-      },
-      {
-        "func": "func:zephyr/src/runner.c:map_slot",
-        "loc": "zephyr/src/runner.c:135",
-        "via": "reads"
-      },
-      {
-        "func": "func:zephyr/src/runner.c:map_slot",
-        "loc": "zephyr/src/runner.c:136",
-        "via": "reads"
-      },
-      {
-        "func": "func:zephyr/src/runner.c:map_slot",
-        "loc": "zephyr/src/runner.c:144",
-        "via": "reads"
-      },
-      {
-        "func": "func:zephyr/src/runner.c:spoil",
-        "loc": "zephyr/src/runner.c:165",
-        "via": "reads"
-      },
-      {
-        "func": "func:zephyr/src/runner.c:trial_expired",
-        "loc": "zephyr/src/runner.c:181",
-        "via": "reads"
-      }
-    ]
-  },
-  {
-    "rule": "global-flow",
     "subject": "global:ContextVtable",
     "message": "ContextVtable: written by 1, read by 4 functions",
     "count": 5,
@@ -5916,6 +5891,44 @@
       {
         "func": "func:src/vm.c:push_frame",
         "loc": "src/vm.c:937",
+        "via": "reads"
+      }
+    ]
+  },
+  {
+    "rule": "global-flow",
+    "subject": "global:src/backend/zephyr/log_udp.c:r_head",
+    "message": "src/backend/zephyr/log_udp.c:r_head: written by 1, read by 4 functions",
+    "count": 5,
+    "sites": [
+      {
+        "func": "func:log_udp_set_target",
+        "loc": "src/backend/zephyr/log_udp.c:360",
+        "via": "reads"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:ring_get",
+        "loc": "src/backend/zephyr/log_udp.c:321",
+        "via": "reads"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:ring_put",
+        "loc": "src/backend/zephyr/log_udp.c:116",
+        "via": "reads"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:ring_put",
+        "loc": "src/backend/zephyr/log_udp.c:124",
+        "via": "reads"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:ring_put",
+        "loc": "src/backend/zephyr/log_udp.c:125",
+        "via": "writes"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:ring_used",
+        "loc": "src/backend/zephyr/log_udp.c:135",
         "via": "reads"
       }
     ]
@@ -6569,44 +6582,6 @@
   },
   {
     "rule": "global-flow",
-    "subject": "global:zephyr/src/log_udp.c:r_head",
-    "message": "zephyr/src/log_udp.c:r_head: written by 1, read by 4 functions",
-    "count": 5,
-    "sites": [
-      {
-        "func": "func:log_udp_set_target",
-        "loc": "zephyr/src/log_udp.c:360",
-        "via": "reads"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:ring_get",
-        "loc": "zephyr/src/log_udp.c:321",
-        "via": "reads"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:ring_put",
-        "loc": "zephyr/src/log_udp.c:116",
-        "via": "reads"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:ring_put",
-        "loc": "zephyr/src/log_udp.c:124",
-        "via": "reads"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:ring_put",
-        "loc": "zephyr/src/log_udp.c:125",
-        "via": "writes"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:ring_used",
-        "loc": "zephyr/src/log_udp.c:135",
-        "via": "reads"
-      }
-    ]
-  },
-  {
-    "rule": "global-flow",
     "subject": "global:zephyr/src/main.c:gpio_outputs",
     "message": "zephyr/src/main.c:gpio_outputs: written by 3, read by 2 functions",
     "count": 5,
@@ -7007,6 +6982,34 @@
   },
   {
     "rule": "global-flow",
+    "subject": "global:src/backend/zephyr/runner.c:have_key",
+    "message": "src/backend/zephyr/runner.c:have_key: written by 1, read by 3 functions",
+    "count": 4,
+    "sites": [
+      {
+        "func": "func:runner_has_key",
+        "loc": "src/backend/zephyr/runner.c:80",
+        "via": "reads"
+      },
+      {
+        "func": "func:runner_ready",
+        "loc": "src/backend/zephyr/runner.c:249",
+        "via": "reads"
+      },
+      {
+        "func": "func:src/backend/zephyr/runner.c:key_init",
+        "loc": "src/backend/zephyr/runner.c:73",
+        "via": "writes"
+      },
+      {
+        "func": "func:src/backend/zephyr/runner.c:verified",
+        "loc": "src/backend/zephyr/runner.c:156",
+        "via": "reads"
+      }
+    ]
+  },
+  {
+    "rule": "global-flow",
     "subject": "global:src/dispatch.c:BoundClassVtable",
     "message": "src/dispatch.c:BoundClassVtable: written by 4, read by 0 functions",
     "count": 4,
@@ -7337,34 +7340,6 @@
   },
   {
     "rule": "global-flow",
-    "subject": "global:zephyr/src/runner.c:have_key",
-    "message": "zephyr/src/runner.c:have_key: written by 1, read by 3 functions",
-    "count": 4,
-    "sites": [
-      {
-        "func": "func:runner_has_key",
-        "loc": "zephyr/src/runner.c:80",
-        "via": "reads"
-      },
-      {
-        "func": "func:runner_ready",
-        "loc": "zephyr/src/runner.c:249",
-        "via": "reads"
-      },
-      {
-        "func": "func:zephyr/src/runner.c:key_init",
-        "loc": "zephyr/src/runner.c:73",
-        "via": "writes"
-      },
-      {
-        "func": "func:zephyr/src/runner.c:verified",
-        "loc": "zephyr/src/runner.c:156",
-        "via": "reads"
-      }
-    ]
-  },
-  {
-    "rule": "global-flow",
     "subject": "global:BoxedBindingVtable",
     "message": "BoxedBindingVtable: written by 1, read by 2 functions",
     "count": 3,
@@ -7555,6 +7530,52 @@
       {
         "func": "func:http_poll",
         "loc": "src/backend/zephyr/http_zephyr.c:168",
+        "via": "writes"
+      }
+    ]
+  },
+  {
+    "rule": "global-flow",
+    "subject": "global:src/backend/zephyr/log_udp.c:tee_addr",
+    "message": "src/backend/zephyr/log_udp.c:tee_addr: written by 3, read by 0 functions",
+    "count": 3,
+    "sites": [
+      {
+        "func": "func:log_udp_set_target",
+        "loc": "src/backend/zephyr/log_udp.c:372",
+        "via": "writes"
+      },
+      {
+        "func": "func:log_udp_start",
+        "loc": "src/backend/zephyr/log_udp.c:563",
+        "via": "writes"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:set_target",
+        "loc": "src/backend/zephyr/log_udp.c:346",
+        "via": "writes"
+      }
+    ]
+  },
+  {
+    "rule": "global-flow",
+    "subject": "global:src/backend/zephyr/log_udp.c:tee_port",
+    "message": "src/backend/zephyr/log_udp.c:tee_port: written by 1, read by 2 functions",
+    "count": 3,
+    "sites": [
+      {
+        "func": "func:log_udp_set_target",
+        "loc": "src/backend/zephyr/log_udp.c:372",
+        "via": "reads"
+      },
+      {
+        "func": "func:log_udp_start",
+        "loc": "src/backend/zephyr/log_udp.c:563",
+        "via": "reads"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:set_target",
+        "loc": "src/backend/zephyr/log_udp.c:347",
         "via": "writes"
       }
     ]
@@ -8274,52 +8295,6 @@
   },
   {
     "rule": "global-flow",
-    "subject": "global:zephyr/src/log_udp.c:tee_addr",
-    "message": "zephyr/src/log_udp.c:tee_addr: written by 3, read by 0 functions",
-    "count": 3,
-    "sites": [
-      {
-        "func": "func:log_udp_set_target",
-        "loc": "zephyr/src/log_udp.c:372",
-        "via": "writes"
-      },
-      {
-        "func": "func:log_udp_start",
-        "loc": "zephyr/src/log_udp.c:563",
-        "via": "writes"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:set_target",
-        "loc": "zephyr/src/log_udp.c:346",
-        "via": "writes"
-      }
-    ]
-  },
-  {
-    "rule": "global-flow",
-    "subject": "global:zephyr/src/log_udp.c:tee_port",
-    "message": "zephyr/src/log_udp.c:tee_port: written by 1, read by 2 functions",
-    "count": 3,
-    "sites": [
-      {
-        "func": "func:log_udp_set_target",
-        "loc": "zephyr/src/log_udp.c:372",
-        "via": "reads"
-      },
-      {
-        "func": "func:log_udp_start",
-        "loc": "zephyr/src/log_udp.c:563",
-        "via": "reads"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:set_target",
-        "loc": "zephyr/src/log_udp.c:347",
-        "via": "writes"
-      }
-    ]
-  },
-  {
-    "rule": "global-flow",
     "subject": "global:zephyr/src/main.c:g_rtc",
     "message": "zephyr/src/main.c:g_rtc: written by 1, read by 2 functions",
     "count": 3,
@@ -8794,6 +8769,272 @@
   },
   {
     "rule": "global-flow",
+    "subject": "global:src/backend/zephyr/log_udp.c:dropped_chars",
+    "message": "src/backend/zephyr/log_udp.c:dropped_chars: written by 1, read by 1 functions",
+    "count": 2,
+    "sites": [
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:log_udp_thread",
+        "loc": "src/backend/zephyr/log_udp.c:526",
+        "via": "reads"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:log_udp_thread",
+        "loc": "src/backend/zephyr/log_udp.c:527",
+        "via": "reads"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:log_udp_thread",
+        "loc": "src/backend/zephyr/log_udp.c:529",
+        "via": "reads"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:ring_put",
+        "loc": "src/backend/zephyr/log_udp.c:122",
+        "via": "writes"
+      }
+    ]
+  },
+  {
+    "rule": "global-flow",
+    "subject": "global:src/backend/zephyr/log_udp.c:log_udp_tee_paced.gave_up",
+    "message": "src/backend/zephyr/log_udp.c:log_udp_tee_paced.gave_up: written by 1, read by 1 functions",
+    "count": 2,
+    "sites": [
+      {
+        "func": "func:log_udp_tee_paced",
+        "loc": "src/backend/zephyr/log_udp.c:172",
+        "via": "reads"
+      },
+      {
+        "func": "func:log_udp_tee_paced",
+        "loc": "src/backend/zephyr/log_udp.c:178",
+        "via": "writes"
+      },
+      {
+        "func": "func:log_udp_tee_paced",
+        "loc": "src/backend/zephyr/log_udp.c:181",
+        "via": "reads"
+      },
+      {
+        "func": "func:log_udp_tee_paced",
+        "loc": "src/backend/zephyr/log_udp.c:182",
+        "via": "writes"
+      },
+      {
+        "func": "func:log_udp_tee_paced",
+        "loc": "src/backend/zephyr/log_udp.c:184",
+        "via": "reads"
+      }
+    ]
+  },
+  {
+    "rule": "global-flow",
+    "subject": "global:src/backend/zephyr/log_udp.c:log_udp_tee_paced.gave_up_tail",
+    "message": "src/backend/zephyr/log_udp.c:log_udp_tee_paced.gave_up_tail: written by 1, read by 1 functions",
+    "count": 2,
+    "sites": [
+      {
+        "func": "func:log_udp_tee_paced",
+        "loc": "src/backend/zephyr/log_udp.c:181",
+        "via": "reads"
+      },
+      {
+        "func": "func:log_udp_tee_paced",
+        "loc": "src/backend/zephyr/log_udp.c:185",
+        "via": "writes"
+      }
+    ]
+  },
+  {
+    "rule": "global-flow",
+    "subject": "global:src/backend/zephyr/log_udp.c:prev_hook",
+    "message": "src/backend/zephyr/log_udp.c:prev_hook: written by 1, read by 1 functions",
+    "count": 2,
+    "sites": [
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:log_udp_hook_init",
+        "loc": "src/backend/zephyr/log_udp.c:545",
+        "via": "writes"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:tee_char_out",
+        "loc": "src/backend/zephyr/log_udp.c:144",
+        "via": "reads"
+      }
+    ]
+  },
+  {
+    "rule": "global-flow",
+    "subject": "global:src/backend/zephyr/log_udp.c:ring",
+    "message": "src/backend/zephyr/log_udp.c:ring: written by 1, read by 1 functions",
+    "count": 2,
+    "sites": [
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:ring_get",
+        "loc": "src/backend/zephyr/log_udp.c:322",
+        "via": "reads"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:ring_put",
+        "loc": "src/backend/zephyr/log_udp.c:124",
+        "via": "writes"
+      }
+    ]
+  },
+  {
+    "rule": "global-flow",
+    "subject": "global:src/backend/zephyr/log_udp.c:send_errors",
+    "message": "src/backend/zephyr/log_udp.c:send_errors: written by 1, read by 1 functions",
+    "count": 2,
+    "sites": [
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:log_udp_thread",
+        "loc": "src/backend/zephyr/log_udp.c:483",
+        "via": "writes"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:log_udp_thread",
+        "loc": "src/backend/zephyr/log_udp.c:503",
+        "via": "writes"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:log_udp_thread",
+        "loc": "src/backend/zephyr/log_udp.c:529",
+        "via": "reads"
+      }
+    ]
+  },
+  {
+    "rule": "global-flow",
+    "subject": "global:src/backend/zephyr/log_udp.c:sender_pending",
+    "message": "src/backend/zephyr/log_udp.c:sender_pending: written by 1, read by 1 functions",
+    "count": 2,
+    "sites": [
+      {
+        "func": "func:log_udp_drain",
+        "loc": "src/backend/zephyr/log_udp.c:416",
+        "via": "reads"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:log_udp_thread",
+        "loc": "src/backend/zephyr/log_udp.c:489",
+        "via": "writes"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:log_udp_thread",
+        "loc": "src/backend/zephyr/log_udp.c:505",
+        "via": "writes"
+      }
+    ]
+  },
+  {
+    "rule": "global-flow",
+    "subject": "global:src/backend/zephyr/log_udp.c:sent_lines",
+    "message": "src/backend/zephyr/log_udp.c:sent_lines: written by 1, read by 1 functions",
+    "count": 2,
+    "sites": [
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:log_udp_thread",
+        "loc": "src/backend/zephyr/log_udp.c:487",
+        "via": "writes"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:log_udp_thread",
+        "loc": "src/backend/zephyr/log_udp.c:507",
+        "via": "writes"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:log_udp_thread",
+        "loc": "src/backend/zephyr/log_udp.c:529",
+        "via": "reads"
+      }
+    ]
+  },
+  {
+    "rule": "global-flow",
+    "subject": "global:src/backend/zephyr/log_udp.c:tee_dst",
+    "message": "src/backend/zephyr/log_udp.c:tee_dst: written by 1, read by 1 functions",
+    "count": 2,
+    "sites": [
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:log_udp_thread",
+        "loc": "src/backend/zephyr/log_udp.c:451",
+        "via": "reads"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:set_target",
+        "loc": "src/backend/zephyr/log_udp.c:342",
+        "via": "writes"
+      }
+    ]
+  },
+  {
+    "rule": "global-flow",
+    "subject": "global:src/backend/zephyr/log_udp.c:tee_from_keep",
+    "message": "src/backend/zephyr/log_udp.c:tee_from_keep: written by 1, read by 1 functions",
+    "count": 2,
+    "sites": [
+      {
+        "func": "func:log_udp_start",
+        "loc": "src/backend/zephyr/log_udp.c:564",
+        "via": "reads"
+      },
+      {
+        "func": "func:log_udp_start",
+        "loc": "src/backend/zephyr/log_udp.c:570",
+        "via": "reads"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:log_udp_hook_init",
+        "loc": "src/backend/zephyr/log_udp.c:553",
+        "via": "writes"
+      }
+    ]
+  },
+  {
+    "rule": "global-flow",
+    "subject": "global:src/backend/zephyr/log_udp.c:tee_gen",
+    "message": "src/backend/zephyr/log_udp.c:tee_gen: written by 1, read by 1 functions",
+    "count": 2,
+    "sites": [
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:log_udp_thread",
+        "loc": "src/backend/zephyr/log_udp.c:449",
+        "via": "reads"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:log_udp_thread",
+        "loc": "src/backend/zephyr/log_udp.c:452",
+        "via": "reads"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:set_target",
+        "loc": "src/backend/zephyr/log_udp.c:343",
+        "via": "writes"
+      }
+    ]
+  },
+  {
+    "rule": "global-flow",
+    "subject": "global:src/backend/zephyr/log_udp.c:tx_before_send",
+    "message": "src/backend/zephyr/log_udp.c:tx_before_send: written by 1, read by 1 functions",
+    "count": 2,
+    "sites": [
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:wait_for_radio",
+        "loc": "src/backend/zephyr/log_udp.c:272",
+        "via": "reads"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:wait_for_radio",
+        "loc": "src/backend/zephyr/log_udp.c:291",
+        "via": "writes"
+      }
+    ]
+  },
+  {
+    "rule": "global-flow",
     "subject": "global:src/backend/zephyr/ota_zephyr.c:ota_fn",
     "message": "src/backend/zephyr/ota_zephyr.c:ota_fn: written by 1, read by 1 functions",
     "count": 2,
@@ -8993,6 +9234,70 @@
       {
         "func": "func:src/backend/zephyr/pulse_zephyr.c:pulse_enqueue",
         "loc": "src/backend/zephyr/pulse_zephyr.c:57",
+        "via": "writes"
+      }
+    ]
+  },
+  {
+    "rule": "global-flow",
+    "subject": "global:src/backend/zephyr/runner.c:bases",
+    "message": "src/backend/zephyr/runner.c:bases: written by 1, read by 1 functions",
+    "count": 2,
+    "sites": [
+      {
+        "func": "func:src/backend/zephyr/runner.c:map_slot",
+        "loc": "src/backend/zephyr/runner.c:133",
+        "via": "reads"
+      },
+      {
+        "func": "func:src/backend/zephyr/runner.c:map_slot",
+        "loc": "src/backend/zephyr/runner.c:139",
+        "via": "writes"
+      },
+      {
+        "func": "func:src/backend/zephyr/runner.c:map_slot",
+        "loc": "src/backend/zephyr/runner.c:142",
+        "via": "reads"
+      },
+      {
+        "func": "func:src/backend/zephyr/runner.c:map_slot",
+        "loc": "src/backend/zephyr/runner.c:143",
+        "via": "reads"
+      }
+    ]
+  },
+  {
+    "rule": "global-flow",
+    "subject": "global:src/backend/zephyr/runner.c:pubkey",
+    "message": "src/backend/zephyr/runner.c:pubkey: written by 2, read by 0 functions",
+    "count": 2,
+    "sites": [
+      {
+        "func": "func:src/backend/zephyr/runner.c:key_init",
+        "loc": "src/backend/zephyr/runner.c:71",
+        "via": "writes"
+      },
+      {
+        "func": "func:src/backend/zephyr/runner.c:verified",
+        "loc": "src/backend/zephyr/runner.c:157",
+        "via": "writes"
+      }
+    ]
+  },
+  {
+    "rule": "global-flow",
+    "subject": "global:src/backend/zephyr/runner.c:trial_work",
+    "message": "src/backend/zephyr/runner.c:trial_work: written by 2, read by 0 functions",
+    "count": 2,
+    "sites": [
+      {
+        "func": "func:runner_confirm",
+        "loc": "src/backend/zephyr/runner.c:263",
+        "via": "writes"
+      },
+      {
+        "func": "func:runner_select",
+        "loc": "src/backend/zephyr/runner.c:235",
         "via": "writes"
       }
     ]
@@ -9928,279 +10233,13 @@
     "count": 2,
     "sites": [
       {
-        "func": "func:zephyr/src/log_udp.c:log_udp_thread",
-        "loc": "zephyr/src/log_udp.c:446",
+        "func": "func:src/backend/zephyr/log_udp.c:log_udp_thread",
+        "loc": "src/backend/zephyr/log_udp.c:446",
         "via": "writes"
       },
       {
-        "func": "func:zephyr/src/log_udp.c:set_target",
-        "loc": "zephyr/src/log_udp.c:348",
-        "via": "writes"
-      }
-    ]
-  },
-  {
-    "rule": "global-flow",
-    "subject": "global:zephyr/src/log_udp.c:dropped_chars",
-    "message": "zephyr/src/log_udp.c:dropped_chars: written by 1, read by 1 functions",
-    "count": 2,
-    "sites": [
-      {
-        "func": "func:zephyr/src/log_udp.c:log_udp_thread",
-        "loc": "zephyr/src/log_udp.c:526",
-        "via": "reads"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:log_udp_thread",
-        "loc": "zephyr/src/log_udp.c:527",
-        "via": "reads"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:log_udp_thread",
-        "loc": "zephyr/src/log_udp.c:529",
-        "via": "reads"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:ring_put",
-        "loc": "zephyr/src/log_udp.c:122",
-        "via": "writes"
-      }
-    ]
-  },
-  {
-    "rule": "global-flow",
-    "subject": "global:zephyr/src/log_udp.c:log_udp_tee_paced.gave_up",
-    "message": "zephyr/src/log_udp.c:log_udp_tee_paced.gave_up: written by 1, read by 1 functions",
-    "count": 2,
-    "sites": [
-      {
-        "func": "func:log_udp_tee_paced",
-        "loc": "zephyr/src/log_udp.c:172",
-        "via": "reads"
-      },
-      {
-        "func": "func:log_udp_tee_paced",
-        "loc": "zephyr/src/log_udp.c:178",
-        "via": "writes"
-      },
-      {
-        "func": "func:log_udp_tee_paced",
-        "loc": "zephyr/src/log_udp.c:181",
-        "via": "reads"
-      },
-      {
-        "func": "func:log_udp_tee_paced",
-        "loc": "zephyr/src/log_udp.c:182",
-        "via": "writes"
-      },
-      {
-        "func": "func:log_udp_tee_paced",
-        "loc": "zephyr/src/log_udp.c:184",
-        "via": "reads"
-      }
-    ]
-  },
-  {
-    "rule": "global-flow",
-    "subject": "global:zephyr/src/log_udp.c:log_udp_tee_paced.gave_up_tail",
-    "message": "zephyr/src/log_udp.c:log_udp_tee_paced.gave_up_tail: written by 1, read by 1 functions",
-    "count": 2,
-    "sites": [
-      {
-        "func": "func:log_udp_tee_paced",
-        "loc": "zephyr/src/log_udp.c:181",
-        "via": "reads"
-      },
-      {
-        "func": "func:log_udp_tee_paced",
-        "loc": "zephyr/src/log_udp.c:185",
-        "via": "writes"
-      }
-    ]
-  },
-  {
-    "rule": "global-flow",
-    "subject": "global:zephyr/src/log_udp.c:prev_hook",
-    "message": "zephyr/src/log_udp.c:prev_hook: written by 1, read by 1 functions",
-    "count": 2,
-    "sites": [
-      {
-        "func": "func:zephyr/src/log_udp.c:log_udp_hook_init",
-        "loc": "zephyr/src/log_udp.c:545",
-        "via": "writes"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:tee_char_out",
-        "loc": "zephyr/src/log_udp.c:144",
-        "via": "reads"
-      }
-    ]
-  },
-  {
-    "rule": "global-flow",
-    "subject": "global:zephyr/src/log_udp.c:ring",
-    "message": "zephyr/src/log_udp.c:ring: written by 1, read by 1 functions",
-    "count": 2,
-    "sites": [
-      {
-        "func": "func:zephyr/src/log_udp.c:ring_get",
-        "loc": "zephyr/src/log_udp.c:322",
-        "via": "reads"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:ring_put",
-        "loc": "zephyr/src/log_udp.c:124",
-        "via": "writes"
-      }
-    ]
-  },
-  {
-    "rule": "global-flow",
-    "subject": "global:zephyr/src/log_udp.c:send_errors",
-    "message": "zephyr/src/log_udp.c:send_errors: written by 1, read by 1 functions",
-    "count": 2,
-    "sites": [
-      {
-        "func": "func:zephyr/src/log_udp.c:log_udp_thread",
-        "loc": "zephyr/src/log_udp.c:483",
-        "via": "writes"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:log_udp_thread",
-        "loc": "zephyr/src/log_udp.c:503",
-        "via": "writes"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:log_udp_thread",
-        "loc": "zephyr/src/log_udp.c:529",
-        "via": "reads"
-      }
-    ]
-  },
-  {
-    "rule": "global-flow",
-    "subject": "global:zephyr/src/log_udp.c:sender_pending",
-    "message": "zephyr/src/log_udp.c:sender_pending: written by 1, read by 1 functions",
-    "count": 2,
-    "sites": [
-      {
-        "func": "func:log_udp_drain",
-        "loc": "zephyr/src/log_udp.c:416",
-        "via": "reads"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:log_udp_thread",
-        "loc": "zephyr/src/log_udp.c:489",
-        "via": "writes"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:log_udp_thread",
-        "loc": "zephyr/src/log_udp.c:505",
-        "via": "writes"
-      }
-    ]
-  },
-  {
-    "rule": "global-flow",
-    "subject": "global:zephyr/src/log_udp.c:sent_lines",
-    "message": "zephyr/src/log_udp.c:sent_lines: written by 1, read by 1 functions",
-    "count": 2,
-    "sites": [
-      {
-        "func": "func:zephyr/src/log_udp.c:log_udp_thread",
-        "loc": "zephyr/src/log_udp.c:487",
-        "via": "writes"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:log_udp_thread",
-        "loc": "zephyr/src/log_udp.c:507",
-        "via": "writes"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:log_udp_thread",
-        "loc": "zephyr/src/log_udp.c:529",
-        "via": "reads"
-      }
-    ]
-  },
-  {
-    "rule": "global-flow",
-    "subject": "global:zephyr/src/log_udp.c:tee_dst",
-    "message": "zephyr/src/log_udp.c:tee_dst: written by 1, read by 1 functions",
-    "count": 2,
-    "sites": [
-      {
-        "func": "func:zephyr/src/log_udp.c:log_udp_thread",
-        "loc": "zephyr/src/log_udp.c:451",
-        "via": "reads"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:set_target",
-        "loc": "zephyr/src/log_udp.c:342",
-        "via": "writes"
-      }
-    ]
-  },
-  {
-    "rule": "global-flow",
-    "subject": "global:zephyr/src/log_udp.c:tee_from_keep",
-    "message": "zephyr/src/log_udp.c:tee_from_keep: written by 1, read by 1 functions",
-    "count": 2,
-    "sites": [
-      {
-        "func": "func:log_udp_start",
-        "loc": "zephyr/src/log_udp.c:564",
-        "via": "reads"
-      },
-      {
-        "func": "func:log_udp_start",
-        "loc": "zephyr/src/log_udp.c:570",
-        "via": "reads"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:log_udp_hook_init",
-        "loc": "zephyr/src/log_udp.c:553",
-        "via": "writes"
-      }
-    ]
-  },
-  {
-    "rule": "global-flow",
-    "subject": "global:zephyr/src/log_udp.c:tee_gen",
-    "message": "zephyr/src/log_udp.c:tee_gen: written by 1, read by 1 functions",
-    "count": 2,
-    "sites": [
-      {
-        "func": "func:zephyr/src/log_udp.c:log_udp_thread",
-        "loc": "zephyr/src/log_udp.c:449",
-        "via": "reads"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:log_udp_thread",
-        "loc": "zephyr/src/log_udp.c:452",
-        "via": "reads"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:set_target",
-        "loc": "zephyr/src/log_udp.c:343",
-        "via": "writes"
-      }
-    ]
-  },
-  {
-    "rule": "global-flow",
-    "subject": "global:zephyr/src/log_udp.c:tx_before_send",
-    "message": "zephyr/src/log_udp.c:tx_before_send: written by 1, read by 1 functions",
-    "count": 2,
-    "sites": [
-      {
-        "func": "func:zephyr/src/log_udp.c:wait_for_radio",
-        "loc": "zephyr/src/log_udp.c:272",
-        "via": "reads"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:wait_for_radio",
-        "loc": "zephyr/src/log_udp.c:291",
+        "func": "func:src/backend/zephyr/log_udp.c:set_target",
+        "loc": "src/backend/zephyr/log_udp.c:348",
         "via": "writes"
       }
     ]
@@ -10279,70 +10318,6 @@
         "func": "func:zephyr/src/observer.c:observer_thread_fn",
         "loc": "zephyr/src/observer.c:375",
         "via": "reads"
-      }
-    ]
-  },
-  {
-    "rule": "global-flow",
-    "subject": "global:zephyr/src/runner.c:bases",
-    "message": "zephyr/src/runner.c:bases: written by 1, read by 1 functions",
-    "count": 2,
-    "sites": [
-      {
-        "func": "func:zephyr/src/runner.c:map_slot",
-        "loc": "zephyr/src/runner.c:133",
-        "via": "reads"
-      },
-      {
-        "func": "func:zephyr/src/runner.c:map_slot",
-        "loc": "zephyr/src/runner.c:139",
-        "via": "writes"
-      },
-      {
-        "func": "func:zephyr/src/runner.c:map_slot",
-        "loc": "zephyr/src/runner.c:142",
-        "via": "reads"
-      },
-      {
-        "func": "func:zephyr/src/runner.c:map_slot",
-        "loc": "zephyr/src/runner.c:143",
-        "via": "reads"
-      }
-    ]
-  },
-  {
-    "rule": "global-flow",
-    "subject": "global:zephyr/src/runner.c:pubkey",
-    "message": "zephyr/src/runner.c:pubkey: written by 2, read by 0 functions",
-    "count": 2,
-    "sites": [
-      {
-        "func": "func:zephyr/src/runner.c:key_init",
-        "loc": "zephyr/src/runner.c:71",
-        "via": "writes"
-      },
-      {
-        "func": "func:zephyr/src/runner.c:verified",
-        "loc": "zephyr/src/runner.c:157",
-        "via": "writes"
-      }
-    ]
-  },
-  {
-    "rule": "global-flow",
-    "subject": "global:zephyr/src/runner.c:trial_work",
-    "message": "zephyr/src/runner.c:trial_work: written by 2, read by 0 functions",
-    "count": 2,
-    "sites": [
-      {
-        "func": "func:runner_confirm",
-        "loc": "zephyr/src/runner.c:263",
-        "via": "writes"
-      },
-      {
-        "func": "func:runner_select",
-        "loc": "zephyr/src/runner.c:235",
-        "via": "writes"
       }
     ]
   },
@@ -10721,6 +10696,32 @@
         "func": "func:src/backend/zephyr/platform_zephyr.c:rl_isr",
         "loc": "src/backend/zephyr/platform_zephyr.c:154",
         "via": "writes"
+      }
+    ]
+  },
+  {
+    "rule": "global-flow",
+    "subject": "global:src/backend/zephyr/runner.c:handles",
+    "message": "src/backend/zephyr/runner.c:handles: written by 1, read by 0 functions",
+    "count": 1,
+    "sites": [
+      {
+        "func": "func:src/backend/zephyr/runner.c:map_slot",
+        "loc": "src/backend/zephyr/runner.c:135",
+        "via": "writes"
+      }
+    ]
+  },
+  {
+    "rule": "global-flow",
+    "subject": "global:src/backend/zephyr/runner.c:hex8.d",
+    "message": "src/backend/zephyr/runner.c:hex8.d: written by 0, read by 1 functions; no writer in the module",
+    "count": 1,
+    "sites": [
+      {
+        "func": "func:src/backend/zephyr/runner.c:hex8",
+        "loc": "src/backend/zephyr/runner.c:173",
+        "via": "reads"
       }
     ]
   },
@@ -11281,32 +11282,6 @@
     ]
   },
   {
-    "rule": "global-flow",
-    "subject": "global:zephyr/src/runner.c:handles",
-    "message": "zephyr/src/runner.c:handles: written by 1, read by 0 functions",
-    "count": 1,
-    "sites": [
-      {
-        "func": "func:zephyr/src/runner.c:map_slot",
-        "loc": "zephyr/src/runner.c:135",
-        "via": "writes"
-      }
-    ]
-  },
-  {
-    "rule": "global-flow",
-    "subject": "global:zephyr/src/runner.c:hex8.d",
-    "message": "zephyr/src/runner.c:hex8.d: written by 0, read by 1 functions; no writer in the module",
-    "count": 1,
-    "sites": [
-      {
-        "func": "func:zephyr/src/runner.c:hex8",
-        "loc": "zephyr/src/runner.c:173",
-        "via": "reads"
-      }
-    ]
-  },
-  {
     "rule": "path-flow",
     "subject": "path:*",
     "message": "*: written by 4, read by 1 functions",
@@ -11444,127 +11419,57 @@
   },
   {
     "rule": "root-bypassed",
-    "subject": "func:log_udp_drain",
-    "loc": "zephyr/src/log_udp.c:405",
-    "message": "log_udp_drain (context zephyr/src) is called from 1 functions in other contexts without going through a root (roots: App, Targets)",
+    "subject": "func:log_udp_start",
+    "loc": "src/backend/zephyr/log_udp.c:560",
+    "message": "log_udp_start (context src/backend/zephyr) is called from 1 functions in other contexts without going through a root (roots: DebugHold, TimerSnapshot, ZephyrBackends)",
     "count": 1,
     "sites": [
       {
-        "func": "func:platform_console_drain",
-        "loc": "src/backend/zephyr/platform_zephyr.c:43",
+        "func": "func:main",
+        "loc": "zephyr/src/main.c:1890",
+        "via": "zephyr/src"
+      }
+    ]
+  },
+  {
+    "rule": "root-bypassed",
+    "subject": "func:oevm_thread_free_buffers",
+    "loc": "zephyr/src/thread_bringup.c:61",
+    "message": "oevm_thread_free_buffers (context zephyr/src) is called from 1 functions in other contexts without going through a root (roots: App, Targets)",
+    "count": 1,
+    "sites": [
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:wait_for_radio",
+        "loc": "src/backend/zephyr/log_udp.c:279",
         "via": "src/backend/zephyr"
       }
     ]
   },
   {
     "rule": "root-bypassed",
-    "subject": "func:log_udp_set_target",
-    "loc": "zephyr/src/log_udp.c:352",
-    "message": "log_udp_set_target (context zephyr/src) is called from 1 functions in other contexts without going through a root (roots: App, Targets)",
+    "subject": "func:oevm_thread_tx_queued",
+    "loc": "zephyr/src/thread_bringup.c:75",
+    "message": "oevm_thread_tx_queued (context zephyr/src) is called from 1 functions in other contexts without going through a root (roots: App, Targets)",
     "count": 1,
     "sites": [
       {
-        "func": "func:platform_console_tee",
-        "loc": "src/backend/zephyr/platform_zephyr.c:41",
+        "func": "func:src/backend/zephyr/log_udp.c:net_tx_busy",
+        "loc": "src/backend/zephyr/log_udp.c:393",
         "via": "src/backend/zephyr"
       }
     ]
   },
   {
     "rule": "root-bypassed",
-    "subject": "func:log_udp_tee",
-    "loc": "zephyr/src/log_udp.c:152",
-    "message": "log_udp_tee (context zephyr/src) is called from 1 functions in other contexts without going through a root (roots: App, Targets)",
+    "subject": "func:runner_select",
+    "loc": "src/backend/zephyr/runner.c:188",
+    "message": "runner_select (context src/backend/zephyr) is called from 1 functions in other contexts without going through a root (roots: DebugHold, TimerSnapshot, ZephyrBackends)",
     "count": 1,
     "sites": [
       {
-        "func": "func:platform_console_write",
-        "loc": "src/backend/zephyr/platform_zephyr.c:50",
-        "via": "src/backend/zephyr"
-      }
-    ]
-  },
-  {
-    "rule": "root-bypassed",
-    "subject": "func:log_udp_tee_paced",
-    "loc": "zephyr/src/log_udp.c:165",
-    "message": "log_udp_tee_paced (context zephyr/src) is called from 1 functions in other contexts without going through a root (roots: App, Targets)",
-    "count": 1,
-    "sites": [
-      {
-        "func": "func:platform_console_err",
-        "loc": "src/backend/zephyr/platform_zephyr.c:58",
-        "via": "src/backend/zephyr"
-      }
-    ]
-  },
-  {
-    "rule": "root-bypassed",
-    "subject": "func:runner_confirm",
-    "loc": "zephyr/src/runner.c:260",
-    "message": "runner_confirm (context zephyr/src) is called from 1 functions in other contexts without going through a root (roots: App, Targets)",
-    "count": 1,
-    "sites": [
-      {
-        "func": "func:ota_touch_confirm",
-        "loc": "src/backend/zephyr/ota_zephyr.c:153",
-        "via": "src/backend/zephyr"
-      }
-    ]
-  },
-  {
-    "rule": "root-bypassed",
-    "subject": "func:runner_has_key",
-    "loc": "zephyr/src/runner.c:80",
-    "message": "runner_has_key (context zephyr/src) is called from 1 functions in other contexts without going through a root (roots: App, Targets)",
-    "count": 1,
-    "sites": [
-      {
-        "func": "func:ota_stage_size",
-        "loc": "src/backend/zephyr/ota_zephyr.c:79",
-        "via": "src/backend/zephyr"
-      }
-    ]
-  },
-  {
-    "rule": "root-bypassed",
-    "subject": "func:runner_inactive_slot_id",
-    "loc": "zephyr/src/runner.c:269",
-    "message": "runner_inactive_slot_id (context zephyr/src) is called from 1 functions in other contexts without going through a root (roots: App, Targets)",
-    "count": 1,
-    "sites": [
-      {
-        "func": "func:src/backend/zephyr/ota_zephyr.c:slot",
-        "loc": "src/backend/zephyr/ota_zephyr.c:74",
-        "via": "src/backend/zephyr"
-      }
-    ]
-  },
-  {
-    "rule": "root-bypassed",
-    "subject": "func:runner_ready",
-    "loc": "zephyr/src/runner.c:248",
-    "message": "runner_ready (context zephyr/src) is called from 1 functions in other contexts without going through a root (roots: App, Targets)",
-    "count": 1,
-    "sites": [
-      {
-        "func": "func:ota_write_ready",
-        "loc": "src/backend/zephyr/ota_zephyr.c:144",
-        "via": "src/backend/zephyr"
-      }
-    ]
-  },
-  {
-    "rule": "root-bypassed",
-    "subject": "func:runner_trial",
-    "loc": "zephyr/src/runner.c:268",
-    "message": "runner_trial (context zephyr/src) is called from 1 functions in other contexts without going through a root (roots: App, Targets)",
-    "count": 1,
-    "sites": [
-      {
-        "func": "func:ota_env",
-        "loc": "src/backend/zephyr/ota_zephyr.c:65",
-        "via": "src/backend/zephyr"
+        "func": "func:main",
+        "loc": "zephyr/src/main.c:1921",
+        "via": "zephyr/src"
       }
     ]
   },
@@ -12014,173 +11919,173 @@
   },
   {
     "rule": "unowned-writer",
-    "subject": "global:zephyr/src/runner.c:m",
-    "message": "global:zephyr/src/runner.c:m has 41 write statements in 6 functions and no card owns it",
+    "subject": "global:src/backend/zephyr/runner.c:m",
+    "message": "global:src/backend/zephyr/runner.c:m has 41 write statements in 6 functions and no card owns it",
     "count": 41,
     "sites": [
       {
         "func": "func:runner_confirm",
-        "loc": "zephyr/src/runner.c:262"
+        "loc": "src/backend/zephyr/runner.c:262"
       },
       {
         "func": "func:runner_ready",
-        "loc": "zephyr/src/runner.c:252"
+        "loc": "src/backend/zephyr/runner.c:252"
       },
       {
         "func": "func:runner_ready",
-        "loc": "zephyr/src/runner.c:253"
+        "loc": "src/backend/zephyr/runner.c:253"
       },
       {
         "func": "func:runner_ready",
-        "loc": "zephyr/src/runner.c:254"
+        "loc": "src/backend/zephyr/runner.c:254"
       },
       {
         "func": "func:runner_ready",
-        "loc": "zephyr/src/runner.c:255"
+        "loc": "src/backend/zephyr/runner.c:255"
       },
       {
         "func": "func:runner_select",
-        "loc": "zephyr/src/runner.c:196"
+        "loc": "src/backend/zephyr/runner.c:196"
       },
       {
         "func": "func:runner_select",
-        "loc": "zephyr/src/runner.c:197"
+        "loc": "src/backend/zephyr/runner.c:197"
       },
       {
         "func": "func:runner_select",
-        "loc": "zephyr/src/runner.c:199"
+        "loc": "src/backend/zephyr/runner.c:199"
       },
       {
         "func": "func:runner_select",
-        "loc": "zephyr/src/runner.c:204"
+        "loc": "src/backend/zephyr/runner.c:204"
       },
       {
         "func": "func:runner_select",
-        "loc": "zephyr/src/runner.c:205"
+        "loc": "src/backend/zephyr/runner.c:205"
       },
       {
         "func": "func:runner_select",
-        "loc": "zephyr/src/runner.c:212"
+        "loc": "src/backend/zephyr/runner.c:212"
       },
       {
         "func": "func:runner_select",
-        "loc": "zephyr/src/runner.c:213"
+        "loc": "src/backend/zephyr/runner.c:213"
       },
       {
         "func": "func:runner_select",
-        "loc": "zephyr/src/runner.c:219"
+        "loc": "src/backend/zephyr/runner.c:219"
       },
       {
         "func": "func:runner_select",
-        "loc": "zephyr/src/runner.c:222"
+        "loc": "src/backend/zephyr/runner.c:222"
       },
       {
         "func": "func:runner_select",
-        "loc": "zephyr/src/runner.c:223"
+        "loc": "src/backend/zephyr/runner.c:223"
       },
       {
         "func": "func:runner_select",
-        "loc": "zephyr/src/runner.c:229"
+        "loc": "src/backend/zephyr/runner.c:229"
       },
       {
         "func": "func:runner_select",
-        "loc": "zephyr/src/runner.c:230"
+        "loc": "src/backend/zephyr/runner.c:230"
       },
       {
         "func": "func:runner_select",
-        "loc": "zephyr/src/runner.c:240"
+        "loc": "src/backend/zephyr/runner.c:240"
       },
       {
-        "func": "func:zephyr/src/runner.c:m_load",
-        "loc": "zephyr/src/runner.c:122"
+        "func": "func:src/backend/zephyr/runner.c:m_load",
+        "loc": "src/backend/zephyr/runner.c:122"
       },
       {
-        "func": "func:zephyr/src/runner.c:m_load",
-        "loc": "zephyr/src/runner.c:123"
+        "func": "func:src/backend/zephyr/runner.c:m_load",
+        "loc": "src/backend/zephyr/runner.c:123"
       },
       {
-        "func": "func:zephyr/src/runner.c:m_load",
-        "loc": "zephyr/src/runner.c:125"
+        "func": "func:src/backend/zephyr/runner.c:m_load",
+        "loc": "src/backend/zephyr/runner.c:125"
       },
       {
-        "func": "func:zephyr/src/runner.c:m_save",
-        "loc": "zephyr/src/runner.c:107"
+        "func": "func:src/backend/zephyr/runner.c:m_save",
+        "loc": "src/backend/zephyr/runner.c:107"
       },
       {
-        "func": "func:zephyr/src/runner.c:m_save",
-        "loc": "zephyr/src/runner.c:108"
+        "func": "func:src/backend/zephyr/runner.c:m_save",
+        "loc": "src/backend/zephyr/runner.c:108"
       },
       {
-        "func": "func:zephyr/src/runner.c:m_save",
-        "loc": "zephyr/src/runner.c:109"
+        "func": "func:src/backend/zephyr/runner.c:m_save",
+        "loc": "src/backend/zephyr/runner.c:109"
       },
       {
-        "func": "func:zephyr/src/runner.c:m_save",
-        "loc": "zephyr/src/runner.c:110"
+        "func": "func:src/backend/zephyr/runner.c:m_save",
+        "loc": "src/backend/zephyr/runner.c:110"
       },
       {
-        "func": "func:zephyr/src/runner.c:m_save",
-        "loc": "zephyr/src/runner.c:111"
+        "func": "func:src/backend/zephyr/runner.c:m_save",
+        "loc": "src/backend/zephyr/runner.c:111"
       },
       {
-        "func": "func:zephyr/src/runner.c:m_save",
-        "loc": "zephyr/src/runner.c:112"
+        "func": "func:src/backend/zephyr/runner.c:m_save",
+        "loc": "src/backend/zephyr/runner.c:112"
       },
       {
-        "func": "func:zephyr/src/runner.c:m_save",
-        "loc": "zephyr/src/runner.c:113"
+        "func": "func:src/backend/zephyr/runner.c:m_save",
+        "loc": "src/backend/zephyr/runner.c:113"
       },
       {
-        "func": "func:zephyr/src/runner.c:m_save",
-        "loc": "zephyr/src/runner.c:114"
+        "func": "func:src/backend/zephyr/runner.c:m_save",
+        "loc": "src/backend/zephyr/runner.c:114"
       },
       {
-        "func": "func:zephyr/src/runner.c:m_save",
-        "loc": "zephyr/src/runner.c:115"
+        "func": "func:src/backend/zephyr/runner.c:m_save",
+        "loc": "src/backend/zephyr/runner.c:115"
       },
       {
-        "func": "func:zephyr/src/runner.c:m_save",
-        "loc": "zephyr/src/runner.c:116"
+        "func": "func:src/backend/zephyr/runner.c:m_save",
+        "loc": "src/backend/zephyr/runner.c:116"
       },
       {
-        "func": "func:zephyr/src/runner.c:m_set",
-        "loc": "zephyr/src/runner.c:85"
+        "func": "func:src/backend/zephyr/runner.c:m_set",
+        "loc": "src/backend/zephyr/runner.c:85"
       },
       {
-        "func": "func:zephyr/src/runner.c:m_set",
-        "loc": "zephyr/src/runner.c:86"
+        "func": "func:src/backend/zephyr/runner.c:m_set",
+        "loc": "src/backend/zephyr/runner.c:86"
       },
       {
-        "func": "func:zephyr/src/runner.c:m_set",
-        "loc": "zephyr/src/runner.c:87"
+        "func": "func:src/backend/zephyr/runner.c:m_set",
+        "loc": "src/backend/zephyr/runner.c:87"
       },
       {
-        "func": "func:zephyr/src/runner.c:m_set",
-        "loc": "zephyr/src/runner.c:88"
+        "func": "func:src/backend/zephyr/runner.c:m_set",
+        "loc": "src/backend/zephyr/runner.c:88"
       },
       {
-        "func": "func:zephyr/src/runner.c:m_set",
-        "loc": "zephyr/src/runner.c:89"
+        "func": "func:src/backend/zephyr/runner.c:m_set",
+        "loc": "src/backend/zephyr/runner.c:89"
       },
       {
-        "func": "func:zephyr/src/runner.c:m_set",
-        "loc": "zephyr/src/runner.c:90"
+        "func": "func:src/backend/zephyr/runner.c:m_set",
+        "loc": "src/backend/zephyr/runner.c:90"
       },
       {
-        "func": "func:zephyr/src/runner.c:m_set",
-        "loc": "zephyr/src/runner.c:91"
+        "func": "func:src/backend/zephyr/runner.c:m_set",
+        "loc": "src/backend/zephyr/runner.c:91"
       },
       {
-        "func": "func:zephyr/src/runner.c:m_set",
-        "loc": "zephyr/src/runner.c:92"
+        "func": "func:src/backend/zephyr/runner.c:m_set",
+        "loc": "src/backend/zephyr/runner.c:92"
       },
       {
-        "func": "func:zephyr/src/runner.c:m_set",
-        "loc": "zephyr/src/runner.c:93"
+        "func": "func:src/backend/zephyr/runner.c:m_set",
+        "loc": "src/backend/zephyr/runner.c:93"
       },
       {
-        "func": "func:zephyr/src/runner.c:m_set",
-        "loc": "zephyr/src/runner.c:94"
+        "func": "func:src/backend/zephyr/runner.c:m_set",
+        "loc": "src/backend/zephyr/runner.c:94"
       }
     ]
   },
@@ -12338,6 +12243,62 @@
   },
   {
     "rule": "unowned-writer",
+    "subject": "global:src/backend/zephyr/log_udp.c:ring_lock",
+    "message": "global:src/backend/zephyr/log_udp.c:ring_lock has 12 write statements in 6 functions and no card owns it",
+    "count": 12,
+    "sites": [
+      {
+        "func": "func:log_udp_set_target",
+        "loc": "src/backend/zephyr/log_udp.c:357"
+      },
+      {
+        "func": "func:log_udp_set_target",
+        "loc": "src/backend/zephyr/log_udp.c:362"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:log_udp_thread",
+        "loc": "src/backend/zephyr/log_udp.c:450"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:log_udp_thread",
+        "loc": "src/backend/zephyr/log_udp.c:453"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:ring_get",
+        "loc": "src/backend/zephyr/log_udp.c:318"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:ring_get",
+        "loc": "src/backend/zephyr/log_udp.c:326"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:ring_put",
+        "loc": "src/backend/zephyr/log_udp.c:115"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:ring_put",
+        "loc": "src/backend/zephyr/log_udp.c:128"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:ring_used",
+        "loc": "src/backend/zephyr/log_udp.c:134"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:ring_used",
+        "loc": "src/backend/zephyr/log_udp.c:136"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:set_target",
+        "loc": "src/backend/zephyr/log_udp.c:341"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:set_target",
+        "loc": "src/backend/zephyr/log_udp.c:345"
+      }
+    ]
+  },
+  {
+    "rule": "unowned-writer",
     "subject": "global:src/ota.c:fetch",
     "message": "global:src/ota.c:fetch has 12 write statements in 2 functions and no card owns it",
     "count": 12,
@@ -12389,62 +12350,6 @@
       {
         "func": "func:src/ota.c:fetch_run",
         "loc": "src/ota.c:351"
-      }
-    ]
-  },
-  {
-    "rule": "unowned-writer",
-    "subject": "global:zephyr/src/log_udp.c:ring_lock",
-    "message": "global:zephyr/src/log_udp.c:ring_lock has 12 write statements in 6 functions and no card owns it",
-    "count": 12,
-    "sites": [
-      {
-        "func": "func:log_udp_set_target",
-        "loc": "zephyr/src/log_udp.c:357"
-      },
-      {
-        "func": "func:log_udp_set_target",
-        "loc": "zephyr/src/log_udp.c:362"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:log_udp_thread",
-        "loc": "zephyr/src/log_udp.c:450"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:log_udp_thread",
-        "loc": "zephyr/src/log_udp.c:453"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:ring_get",
-        "loc": "zephyr/src/log_udp.c:318"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:ring_get",
-        "loc": "zephyr/src/log_udp.c:326"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:ring_put",
-        "loc": "zephyr/src/log_udp.c:115"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:ring_put",
-        "loc": "zephyr/src/log_udp.c:128"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:ring_used",
-        "loc": "zephyr/src/log_udp.c:134"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:ring_used",
-        "loc": "zephyr/src/log_udp.c:136"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:set_target",
-        "loc": "zephyr/src/log_udp.c:341"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:set_target",
-        "loc": "zephyr/src/log_udp.c:345"
       }
     ]
   },
@@ -12602,45 +12507,45 @@
   },
   {
     "rule": "unowned-writer",
-    "subject": "global:zephyr/src/log_udp.c:tee_kept",
-    "message": "global:zephyr/src/log_udp.c:tee_kept has 9 write statements in 4 functions and no card owns it",
+    "subject": "global:src/backend/zephyr/log_udp.c:tee_kept",
+    "message": "global:src/backend/zephyr/log_udp.c:tee_kept has 9 write statements in 4 functions and no card owns it",
     "count": 9,
     "sites": [
       {
         "func": "func:log_udp_drain",
-        "loc": "zephyr/src/log_udp.c:423"
+        "loc": "src/backend/zephyr/log_udp.c:423"
       },
       {
         "func": "func:log_udp_drain",
-        "loc": "zephyr/src/log_udp.c:424"
+        "loc": "src/backend/zephyr/log_udp.c:424"
       },
       {
-        "func": "func:zephyr/src/log_udp.c:log_udp_hook_init",
-        "loc": "zephyr/src/log_udp.c:549"
+        "func": "func:src/backend/zephyr/log_udp.c:log_udp_hook_init",
+        "loc": "src/backend/zephyr/log_udp.c:549"
       },
       {
-        "func": "func:zephyr/src/log_udp.c:tee_keep_put",
-        "loc": "zephyr/src/log_udp.c:94"
+        "func": "func:src/backend/zephyr/log_udp.c:tee_keep_put",
+        "loc": "src/backend/zephyr/log_udp.c:94"
       },
       {
-        "func": "func:zephyr/src/log_udp.c:tee_keep_put",
-        "loc": "zephyr/src/log_udp.c:95"
+        "func": "func:src/backend/zephyr/log_udp.c:tee_keep_put",
+        "loc": "src/backend/zephyr/log_udp.c:95"
       },
       {
-        "func": "func:zephyr/src/log_udp.c:tee_keep_put",
-        "loc": "zephyr/src/log_udp.c:96"
+        "func": "func:src/backend/zephyr/log_udp.c:tee_keep_put",
+        "loc": "src/backend/zephyr/log_udp.c:96"
       },
       {
-        "func": "func:zephyr/src/log_udp.c:tee_keep_put",
-        "loc": "zephyr/src/log_udp.c:97"
+        "func": "func:src/backend/zephyr/log_udp.c:tee_keep_put",
+        "loc": "src/backend/zephyr/log_udp.c:97"
       },
       {
-        "func": "func:zephyr/src/log_udp.c:tee_keep_put",
-        "loc": "zephyr/src/log_udp.c:98"
+        "func": "func:src/backend/zephyr/log_udp.c:tee_keep_put",
+        "loc": "src/backend/zephyr/log_udp.c:98"
       },
       {
-        "func": "func:zephyr/src/log_udp.c:tee_keep_valid",
-        "loc": "zephyr/src/log_udp.c:105"
+        "func": "func:src/backend/zephyr/log_udp.c:tee_keep_valid",
+        "loc": "src/backend/zephyr/log_udp.c:105"
       }
     ]
   },
@@ -13498,6 +13403,46 @@
   },
   {
     "rule": "unowned-writer",
+    "subject": "global:src/backend/zephyr/log_udp.c:tee_addr",
+    "message": "global:src/backend/zephyr/log_udp.c:tee_addr has 3 write statements in 3 functions and no card owns it",
+    "count": 3,
+    "sites": [
+      {
+        "func": "func:log_udp_set_target",
+        "loc": "src/backend/zephyr/log_udp.c:372"
+      },
+      {
+        "func": "func:log_udp_start",
+        "loc": "src/backend/zephyr/log_udp.c:563"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:set_target",
+        "loc": "src/backend/zephyr/log_udp.c:346"
+      }
+    ]
+  },
+  {
+    "rule": "unowned-writer",
+    "subject": "global:src/backend/zephyr/log_udp.c:tee_state",
+    "message": "global:src/backend/zephyr/log_udp.c:tee_state has 3 write statements in 3 functions and no card owns it",
+    "count": 3,
+    "sites": [
+      {
+        "func": "func:log_udp_set_target",
+        "loc": "src/backend/zephyr/log_udp.c:359"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:log_udp_hook_init",
+        "loc": "src/backend/zephyr/log_udp.c:551"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:set_target",
+        "loc": "src/backend/zephyr/log_udp.c:344"
+      }
+    ]
+  },
+  {
+    "rule": "unowned-writer",
     "subject": "global:src/backend/zephyr/ota_zephyr.c:ota_thread",
     "message": "global:src/backend/zephyr/ota_zephyr.c:ota_thread has 3 write statements in 1 functions and no card owns it",
     "count": 3,
@@ -13878,46 +13823,6 @@
   },
   {
     "rule": "unowned-writer",
-    "subject": "global:zephyr/src/log_udp.c:tee_addr",
-    "message": "global:zephyr/src/log_udp.c:tee_addr has 3 write statements in 3 functions and no card owns it",
-    "count": 3,
-    "sites": [
-      {
-        "func": "func:log_udp_set_target",
-        "loc": "zephyr/src/log_udp.c:372"
-      },
-      {
-        "func": "func:log_udp_start",
-        "loc": "zephyr/src/log_udp.c:563"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:set_target",
-        "loc": "zephyr/src/log_udp.c:346"
-      }
-    ]
-  },
-  {
-    "rule": "unowned-writer",
-    "subject": "global:zephyr/src/log_udp.c:tee_state",
-    "message": "global:zephyr/src/log_udp.c:tee_state has 3 write statements in 3 functions and no card owns it",
-    "count": 3,
-    "sites": [
-      {
-        "func": "func:log_udp_set_target",
-        "loc": "zephyr/src/log_udp.c:359"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:log_udp_hook_init",
-        "loc": "zephyr/src/log_udp.c:551"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:set_target",
-        "loc": "zephyr/src/log_udp.c:344"
-      }
-    ]
-  },
-  {
-    "rule": "unowned-writer",
     "subject": "global:Symbol_debug_",
     "message": "global:Symbol_debug_ has 2 write statements in 2 functions and no card owns it",
     "count": 2,
@@ -14142,6 +14047,86 @@
   },
   {
     "rule": "unowned-writer",
+    "subject": "global:src/backend/zephyr/log_udp.c:log_udp_tee_paced.gave_up",
+    "message": "global:src/backend/zephyr/log_udp.c:log_udp_tee_paced.gave_up has 2 write statements in 1 functions and no card owns it",
+    "count": 2,
+    "sites": [
+      {
+        "func": "func:log_udp_tee_paced",
+        "loc": "src/backend/zephyr/log_udp.c:178"
+      },
+      {
+        "func": "func:log_udp_tee_paced",
+        "loc": "src/backend/zephyr/log_udp.c:182"
+      }
+    ]
+  },
+  {
+    "rule": "unowned-writer",
+    "subject": "global:src/backend/zephyr/log_udp.c:r_tail",
+    "message": "global:src/backend/zephyr/log_udp.c:r_tail has 2 write statements in 2 functions and no card owns it",
+    "count": 2,
+    "sites": [
+      {
+        "func": "func:log_udp_set_target",
+        "loc": "src/backend/zephyr/log_udp.c:360"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:ring_get",
+        "loc": "src/backend/zephyr/log_udp.c:323"
+      }
+    ]
+  },
+  {
+    "rule": "unowned-writer",
+    "subject": "global:src/backend/zephyr/log_udp.c:send_errors",
+    "message": "global:src/backend/zephyr/log_udp.c:send_errors has 2 write statements in 1 functions and no card owns it",
+    "count": 2,
+    "sites": [
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:log_udp_thread",
+        "loc": "src/backend/zephyr/log_udp.c:483"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:log_udp_thread",
+        "loc": "src/backend/zephyr/log_udp.c:503"
+      }
+    ]
+  },
+  {
+    "rule": "unowned-writer",
+    "subject": "global:src/backend/zephyr/log_udp.c:sender_pending",
+    "message": "global:src/backend/zephyr/log_udp.c:sender_pending has 2 write statements in 1 functions and no card owns it",
+    "count": 2,
+    "sites": [
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:log_udp_thread",
+        "loc": "src/backend/zephyr/log_udp.c:489"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:log_udp_thread",
+        "loc": "src/backend/zephyr/log_udp.c:505"
+      }
+    ]
+  },
+  {
+    "rule": "unowned-writer",
+    "subject": "global:src/backend/zephyr/log_udp.c:sent_lines",
+    "message": "global:src/backend/zephyr/log_udp.c:sent_lines has 2 write statements in 1 functions and no card owns it",
+    "count": 2,
+    "sites": [
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:log_udp_thread",
+        "loc": "src/backend/zephyr/log_udp.c:487"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:log_udp_thread",
+        "loc": "src/backend/zephyr/log_udp.c:507"
+      }
+    ]
+  },
+  {
+    "rule": "unowned-writer",
     "subject": "global:src/backend/zephyr/ota_zephyr.c:staged_len",
     "message": "global:src/backend/zephyr/ota_zephyr.c:staged_len has 2 write statements in 2 functions and no card owns it",
     "count": 2,
@@ -14217,6 +14202,38 @@
       {
         "func": "func:src/backend/zephyr/pulse_zephyr.c:shadow_pop",
         "loc": "src/backend/zephyr/pulse_zephyr.c:82"
+      }
+    ]
+  },
+  {
+    "rule": "unowned-writer",
+    "subject": "global:src/backend/zephyr/runner.c:pubkey",
+    "message": "global:src/backend/zephyr/runner.c:pubkey has 2 write statements in 2 functions and no card owns it",
+    "count": 2,
+    "sites": [
+      {
+        "func": "func:src/backend/zephyr/runner.c:key_init",
+        "loc": "src/backend/zephyr/runner.c:71"
+      },
+      {
+        "func": "func:src/backend/zephyr/runner.c:verified",
+        "loc": "src/backend/zephyr/runner.c:157"
+      }
+    ]
+  },
+  {
+    "rule": "unowned-writer",
+    "subject": "global:src/backend/zephyr/runner.c:trial_work",
+    "message": "global:src/backend/zephyr/runner.c:trial_work has 2 write statements in 2 functions and no card owns it",
+    "count": 2,
+    "sites": [
+      {
+        "func": "func:runner_confirm",
+        "loc": "src/backend/zephyr/runner.c:263"
+      },
+      {
+        "func": "func:runner_select",
+        "loc": "src/backend/zephyr/runner.c:235"
       }
     ]
   },
@@ -14563,12 +14580,12 @@
     "count": 2,
     "sites": [
       {
-        "func": "func:zephyr/src/log_udp.c:log_udp_thread",
-        "loc": "zephyr/src/log_udp.c:446"
+        "func": "func:src/backend/zephyr/log_udp.c:log_udp_thread",
+        "loc": "src/backend/zephyr/log_udp.c:446"
       },
       {
-        "func": "func:zephyr/src/log_udp.c:set_target",
-        "loc": "zephyr/src/log_udp.c:348"
+        "func": "func:src/backend/zephyr/log_udp.c:set_target",
+        "loc": "src/backend/zephyr/log_udp.c:348"
       }
     ]
   },
@@ -14585,86 +14602,6 @@
       {
         "func": "func:zephyr/src/ed25519/curve25519.c:ge_double_scalarmult_vartime",
         "loc": "zephyr/src/ed25519/curve25519.c:702"
-      }
-    ]
-  },
-  {
-    "rule": "unowned-writer",
-    "subject": "global:zephyr/src/log_udp.c:log_udp_tee_paced.gave_up",
-    "message": "global:zephyr/src/log_udp.c:log_udp_tee_paced.gave_up has 2 write statements in 1 functions and no card owns it",
-    "count": 2,
-    "sites": [
-      {
-        "func": "func:log_udp_tee_paced",
-        "loc": "zephyr/src/log_udp.c:178"
-      },
-      {
-        "func": "func:log_udp_tee_paced",
-        "loc": "zephyr/src/log_udp.c:182"
-      }
-    ]
-  },
-  {
-    "rule": "unowned-writer",
-    "subject": "global:zephyr/src/log_udp.c:r_tail",
-    "message": "global:zephyr/src/log_udp.c:r_tail has 2 write statements in 2 functions and no card owns it",
-    "count": 2,
-    "sites": [
-      {
-        "func": "func:log_udp_set_target",
-        "loc": "zephyr/src/log_udp.c:360"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:ring_get",
-        "loc": "zephyr/src/log_udp.c:323"
-      }
-    ]
-  },
-  {
-    "rule": "unowned-writer",
-    "subject": "global:zephyr/src/log_udp.c:send_errors",
-    "message": "global:zephyr/src/log_udp.c:send_errors has 2 write statements in 1 functions and no card owns it",
-    "count": 2,
-    "sites": [
-      {
-        "func": "func:zephyr/src/log_udp.c:log_udp_thread",
-        "loc": "zephyr/src/log_udp.c:483"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:log_udp_thread",
-        "loc": "zephyr/src/log_udp.c:503"
-      }
-    ]
-  },
-  {
-    "rule": "unowned-writer",
-    "subject": "global:zephyr/src/log_udp.c:sender_pending",
-    "message": "global:zephyr/src/log_udp.c:sender_pending has 2 write statements in 1 functions and no card owns it",
-    "count": 2,
-    "sites": [
-      {
-        "func": "func:zephyr/src/log_udp.c:log_udp_thread",
-        "loc": "zephyr/src/log_udp.c:489"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:log_udp_thread",
-        "loc": "zephyr/src/log_udp.c:505"
-      }
-    ]
-  },
-  {
-    "rule": "unowned-writer",
-    "subject": "global:zephyr/src/log_udp.c:sent_lines",
-    "message": "global:zephyr/src/log_udp.c:sent_lines has 2 write statements in 1 functions and no card owns it",
-    "count": 2,
-    "sites": [
-      {
-        "func": "func:zephyr/src/log_udp.c:log_udp_thread",
-        "loc": "zephyr/src/log_udp.c:487"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:log_udp_thread",
-        "loc": "zephyr/src/log_udp.c:507"
       }
     ]
   },
@@ -14713,38 +14650,6 @@
       {
         "func": "func:observer_start",
         "loc": "zephyr/src/observer.c:426"
-      }
-    ]
-  },
-  {
-    "rule": "unowned-writer",
-    "subject": "global:zephyr/src/runner.c:pubkey",
-    "message": "global:zephyr/src/runner.c:pubkey has 2 write statements in 2 functions and no card owns it",
-    "count": 2,
-    "sites": [
-      {
-        "func": "func:zephyr/src/runner.c:key_init",
-        "loc": "zephyr/src/runner.c:71"
-      },
-      {
-        "func": "func:zephyr/src/runner.c:verified",
-        "loc": "zephyr/src/runner.c:157"
-      }
-    ]
-  },
-  {
-    "rule": "unowned-writer",
-    "subject": "global:zephyr/src/runner.c:trial_work",
-    "message": "global:zephyr/src/runner.c:trial_work has 2 write statements in 2 functions and no card owns it",
-    "count": 2,
-    "sites": [
-      {
-        "func": "func:runner_confirm",
-        "loc": "zephyr/src/runner.c:263"
-      },
-      {
-        "func": "func:runner_select",
-        "loc": "zephyr/src/runner.c:235"
       }
     ]
   },
@@ -14910,91 +14815,91 @@
   },
   {
     "rule": "writer-set",
-    "subject": "global:zephyr/src/log_udp.c:ring_lock",
-    "message": "global:zephyr/src/log_udp.c:ring_lock is written from 11 functions",
+    "subject": "global:src/backend/zephyr/log_udp.c:ring_lock",
+    "message": "global:src/backend/zephyr/log_udp.c:ring_lock is written from 11 functions",
     "count": 11,
     "sites": [
       {
         "func": "func:log_udp_drain",
-        "loc": "zephyr/src/log_udp.c:416",
+        "loc": "src/backend/zephyr/log_udp.c:416",
         "via": "calls ring_used"
       },
       {
         "func": "func:log_udp_set_target",
-        "loc": "zephyr/src/log_udp.c:357"
+        "loc": "src/backend/zephyr/log_udp.c:357"
       },
       {
         "func": "func:log_udp_set_target",
-        "loc": "zephyr/src/log_udp.c:362"
+        "loc": "src/backend/zephyr/log_udp.c:362"
       },
       {
         "func": "func:log_udp_set_target",
-        "loc": "zephyr/src/log_udp.c:375",
+        "loc": "src/backend/zephyr/log_udp.c:375",
         "via": "calls set_target"
       },
       {
         "func": "func:log_udp_tee",
-        "loc": "zephyr/src/log_udp.c:155",
+        "loc": "src/backend/zephyr/log_udp.c:155",
         "via": "calls ring_put"
       },
       {
         "func": "func:log_udp_tee_paced",
-        "loc": "zephyr/src/log_udp.c:172",
+        "loc": "src/backend/zephyr/log_udp.c:172",
         "via": "calls ring_used"
       },
       {
-        "func": "func:zephyr/src/log_udp.c:log_udp_hook_init",
-        "loc": "zephyr/src/log_udp.c:549",
+        "func": "func:src/backend/zephyr/log_udp.c:log_udp_hook_init",
+        "loc": "src/backend/zephyr/log_udp.c:549",
         "via": "calls set_target"
       },
       {
-        "func": "func:zephyr/src/log_udp.c:log_udp_thread",
-        "loc": "zephyr/src/log_udp.c:450"
+        "func": "func:src/backend/zephyr/log_udp.c:log_udp_thread",
+        "loc": "src/backend/zephyr/log_udp.c:450"
       },
       {
-        "func": "func:zephyr/src/log_udp.c:log_udp_thread",
-        "loc": "zephyr/src/log_udp.c:453"
+        "func": "func:src/backend/zephyr/log_udp.c:log_udp_thread",
+        "loc": "src/backend/zephyr/log_udp.c:453"
       },
       {
-        "func": "func:zephyr/src/log_udp.c:log_udp_thread",
-        "loc": "zephyr/src/log_udp.c:494",
+        "func": "func:src/backend/zephyr/log_udp.c:log_udp_thread",
+        "loc": "src/backend/zephyr/log_udp.c:494",
         "via": "calls ring_get"
       },
       {
-        "func": "func:zephyr/src/log_udp.c:ring_get",
-        "loc": "zephyr/src/log_udp.c:318"
+        "func": "func:src/backend/zephyr/log_udp.c:ring_get",
+        "loc": "src/backend/zephyr/log_udp.c:318"
       },
       {
-        "func": "func:zephyr/src/log_udp.c:ring_get",
-        "loc": "zephyr/src/log_udp.c:326"
+        "func": "func:src/backend/zephyr/log_udp.c:ring_get",
+        "loc": "src/backend/zephyr/log_udp.c:326"
       },
       {
-        "func": "func:zephyr/src/log_udp.c:ring_put",
-        "loc": "zephyr/src/log_udp.c:115"
+        "func": "func:src/backend/zephyr/log_udp.c:ring_put",
+        "loc": "src/backend/zephyr/log_udp.c:115"
       },
       {
-        "func": "func:zephyr/src/log_udp.c:ring_put",
-        "loc": "zephyr/src/log_udp.c:128"
+        "func": "func:src/backend/zephyr/log_udp.c:ring_put",
+        "loc": "src/backend/zephyr/log_udp.c:128"
       },
       {
-        "func": "func:zephyr/src/log_udp.c:ring_used",
-        "loc": "zephyr/src/log_udp.c:134"
+        "func": "func:src/backend/zephyr/log_udp.c:ring_used",
+        "loc": "src/backend/zephyr/log_udp.c:134"
       },
       {
-        "func": "func:zephyr/src/log_udp.c:ring_used",
-        "loc": "zephyr/src/log_udp.c:136"
+        "func": "func:src/backend/zephyr/log_udp.c:ring_used",
+        "loc": "src/backend/zephyr/log_udp.c:136"
       },
       {
-        "func": "func:zephyr/src/log_udp.c:set_target",
-        "loc": "zephyr/src/log_udp.c:341"
+        "func": "func:src/backend/zephyr/log_udp.c:set_target",
+        "loc": "src/backend/zephyr/log_udp.c:341"
       },
       {
-        "func": "func:zephyr/src/log_udp.c:set_target",
-        "loc": "zephyr/src/log_udp.c:345"
+        "func": "func:src/backend/zephyr/log_udp.c:set_target",
+        "loc": "src/backend/zephyr/log_udp.c:345"
       },
       {
-        "func": "func:zephyr/src/log_udp.c:tee_char_out",
-        "loc": "zephyr/src/log_udp.c:142",
+        "func": "func:src/backend/zephyr/log_udp.c:tee_char_out",
+        "loc": "src/backend/zephyr/log_udp.c:142",
         "via": "calls ring_put"
       }
     ]
@@ -16663,6 +16568,213 @@
   },
   {
     "rule": "writer-set",
+    "subject": "global:src/backend/zephyr/runner.c:m",
+    "message": "global:src/backend/zephyr/runner.c:m is written from 6 functions",
+    "count": 6,
+    "sites": [
+      {
+        "func": "func:runner_confirm",
+        "loc": "src/backend/zephyr/runner.c:262"
+      },
+      {
+        "func": "func:runner_confirm",
+        "loc": "src/backend/zephyr/runner.c:264",
+        "via": "calls m_save"
+      },
+      {
+        "func": "func:runner_ready",
+        "loc": "src/backend/zephyr/runner.c:252"
+      },
+      {
+        "func": "func:runner_ready",
+        "loc": "src/backend/zephyr/runner.c:253"
+      },
+      {
+        "func": "func:runner_ready",
+        "loc": "src/backend/zephyr/runner.c:254"
+      },
+      {
+        "func": "func:runner_ready",
+        "loc": "src/backend/zephyr/runner.c:255"
+      },
+      {
+        "func": "func:runner_ready",
+        "loc": "src/backend/zephyr/runner.c:256",
+        "via": "calls m_save"
+      },
+      {
+        "func": "func:runner_select",
+        "loc": "src/backend/zephyr/runner.c:192",
+        "via": "calls m_load"
+      },
+      {
+        "func": "func:runner_select",
+        "loc": "src/backend/zephyr/runner.c:196"
+      },
+      {
+        "func": "func:runner_select",
+        "loc": "src/backend/zephyr/runner.c:197"
+      },
+      {
+        "func": "func:runner_select",
+        "loc": "src/backend/zephyr/runner.c:199"
+      },
+      {
+        "func": "func:runner_select",
+        "loc": "src/backend/zephyr/runner.c:204"
+      },
+      {
+        "func": "func:runner_select",
+        "loc": "src/backend/zephyr/runner.c:205"
+      },
+      {
+        "func": "func:runner_select",
+        "loc": "src/backend/zephyr/runner.c:209",
+        "via": "calls m_save"
+      },
+      {
+        "func": "func:runner_select",
+        "loc": "src/backend/zephyr/runner.c:212"
+      },
+      {
+        "func": "func:runner_select",
+        "loc": "src/backend/zephyr/runner.c:213"
+      },
+      {
+        "func": "func:runner_select",
+        "loc": "src/backend/zephyr/runner.c:216",
+        "via": "calls m_save"
+      },
+      {
+        "func": "func:runner_select",
+        "loc": "src/backend/zephyr/runner.c:219"
+      },
+      {
+        "func": "func:runner_select",
+        "loc": "src/backend/zephyr/runner.c:222"
+      },
+      {
+        "func": "func:runner_select",
+        "loc": "src/backend/zephyr/runner.c:223"
+      },
+      {
+        "func": "func:runner_select",
+        "loc": "src/backend/zephyr/runner.c:224",
+        "via": "calls m_save"
+      },
+      {
+        "func": "func:runner_select",
+        "loc": "src/backend/zephyr/runner.c:229"
+      },
+      {
+        "func": "func:runner_select",
+        "loc": "src/backend/zephyr/runner.c:230"
+      },
+      {
+        "func": "func:runner_select",
+        "loc": "src/backend/zephyr/runner.c:240"
+      },
+      {
+        "func": "func:runner_select",
+        "loc": "src/backend/zephyr/runner.c:241",
+        "via": "calls m_save"
+      },
+      {
+        "func": "func:src/backend/zephyr/runner.c:m_load",
+        "loc": "src/backend/zephyr/runner.c:122"
+      },
+      {
+        "func": "func:src/backend/zephyr/runner.c:m_load",
+        "loc": "src/backend/zephyr/runner.c:123"
+      },
+      {
+        "func": "func:src/backend/zephyr/runner.c:m_load",
+        "loc": "src/backend/zephyr/runner.c:125"
+      },
+      {
+        "func": "func:src/backend/zephyr/runner.c:m_save",
+        "loc": "src/backend/zephyr/runner.c:107"
+      },
+      {
+        "func": "func:src/backend/zephyr/runner.c:m_save",
+        "loc": "src/backend/zephyr/runner.c:108"
+      },
+      {
+        "func": "func:src/backend/zephyr/runner.c:m_save",
+        "loc": "src/backend/zephyr/runner.c:109"
+      },
+      {
+        "func": "func:src/backend/zephyr/runner.c:m_save",
+        "loc": "src/backend/zephyr/runner.c:110"
+      },
+      {
+        "func": "func:src/backend/zephyr/runner.c:m_save",
+        "loc": "src/backend/zephyr/runner.c:111"
+      },
+      {
+        "func": "func:src/backend/zephyr/runner.c:m_save",
+        "loc": "src/backend/zephyr/runner.c:112"
+      },
+      {
+        "func": "func:src/backend/zephyr/runner.c:m_save",
+        "loc": "src/backend/zephyr/runner.c:113"
+      },
+      {
+        "func": "func:src/backend/zephyr/runner.c:m_save",
+        "loc": "src/backend/zephyr/runner.c:114"
+      },
+      {
+        "func": "func:src/backend/zephyr/runner.c:m_save",
+        "loc": "src/backend/zephyr/runner.c:115"
+      },
+      {
+        "func": "func:src/backend/zephyr/runner.c:m_save",
+        "loc": "src/backend/zephyr/runner.c:116"
+      },
+      {
+        "func": "func:src/backend/zephyr/runner.c:m_set",
+        "loc": "src/backend/zephyr/runner.c:85"
+      },
+      {
+        "func": "func:src/backend/zephyr/runner.c:m_set",
+        "loc": "src/backend/zephyr/runner.c:86"
+      },
+      {
+        "func": "func:src/backend/zephyr/runner.c:m_set",
+        "loc": "src/backend/zephyr/runner.c:87"
+      },
+      {
+        "func": "func:src/backend/zephyr/runner.c:m_set",
+        "loc": "src/backend/zephyr/runner.c:88"
+      },
+      {
+        "func": "func:src/backend/zephyr/runner.c:m_set",
+        "loc": "src/backend/zephyr/runner.c:89"
+      },
+      {
+        "func": "func:src/backend/zephyr/runner.c:m_set",
+        "loc": "src/backend/zephyr/runner.c:90"
+      },
+      {
+        "func": "func:src/backend/zephyr/runner.c:m_set",
+        "loc": "src/backend/zephyr/runner.c:91"
+      },
+      {
+        "func": "func:src/backend/zephyr/runner.c:m_set",
+        "loc": "src/backend/zephyr/runner.c:92"
+      },
+      {
+        "func": "func:src/backend/zephyr/runner.c:m_set",
+        "loc": "src/backend/zephyr/runner.c:93"
+      },
+      {
+        "func": "func:src/backend/zephyr/runner.c:m_set",
+        "loc": "src/backend/zephyr/runner.c:94"
+      }
+    ]
+  },
+  {
+    "rule": "writer-set",
     "subject": "global:src/gc.c:bins_nonempty",
     "message": "global:src/gc.c:bins_nonempty is written from 6 functions",
     "count": 6,
@@ -16781,213 +16893,6 @@
   },
   {
     "rule": "writer-set",
-    "subject": "global:zephyr/src/runner.c:m",
-    "message": "global:zephyr/src/runner.c:m is written from 6 functions",
-    "count": 6,
-    "sites": [
-      {
-        "func": "func:runner_confirm",
-        "loc": "zephyr/src/runner.c:262"
-      },
-      {
-        "func": "func:runner_confirm",
-        "loc": "zephyr/src/runner.c:264",
-        "via": "calls m_save"
-      },
-      {
-        "func": "func:runner_ready",
-        "loc": "zephyr/src/runner.c:252"
-      },
-      {
-        "func": "func:runner_ready",
-        "loc": "zephyr/src/runner.c:253"
-      },
-      {
-        "func": "func:runner_ready",
-        "loc": "zephyr/src/runner.c:254"
-      },
-      {
-        "func": "func:runner_ready",
-        "loc": "zephyr/src/runner.c:255"
-      },
-      {
-        "func": "func:runner_ready",
-        "loc": "zephyr/src/runner.c:256",
-        "via": "calls m_save"
-      },
-      {
-        "func": "func:runner_select",
-        "loc": "zephyr/src/runner.c:192",
-        "via": "calls m_load"
-      },
-      {
-        "func": "func:runner_select",
-        "loc": "zephyr/src/runner.c:196"
-      },
-      {
-        "func": "func:runner_select",
-        "loc": "zephyr/src/runner.c:197"
-      },
-      {
-        "func": "func:runner_select",
-        "loc": "zephyr/src/runner.c:199"
-      },
-      {
-        "func": "func:runner_select",
-        "loc": "zephyr/src/runner.c:204"
-      },
-      {
-        "func": "func:runner_select",
-        "loc": "zephyr/src/runner.c:205"
-      },
-      {
-        "func": "func:runner_select",
-        "loc": "zephyr/src/runner.c:209",
-        "via": "calls m_save"
-      },
-      {
-        "func": "func:runner_select",
-        "loc": "zephyr/src/runner.c:212"
-      },
-      {
-        "func": "func:runner_select",
-        "loc": "zephyr/src/runner.c:213"
-      },
-      {
-        "func": "func:runner_select",
-        "loc": "zephyr/src/runner.c:216",
-        "via": "calls m_save"
-      },
-      {
-        "func": "func:runner_select",
-        "loc": "zephyr/src/runner.c:219"
-      },
-      {
-        "func": "func:runner_select",
-        "loc": "zephyr/src/runner.c:222"
-      },
-      {
-        "func": "func:runner_select",
-        "loc": "zephyr/src/runner.c:223"
-      },
-      {
-        "func": "func:runner_select",
-        "loc": "zephyr/src/runner.c:224",
-        "via": "calls m_save"
-      },
-      {
-        "func": "func:runner_select",
-        "loc": "zephyr/src/runner.c:229"
-      },
-      {
-        "func": "func:runner_select",
-        "loc": "zephyr/src/runner.c:230"
-      },
-      {
-        "func": "func:runner_select",
-        "loc": "zephyr/src/runner.c:240"
-      },
-      {
-        "func": "func:runner_select",
-        "loc": "zephyr/src/runner.c:241",
-        "via": "calls m_save"
-      },
-      {
-        "func": "func:zephyr/src/runner.c:m_load",
-        "loc": "zephyr/src/runner.c:122"
-      },
-      {
-        "func": "func:zephyr/src/runner.c:m_load",
-        "loc": "zephyr/src/runner.c:123"
-      },
-      {
-        "func": "func:zephyr/src/runner.c:m_load",
-        "loc": "zephyr/src/runner.c:125"
-      },
-      {
-        "func": "func:zephyr/src/runner.c:m_save",
-        "loc": "zephyr/src/runner.c:107"
-      },
-      {
-        "func": "func:zephyr/src/runner.c:m_save",
-        "loc": "zephyr/src/runner.c:108"
-      },
-      {
-        "func": "func:zephyr/src/runner.c:m_save",
-        "loc": "zephyr/src/runner.c:109"
-      },
-      {
-        "func": "func:zephyr/src/runner.c:m_save",
-        "loc": "zephyr/src/runner.c:110"
-      },
-      {
-        "func": "func:zephyr/src/runner.c:m_save",
-        "loc": "zephyr/src/runner.c:111"
-      },
-      {
-        "func": "func:zephyr/src/runner.c:m_save",
-        "loc": "zephyr/src/runner.c:112"
-      },
-      {
-        "func": "func:zephyr/src/runner.c:m_save",
-        "loc": "zephyr/src/runner.c:113"
-      },
-      {
-        "func": "func:zephyr/src/runner.c:m_save",
-        "loc": "zephyr/src/runner.c:114"
-      },
-      {
-        "func": "func:zephyr/src/runner.c:m_save",
-        "loc": "zephyr/src/runner.c:115"
-      },
-      {
-        "func": "func:zephyr/src/runner.c:m_save",
-        "loc": "zephyr/src/runner.c:116"
-      },
-      {
-        "func": "func:zephyr/src/runner.c:m_set",
-        "loc": "zephyr/src/runner.c:85"
-      },
-      {
-        "func": "func:zephyr/src/runner.c:m_set",
-        "loc": "zephyr/src/runner.c:86"
-      },
-      {
-        "func": "func:zephyr/src/runner.c:m_set",
-        "loc": "zephyr/src/runner.c:87"
-      },
-      {
-        "func": "func:zephyr/src/runner.c:m_set",
-        "loc": "zephyr/src/runner.c:88"
-      },
-      {
-        "func": "func:zephyr/src/runner.c:m_set",
-        "loc": "zephyr/src/runner.c:89"
-      },
-      {
-        "func": "func:zephyr/src/runner.c:m_set",
-        "loc": "zephyr/src/runner.c:90"
-      },
-      {
-        "func": "func:zephyr/src/runner.c:m_set",
-        "loc": "zephyr/src/runner.c:91"
-      },
-      {
-        "func": "func:zephyr/src/runner.c:m_set",
-        "loc": "zephyr/src/runner.c:92"
-      },
-      {
-        "func": "func:zephyr/src/runner.c:m_set",
-        "loc": "zephyr/src/runner.c:93"
-      },
-      {
-        "func": "func:zephyr/src/runner.c:m_set",
-        "loc": "zephyr/src/runner.c:94"
-      }
-    ]
-  },
-  {
-    "rule": "writer-set",
     "subject": "global:current_frame",
     "message": "global:current_frame is written from 5 functions",
     "count": 5,
@@ -17084,6 +16989,70 @@
       {
         "func": "func:src/backend/zephyr/platform_zephyr.c:rl_line_taken",
         "loc": "src/backend/zephyr/platform_zephyr.c:167"
+      }
+    ]
+  },
+  {
+    "rule": "writer-set",
+    "subject": "global:src/backend/zephyr/log_udp.c:tee_kept",
+    "message": "global:src/backend/zephyr/log_udp.c:tee_kept is written from 5 functions",
+    "count": 5,
+    "sites": [
+      {
+        "func": "func:log_udp_drain",
+        "loc": "src/backend/zephyr/log_udp.c:422",
+        "via": "calls tee_keep_valid"
+      },
+      {
+        "func": "func:log_udp_drain",
+        "loc": "src/backend/zephyr/log_udp.c:423"
+      },
+      {
+        "func": "func:log_udp_drain",
+        "loc": "src/backend/zephyr/log_udp.c:424"
+      },
+      {
+        "func": "func:log_udp_set_target",
+        "loc": "src/backend/zephyr/log_udp.c:363",
+        "via": "calls tee_keep_put"
+      },
+      {
+        "func": "func:log_udp_set_target",
+        "loc": "src/backend/zephyr/log_udp.c:378",
+        "via": "calls tee_keep_put"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:log_udp_hook_init",
+        "loc": "src/backend/zephyr/log_udp.c:547",
+        "via": "calls tee_keep_valid"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:log_udp_hook_init",
+        "loc": "src/backend/zephyr/log_udp.c:549"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:tee_keep_put",
+        "loc": "src/backend/zephyr/log_udp.c:94"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:tee_keep_put",
+        "loc": "src/backend/zephyr/log_udp.c:95"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:tee_keep_put",
+        "loc": "src/backend/zephyr/log_udp.c:96"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:tee_keep_put",
+        "loc": "src/backend/zephyr/log_udp.c:97"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:tee_keep_put",
+        "loc": "src/backend/zephyr/log_udp.c:98"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:tee_keep_valid",
+        "loc": "src/backend/zephyr/log_udp.c:105"
       }
     ]
   },
@@ -17224,70 +17193,6 @@
   },
   {
     "rule": "writer-set",
-    "subject": "global:zephyr/src/log_udp.c:tee_kept",
-    "message": "global:zephyr/src/log_udp.c:tee_kept is written from 5 functions",
-    "count": 5,
-    "sites": [
-      {
-        "func": "func:log_udp_drain",
-        "loc": "zephyr/src/log_udp.c:422",
-        "via": "calls tee_keep_valid"
-      },
-      {
-        "func": "func:log_udp_drain",
-        "loc": "zephyr/src/log_udp.c:423"
-      },
-      {
-        "func": "func:log_udp_drain",
-        "loc": "zephyr/src/log_udp.c:424"
-      },
-      {
-        "func": "func:log_udp_set_target",
-        "loc": "zephyr/src/log_udp.c:363",
-        "via": "calls tee_keep_put"
-      },
-      {
-        "func": "func:log_udp_set_target",
-        "loc": "zephyr/src/log_udp.c:378",
-        "via": "calls tee_keep_put"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:log_udp_hook_init",
-        "loc": "zephyr/src/log_udp.c:547",
-        "via": "calls tee_keep_valid"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:log_udp_hook_init",
-        "loc": "zephyr/src/log_udp.c:549"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:tee_keep_put",
-        "loc": "zephyr/src/log_udp.c:94"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:tee_keep_put",
-        "loc": "zephyr/src/log_udp.c:95"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:tee_keep_put",
-        "loc": "zephyr/src/log_udp.c:96"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:tee_keep_put",
-        "loc": "zephyr/src/log_udp.c:97"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:tee_keep_put",
-        "loc": "zephyr/src/log_udp.c:98"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:tee_keep_valid",
-        "loc": "zephyr/src/log_udp.c:105"
-      }
-    ]
-  },
-  {
-    "rule": "writer-set",
     "subject": "global:zephyr/src/main.c:gpio_outputs",
     "message": "global:zephyr/src/main.c:gpio_outputs is written from 5 functions",
     "count": 5,
@@ -17422,6 +17327,36 @@
       {
         "func": "func:src/backend/zephyr/platform_zephyr.c:rl_isr",
         "loc": "src/backend/zephyr/platform_zephyr.c:149"
+      }
+    ]
+  },
+  {
+    "rule": "writer-set",
+    "subject": "global:src/backend/zephyr/log_udp.c:tee_addr",
+    "message": "global:src/backend/zephyr/log_udp.c:tee_addr is written from 4 functions",
+    "count": 4,
+    "sites": [
+      {
+        "func": "func:log_udp_set_target",
+        "loc": "src/backend/zephyr/log_udp.c:372"
+      },
+      {
+        "func": "func:log_udp_set_target",
+        "loc": "src/backend/zephyr/log_udp.c:375",
+        "via": "calls set_target"
+      },
+      {
+        "func": "func:log_udp_start",
+        "loc": "src/backend/zephyr/log_udp.c:563"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:log_udp_hook_init",
+        "loc": "src/backend/zephyr/log_udp.c:549",
+        "via": "calls set_target"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:set_target",
+        "loc": "src/backend/zephyr/log_udp.c:346"
       }
     ]
   },
@@ -17759,51 +17694,21 @@
     "sites": [
       {
         "func": "func:log_udp_set_target",
-        "loc": "zephyr/src/log_udp.c:375",
+        "loc": "src/backend/zephyr/log_udp.c:375",
         "via": "calls set_target"
       },
       {
-        "func": "func:zephyr/src/log_udp.c:log_udp_hook_init",
-        "loc": "zephyr/src/log_udp.c:549",
+        "func": "func:src/backend/zephyr/log_udp.c:log_udp_hook_init",
+        "loc": "src/backend/zephyr/log_udp.c:549",
         "via": "calls set_target"
       },
       {
-        "func": "func:zephyr/src/log_udp.c:log_udp_thread",
-        "loc": "zephyr/src/log_udp.c:446"
+        "func": "func:src/backend/zephyr/log_udp.c:log_udp_thread",
+        "loc": "src/backend/zephyr/log_udp.c:446"
       },
       {
-        "func": "func:zephyr/src/log_udp.c:set_target",
-        "loc": "zephyr/src/log_udp.c:348"
-      }
-    ]
-  },
-  {
-    "rule": "writer-set",
-    "subject": "global:zephyr/src/log_udp.c:tee_addr",
-    "message": "global:zephyr/src/log_udp.c:tee_addr is written from 4 functions",
-    "count": 4,
-    "sites": [
-      {
-        "func": "func:log_udp_set_target",
-        "loc": "zephyr/src/log_udp.c:372"
-      },
-      {
-        "func": "func:log_udp_set_target",
-        "loc": "zephyr/src/log_udp.c:375",
-        "via": "calls set_target"
-      },
-      {
-        "func": "func:log_udp_start",
-        "loc": "zephyr/src/log_udp.c:563"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:log_udp_hook_init",
-        "loc": "zephyr/src/log_udp.c:549",
-        "via": "calls set_target"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:set_target",
-        "loc": "zephyr/src/log_udp.c:346"
+        "func": "func:src/backend/zephyr/log_udp.c:set_target",
+        "loc": "src/backend/zephyr/log_udp.c:348"
       }
     ]
   },
@@ -17855,6 +17760,189 @@
       {
         "func": "func:src/backend/zephyr/platform_zephyr.c:rl_arm_boot",
         "loc": "src/backend/zephyr/platform_zephyr.c:259"
+      }
+    ]
+  },
+  {
+    "rule": "writer-set",
+    "subject": "global:src/backend/zephyr/log_udp.c:dropped_chars",
+    "message": "global:src/backend/zephyr/log_udp.c:dropped_chars is written from 3 functions",
+    "count": 3,
+    "sites": [
+      {
+        "func": "func:log_udp_tee",
+        "loc": "src/backend/zephyr/log_udp.c:155",
+        "via": "calls ring_put"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:ring_put",
+        "loc": "src/backend/zephyr/log_udp.c:122"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:tee_char_out",
+        "loc": "src/backend/zephyr/log_udp.c:142",
+        "via": "calls ring_put"
+      }
+    ]
+  },
+  {
+    "rule": "writer-set",
+    "subject": "global:src/backend/zephyr/log_udp.c:r_head",
+    "message": "global:src/backend/zephyr/log_udp.c:r_head is written from 3 functions",
+    "count": 3,
+    "sites": [
+      {
+        "func": "func:log_udp_tee",
+        "loc": "src/backend/zephyr/log_udp.c:155",
+        "via": "calls ring_put"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:ring_put",
+        "loc": "src/backend/zephyr/log_udp.c:125"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:tee_char_out",
+        "loc": "src/backend/zephyr/log_udp.c:142",
+        "via": "calls ring_put"
+      }
+    ]
+  },
+  {
+    "rule": "writer-set",
+    "subject": "global:src/backend/zephyr/log_udp.c:r_tail",
+    "message": "global:src/backend/zephyr/log_udp.c:r_tail is written from 3 functions",
+    "count": 3,
+    "sites": [
+      {
+        "func": "func:log_udp_set_target",
+        "loc": "src/backend/zephyr/log_udp.c:360"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:log_udp_thread",
+        "loc": "src/backend/zephyr/log_udp.c:494",
+        "via": "calls ring_get"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:ring_get",
+        "loc": "src/backend/zephyr/log_udp.c:323"
+      }
+    ]
+  },
+  {
+    "rule": "writer-set",
+    "subject": "global:src/backend/zephyr/log_udp.c:ring",
+    "message": "global:src/backend/zephyr/log_udp.c:ring is written from 3 functions",
+    "count": 3,
+    "sites": [
+      {
+        "func": "func:log_udp_tee",
+        "loc": "src/backend/zephyr/log_udp.c:155",
+        "via": "calls ring_put"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:ring_put",
+        "loc": "src/backend/zephyr/log_udp.c:124"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:tee_char_out",
+        "loc": "src/backend/zephyr/log_udp.c:142",
+        "via": "calls ring_put"
+      }
+    ]
+  },
+  {
+    "rule": "writer-set",
+    "subject": "global:src/backend/zephyr/log_udp.c:tee_dst",
+    "message": "global:src/backend/zephyr/log_udp.c:tee_dst is written from 3 functions",
+    "count": 3,
+    "sites": [
+      {
+        "func": "func:log_udp_set_target",
+        "loc": "src/backend/zephyr/log_udp.c:375",
+        "via": "calls set_target"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:log_udp_hook_init",
+        "loc": "src/backend/zephyr/log_udp.c:549",
+        "via": "calls set_target"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:set_target",
+        "loc": "src/backend/zephyr/log_udp.c:342"
+      }
+    ]
+  },
+  {
+    "rule": "writer-set",
+    "subject": "global:src/backend/zephyr/log_udp.c:tee_gen",
+    "message": "global:src/backend/zephyr/log_udp.c:tee_gen is written from 3 functions",
+    "count": 3,
+    "sites": [
+      {
+        "func": "func:log_udp_set_target",
+        "loc": "src/backend/zephyr/log_udp.c:375",
+        "via": "calls set_target"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:log_udp_hook_init",
+        "loc": "src/backend/zephyr/log_udp.c:549",
+        "via": "calls set_target"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:set_target",
+        "loc": "src/backend/zephyr/log_udp.c:343"
+      }
+    ]
+  },
+  {
+    "rule": "writer-set",
+    "subject": "global:src/backend/zephyr/log_udp.c:tee_port",
+    "message": "global:src/backend/zephyr/log_udp.c:tee_port is written from 3 functions",
+    "count": 3,
+    "sites": [
+      {
+        "func": "func:log_udp_set_target",
+        "loc": "src/backend/zephyr/log_udp.c:375",
+        "via": "calls set_target"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:log_udp_hook_init",
+        "loc": "src/backend/zephyr/log_udp.c:549",
+        "via": "calls set_target"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:set_target",
+        "loc": "src/backend/zephyr/log_udp.c:347"
+      }
+    ]
+  },
+  {
+    "rule": "writer-set",
+    "subject": "global:src/backend/zephyr/log_udp.c:tee_state",
+    "message": "global:src/backend/zephyr/log_udp.c:tee_state is written from 3 functions",
+    "count": 3,
+    "sites": [
+      {
+        "func": "func:log_udp_set_target",
+        "loc": "src/backend/zephyr/log_udp.c:359"
+      },
+      {
+        "func": "func:log_udp_set_target",
+        "loc": "src/backend/zephyr/log_udp.c:375",
+        "via": "calls set_target"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:log_udp_hook_init",
+        "loc": "src/backend/zephyr/log_udp.c:549",
+        "via": "calls set_target"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:log_udp_hook_init",
+        "loc": "src/backend/zephyr/log_udp.c:551"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:set_target",
+        "loc": "src/backend/zephyr/log_udp.c:344"
       }
     ]
   },
@@ -17948,6 +18036,111 @@
       {
         "func": "func:src/backend/zephyr/pulse_zephyr.c:pulse_enqueue",
         "loc": "src/backend/zephyr/pulse_zephyr.c:57"
+      }
+    ]
+  },
+  {
+    "rule": "writer-set",
+    "subject": "global:src/backend/zephyr/runner.c:bases",
+    "message": "global:src/backend/zephyr/runner.c:bases is written from 3 functions",
+    "count": 3,
+    "sites": [
+      {
+        "func": "func:runner_select",
+        "loc": "src/backend/zephyr/runner.c:197",
+        "via": "calls hash_slot"
+      },
+      {
+        "func": "func:runner_select",
+        "loc": "src/backend/zephyr/runner.c:219",
+        "via": "calls hash_slot"
+      },
+      {
+        "func": "func:runner_select",
+        "loc": "src/backend/zephyr/runner.c:229",
+        "via": "calls hash_slot"
+      },
+      {
+        "func": "func:runner_select",
+        "loc": "src/backend/zephyr/runner.c:236",
+        "via": "calls map_slot"
+      },
+      {
+        "func": "func:src/backend/zephyr/runner.c:hash_slot",
+        "loc": "src/backend/zephyr/runner.c:150",
+        "via": "calls map_slot"
+      },
+      {
+        "func": "func:src/backend/zephyr/runner.c:map_slot",
+        "loc": "src/backend/zephyr/runner.c:139"
+      }
+    ]
+  },
+  {
+    "rule": "writer-set",
+    "subject": "global:src/backend/zephyr/runner.c:handles",
+    "message": "global:src/backend/zephyr/runner.c:handles is written from 3 functions",
+    "count": 3,
+    "sites": [
+      {
+        "func": "func:runner_select",
+        "loc": "src/backend/zephyr/runner.c:197",
+        "via": "calls hash_slot"
+      },
+      {
+        "func": "func:runner_select",
+        "loc": "src/backend/zephyr/runner.c:219",
+        "via": "calls hash_slot"
+      },
+      {
+        "func": "func:runner_select",
+        "loc": "src/backend/zephyr/runner.c:229",
+        "via": "calls hash_slot"
+      },
+      {
+        "func": "func:runner_select",
+        "loc": "src/backend/zephyr/runner.c:236",
+        "via": "calls map_slot"
+      },
+      {
+        "func": "func:src/backend/zephyr/runner.c:hash_slot",
+        "loc": "src/backend/zephyr/runner.c:150",
+        "via": "calls map_slot"
+      },
+      {
+        "func": "func:src/backend/zephyr/runner.c:map_slot",
+        "loc": "src/backend/zephyr/runner.c:135"
+      }
+    ]
+  },
+  {
+    "rule": "writer-set",
+    "subject": "global:src/backend/zephyr/runner.c:pubkey",
+    "message": "global:src/backend/zephyr/runner.c:pubkey is written from 3 functions",
+    "count": 3,
+    "sites": [
+      {
+        "func": "func:runner_select",
+        "loc": "src/backend/zephyr/runner.c:191",
+        "via": "calls key_init"
+      },
+      {
+        "func": "func:runner_select",
+        "loc": "src/backend/zephyr/runner.c:199",
+        "via": "calls verified"
+      },
+      {
+        "func": "func:runner_select",
+        "loc": "src/backend/zephyr/runner.c:230",
+        "via": "calls verified"
+      },
+      {
+        "func": "func:src/backend/zephyr/runner.c:key_init",
+        "loc": "src/backend/zephyr/runner.c:71"
+      },
+      {
+        "func": "func:src/backend/zephyr/runner.c:verified",
+        "loc": "src/backend/zephyr/runner.c:157"
       }
     ]
   },
@@ -18409,294 +18602,6 @@
   },
   {
     "rule": "writer-set",
-    "subject": "global:zephyr/src/log_udp.c:dropped_chars",
-    "message": "global:zephyr/src/log_udp.c:dropped_chars is written from 3 functions",
-    "count": 3,
-    "sites": [
-      {
-        "func": "func:log_udp_tee",
-        "loc": "zephyr/src/log_udp.c:155",
-        "via": "calls ring_put"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:ring_put",
-        "loc": "zephyr/src/log_udp.c:122"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:tee_char_out",
-        "loc": "zephyr/src/log_udp.c:142",
-        "via": "calls ring_put"
-      }
-    ]
-  },
-  {
-    "rule": "writer-set",
-    "subject": "global:zephyr/src/log_udp.c:r_head",
-    "message": "global:zephyr/src/log_udp.c:r_head is written from 3 functions",
-    "count": 3,
-    "sites": [
-      {
-        "func": "func:log_udp_tee",
-        "loc": "zephyr/src/log_udp.c:155",
-        "via": "calls ring_put"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:ring_put",
-        "loc": "zephyr/src/log_udp.c:125"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:tee_char_out",
-        "loc": "zephyr/src/log_udp.c:142",
-        "via": "calls ring_put"
-      }
-    ]
-  },
-  {
-    "rule": "writer-set",
-    "subject": "global:zephyr/src/log_udp.c:r_tail",
-    "message": "global:zephyr/src/log_udp.c:r_tail is written from 3 functions",
-    "count": 3,
-    "sites": [
-      {
-        "func": "func:log_udp_set_target",
-        "loc": "zephyr/src/log_udp.c:360"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:log_udp_thread",
-        "loc": "zephyr/src/log_udp.c:494",
-        "via": "calls ring_get"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:ring_get",
-        "loc": "zephyr/src/log_udp.c:323"
-      }
-    ]
-  },
-  {
-    "rule": "writer-set",
-    "subject": "global:zephyr/src/log_udp.c:ring",
-    "message": "global:zephyr/src/log_udp.c:ring is written from 3 functions",
-    "count": 3,
-    "sites": [
-      {
-        "func": "func:log_udp_tee",
-        "loc": "zephyr/src/log_udp.c:155",
-        "via": "calls ring_put"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:ring_put",
-        "loc": "zephyr/src/log_udp.c:124"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:tee_char_out",
-        "loc": "zephyr/src/log_udp.c:142",
-        "via": "calls ring_put"
-      }
-    ]
-  },
-  {
-    "rule": "writer-set",
-    "subject": "global:zephyr/src/log_udp.c:tee_dst",
-    "message": "global:zephyr/src/log_udp.c:tee_dst is written from 3 functions",
-    "count": 3,
-    "sites": [
-      {
-        "func": "func:log_udp_set_target",
-        "loc": "zephyr/src/log_udp.c:375",
-        "via": "calls set_target"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:log_udp_hook_init",
-        "loc": "zephyr/src/log_udp.c:549",
-        "via": "calls set_target"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:set_target",
-        "loc": "zephyr/src/log_udp.c:342"
-      }
-    ]
-  },
-  {
-    "rule": "writer-set",
-    "subject": "global:zephyr/src/log_udp.c:tee_gen",
-    "message": "global:zephyr/src/log_udp.c:tee_gen is written from 3 functions",
-    "count": 3,
-    "sites": [
-      {
-        "func": "func:log_udp_set_target",
-        "loc": "zephyr/src/log_udp.c:375",
-        "via": "calls set_target"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:log_udp_hook_init",
-        "loc": "zephyr/src/log_udp.c:549",
-        "via": "calls set_target"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:set_target",
-        "loc": "zephyr/src/log_udp.c:343"
-      }
-    ]
-  },
-  {
-    "rule": "writer-set",
-    "subject": "global:zephyr/src/log_udp.c:tee_port",
-    "message": "global:zephyr/src/log_udp.c:tee_port is written from 3 functions",
-    "count": 3,
-    "sites": [
-      {
-        "func": "func:log_udp_set_target",
-        "loc": "zephyr/src/log_udp.c:375",
-        "via": "calls set_target"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:log_udp_hook_init",
-        "loc": "zephyr/src/log_udp.c:549",
-        "via": "calls set_target"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:set_target",
-        "loc": "zephyr/src/log_udp.c:347"
-      }
-    ]
-  },
-  {
-    "rule": "writer-set",
-    "subject": "global:zephyr/src/log_udp.c:tee_state",
-    "message": "global:zephyr/src/log_udp.c:tee_state is written from 3 functions",
-    "count": 3,
-    "sites": [
-      {
-        "func": "func:log_udp_set_target",
-        "loc": "zephyr/src/log_udp.c:359"
-      },
-      {
-        "func": "func:log_udp_set_target",
-        "loc": "zephyr/src/log_udp.c:375",
-        "via": "calls set_target"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:log_udp_hook_init",
-        "loc": "zephyr/src/log_udp.c:549",
-        "via": "calls set_target"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:log_udp_hook_init",
-        "loc": "zephyr/src/log_udp.c:551"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:set_target",
-        "loc": "zephyr/src/log_udp.c:344"
-      }
-    ]
-  },
-  {
-    "rule": "writer-set",
-    "subject": "global:zephyr/src/runner.c:bases",
-    "message": "global:zephyr/src/runner.c:bases is written from 3 functions",
-    "count": 3,
-    "sites": [
-      {
-        "func": "func:runner_select",
-        "loc": "zephyr/src/runner.c:197",
-        "via": "calls hash_slot"
-      },
-      {
-        "func": "func:runner_select",
-        "loc": "zephyr/src/runner.c:219",
-        "via": "calls hash_slot"
-      },
-      {
-        "func": "func:runner_select",
-        "loc": "zephyr/src/runner.c:229",
-        "via": "calls hash_slot"
-      },
-      {
-        "func": "func:runner_select",
-        "loc": "zephyr/src/runner.c:236",
-        "via": "calls map_slot"
-      },
-      {
-        "func": "func:zephyr/src/runner.c:hash_slot",
-        "loc": "zephyr/src/runner.c:150",
-        "via": "calls map_slot"
-      },
-      {
-        "func": "func:zephyr/src/runner.c:map_slot",
-        "loc": "zephyr/src/runner.c:139"
-      }
-    ]
-  },
-  {
-    "rule": "writer-set",
-    "subject": "global:zephyr/src/runner.c:handles",
-    "message": "global:zephyr/src/runner.c:handles is written from 3 functions",
-    "count": 3,
-    "sites": [
-      {
-        "func": "func:runner_select",
-        "loc": "zephyr/src/runner.c:197",
-        "via": "calls hash_slot"
-      },
-      {
-        "func": "func:runner_select",
-        "loc": "zephyr/src/runner.c:219",
-        "via": "calls hash_slot"
-      },
-      {
-        "func": "func:runner_select",
-        "loc": "zephyr/src/runner.c:229",
-        "via": "calls hash_slot"
-      },
-      {
-        "func": "func:runner_select",
-        "loc": "zephyr/src/runner.c:236",
-        "via": "calls map_slot"
-      },
-      {
-        "func": "func:zephyr/src/runner.c:hash_slot",
-        "loc": "zephyr/src/runner.c:150",
-        "via": "calls map_slot"
-      },
-      {
-        "func": "func:zephyr/src/runner.c:map_slot",
-        "loc": "zephyr/src/runner.c:135"
-      }
-    ]
-  },
-  {
-    "rule": "writer-set",
-    "subject": "global:zephyr/src/runner.c:pubkey",
-    "message": "global:zephyr/src/runner.c:pubkey is written from 3 functions",
-    "count": 3,
-    "sites": [
-      {
-        "func": "func:runner_select",
-        "loc": "zephyr/src/runner.c:191",
-        "via": "calls key_init"
-      },
-      {
-        "func": "func:runner_select",
-        "loc": "zephyr/src/runner.c:199",
-        "via": "calls verified"
-      },
-      {
-        "func": "func:runner_select",
-        "loc": "zephyr/src/runner.c:230",
-        "via": "calls verified"
-      },
-      {
-        "func": "func:zephyr/src/runner.c:key_init",
-        "loc": "zephyr/src/runner.c:71"
-      },
-      {
-        "func": "func:zephyr/src/runner.c:verified",
-        "loc": "zephyr/src/runner.c:157"
-      }
-    ]
-  },
-  {
-    "rule": "writer-set",
     "subject": "path:sys/timer",
     "message": "path:sys/timer is written from 3 functions",
     "count": 3,
@@ -18815,6 +18720,28 @@
   },
   {
     "rule": "writer-set",
+    "subject": "global:src/backend/zephyr/log_udp.c:tx_before_send",
+    "message": "global:src/backend/zephyr/log_udp.c:tx_before_send is written from 2 functions",
+    "count": 2,
+    "sites": [
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:log_udp_thread",
+        "loc": "src/backend/zephyr/log_udp.c:480",
+        "via": "calls wait_for_radio"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:log_udp_thread",
+        "loc": "src/backend/zephyr/log_udp.c:500",
+        "via": "calls wait_for_radio"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:wait_for_radio",
+        "loc": "src/backend/zephyr/log_udp.c:291"
+      }
+    ]
+  },
+  {
+    "rule": "writer-set",
     "subject": "global:src/backend/zephyr/ota_zephyr.c:running_hex",
     "message": "global:src/backend/zephyr/ota_zephyr.c:running_hex is written from 2 functions",
     "count": 2,
@@ -18902,6 +18829,39 @@
       {
         "func": "func:pulse_pump_nb",
         "loc": "src/backend/zephyr/pulse_zephyr.c:125"
+      }
+    ]
+  },
+  {
+    "rule": "writer-set",
+    "subject": "global:src/backend/zephyr/runner.c:have_key",
+    "message": "global:src/backend/zephyr/runner.c:have_key is written from 2 functions",
+    "count": 2,
+    "sites": [
+      {
+        "func": "func:runner_select",
+        "loc": "src/backend/zephyr/runner.c:191",
+        "via": "calls key_init"
+      },
+      {
+        "func": "func:src/backend/zephyr/runner.c:key_init",
+        "loc": "src/backend/zephyr/runner.c:73"
+      }
+    ]
+  },
+  {
+    "rule": "writer-set",
+    "subject": "global:src/backend/zephyr/runner.c:trial_work",
+    "message": "global:src/backend/zephyr/runner.c:trial_work is written from 2 functions",
+    "count": 2,
+    "sites": [
+      {
+        "func": "func:runner_confirm",
+        "loc": "src/backend/zephyr/runner.c:263"
+      },
+      {
+        "func": "func:runner_select",
+        "loc": "src/backend/zephyr/runner.c:235"
       }
     ]
   },
@@ -19396,28 +19356,6 @@
   },
   {
     "rule": "writer-set",
-    "subject": "global:zephyr/src/log_udp.c:tx_before_send",
-    "message": "global:zephyr/src/log_udp.c:tx_before_send is written from 2 functions",
-    "count": 2,
-    "sites": [
-      {
-        "func": "func:zephyr/src/log_udp.c:log_udp_thread",
-        "loc": "zephyr/src/log_udp.c:480",
-        "via": "calls wait_for_radio"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:log_udp_thread",
-        "loc": "zephyr/src/log_udp.c:500",
-        "via": "calls wait_for_radio"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:wait_for_radio",
-        "loc": "zephyr/src/log_udp.c:291"
-      }
-    ]
-  },
-  {
-    "rule": "writer-set",
     "subject": "global:zephyr/src/observer.c:g_core",
     "message": "global:zephyr/src/observer.c:g_core is written from 2 functions",
     "count": 2,
@@ -19447,39 +19385,6 @@
         "func": "func:zephyr/src/observer.c:observer_thread_fn",
         "loc": "zephyr/src/observer.c:372",
         "via": "calls obs_trace_record"
-      }
-    ]
-  },
-  {
-    "rule": "writer-set",
-    "subject": "global:zephyr/src/runner.c:have_key",
-    "message": "global:zephyr/src/runner.c:have_key is written from 2 functions",
-    "count": 2,
-    "sites": [
-      {
-        "func": "func:runner_select",
-        "loc": "zephyr/src/runner.c:191",
-        "via": "calls key_init"
-      },
-      {
-        "func": "func:zephyr/src/runner.c:key_init",
-        "loc": "zephyr/src/runner.c:73"
-      }
-    ]
-  },
-  {
-    "rule": "writer-set",
-    "subject": "global:zephyr/src/runner.c:trial_work",
-    "message": "global:zephyr/src/runner.c:trial_work is written from 2 functions",
-    "count": 2,
-    "sites": [
-      {
-        "func": "func:runner_confirm",
-        "loc": "zephyr/src/runner.c:263"
-      },
-      {
-        "func": "func:runner_select",
-        "loc": "zephyr/src/runner.c:235"
       }
     ]
   },
@@ -20144,6 +20049,106 @@
       {
         "func": "func:http_listen",
         "loc": "src/backend/zephyr/http_zephyr.c:89"
+      }
+    ]
+  },
+  {
+    "rule": "writer-set",
+    "subject": "global:src/backend/zephyr/log_udp.c:log_udp_tee_paced.gave_up",
+    "message": "global:src/backend/zephyr/log_udp.c:log_udp_tee_paced.gave_up is written from 1 functions",
+    "count": 1,
+    "sites": [
+      {
+        "func": "func:log_udp_tee_paced",
+        "loc": "src/backend/zephyr/log_udp.c:178"
+      },
+      {
+        "func": "func:log_udp_tee_paced",
+        "loc": "src/backend/zephyr/log_udp.c:182"
+      }
+    ]
+  },
+  {
+    "rule": "writer-set",
+    "subject": "global:src/backend/zephyr/log_udp.c:log_udp_tee_paced.gave_up_tail",
+    "message": "global:src/backend/zephyr/log_udp.c:log_udp_tee_paced.gave_up_tail is written from 1 functions",
+    "count": 1,
+    "sites": [
+      {
+        "func": "func:log_udp_tee_paced",
+        "loc": "src/backend/zephyr/log_udp.c:185"
+      }
+    ]
+  },
+  {
+    "rule": "writer-set",
+    "subject": "global:src/backend/zephyr/log_udp.c:prev_hook",
+    "message": "global:src/backend/zephyr/log_udp.c:prev_hook is written from 1 functions",
+    "count": 1,
+    "sites": [
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:log_udp_hook_init",
+        "loc": "src/backend/zephyr/log_udp.c:545"
+      }
+    ]
+  },
+  {
+    "rule": "writer-set",
+    "subject": "global:src/backend/zephyr/log_udp.c:send_errors",
+    "message": "global:src/backend/zephyr/log_udp.c:send_errors is written from 1 functions",
+    "count": 1,
+    "sites": [
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:log_udp_thread",
+        "loc": "src/backend/zephyr/log_udp.c:483"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:log_udp_thread",
+        "loc": "src/backend/zephyr/log_udp.c:503"
+      }
+    ]
+  },
+  {
+    "rule": "writer-set",
+    "subject": "global:src/backend/zephyr/log_udp.c:sender_pending",
+    "message": "global:src/backend/zephyr/log_udp.c:sender_pending is written from 1 functions",
+    "count": 1,
+    "sites": [
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:log_udp_thread",
+        "loc": "src/backend/zephyr/log_udp.c:489"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:log_udp_thread",
+        "loc": "src/backend/zephyr/log_udp.c:505"
+      }
+    ]
+  },
+  {
+    "rule": "writer-set",
+    "subject": "global:src/backend/zephyr/log_udp.c:sent_lines",
+    "message": "global:src/backend/zephyr/log_udp.c:sent_lines is written from 1 functions",
+    "count": 1,
+    "sites": [
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:log_udp_thread",
+        "loc": "src/backend/zephyr/log_udp.c:487"
+      },
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:log_udp_thread",
+        "loc": "src/backend/zephyr/log_udp.c:507"
+      }
+    ]
+  },
+  {
+    "rule": "writer-set",
+    "subject": "global:src/backend/zephyr/log_udp.c:tee_from_keep",
+    "message": "global:src/backend/zephyr/log_udp.c:tee_from_keep is written from 1 functions",
+    "count": 1,
+    "sites": [
+      {
+        "func": "func:src/backend/zephyr/log_udp.c:log_udp_hook_init",
+        "loc": "src/backend/zephyr/log_udp.c:553"
       }
     ]
   },
@@ -21160,106 +21165,6 @@
       {
         "func": "func:x25519_ge_frombytes_vartime",
         "loc": "zephyr/src/ed25519/curve25519.c:457"
-      }
-    ]
-  },
-  {
-    "rule": "writer-set",
-    "subject": "global:zephyr/src/log_udp.c:log_udp_tee_paced.gave_up",
-    "message": "global:zephyr/src/log_udp.c:log_udp_tee_paced.gave_up is written from 1 functions",
-    "count": 1,
-    "sites": [
-      {
-        "func": "func:log_udp_tee_paced",
-        "loc": "zephyr/src/log_udp.c:178"
-      },
-      {
-        "func": "func:log_udp_tee_paced",
-        "loc": "zephyr/src/log_udp.c:182"
-      }
-    ]
-  },
-  {
-    "rule": "writer-set",
-    "subject": "global:zephyr/src/log_udp.c:log_udp_tee_paced.gave_up_tail",
-    "message": "global:zephyr/src/log_udp.c:log_udp_tee_paced.gave_up_tail is written from 1 functions",
-    "count": 1,
-    "sites": [
-      {
-        "func": "func:log_udp_tee_paced",
-        "loc": "zephyr/src/log_udp.c:185"
-      }
-    ]
-  },
-  {
-    "rule": "writer-set",
-    "subject": "global:zephyr/src/log_udp.c:prev_hook",
-    "message": "global:zephyr/src/log_udp.c:prev_hook is written from 1 functions",
-    "count": 1,
-    "sites": [
-      {
-        "func": "func:zephyr/src/log_udp.c:log_udp_hook_init",
-        "loc": "zephyr/src/log_udp.c:545"
-      }
-    ]
-  },
-  {
-    "rule": "writer-set",
-    "subject": "global:zephyr/src/log_udp.c:send_errors",
-    "message": "global:zephyr/src/log_udp.c:send_errors is written from 1 functions",
-    "count": 1,
-    "sites": [
-      {
-        "func": "func:zephyr/src/log_udp.c:log_udp_thread",
-        "loc": "zephyr/src/log_udp.c:483"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:log_udp_thread",
-        "loc": "zephyr/src/log_udp.c:503"
-      }
-    ]
-  },
-  {
-    "rule": "writer-set",
-    "subject": "global:zephyr/src/log_udp.c:sender_pending",
-    "message": "global:zephyr/src/log_udp.c:sender_pending is written from 1 functions",
-    "count": 1,
-    "sites": [
-      {
-        "func": "func:zephyr/src/log_udp.c:log_udp_thread",
-        "loc": "zephyr/src/log_udp.c:489"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:log_udp_thread",
-        "loc": "zephyr/src/log_udp.c:505"
-      }
-    ]
-  },
-  {
-    "rule": "writer-set",
-    "subject": "global:zephyr/src/log_udp.c:sent_lines",
-    "message": "global:zephyr/src/log_udp.c:sent_lines is written from 1 functions",
-    "count": 1,
-    "sites": [
-      {
-        "func": "func:zephyr/src/log_udp.c:log_udp_thread",
-        "loc": "zephyr/src/log_udp.c:487"
-      },
-      {
-        "func": "func:zephyr/src/log_udp.c:log_udp_thread",
-        "loc": "zephyr/src/log_udp.c:507"
-      }
-    ]
-  },
-  {
-    "rule": "writer-set",
-    "subject": "global:zephyr/src/log_udp.c:tee_from_keep",
-    "message": "global:zephyr/src/log_udp.c:tee_from_keep is written from 1 functions",
-    "count": 1,
-    "sites": [
-      {
-        "func": "func:zephyr/src/log_udp.c:log_udp_hook_init",
-        "loc": "zephyr/src/log_udp.c:553"
       }
     ]
   },

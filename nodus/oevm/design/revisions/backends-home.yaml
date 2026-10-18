@@ -1,0 +1,7 @@
+name: backends-home
+pattern: Move Function
+intent: the zephyr runner and UDP log are backends; they live with the adapters they serve
+compromise: headers runner.h and log_udp.h stay in zephyr/src (on the include path); observer → platform_app_cad_ms (2 keys) is not this revision
+ops:
+  - move: {file: zephyr/src/runner.c, unit: src/backend/zephyr}
+  - move: {file: zephyr/src/log_udp.c, unit: src/backend/zephyr}
