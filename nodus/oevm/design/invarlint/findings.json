@@ -11425,57 +11425,9 @@
   },
   {
     "rule": "root-bypassed",
-    "subject": "func:src/reboot_note.h:reboot_note_is_valid",
-    "loc": "src/reboot_note.h:56",
-    "message": "reboot_note_is_valid (context src) is called from 4 functions in other contexts without going through a root (roots: Space)",
-    "count": 4,
-    "sites": [
-      {
-        "func": "func:reboot_note_init",
-        "loc": "zephyr/src/reboot_note.c:40",
-        "via": "zephyr/src"
-      },
-      {
-        "func": "func:reboot_note_read",
-        "loc": "zephyr/src/reboot_note.c:44",
-        "via": "zephyr/src"
-      },
-      {
-        "func": "func:reboot_note_write",
-        "loc": "zephyr/src/reboot_note.c:51",
-        "via": "zephyr/src"
-      },
-      {
-        "func": "func:reboot_note_consecutive",
-        "loc": "zephyr/src/reboot_note.c:72",
-        "via": "zephyr/src"
-      }
-    ]
-  },
-  {
-    "rule": "root-bypassed",
-    "subject": "func:ota_sha256",
-    "loc": "src/ota.c:112",
-    "message": "ota_sha256 (context src) is called from 2 functions in other contexts without going through a root (roots: Space)",
-    "count": 2,
-    "sites": [
-      {
-        "func": "func:main",
-        "loc": "zephyr/src/main.c:1946",
-        "via": "zephyr/src"
-      },
-      {
-        "func": "func:zephyr/src/runner.c:hash_slot",
-        "loc": "zephyr/src/runner.c:151",
-        "via": "zephyr/src"
-      }
-    ]
-  },
-  {
-    "rule": "root-bypassed",
     "subject": "func:platform_app_cad_ms",
     "loc": "src/platform.c:18",
-    "message": "platform_app_cad_ms (context src) is called from 2 functions in other contexts without going through a root (roots: Space)",
+    "message": "platform_app_cad_ms (context src) is called from 2 functions in other contexts without going through a root (roots: Boot, CoreCallbacks, SharedKernel, Space, Targets)",
     "count": 2,
     "sites": [
       {
@@ -11492,220 +11444,9 @@
   },
   {
     "rule": "root-bypassed",
-    "subject": "func:bell_target_available",
-    "loc": "zephyr/src/main.c:857",
-    "message": "bell_target_available (context zephyr/src) is called from 1 functions in other contexts without going through a root (roots: App)",
-    "count": 1,
-    "sites": [
-      {
-        "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1961",
-        "via": "src"
-      }
-    ]
-  },
-  {
-    "rule": "root-bypassed",
-    "subject": "func:bell_target_strike",
-    "loc": "zephyr/src/main.c:866",
-    "message": "bell_target_strike (context zephyr/src) is called from 1 functions in other contexts without going through a root (roots: App)",
-    "count": 1,
-    "sites": [
-      {
-        "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1962",
-        "via": "src"
-      }
-    ]
-  },
-  {
-    "rule": "root-bypassed",
-    "subject": "func:deep_sleep_target",
-    "loc": "zephyr/src/main.c:581",
-    "message": "deep_sleep_target (context zephyr/src) is called from 1 functions in other contexts without going through a root (roots: App)",
-    "count": 1,
-    "sites": [
-      {
-        "func": "func:platform_dispatch",
-        "loc": "src/platform.c:2030",
-        "via": "src"
-      }
-    ]
-  },
-  {
-    "rule": "root-bypassed",
-    "subject": "func:display_target_available",
-    "loc": "zephyr/src/main.c:1090",
-    "message": "display_target_available (context zephyr/src) is called from 1 functions in other contexts without going through a root (roots: App)",
-    "count": 1,
-    "sites": [
-      {
-        "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1922",
-        "via": "src"
-      },
-      {
-        "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1934",
-        "via": "src"
-      },
-      {
-        "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1944",
-        "via": "src"
-      },
-      {
-        "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1949",
-        "via": "src"
-      }
-    ]
-  },
-  {
-    "rule": "root-bypassed",
-    "subject": "func:display_target_clear",
-    "loc": "zephyr/src/main.c:1114",
-    "message": "display_target_clear (context zephyr/src) is called from 1 functions in other contexts without going through a root (roots: App)",
-    "count": 1,
-    "sites": [
-      {
-        "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1923",
-        "via": "src"
-      }
-    ]
-  },
-  {
-    "rule": "root-bypassed",
-    "subject": "func:display_target_put",
-    "loc": "zephyr/src/main.c:1124",
-    "message": "display_target_put (context zephyr/src) is called from 1 functions in other contexts without going through a root (roots: App)",
-    "count": 1,
-    "sites": [
-      {
-        "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1937",
-        "via": "src"
-      }
-    ]
-  },
-  {
-    "rule": "root-bypassed",
-    "subject": "func:display_target_refresh",
-    "loc": "zephyr/src/main.c:1141",
-    "message": "display_target_refresh (context zephyr/src) is called from 1 functions in other contexts without going through a root (roots: App)",
-    "count": 1,
-    "sites": [
-      {
-        "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1945",
-        "via": "src"
-      }
-    ]
-  },
-  {
-    "rule": "root-bypassed",
-    "subject": "func:display_target_refresh_row",
-    "loc": "zephyr/src/main.c:1153",
-    "message": "display_target_refresh_row (context zephyr/src) is called from 1 functions in other contexts without going through a root (roots: App)",
-    "count": 1,
-    "sites": [
-      {
-        "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1950",
-        "via": "src"
-      }
-    ]
-  },
-  {
-    "rule": "root-bypassed",
-    "subject": "func:gpio_target_level",
-    "loc": "zephyr/src/main.c:1518",
-    "message": "gpio_target_level (context zephyr/src) is called from 1 functions in other contexts without going through a root (roots: App)",
-    "count": 1,
-    "sites": [
-      {
-        "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1913",
-        "via": "src"
-      }
-    ]
-  },
-  {
-    "rule": "root-bypassed",
-    "subject": "func:gpio_target_set",
-    "loc": "zephyr/src/main.c:1508",
-    "message": "gpio_target_set (context zephyr/src) is called from 1 functions in other contexts without going through a root (roots: App)",
-    "count": 1,
-    "sites": [
-      {
-        "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1905",
-        "via": "src"
-      }
-    ]
-  },
-  {
-    "rule": "root-bypassed",
-    "subject": "func:handle_get",
-    "loc": "src/handles.c:52",
-    "message": "handle_get (context src) is called from 1 functions in other contexts without going through a root (roots: Space)",
-    "count": 1,
-    "sites": [
-      {
-        "func": "func:src/backend/zephyr/pulse_zephyr.c:pulse_payload",
-        "loc": "src/backend/zephyr/pulse_zephyr.c:74",
-        "via": "src/backend/zephyr"
-      }
-    ]
-  },
-  {
-    "rule": "root-bypassed",
-    "subject": "func:http_accept_request",
-    "loc": "src/http_core.c:141",
-    "message": "http_accept_request (context src) is called from 1 functions in other contexts without going through a root (roots: Space)",
-    "count": 1,
-    "sites": [
-      {
-        "func": "func:http_poll",
-        "loc": "src/backend/zephyr/http_zephyr.c:182",
-        "via": "src/backend/zephyr"
-      }
-    ]
-  },
-  {
-    "rule": "root-bypassed",
-    "subject": "func:http_parse_reqline",
-    "loc": "src/http_core.c:20",
-    "message": "http_parse_reqline (context src) is called from 1 functions in other contexts without going through a root (roots: Space)",
-    "count": 1,
-    "sites": [
-      {
-        "func": "func:http_poll",
-        "loc": "src/backend/zephyr/http_zephyr.c:181",
-        "via": "src/backend/zephyr"
-      }
-    ]
-  },
-  {
-    "rule": "root-bypassed",
-    "subject": "func:kernel_boot",
-    "loc": "src/kernel_boot.c:113",
-    "message": "kernel_boot (context src) is called from 1 functions in other contexts without going through a root (roots: Space)",
-    "count": 1,
-    "sites": [
-      {
-        "func": "func:main",
-        "loc": "zephyr/src/main.c:1914",
-        "via": "zephyr/src"
-      }
-    ]
-  },
-  {
-    "rule": "root-bypassed",
     "subject": "func:log_udp_drain",
     "loc": "zephyr/src/log_udp.c:405",
-    "message": "log_udp_drain (context zephyr/src) is called from 1 functions in other contexts without going through a root (roots: App)",
+    "message": "log_udp_drain (context zephyr/src) is called from 1 functions in other contexts without going through a root (roots: App, Targets)",
     "count": 1,
     "sites": [
       {
@@ -11719,7 +11460,7 @@
     "rule": "root-bypassed",
     "subject": "func:log_udp_set_target",
     "loc": "zephyr/src/log_udp.c:352",
-    "message": "log_udp_set_target (context zephyr/src) is called from 1 functions in other contexts without going through a root (roots: App)",
+    "message": "log_udp_set_target (context zephyr/src) is called from 1 functions in other contexts without going through a root (roots: App, Targets)",
     "count": 1,
     "sites": [
       {
@@ -11733,7 +11474,7 @@
     "rule": "root-bypassed",
     "subject": "func:log_udp_tee",
     "loc": "zephyr/src/log_udp.c:152",
-    "message": "log_udp_tee (context zephyr/src) is called from 1 functions in other contexts without going through a root (roots: App)",
+    "message": "log_udp_tee (context zephyr/src) is called from 1 functions in other contexts without going through a root (roots: App, Targets)",
     "count": 1,
     "sites": [
       {
@@ -11747,7 +11488,7 @@
     "rule": "root-bypassed",
     "subject": "func:log_udp_tee_paced",
     "loc": "zephyr/src/log_udp.c:165",
-    "message": "log_udp_tee_paced (context zephyr/src) is called from 1 functions in other contexts without going through a root (roots: App)",
+    "message": "log_udp_tee_paced (context zephyr/src) is called from 1 functions in other contexts without going through a root (roots: App, Targets)",
     "count": 1,
     "sites": [
       {
@@ -11759,177 +11500,9 @@
   },
   {
     "rule": "root-bypassed",
-    "subject": "func:ntp_target_date",
-    "loc": "zephyr/src/main.c:257",
-    "message": "ntp_target_date (context zephyr/src) is called from 1 functions in other contexts without going through a root (roots: App)",
-    "count": 1,
-    "sites": [
-      {
-        "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1982",
-        "via": "src"
-      }
-    ]
-  },
-  {
-    "rule": "root-bypassed",
-    "subject": "func:ntp_target_sync",
-    "loc": "zephyr/src/main.c:203",
-    "message": "ntp_target_sync (context zephyr/src) is called from 1 functions in other contexts without going through a root (roots: App)",
-    "count": 1,
-    "sites": [
-      {
-        "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1973",
-        "via": "src"
-      }
-    ]
-  },
-  {
-    "rule": "root-bypassed",
-    "subject": "func:oimg_bootstrap",
-    "loc": "src/oimg_loader.c:281",
-    "message": "oimg_bootstrap (context src) is called from 1 functions in other contexts without going through a root (roots: Space)",
-    "count": 1,
-    "sites": [
-      {
-        "func": "func:main",
-        "loc": "zephyr/src/main.c:1988",
-        "via": "zephyr/src"
-      }
-    ]
-  },
-  {
-    "rule": "root-bypassed",
-    "subject": "func:oimg_load_blob",
-    "loc": "src/oimg_loader.c:143",
-    "message": "oimg_load_blob (context src) is called from 1 functions in other contexts without going through a root (roots: Space)",
-    "count": 1,
-    "sites": [
-      {
-        "func": "func:main",
-        "loc": "zephyr/src/main.c:1926",
-        "via": "zephyr/src"
-      }
-    ]
-  },
-  {
-    "rule": "root-bypassed",
-    "subject": "func:oimg_root",
-    "loc": "src/oimg_loader.c:271",
-    "message": "oimg_root (context src) is called from 1 functions in other contexts without going through a root (roots: Space)",
-    "count": 1,
-    "sites": [
-      {
-        "func": "func:main",
-        "loc": "zephyr/src/main.c:1988",
-        "via": "zephyr/src"
-      }
-    ]
-  },
-  {
-    "rule": "root-bypassed",
-    "subject": "func:reboot_note_ack",
-    "loc": "zephyr/src/reboot_note.c:66",
-    "message": "reboot_note_ack (context zephyr/src) is called from 1 functions in other contexts without going through a root (roots: App)",
-    "count": 1,
-    "sites": [
-      {
-        "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1426",
-        "via": "src"
-      }
-    ]
-  },
-  {
-    "rule": "root-bypassed",
-    "subject": "func:reboot_note_read",
-    "loc": "zephyr/src/reboot_note.c:43",
-    "message": "reboot_note_read (context zephyr/src) is called from 1 functions in other contexts without going through a root (roots: App)",
-    "count": 1,
-    "sites": [
-      {
-        "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1396",
-        "via": "src"
-      }
-    ]
-  },
-  {
-    "rule": "root-bypassed",
-    "subject": "func:reset_cause_timer_wake",
-    "loc": "zephyr/src/main.c:305",
-    "message": "reset_cause_timer_wake (context zephyr/src) is called from 1 functions in other contexts without going through a root (roots: App)",
-    "count": 1,
-    "sites": [
-      {
-        "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1995",
-        "via": "src"
-      }
-    ]
-  },
-  {
-    "rule": "root-bypassed",
-    "subject": "func:rtc_alarm_arm",
-    "loc": "zephyr/src/main.c:554",
-    "message": "rtc_alarm_arm (context zephyr/src) is called from 1 functions in other contexts without going through a root (roots: App)",
-    "count": 1,
-    "sites": [
-      {
-        "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1840",
-        "via": "src"
-      }
-    ]
-  },
-  {
-    "rule": "root-bypassed",
-    "subject": "func:rtc_target_get",
-    "loc": "zephyr/src/main.c:293",
-    "message": "rtc_target_get (context zephyr/src) is called from 1 functions in other contexts without going through a root (roots: App)",
-    "count": 1,
-    "sites": [
-      {
-        "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1999",
-        "via": "src"
-      }
-    ]
-  },
-  {
-    "rule": "root-bypassed",
-    "subject": "func:rtc_target_put",
-    "loc": "zephyr/src/main.c:294",
-    "message": "rtc_target_put (context zephyr/src) is called from 1 functions in other contexts without going through a root (roots: App)",
-    "count": 1,
-    "sites": [
-      {
-        "func": "func:platform_dispatch",
-        "loc": "src/platform.c:2003",
-        "via": "src"
-      }
-    ]
-  },
-  {
-    "rule": "root-bypassed",
-    "subject": "func:rtc_target_valid",
-    "loc": "zephyr/src/main.c:292",
-    "message": "rtc_target_valid (context zephyr/src) is called from 1 functions in other contexts without going through a root (roots: App)",
-    "count": 1,
-    "sites": [
-      {
-        "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1990",
-        "via": "src"
-      }
-    ]
-  },
-  {
-    "rule": "root-bypassed",
     "subject": "func:runner_confirm",
     "loc": "zephyr/src/runner.c:260",
-    "message": "runner_confirm (context zephyr/src) is called from 1 functions in other contexts without going through a root (roots: App)",
+    "message": "runner_confirm (context zephyr/src) is called from 1 functions in other contexts without going through a root (roots: App, Targets)",
     "count": 1,
     "sites": [
       {
@@ -11943,7 +11516,7 @@
     "rule": "root-bypassed",
     "subject": "func:runner_has_key",
     "loc": "zephyr/src/runner.c:80",
-    "message": "runner_has_key (context zephyr/src) is called from 1 functions in other contexts without going through a root (roots: App)",
+    "message": "runner_has_key (context zephyr/src) is called from 1 functions in other contexts without going through a root (roots: App, Targets)",
     "count": 1,
     "sites": [
       {
@@ -11957,7 +11530,7 @@
     "rule": "root-bypassed",
     "subject": "func:runner_inactive_slot_id",
     "loc": "zephyr/src/runner.c:269",
-    "message": "runner_inactive_slot_id (context zephyr/src) is called from 1 functions in other contexts without going through a root (roots: App)",
+    "message": "runner_inactive_slot_id (context zephyr/src) is called from 1 functions in other contexts without going through a root (roots: App, Targets)",
     "count": 1,
     "sites": [
       {
@@ -11971,7 +11544,7 @@
     "rule": "root-bypassed",
     "subject": "func:runner_ready",
     "loc": "zephyr/src/runner.c:248",
-    "message": "runner_ready (context zephyr/src) is called from 1 functions in other contexts without going through a root (roots: App)",
+    "message": "runner_ready (context zephyr/src) is called from 1 functions in other contexts without going through a root (roots: App, Targets)",
     "count": 1,
     "sites": [
       {
@@ -11985,97 +11558,13 @@
     "rule": "root-bypassed",
     "subject": "func:runner_trial",
     "loc": "zephyr/src/runner.c:268",
-    "message": "runner_trial (context zephyr/src) is called from 1 functions in other contexts without going through a root (roots: App)",
+    "message": "runner_trial (context zephyr/src) is called from 1 functions in other contexts without going through a root (roots: App, Targets)",
     "count": 1,
     "sites": [
       {
         "func": "func:ota_env",
         "loc": "src/backend/zephyr/ota_zephyr.c:65",
         "via": "src/backend/zephyr"
-      }
-    ]
-  },
-  {
-    "rule": "root-bypassed",
-    "subject": "func:src/link_addr.h:link_addr_hex",
-    "loc": "src/link_addr.h:9",
-    "message": "link_addr_hex (context src) is called from 1 functions in other contexts without going through a root (roots: Space)",
-    "count": 1,
-    "sites": [
-      {
-        "func": "func:platform_backend_node_id",
-        "loc": "src/backend/zephyr/platform_zephyr.c:431",
-        "via": "src/backend/zephyr"
-      }
-    ]
-  },
-  {
-    "rule": "root-bypassed",
-    "subject": "func:src/observer_core.h:observer_core_verdict",
-    "loc": "src/observer_core.h:100",
-    "message": "observer_core_verdict (context src) is called from 1 functions in other contexts without going through a root (roots: Space)",
-    "count": 1,
-    "sites": [
-      {
-        "func": "func:zephyr/src/observer.c:observer_verdict",
-        "loc": "zephyr/src/observer.c:154",
-        "via": "zephyr/src"
-      }
-    ]
-  },
-  {
-    "rule": "root-bypassed",
-    "subject": "func:src/reboot_note.h:reboot_note_checksum",
-    "loc": "src/reboot_note.h:51",
-    "message": "reboot_note_checksum (context src) is called from 1 functions in other contexts without going through a root (roots: Space)",
-    "count": 1,
-    "sites": [
-      {
-        "func": "func:reboot_note_write",
-        "loc": "zephyr/src/reboot_note.c:63",
-        "via": "zephyr/src"
-      }
-    ]
-  },
-  {
-    "rule": "root-bypassed",
-    "subject": "func:timer_target_snapshot",
-    "loc": "src/backend/zephyr/timer_zephyr.c:125",
-    "message": "timer_target_snapshot (context src/backend/zephyr) is called from 1 functions in other contexts without going through a root (roots: DebugHold, ZephyrBackends)",
-    "count": 1,
-    "sites": [
-      {
-        "func": "func:zephyr/src/observer.c:observer_verdict",
-        "loc": "zephyr/src/observer.c:149",
-        "via": "zephyr/src"
-      }
-    ]
-  },
-  {
-    "rule": "root-bypassed",
-    "subject": "func:wallclock_target_read",
-    "loc": "zephyr/src/main.c:354",
-    "message": "wallclock_target_read (context zephyr/src) is called from 1 functions in other contexts without going through a root (roots: App)",
-    "count": 1,
-    "sites": [
-      {
-        "func": "func:platform_dispatch",
-        "loc": "src/platform.c:2013",
-        "via": "src"
-      }
-    ]
-  },
-  {
-    "rule": "root-bypassed",
-    "subject": "func:wallclock_target_set",
-    "loc": "zephyr/src/main.c:412",
-    "message": "wallclock_target_set (context zephyr/src) is called from 1 functions in other contexts without going through a root (roots: App)",
-    "count": 1,
-    "sites": [
-      {
-        "func": "func:platform_dispatch",
-        "loc": "src/platform.c:2023",
-        "via": "src"
       }
     ]
   },

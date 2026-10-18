@@ -1,50 +1,19 @@
-# invarlint findings — fe424770
+# invarlint findings — e88b1213
 
-## root-bypassed (44)
+## root-bypassed (10)
 
 | subject | count | sites |
 |---|---|---|
-| src/reboot_note.h:reboot_note_is_valid | 4 | `reboot_note_init` (zephyr/src/reboot_note.c:40; zephyr/src)<br>`reboot_note_read` (zephyr/src/reboot_note.c:44; zephyr/src)<br>`reboot_note_write` (zephyr/src/reboot_note.c:51; zephyr/src)<br>`reboot_note_consecutive` (zephyr/src/reboot_note.c:72; zephyr/src) |
-| ota_sha256 | 2 | `main` (zephyr/src/main.c:1946; zephyr/src)<br>`runner.c:hash_slot` (zephyr/src/runner.c:151; zephyr/src) |
 | platform_app_cad_ms | 2 | `observer.c:observer_verdict` (zephyr/src/observer.c:152; zephyr/src)<br>`observer.c:observer_dump` (zephyr/src/observer.c:324; zephyr/src) |
-| bell_target_available | 1 | `platform_dispatch` (src/platform.c:1961; src) |
-| bell_target_strike | 1 | `platform_dispatch` (src/platform.c:1962; src) |
-| deep_sleep_target | 1 | `platform_dispatch` (src/platform.c:2030; src) |
-| display_target_available | 1 | `platform_dispatch` (src/platform.c:1922; src)<br>`platform_dispatch` (src/platform.c:1934; src)<br>`platform_dispatch` (src/platform.c:1944; src)<br>`platform_dispatch` (src/platform.c:1949; src) |
-| display_target_clear | 1 | `platform_dispatch` (src/platform.c:1923; src) |
-| display_target_put | 1 | `platform_dispatch` (src/platform.c:1937; src) |
-| display_target_refresh | 1 | `platform_dispatch` (src/platform.c:1945; src) |
-| display_target_refresh_row | 1 | `platform_dispatch` (src/platform.c:1950; src) |
-| gpio_target_level | 1 | `platform_dispatch` (src/platform.c:1913; src) |
-| gpio_target_set | 1 | `platform_dispatch` (src/platform.c:1905; src) |
-| handle_get | 1 | `pulse_zephyr.c:pulse_payload` (src/backend/zephyr/pulse_zephyr.c:74; src/backend/zephyr) |
-| http_accept_request | 1 | `http_poll` (src/backend/zephyr/http_zephyr.c:182; src/backend/zephyr) |
-| http_parse_reqline | 1 | `http_poll` (src/backend/zephyr/http_zephyr.c:181; src/backend/zephyr) |
-| kernel_boot | 1 | `main` (zephyr/src/main.c:1914; zephyr/src) |
 | log_udp_drain | 1 | `platform_console_drain` (src/backend/zephyr/platform_zephyr.c:43; src/backend/zephyr) |
 | log_udp_set_target | 1 | `platform_console_tee` (src/backend/zephyr/platform_zephyr.c:41; src/backend/zephyr) |
 | log_udp_tee | 1 | `platform_console_write` (src/backend/zephyr/platform_zephyr.c:50; src/backend/zephyr) |
 | log_udp_tee_paced | 1 | `platform_console_err` (src/backend/zephyr/platform_zephyr.c:58; src/backend/zephyr) |
-| ntp_target_date | 1 | `platform_dispatch` (src/platform.c:1982; src) |
-| ntp_target_sync | 1 | `platform_dispatch` (src/platform.c:1973; src) |
-| oimg_bootstrap | 1 | `main` (zephyr/src/main.c:1988; zephyr/src) |
-| oimg_load_blob | 1 | `main` (zephyr/src/main.c:1926; zephyr/src) |
-| oimg_root | 1 | `main` (zephyr/src/main.c:1988; zephyr/src) |
-| reboot_note_ack | 1 | `platform_dispatch` (src/platform.c:1426; src) |
-| reboot_note_read | 1 | `platform_dispatch` (src/platform.c:1396; src) |
-| reset_cause_timer_wake | 1 | `platform_dispatch` (src/platform.c:1995; src) |
-| rtc_alarm_arm | 1 | `platform_dispatch` (src/platform.c:1840; src) |
-| rtc_target_get | 1 | `platform_dispatch` (src/platform.c:1999; src) |
-| rtc_target_put | 1 | `platform_dispatch` (src/platform.c:2003; src) |
-| rtc_target_valid | 1 | `platform_dispatch` (src/platform.c:1990; src) |
 | runner_confirm | 1 | `ota_touch_confirm` (src/backend/zephyr/ota_zephyr.c:153; src/backend/zephyr) |
 | runner_has_key | 1 | `ota_stage_size` (src/backend/zephyr/ota_zephyr.c:79; src/backend/zephyr) |
 | runner_inactive_slot_id | 1 | `ota_zephyr.c:slot` (src/backend/zephyr/ota_zephyr.c:74; src/backend/zephyr) |
 | runner_ready | 1 | `ota_write_ready` (src/backend/zephyr/ota_zephyr.c:144; src/backend/zephyr) |
 | runner_trial | 1 | `ota_env` (src/backend/zephyr/ota_zephyr.c:65; src/backend/zephyr) |
-| src/link_addr.h:link_addr_hex | 1 | `platform_backend_node_id` (src/backend/zephyr/platform_zephyr.c:431; src/backend/zephyr) |
-| src/observer_core.h:observer_core_verdict | 1 | `observer.c:observer_verdict` (zephyr/src/observer.c:154; zephyr/src) |
-| … 4 more root-bypassed rows; see findings.json | | |
 
 ## unowned-writer (114)
 
@@ -214,4 +183,4 @@
 | global:src/vm.c:g_mprof_used | 6 | `mprof_start` (src/vm.c:611; writes)<br>`mprof_used_for_test` (src/vm.c:627; reads)<br>`primitive_calls_reset` (src/vm.c:2420; writes)<br>`primitive_calls_stats` (src/vm.c:2404; reads)<br>`vm.c:mprof_report` (src/vm.c:554; reads)<br>`vm.c:mprof_slot` (src/vm.c:477; writes) |
 | … 227 more global-flow rows; see findings.json | | |
 
-… 517 more rows; see findings.json
+… 513 more rows; see findings.json
