@@ -1,0 +1,10 @@
+# rete#377: the held state is written in one place, the prim that brackets the debugger's
+# command loop; the cable's readline only reads it (fixed in 96838f59).
+name: DebugHold
+root: true
+does:
+  - tells the liveness observer the VM is held by the debugger
+owns:
+  - global:src/backend/zephyr/platform_zephyr.c:debug_held
+implemented_by:
+  - c: platform_debug_hold
