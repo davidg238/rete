@@ -34,7 +34,8 @@ project(oevm_pulse)
 set(OEVM_SRC ${CMAKE_CURRENT_SOURCE_DIR}/..)
 target_sources(app PRIVATE
   src/main.c
-  src/log_udp.c
+  # The UDP log backend; its header log_udp.h stays in src (on the include path).
+  ${OEVM_SRC}/src/backend/zephyr/log_udp.c
   # rete#215: the retained panic note (.rtc_noinit) + the k_sys_fatal_error_handler
   # override. App-side, not an engine file: platform.c externs the five seam symbols the
   # way it already externs bell/ntp/rtc, so none of the nine engine source lists (#63)
@@ -44,9 +45,10 @@ target_sources(app PRIVATE
   # is reached only from main.c, and placing it in src/backend/zephyr/ would cost a posix
   # stub in nine source lists (#63) that nothing on the host would call.
   src/observer.c
-  # rete#233: the program-slot runner (the host runner's loop, in the firmware) and the
-  # ed25519 it verifies with — MCUboot's own, vendored (src/ed25519/README.md).
-  src/runner.c
+  # rete#233: the program-slot runner (the host runner's loop, in the firmware; a backend
+  # beside ota_zephyr.c, its header runner.h stays in src) and the ed25519 it verifies
+  # with — MCUboot's own, vendored (src/ed25519/README.md).
+  ${OEVM_SRC}/src/backend/zephyr/runner.c
   src/ed25519/curve25519.c
   src/ed25519/sha512.c
   src/ed25519/utils.c
@@ -329,7 +331,7 @@ if(DEFINED ENV{OEVM_NTP_SERVER6})
   target_compile_definitions(app PRIVATE OEVM_NTP_SERVER6="$ENV{OEVM_NTP_SERVER6}")
 endif()
 
-# THE REMOTE CONSOLE (src/log_udp.c) has no build-time target: it tees to the
+# THE REMOTE CONSOLE (src/backend/zephyr/log_udp.c) has no build-time target: it tees to the
 # goal/console cell, set at run time by the custos that wants the lines (#415 Q2′;
 # the OEVM_LOG_UDP6 literal was deleted 2026-10-14, after the wall bell ran on the cell).
 # rete#415 F10: the console's drain before deep sleep counts the frames the WiFi
