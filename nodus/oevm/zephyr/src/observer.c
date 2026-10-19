@@ -49,16 +49,13 @@
 #include "pulse_backend.h"
 #include "target_backend.h"   /* timer_target_snapshot (invarlint#53) */
 #include "platform.h"         /* platform_app_cad_ms (invarlint#48) */
+#include "platform_backend.h" /* platform_debug_held (rete#311, invarlint#48) */
 
 #ifdef CONFIG_TASK_WDT
 #include <zephyr/drivers/watchdog.h>
 #include <zephyr/sys/reboot.h>
 #include <zephyr/task_wdt/task_wdt.h>
 
-
-/* rete#311: is the VM blocked in the debug read (a breakpoint, or the boot-time
-   command loop)? Defined in src/backend/zephyr/platform_zephyr.c beside the read. */
-int platform_debug_held(void);
 
 /* rete#269 — OBS_MAX_TIMERS, OBS_WEDGE_SLACK, OBS_MAX_JUDGEABLE_MS, the OBS_COND_*
    enum and the VERDICT ITSELF now live in src/observer_core.h, which is portable C and

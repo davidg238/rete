@@ -1,5 +1,7 @@
 #include "oevm.h"
 #include "frame_abi.h"
+#include "handles.h"   /* handle_gc_trace */
+#include "space.h"     /* space_gc_trace */
 #include "platform_backend.h"   /* platform_console_write: the OOM message must reach the console on every backend */
 #include <stdlib.h>
 #include <stdio.h>
@@ -879,12 +881,10 @@ OEVM_HOT void gc_collect(void) {
     // queued event values + registered reaction blocks/owners in its own
     // static tables, outside every other root set scanned here (not on the
     // VM stack, not a global vtable/singleton) — trace them explicitly.
-    extern void space_gc_trace(void);
     space_gc_trace();
 
     /* M6 C-boundary handle table (src/handles.c): live entries are GC roots held
        only in that static table, outside every other root set — trace them. */
-    extern void handle_gc_trace(void);
     handle_gc_trace();
 
     // Mark the execution-context root. Task 6 removed the Fiber wrapper: the running

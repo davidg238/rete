@@ -1,10 +1,4 @@
 [
-  "extern-redeclared|func:handle_gc_trace|file:src/gc.c",
-  "extern-redeclared|func:mirror_object|file:src/oimg_loader.c",
-  "extern-redeclared|func:platform_debug_held|file:zephyr/src/observer.c",
-  "extern-redeclared|func:serial_object|file:src/oimg_loader.c",
-  "extern-redeclared|func:space_gc_trace|file:src/gc.c",
-  "extern-redeclared|func:udp_object|file:src/oimg_loader.c",
   "root-bypassed|func:log_udp_start|func:main",
   "root-bypassed|func:oevm_thread_free_buffers|func:src/backend/zephyr/log_udp.c:wait_for_radio",
   "root-bypassed|func:oevm_thread_tx_queued|func:src/backend/zephyr/log_udp.c:net_tx_busy",

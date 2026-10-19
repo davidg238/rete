@@ -87,12 +87,12 @@
       },
       {
         "func": "func:src/gc.c:default_oom",
-        "loc": "src/gc.c:202",
+        "loc": "src/gc.c:204",
         "via": "platform_console_write"
       },
       {
         "func": "func:src/gc.c:default_oom",
-        "loc": "src/gc.c:203",
+        "loc": "src/gc.c:205",
         "via": "platform_console_flush"
       },
       {
@@ -708,47 +708,47 @@
       },
       {
         "func": "func:zephyr/src/observer.c:obs_trace_record",
-        "loc": "zephyr/src/observer.c:106",
+        "loc": "zephyr/src/observer.c:103",
         "via": "pulse_pending"
       },
       {
         "func": "func:zephyr/src/observer.c:obs_trace_record",
-        "loc": "zephyr/src/observer.c:107",
+        "loc": "zephyr/src/observer.c:104",
         "via": "pulse_drained"
       },
       {
         "func": "func:zephyr/src/observer.c:observer_verdict",
-        "loc": "zephyr/src/observer.c:145",
+        "loc": "zephyr/src/observer.c:142",
         "via": "timer_target_snapshot"
       },
       {
         "func": "func:zephyr/src/observer.c:observer_verdict",
-        "loc": "zephyr/src/observer.c:147",
+        "loc": "zephyr/src/observer.c:144",
         "via": "pulse_drained"
       },
       {
         "func": "func:zephyr/src/observer.c:observer_verdict",
-        "loc": "zephyr/src/observer.c:149",
+        "loc": "zephyr/src/observer.c:146",
         "via": "platform_debug_held"
       },
       {
         "func": "func:zephyr/src/observer.c:observer_dump",
-        "loc": "zephyr/src/observer.c:321",
+        "loc": "zephyr/src/observer.c:318",
         "via": "pulse_drops"
       },
       {
         "func": "func:zephyr/src/observer.c:observer_dump",
-        "loc": "zephyr/src/observer.c:321",
+        "loc": "zephyr/src/observer.c:318",
         "via": "pulse_pending"
       },
       {
         "func": "func:zephyr/src/observer.c:observer_dump",
-        "loc": "zephyr/src/observer.c:322",
+        "loc": "zephyr/src/observer.c:319",
         "via": "pulse_coalesced"
       },
       {
         "func": "func:zephyr/src/observer.c:observer_dump",
-        "loc": "zephyr/src/observer.c:322",
+        "loc": "zephyr/src/observer.c:319",
         "via": "pulse_stale"
       }
     ]
@@ -786,17 +786,17 @@
       },
       {
         "func": "func:zephyr/src/observer.c:observer_verdict",
-        "loc": "zephyr/src/observer.c:148",
+        "loc": "zephyr/src/observer.c:145",
         "via": "platform_app_cad_ms"
       },
       {
         "func": "func:zephyr/src/observer.c:observer_verdict",
-        "loc": "zephyr/src/observer.c:150",
+        "loc": "zephyr/src/observer.c:147",
         "via": "observer_core_verdict"
       },
       {
         "func": "func:zephyr/src/observer.c:observer_dump",
-        "loc": "zephyr/src/observer.c:320",
+        "loc": "zephyr/src/observer.c:317",
         "via": "platform_app_cad_ms"
       },
       {
@@ -931,90 +931,6 @@
     "message": "zephyr/src/ed25519: 1 unit, 75 funcs, 0 handlers, writes 0 tables, calls into 0 contexts"
   },
   {
-    "rule": "extern-redeclared",
-    "subject": "func:handle_gc_trace",
-    "loc": "src/handles.c:65",
-    "message": "handle_gc_trace is declared by hand 1 times in .c files, not by a header",
-    "count": 1,
-    "sites": [
-      {
-        "func": "file:src/gc.c",
-        "loc": "src/gc.c:887",
-        "via": "void (void)"
-      }
-    ]
-  },
-  {
-    "rule": "extern-redeclared",
-    "subject": "func:mirror_object",
-    "loc": "src/mirror.c:30",
-    "message": "mirror_object is declared by hand 1 times in .c files, not by a header",
-    "count": 1,
-    "sites": [
-      {
-        "func": "file:src/oimg_loader.c",
-        "loc": "src/oimg_loader.c:329",
-        "via": "struct Object * (void)"
-      }
-    ]
-  },
-  {
-    "rule": "extern-redeclared",
-    "subject": "func:platform_debug_held",
-    "loc": "src/backend/zephyr/platform_zephyr.c:254",
-    "message": "platform_debug_held is declared by hand 1 times in .c files, not by a header",
-    "count": 1,
-    "sites": [
-      {
-        "func": "file:zephyr/src/observer.c",
-        "loc": "zephyr/src/observer.c:61",
-        "via": "int (void)"
-      }
-    ]
-  },
-  {
-    "rule": "extern-redeclared",
-    "subject": "func:serial_object",
-    "loc": "src/serial.c:15",
-    "message": "serial_object is declared by hand 1 times in .c files, not by a header",
-    "count": 1,
-    "sites": [
-      {
-        "func": "file:src/oimg_loader.c",
-        "loc": "src/oimg_loader.c:308",
-        "via": "struct Object * (void)"
-      }
-    ]
-  },
-  {
-    "rule": "extern-redeclared",
-    "subject": "func:space_gc_trace",
-    "loc": "src/space.c:409",
-    "message": "space_gc_trace is declared by hand 1 times in .c files, not by a header",
-    "count": 1,
-    "sites": [
-      {
-        "func": "file:src/gc.c",
-        "loc": "src/gc.c:882",
-        "via": "void (void)"
-      }
-    ]
-  },
-  {
-    "rule": "extern-redeclared",
-    "subject": "func:udp_object",
-    "loc": "src/udp.c:47",
-    "message": "udp_object is declared by hand 1 times in .c files, not by a header",
-    "count": 1,
-    "sites": [
-      {
-        "func": "file:src/oimg_loader.c",
-        "loc": "src/oimg_loader.c:314",
-        "via": "struct Object * (void)"
-      }
-    ]
-  },
-  {
     "rule": "global-flow",
     "subject": "global:_impure_ptr",
     "message": "_impure_ptr: written by 0, read by 44 functions; no writer in the module",
@@ -1022,12 +938,12 @@
     "sites": [
       {
         "func": "func:float_alloc",
-        "loc": "src/gc.c:477",
+        "loc": "src/gc.c:479",
         "via": "reads"
       },
       {
         "func": "func:gc_temp_root_push",
-        "loc": "src/gc.c:822",
+        "loc": "src/gc.c:824",
         "via": "reads"
       },
       {
@@ -1037,7 +953,7 @@
       },
       {
         "func": "func:heap_init",
-        "loc": "src/gc.c:182",
+        "loc": "src/gc.c:184",
         "via": "reads"
       },
       {
@@ -1077,42 +993,42 @@
       },
       {
         "func": "func:oimg_load_blob",
-        "loc": "src/oimg_loader.c:145",
+        "loc": "src/oimg_loader.c:148",
         "via": "reads"
       },
       {
         "func": "func:oimg_load_blob",
-        "loc": "src/oimg_loader.c:149",
+        "loc": "src/oimg_loader.c:152",
         "via": "reads"
       },
       {
         "func": "func:oimg_load_blob",
-        "loc": "src/oimg_loader.c:155",
+        "loc": "src/oimg_loader.c:158",
         "via": "reads"
       },
       {
         "func": "func:oimg_load_blob",
-        "loc": "src/oimg_loader.c:159",
+        "loc": "src/oimg_loader.c:162",
         "via": "reads"
       },
       {
         "func": "func:oimg_load_blob",
-        "loc": "src/oimg_loader.c:164",
+        "loc": "src/oimg_loader.c:167",
         "via": "reads"
       },
       {
         "func": "func:oimg_load_blob",
-        "loc": "src/oimg_loader.c:196",
+        "loc": "src/oimg_loader.c:199",
         "via": "reads"
       },
       {
         "func": "func:oimg_load_blob",
-        "loc": "src/oimg_loader.c:212",
+        "loc": "src/oimg_loader.c:215",
         "via": "reads"
       },
       {
         "func": "func:oimg_load_blob",
-        "loc": "src/oimg_loader.c:226",
+        "loc": "src/oimg_loader.c:229",
         "via": "reads"
       },
       {
@@ -1600,17 +1516,17 @@
       },
       {
         "func": "func:gc_temp_root_push",
-        "loc": "src/gc.c:817",
+        "loc": "src/gc.c:819",
         "via": "reads"
       },
       {
         "func": "func:gc_temp_root_push",
-        "loc": "src/gc.c:818",
+        "loc": "src/gc.c:820",
         "via": "writes"
       },
       {
         "func": "func:gc_temp_roots_clear",
-        "loc": "src/gc.c:828",
+        "loc": "src/gc.c:830",
         "via": "writes"
       },
       {
@@ -1861,7 +1777,7 @@
     "sites": [
       {
         "func": "func:gc_collect",
-        "loc": "src/gc.c:870",
+        "loc": "src/gc.c:872",
         "via": "reads"
       },
       {
@@ -2031,7 +1947,7 @@
       },
       {
         "func": "func:src/gc.c:trace_one",
-        "loc": "src/gc.c:663",
+        "loc": "src/gc.c:665",
         "via": "reads"
       },
       {
@@ -2069,7 +1985,7 @@
     "sites": [
       {
         "func": "func:gc_collect",
-        "loc": "src/gc.c:871",
+        "loc": "src/gc.c:873",
         "via": "reads"
       },
       {
@@ -2374,7 +2290,7 @@
       },
       {
         "func": "func:src/gc.c:trace_one",
-        "loc": "src/gc.c:654",
+        "loc": "src/gc.c:656",
         "via": "reads"
       },
       {
@@ -2487,7 +2403,7 @@
       },
       {
         "func": "func:src/gc.c:scan_vm_stack",
-        "loc": "src/gc.c:767",
+        "loc": "src/gc.c:769",
         "via": "reads"
       },
       {
@@ -2868,7 +2784,7 @@
     "sites": [
       {
         "func": "func:gc_collect",
-        "loc": "src/gc.c:875",
+        "loc": "src/gc.c:877",
         "via": "reads"
       },
       {
@@ -2941,22 +2857,22 @@
     "sites": [
       {
         "func": "func:oimg_load_blob",
-        "loc": "src/oimg_loader.c:201",
+        "loc": "src/oimg_loader.c:204",
         "via": "writes"
       },
       {
         "func": "func:oimg_load_blob",
-        "loc": "src/oimg_loader.c:232",
+        "loc": "src/oimg_loader.c:235",
         "via": "writes"
       },
       {
         "func": "func:oimg_vtable_name",
-        "loc": "src/oimg_loader.c:242",
+        "loc": "src/oimg_loader.c:245",
         "via": "reads"
       },
       {
         "func": "func:oimg_vtable_name",
-        "loc": "src/oimg_loader.c:244",
+        "loc": "src/oimg_loader.c:247",
         "via": "reads"
       },
       {
@@ -3044,7 +2960,7 @@
     "sites": [
       {
         "func": "func:gc_collect",
-        "loc": "src/gc.c:874",
+        "loc": "src/gc.c:876",
         "via": "reads"
       },
       {
@@ -3107,7 +3023,7 @@
     "sites": [
       {
         "func": "func:gc_collect",
-        "loc": "src/gc.c:873",
+        "loc": "src/gc.c:875",
         "via": "reads"
       },
       {
@@ -3147,7 +3063,7 @@
       },
       {
         "func": "func:src/gc.c:trace_one",
-        "loc": "src/gc.c:645",
+        "loc": "src/gc.c:647",
         "via": "reads"
       },
       {
@@ -3210,7 +3126,7 @@
       },
       {
         "func": "func:src/gc.c:scan_vm_stack",
-        "loc": "src/gc.c:782",
+        "loc": "src/gc.c:784",
         "via": "reads"
       },
       {
@@ -3273,7 +3189,7 @@
     "sites": [
       {
         "func": "func:gc_collect",
-        "loc": "src/gc.c:868",
+        "loc": "src/gc.c:870",
         "via": "reads"
       },
       {
@@ -3408,7 +3324,7 @@
       },
       {
         "func": "func:src/gc.c:trace_one",
-        "loc": "src/gc.c:670",
+        "loc": "src/gc.c:672",
         "via": "reads"
       },
       {
@@ -3446,7 +3362,7 @@
     "sites": [
       {
         "func": "func:gc_collect",
-        "loc": "src/gc.c:867",
+        "loc": "src/gc.c:869",
         "via": "reads"
       },
       {
@@ -3602,7 +3518,7 @@
     "sites": [
       {
         "func": "func:gc_collect",
-        "loc": "src/gc.c:872",
+        "loc": "src/gc.c:874",
         "via": "reads"
       },
       {
@@ -3717,7 +3633,7 @@
       },
       {
         "func": "func:src/gc.c:trace_one",
-        "loc": "src/gc.c:656",
+        "loc": "src/gc.c:658",
         "via": "reads"
       },
       {
@@ -3803,7 +3719,7 @@
     "sites": [
       {
         "func": "func:gc_collect",
-        "loc": "src/gc.c:845",
+        "loc": "src/gc.c:847",
         "via": "reads"
       },
       {
@@ -3828,7 +3744,7 @@
       },
       {
         "func": "func:heap_init",
-        "loc": "src/gc.c:167",
+        "loc": "src/gc.c:169",
         "via": "writes"
       },
       {
@@ -3838,32 +3754,32 @@
       },
       {
         "func": "func:src/gc.c:arena_try_alloc",
-        "loc": "src/gc.c:314",
-        "via": "reads"
-      },
-      {
-        "func": "func:src/gc.c:arena_try_alloc",
-        "loc": "src/gc.c:315",
-        "via": "reads"
-      },
-      {
-        "func": "func:src/gc.c:arena_try_alloc",
         "loc": "src/gc.c:316",
+        "via": "reads"
+      },
+      {
+        "func": "func:src/gc.c:arena_try_alloc",
+        "loc": "src/gc.c:317",
+        "via": "reads"
+      },
+      {
+        "func": "func:src/gc.c:arena_try_alloc",
+        "loc": "src/gc.c:318",
         "via": "writes"
       },
       {
         "func": "func:src/gc.c:default_oom",
-        "loc": "src/gc.c:200",
+        "loc": "src/gc.c:202",
         "via": "reads"
       },
       {
         "func": "func:src/gc.c:is_valid_heap_object",
-        "loc": "src/gc.c:238",
+        "loc": "src/gc.c:240",
         "via": "reads"
       },
       {
         "func": "func:src/gc.c:mark_drain_with_recovery",
-        "loc": "src/gc.c:749",
+        "loc": "src/gc.c:751",
         "via": "reads"
       }
     ]
@@ -3982,17 +3898,17 @@
     "sites": [
       {
         "func": "func:gc_allocate",
-        "loc": "src/gc.c:344",
+        "loc": "src/gc.c:346",
         "via": "reads"
       },
       {
         "func": "func:gc_collect",
-        "loc": "src/gc.c:834",
+        "loc": "src/gc.c:836",
         "via": "reads"
       },
       {
         "func": "func:gc_collect",
-        "loc": "src/gc.c:844",
+        "loc": "src/gc.c:846",
         "via": "reads"
       },
       {
@@ -4002,37 +3918,32 @@
       },
       {
         "func": "func:heap_init",
-        "loc": "src/gc.c:166",
+        "loc": "src/gc.c:168",
         "via": "writes"
       },
       {
         "func": "func:heap_init",
-        "loc": "src/gc.c:167",
+        "loc": "src/gc.c:169",
         "via": "reads"
       },
       {
         "func": "func:heap_init",
-        "loc": "src/gc.c:168",
+        "loc": "src/gc.c:170",
         "via": "reads"
       },
       {
         "func": "func:heap_init",
-        "loc": "src/gc.c:180",
+        "loc": "src/gc.c:182",
         "via": "reads"
       },
       {
         "func": "func:src/gc.c:bm_granule",
-        "loc": "src/gc.c:44",
+        "loc": "src/gc.c:46",
         "via": "reads"
       },
       {
         "func": "func:src/gc.c:default_oom",
-        "loc": "src/gc.c:200",
-        "via": "reads"
-      },
-      {
-        "func": "func:src/gc.c:is_valid_heap_object",
-        "loc": "src/gc.c:236",
+        "loc": "src/gc.c:202",
         "via": "reads"
       },
       {
@@ -4046,8 +3957,13 @@
         "via": "reads"
       },
       {
+        "func": "func:src/gc.c:is_valid_heap_object",
+        "loc": "src/gc.c:242",
+        "via": "reads"
+      },
+      {
         "func": "func:src/gc.c:mark_drain_with_recovery",
-        "loc": "src/gc.c:748",
+        "loc": "src/gc.c:750",
         "via": "reads"
       }
     ]
@@ -4632,7 +4548,7 @@
       },
       {
         "func": "func:heap_init",
-        "loc": "src/gc.c:170",
+        "loc": "src/gc.c:172",
         "via": "writes"
       },
       {
@@ -4642,27 +4558,27 @@
       },
       {
         "func": "func:src/gc.c:arena_try_alloc",
-        "loc": "src/gc.c:283",
+        "loc": "src/gc.c:285",
         "via": "writes"
       },
       {
         "func": "func:src/gc.c:arena_try_alloc",
-        "loc": "src/gc.c:328",
+        "loc": "src/gc.c:330",
         "via": "writes"
       },
       {
         "func": "func:src/gc.c:bin_note_pop",
-        "loc": "src/gc.c:74",
+        "loc": "src/gc.c:76",
         "via": "reads"
       },
       {
         "func": "func:src/gc.c:bin_push",
-        "loc": "src/gc.c:69",
+        "loc": "src/gc.c:71",
         "via": "reads"
       },
       {
         "func": "func:src/gc.c:bin_push",
-        "loc": "src/gc.c:70",
+        "loc": "src/gc.c:72",
         "via": "writes"
       }
     ]
@@ -5200,12 +5116,12 @@
       },
       {
         "func": "func:src/gc.c:scan_vm_stack",
-        "loc": "src/gc.c:782",
+        "loc": "src/gc.c:784",
         "via": "reads"
       },
       {
         "func": "func:src/gc.c:scan_vm_stack",
-        "loc": "src/gc.c:791",
+        "loc": "src/gc.c:793",
         "via": "reads"
       },
       {
@@ -5480,22 +5396,17 @@
     "sites": [
       {
         "func": "func:oevm_cheap_stats",
-        "loc": "src/gc.c:143",
+        "loc": "src/gc.c:145",
         "via": "reads"
       },
       {
         "func": "func:oevm_free",
-        "loc": "src/gc.c:120",
+        "loc": "src/gc.c:122",
         "via": "writes"
       },
       {
         "func": "func:oevm_free",
-        "loc": "src/gc.c:121",
-        "via": "writes"
-      },
-      {
-        "func": "func:oevm_malloc",
-        "loc": "src/gc.c:108",
+        "loc": "src/gc.c:123",
         "via": "writes"
       },
       {
@@ -5510,42 +5421,47 @@
       },
       {
         "func": "func:oevm_malloc",
-        "loc": "src/gc.c:113",
+        "loc": "src/gc.c:114",
         "via": "writes"
       },
       {
         "func": "func:oevm_malloc",
-        "loc": "src/gc.c:113",
-        "via": "reads"
-      },
-      {
-        "func": "func:oevm_realloc",
-        "loc": "src/gc.c:130",
+        "loc": "src/gc.c:115",
         "via": "writes"
       },
       {
-        "func": "func:oevm_realloc",
-        "loc": "src/gc.c:134",
+        "func": "func:oevm_malloc",
+        "loc": "src/gc.c:115",
         "via": "reads"
       },
       {
         "func": "func:oevm_realloc",
-        "loc": "src/gc.c:134",
-        "via": "writes"
-      },
-      {
-        "func": "func:oevm_realloc",
-        "loc": "src/gc.c:135",
-        "via": "reads"
-      },
-      {
-        "func": "func:oevm_realloc",
-        "loc": "src/gc.c:135",
+        "loc": "src/gc.c:132",
         "via": "writes"
       },
       {
         "func": "func:oevm_realloc",
         "loc": "src/gc.c:136",
+        "via": "reads"
+      },
+      {
+        "func": "func:oevm_realloc",
+        "loc": "src/gc.c:136",
+        "via": "writes"
+      },
+      {
+        "func": "func:oevm_realloc",
+        "loc": "src/gc.c:137",
+        "via": "reads"
+      },
+      {
+        "func": "func:oevm_realloc",
+        "loc": "src/gc.c:137",
+        "via": "writes"
+      },
+      {
+        "func": "func:oevm_realloc",
+        "loc": "src/gc.c:138",
         "via": "writes"
       }
     ]
@@ -5558,72 +5474,72 @@
     "sites": [
       {
         "func": "func:float_alloc",
-        "loc": "src/gc.c:425",
-        "via": "reads"
-      },
-      {
-        "func": "func:float_alloc",
-        "loc": "src/gc.c:426",
+        "loc": "src/gc.c:427",
         "via": "reads"
       },
       {
         "func": "func:float_alloc",
         "loc": "src/gc.c:428",
+        "via": "reads"
+      },
+      {
+        "func": "func:float_alloc",
+        "loc": "src/gc.c:430",
         "via": "writes"
-      },
-      {
-        "func": "func:float_alloc",
-        "loc": "src/gc.c:436",
-        "via": "reads"
-      },
-      {
-        "func": "func:float_alloc",
-        "loc": "src/gc.c:437",
-        "via": "reads"
       },
       {
         "func": "func:float_alloc",
         "loc": "src/gc.c:438",
+        "via": "reads"
+      },
+      {
+        "func": "func:float_alloc",
+        "loc": "src/gc.c:439",
+        "via": "reads"
+      },
+      {
+        "func": "func:float_alloc",
+        "loc": "src/gc.c:440",
         "via": "writes"
-      },
-      {
-        "func": "func:float_alloc",
-        "loc": "src/gc.c:468",
-        "via": "reads"
-      },
-      {
-        "func": "func:float_alloc",
-        "loc": "src/gc.c:469",
-        "via": "reads"
       },
       {
         "func": "func:float_alloc",
         "loc": "src/gc.c:470",
+        "via": "reads"
+      },
+      {
+        "func": "func:float_alloc",
+        "loc": "src/gc.c:471",
+        "via": "reads"
+      },
+      {
+        "func": "func:float_alloc",
+        "loc": "src/gc.c:472",
         "via": "writes"
       },
       {
         "func": "func:float_arena_free_count",
-        "loc": "src/gc.c:511",
+        "loc": "src/gc.c:513",
         "via": "reads"
       },
       {
         "func": "func:float_is_live",
-        "loc": "src/gc.c:519",
+        "loc": "src/gc.c:521",
         "via": "reads"
       },
       {
         "func": "func:src/gc.c:float_sweep",
-        "loc": "src/gc.c:561",
+        "loc": "src/gc.c:563",
         "via": "writes"
       },
       {
         "func": "func:src/gc.c:float_sweep",
-        "loc": "src/gc.c:570",
+        "loc": "src/gc.c:572",
         "via": "reads"
       },
       {
         "func": "func:src/gc.c:float_sweep",
-        "loc": "src/gc.c:571",
+        "loc": "src/gc.c:573",
         "via": "writes"
       }
     ]
@@ -5636,32 +5552,32 @@
     "sites": [
       {
         "func": "func:gc_collect",
-        "loc": "src/gc.c:841",
+        "loc": "src/gc.c:843",
         "via": "writes"
       },
       {
         "func": "func:gc_forensics",
-        "loc": "src/gc.c:728",
+        "loc": "src/gc.c:730",
         "via": "reads"
       },
       {
         "func": "func:src/gc.c:drain_mark_stack",
-        "loc": "src/gc.c:734",
+        "loc": "src/gc.c:736",
         "via": "reads"
       },
       {
         "func": "func:src/gc.c:drain_mark_stack",
-        "loc": "src/gc.c:735",
+        "loc": "src/gc.c:737",
         "via": "writes"
       },
       {
         "func": "func:src/gc.c:mark",
-        "loc": "src/gc.c:625",
+        "loc": "src/gc.c:627",
         "via": "reads"
       },
       {
         "func": "func:src/gc.c:mark",
-        "loc": "src/gc.c:626",
+        "loc": "src/gc.c:628",
         "via": "writes"
       }
     ]
@@ -5916,7 +5832,7 @@
       },
       {
         "func": "func:src/gc.c:trace_one",
-        "loc": "src/gc.c:702",
+        "loc": "src/gc.c:704",
         "via": "reads"
       }
     ]
@@ -5964,7 +5880,7 @@
       },
       {
         "func": "func:src/gc.c:trace_one",
-        "loc": "src/gc.c:685",
+        "loc": "src/gc.c:687",
         "via": "reads"
       },
       {
@@ -6141,22 +6057,22 @@
       },
       {
         "func": "func:src/gc.c:arena_try_alloc",
-        "loc": "src/gc.c:295",
+        "loc": "src/gc.c:297",
         "via": "reads"
       },
       {
         "func": "func:src/gc.c:arena_try_alloc",
-        "loc": "src/gc.c:296",
+        "loc": "src/gc.c:298",
         "via": "reads"
       },
       {
         "func": "func:src/gc.c:arena_try_alloc",
-        "loc": "src/gc.c:301",
+        "loc": "src/gc.c:303",
         "via": "writes"
       },
       {
         "func": "func:src/gc.c:arena_try_alloc",
-        "loc": "src/gc.c:304",
+        "loc": "src/gc.c:306",
         "via": "writes"
       }
     ]
@@ -6169,18 +6085,13 @@
     "sites": [
       {
         "func": "func:float_alloc",
-        "loc": "src/gc.c:481",
+        "loc": "src/gc.c:483",
         "via": "reads"
       },
       {
         "func": "func:float_alloc",
-        "loc": "src/gc.c:482",
+        "loc": "src/gc.c:484",
         "via": "writes"
-      },
-      {
-        "func": "func:float_alloc",
-        "loc": "src/gc.c:493",
-        "via": "reads"
       },
       {
         "func": "func:float_alloc",
@@ -6189,27 +6100,32 @@
       },
       {
         "func": "func:float_alloc",
-        "loc": "src/gc.c:496",
+        "loc": "src/gc.c:497",
+        "via": "reads"
+      },
+      {
+        "func": "func:float_alloc",
+        "loc": "src/gc.c:498",
         "via": "reads"
       },
       {
         "func": "func:src/gc.c:float_mark",
-        "loc": "src/gc.c:546",
+        "loc": "src/gc.c:548",
         "via": "reads"
       },
       {
         "func": "func:src/gc.c:float_sweep",
-        "loc": "src/gc.c:562",
+        "loc": "src/gc.c:564",
         "via": "reads"
       },
       {
         "func": "func:src/gc.c:float_sweep",
-        "loc": "src/gc.c:563",
+        "loc": "src/gc.c:565",
         "via": "reads"
       },
       {
         "func": "func:src/gc.c:is_in_float_arena",
-        "loc": "src/gc.c:531",
+        "loc": "src/gc.c:533",
         "via": "reads"
       }
     ]
@@ -6222,13 +6138,8 @@
     "sites": [
       {
         "func": "func:float_alloc",
-        "loc": "src/gc.c:432",
+        "loc": "src/gc.c:434",
         "via": "reads"
-      },
-      {
-        "func": "func:float_alloc",
-        "loc": "src/gc.c:433",
-        "via": "writes"
       },
       {
         "func": "func:float_alloc",
@@ -6237,13 +6148,13 @@
       },
       {
         "func": "func:float_alloc",
-        "loc": "src/gc.c:464",
-        "via": "reads"
+        "loc": "src/gc.c:437",
+        "via": "writes"
       },
       {
         "func": "func:float_alloc",
-        "loc": "src/gc.c:465",
-        "via": "writes"
+        "loc": "src/gc.c:466",
+        "via": "reads"
       },
       {
         "func": "func:float_alloc",
@@ -6251,19 +6162,19 @@
         "via": "writes"
       },
       {
-        "func": "func:gc_allocate",
-        "loc": "src/gc.c:353",
-        "via": "reads"
-      },
-      {
-        "func": "func:gc_allocate",
-        "loc": "src/gc.c:365",
-        "via": "reads"
-      },
-      {
-        "func": "func:gc_allocate",
-        "loc": "src/gc.c:366",
+        "func": "func:float_alloc",
+        "loc": "src/gc.c:469",
         "via": "writes"
+      },
+      {
+        "func": "func:gc_allocate",
+        "loc": "src/gc.c:355",
+        "via": "reads"
+      },
+      {
+        "func": "func:gc_allocate",
+        "loc": "src/gc.c:367",
+        "via": "reads"
       },
       {
         "func": "func:gc_allocate",
@@ -6271,8 +6182,13 @@
         "via": "writes"
       },
       {
+        "func": "func:gc_allocate",
+        "loc": "src/gc.c:370",
+        "via": "writes"
+      },
+      {
         "func": "func:gc_forensics",
-        "loc": "src/gc.c:727",
+        "loc": "src/gc.c:729",
         "via": "reads"
       }
     ]
@@ -6290,7 +6206,7 @@
       },
       {
         "func": "func:heap_init",
-        "loc": "src/gc.c:171",
+        "loc": "src/gc.c:173",
         "via": "writes"
       },
       {
@@ -6300,12 +6216,12 @@
       },
       {
         "func": "func:src/gc.c:heap_stats_on_alloc",
-        "loc": "src/gc.c:154",
+        "loc": "src/gc.c:156",
         "via": "writes"
       },
       {
         "func": "func:src/gc.c:heap_stats_on_alloc",
-        "loc": "src/gc.c:155",
+        "loc": "src/gc.c:157",
         "via": "reads"
       }
     ]
@@ -6318,27 +6234,27 @@
     "sites": [
       {
         "func": "func:gc_collect",
-        "loc": "src/gc.c:842",
+        "loc": "src/gc.c:844",
         "via": "writes"
       },
       {
         "func": "func:gc_forensics",
-        "loc": "src/gc.c:729",
+        "loc": "src/gc.c:731",
         "via": "reads"
       },
       {
         "func": "func:src/gc.c:mark",
-        "loc": "src/gc.c:628",
+        "loc": "src/gc.c:630",
         "via": "writes"
       },
       {
         "func": "func:src/gc.c:mark_drain_with_recovery",
-        "loc": "src/gc.c:746",
+        "loc": "src/gc.c:748",
         "via": "reads"
       },
       {
         "func": "func:src/gc.c:mark_drain_with_recovery",
-        "loc": "src/gc.c:747",
+        "loc": "src/gc.c:749",
         "via": "writes"
       }
     ]
@@ -6710,7 +6626,7 @@
     "sites": [
       {
         "func": "func:gc_collect",
-        "loc": "src/gc.c:869",
+        "loc": "src/gc.c:871",
         "via": "reads"
       },
       {
@@ -6748,7 +6664,7 @@
       },
       {
         "func": "func:src/gc.c:trace_one",
-        "loc": "src/gc.c:672",
+        "loc": "src/gc.c:674",
         "via": "reads"
       },
       {
@@ -6794,7 +6710,7 @@
     "sites": [
       {
         "func": "func:gc_collect",
-        "loc": "src/gc.c:876",
+        "loc": "src/gc.c:878",
         "via": "reads"
       },
       {
@@ -6880,12 +6796,12 @@
     "sites": [
       {
         "func": "func:oimg_load_blob",
-        "loc": "src/oimg_loader.c:202",
+        "loc": "src/oimg_loader.c:205",
         "via": "writes"
       },
       {
         "func": "func:oimg_load_blob",
-        "loc": "src/oimg_loader.c:232",
+        "loc": "src/oimg_loader.c:235",
         "via": "writes"
       },
       {
@@ -7148,17 +7064,17 @@
       },
       {
         "func": "func:src/gc.c:arena_try_alloc",
-        "loc": "src/gc.c:325",
+        "loc": "src/gc.c:327",
         "via": "reads"
       },
       {
         "func": "func:src/gc.c:bin_note_pop",
-        "loc": "src/gc.c:74",
+        "loc": "src/gc.c:76",
         "via": "writes"
       },
       {
         "func": "func:src/gc.c:bin_push",
-        "loc": "src/gc.c:71",
+        "loc": "src/gc.c:73",
         "via": "writes"
       }
     ]
@@ -7171,22 +7087,22 @@
     "sites": [
       {
         "func": "func:heap_init",
-        "loc": "src/gc.c:169",
+        "loc": "src/gc.c:171",
         "via": "writes"
       },
       {
         "func": "func:src/gc.c:bm_clear",
-        "loc": "src/gc.c:42",
+        "loc": "src/gc.c:44",
         "via": "writes"
       },
       {
         "func": "func:src/gc.c:bm_set",
-        "loc": "src/gc.c:41",
+        "loc": "src/gc.c:43",
         "via": "writes"
       },
       {
         "func": "func:src/gc.c:bm_test",
-        "loc": "src/gc.c:43",
+        "loc": "src/gc.c:45",
         "via": "reads"
       }
     ]
@@ -7199,12 +7115,12 @@
     "sites": [
       {
         "func": "func:heap_init",
-        "loc": "src/gc.c:168",
+        "loc": "src/gc.c:170",
         "via": "writes"
       },
       {
         "func": "func:heap_init",
-        "loc": "src/gc.c:180",
+        "loc": "src/gc.c:182",
         "via": "reads"
       },
       {
@@ -7214,7 +7130,7 @@
       },
       {
         "func": "func:src/gc.c:arena_try_alloc",
-        "loc": "src/gc.c:314",
+        "loc": "src/gc.c:316",
         "via": "reads"
       }
     ]
@@ -7227,7 +7143,7 @@
     "sites": [
       {
         "func": "func:heap_init",
-        "loc": "src/gc.c:172",
+        "loc": "src/gc.c:174",
         "via": "writes"
       },
       {
@@ -7237,12 +7153,12 @@
       },
       {
         "func": "func:src/gc.c:heap_stats_on_alloc",
-        "loc": "src/gc.c:155",
+        "loc": "src/gc.c:157",
         "via": "reads"
       },
       {
         "func": "func:src/gc.c:heap_stats_on_alloc",
-        "loc": "src/gc.c:155",
+        "loc": "src/gc.c:157",
         "via": "writes"
       }
     ]
@@ -7476,17 +7392,17 @@
     "sites": [
       {
         "func": "func:heap_init",
-        "loc": "src/gc.c:179",
-        "via": "reads"
-      },
-      {
-        "func": "func:heap_init",
         "loc": "src/gc.c:181",
         "via": "reads"
       },
       {
+        "func": "func:heap_init",
+        "loc": "src/gc.c:183",
+        "via": "reads"
+      },
+      {
         "func": "func:is_read_only",
-        "loc": "src/gc.c:227",
+        "loc": "src/gc.c:229",
         "via": "reads"
       },
       {
@@ -7504,17 +7420,17 @@
     "sites": [
       {
         "func": "func:heap_init",
-        "loc": "src/gc.c:179",
-        "via": "reads"
-      },
-      {
-        "func": "func:heap_init",
         "loc": "src/gc.c:181",
         "via": "reads"
       },
       {
+        "func": "func:heap_init",
+        "loc": "src/gc.c:183",
+        "via": "reads"
+      },
+      {
         "func": "func:is_read_only",
-        "loc": "src/gc.c:227",
+        "loc": "src/gc.c:229",
         "via": "reads"
       },
       {
@@ -7927,17 +7843,17 @@
     "sites": [
       {
         "func": "func:float_alloc",
-        "loc": "src/gc.c:490",
+        "loc": "src/gc.c:492",
         "via": "reads"
       },
       {
         "func": "func:float_alloc",
-        "loc": "src/gc.c:490",
+        "loc": "src/gc.c:492",
         "via": "writes"
       },
       {
         "func": "func:src/gc.c:is_in_float_arena",
-        "loc": "src/gc.c:530",
+        "loc": "src/gc.c:532",
         "via": "reads"
       }
     ]
@@ -7950,17 +7866,17 @@
     "sites": [
       {
         "func": "func:float_alloc",
-        "loc": "src/gc.c:489",
+        "loc": "src/gc.c:491",
         "via": "reads"
       },
       {
         "func": "func:float_alloc",
-        "loc": "src/gc.c:489",
+        "loc": "src/gc.c:491",
         "via": "writes"
       },
       {
         "func": "func:src/gc.c:is_in_float_arena",
-        "loc": "src/gc.c:530",
+        "loc": "src/gc.c:532",
         "via": "reads"
       }
     ]
@@ -7973,17 +7889,17 @@
     "sites": [
       {
         "func": "func:float_alloc",
-        "loc": "src/gc.c:432",
+        "loc": "src/gc.c:434",
         "via": "reads"
       },
       {
         "func": "func:float_alloc",
-        "loc": "src/gc.c:484",
+        "loc": "src/gc.c:486",
         "via": "writes"
       },
       {
         "func": "func:float_arena_slab_count",
-        "loc": "src/gc.c:504",
+        "loc": "src/gc.c:506",
         "via": "reads"
       }
     ]
@@ -7996,22 +7912,22 @@
     "sites": [
       {
         "func": "func:float_alloc",
-        "loc": "src/gc.c:430",
+        "loc": "src/gc.c:432",
         "via": "reads"
       },
       {
         "func": "func:float_alloc",
-        "loc": "src/gc.c:483",
+        "loc": "src/gc.c:485",
         "via": "writes"
       },
       {
         "func": "func:float_alloc",
-        "loc": "src/gc.c:493",
+        "loc": "src/gc.c:495",
         "via": "writes"
       },
       {
         "func": "func:src/gc.c:float_sweep",
-        "loc": "src/gc.c:563",
+        "loc": "src/gc.c:565",
         "via": "reads"
       }
     ]
@@ -8029,7 +7945,7 @@
       },
       {
         "func": "func:heap_init",
-        "loc": "src/gc.c:173",
+        "loc": "src/gc.c:175",
         "via": "writes"
       },
       {
@@ -8070,13 +7986,8 @@
     "sites": [
       {
         "func": "func:oimg_load_blob",
-        "loc": "src/oimg_loader.c:187",
+        "loc": "src/oimg_loader.c:190",
         "via": "writes"
-      },
-      {
-        "func": "func:oimg_load_blob",
-        "loc": "src/oimg_loader.c:192",
-        "via": "reads"
       },
       {
         "func": "func:oimg_load_blob",
@@ -8084,8 +7995,13 @@
         "via": "reads"
       },
       {
+        "func": "func:oimg_load_blob",
+        "loc": "src/oimg_loader.c:198",
+        "via": "reads"
+      },
+      {
         "func": "func:oimg_vtable_name",
-        "loc": "src/oimg_loader.c:245",
+        "loc": "src/oimg_loader.c:248",
         "via": "reads"
       }
     ]
@@ -8098,22 +8014,22 @@
     "sites": [
       {
         "func": "func:oimg_load_blob",
-        "loc": "src/oimg_loader.c:186",
+        "loc": "src/oimg_loader.c:189",
         "via": "writes"
       },
       {
         "func": "func:oimg_load_blob",
-        "loc": "src/oimg_loader.c:193",
+        "loc": "src/oimg_loader.c:196",
         "via": "reads"
       },
       {
         "func": "func:oimg_load_blob",
-        "loc": "src/oimg_loader.c:194",
+        "loc": "src/oimg_loader.c:197",
         "via": "reads"
       },
       {
         "func": "func:oimg_vtable_name",
-        "loc": "src/oimg_loader.c:244",
+        "loc": "src/oimg_loader.c:247",
         "via": "reads"
       }
     ]
@@ -8431,17 +8347,17 @@
     "sites": [
       {
         "func": "func:zephyr/src/observer.c:obs_trace_record",
-        "loc": "zephyr/src/observer.c:108",
+        "loc": "zephyr/src/observer.c:105",
         "via": "reads"
       },
       {
         "func": "func:zephyr/src/observer.c:observer_dump",
-        "loc": "zephyr/src/observer.c:319",
+        "loc": "zephyr/src/observer.c:316",
         "via": "reads"
       },
       {
         "func": "func:zephyr/src/observer.c:observer_verdict",
-        "loc": "zephyr/src/observer.c:150",
+        "loc": "zephyr/src/observer.c:147",
         "via": "writes"
       }
     ]
@@ -8454,32 +8370,32 @@
     "sites": [
       {
         "func": "func:observer_halt",
-        "loc": "zephyr/src/observer.c:336",
+        "loc": "zephyr/src/observer.c:333",
         "via": "reads"
       },
       {
         "func": "func:observer_start",
-        "loc": "zephyr/src/observer.c:398",
+        "loc": "zephyr/src/observer.c:395",
         "via": "writes"
       },
       {
         "func": "func:observer_start",
-        "loc": "zephyr/src/observer.c:399",
+        "loc": "zephyr/src/observer.c:396",
         "via": "reads"
       },
       {
         "func": "func:observer_start",
-        "loc": "zephyr/src/observer.c:399",
+        "loc": "zephyr/src/observer.c:396",
         "via": "writes"
       },
       {
         "func": "func:observer_start",
-        "loc": "zephyr/src/observer.c:403",
+        "loc": "zephyr/src/observer.c:400",
         "via": "reads"
       },
       {
         "func": "func:observer_start",
-        "loc": "zephyr/src/observer.c:417",
+        "loc": "zephyr/src/observer.c:414",
         "via": "reads"
       }
     ]
@@ -8492,22 +8408,22 @@
     "sites": [
       {
         "func": "func:zephyr/src/observer.c:obs_trace_dump",
-        "loc": "zephyr/src/observer.c:113",
+        "loc": "zephyr/src/observer.c:110",
         "via": "reads"
       },
       {
         "func": "func:zephyr/src/observer.c:obs_trace_dump",
-        "loc": "zephyr/src/observer.c:114",
+        "loc": "zephyr/src/observer.c:111",
         "via": "reads"
       },
       {
         "func": "func:zephyr/src/observer.c:obs_trace_record",
-        "loc": "zephyr/src/observer.c:104",
+        "loc": "zephyr/src/observer.c:101",
         "via": "reads"
       },
       {
         "func": "func:zephyr/src/observer.c:obs_trace_record",
-        "loc": "zephyr/src/observer.c:109",
+        "loc": "zephyr/src/observer.c:106",
         "via": "writes"
       }
     ]
@@ -8792,7 +8708,7 @@
       },
       {
         "func": "func:gc_temp_root_push",
-        "loc": "src/gc.c:818",
+        "loc": "src/gc.c:820",
         "via": "writes"
       }
     ]
@@ -9591,17 +9507,17 @@
     "sites": [
       {
         "func": "func:gc_allocate",
-        "loc": "src/gc.c:351",
+        "loc": "src/gc.c:353",
         "via": "reads"
       },
       {
         "func": "func:gc_allocate",
-        "loc": "src/gc.c:352",
+        "loc": "src/gc.c:354",
         "via": "writes"
       },
       {
         "func": "func:gc_allocate",
-        "loc": "src/gc.c:353",
+        "loc": "src/gc.c:355",
         "via": "reads"
       }
     ]
@@ -9614,12 +9530,12 @@
     "sites": [
       {
         "func": "func:src/gc.c:drain_mark_stack",
-        "loc": "src/gc.c:735",
+        "loc": "src/gc.c:737",
         "via": "reads"
       },
       {
         "func": "func:src/gc.c:mark",
-        "loc": "src/gc.c:626",
+        "loc": "src/gc.c:628",
         "via": "writes"
       }
     ]
@@ -9719,12 +9635,12 @@
     "sites": [
       {
         "func": "func:oimg_bootstrap",
-        "loc": "src/oimg_loader.c:299",
+        "loc": "src/oimg_loader.c:302",
         "via": "reads"
       },
       {
         "func": "func:oimg_load_blob",
-        "loc": "src/oimg_loader.c:174",
+        "loc": "src/oimg_loader.c:177",
         "via": "writes"
       }
     ]
@@ -9737,22 +9653,22 @@
     "sites": [
       {
         "func": "func:oimg_bootstrap",
-        "loc": "src/oimg_loader.c:307",
+        "loc": "src/oimg_loader.c:310",
         "via": "reads"
       },
       {
         "func": "func:oimg_bootstrap",
-        "loc": "src/oimg_loader.c:311",
+        "loc": "src/oimg_loader.c:313",
         "via": "reads"
       },
       {
         "func": "func:oimg_bootstrap",
-        "loc": "src/oimg_loader.c:320",
+        "loc": "src/oimg_loader.c:321",
         "via": "reads"
       },
       {
         "func": "func:oimg_load_blob",
-        "loc": "src/oimg_loader.c:173",
+        "loc": "src/oimg_loader.c:176",
         "via": "writes"
       }
     ]
@@ -9765,12 +9681,12 @@
     "sites": [
       {
         "func": "func:oimg_bootstrap",
-        "loc": "src/oimg_loader.c:320",
+        "loc": "src/oimg_loader.c:321",
         "via": "reads"
       },
       {
         "func": "func:oimg_load_blob",
-        "loc": "src/oimg_loader.c:171",
+        "loc": "src/oimg_loader.c:174",
         "via": "writes"
       }
     ]
@@ -9783,12 +9699,12 @@
     "sites": [
       {
         "func": "func:oimg_bootstrap",
-        "loc": "src/oimg_loader.c:296",
+        "loc": "src/oimg_loader.c:299",
         "via": "reads"
       },
       {
         "func": "func:oimg_load_blob",
-        "loc": "src/oimg_loader.c:178",
+        "loc": "src/oimg_loader.c:181",
         "via": "writes"
       }
     ]
@@ -9801,12 +9717,12 @@
     "sites": [
       {
         "func": "func:oimg_bootstrap",
-        "loc": "src/oimg_loader.c:293",
+        "loc": "src/oimg_loader.c:296",
         "via": "reads"
       },
       {
         "func": "func:oimg_load_blob",
-        "loc": "src/oimg_loader.c:179",
+        "loc": "src/oimg_loader.c:182",
         "via": "writes"
       }
     ]
@@ -9819,12 +9735,12 @@
     "sites": [
       {
         "func": "func:oimg_kernel_vtable",
-        "loc": "src/oimg_loader.c:278",
+        "loc": "src/oimg_loader.c:281",
         "via": "reads"
       },
       {
         "func": "func:oimg_load_blob",
-        "loc": "src/oimg_loader.c:177",
+        "loc": "src/oimg_loader.c:180",
         "via": "writes"
       }
     ]
@@ -9842,7 +9758,7 @@
       },
       {
         "func": "func:oimg_load_blob",
-        "loc": "src/oimg_loader.c:172",
+        "loc": "src/oimg_loader.c:175",
         "via": "writes"
       }
     ]
@@ -9855,22 +9771,22 @@
     "sites": [
       {
         "func": "func:oimg_load_blob",
-        "loc": "src/oimg_loader.c:189",
+        "loc": "src/oimg_loader.c:192",
         "via": "writes"
       },
       {
         "func": "func:oimg_load_blob",
-        "loc": "src/oimg_loader.c:209",
+        "loc": "src/oimg_loader.c:212",
         "via": "reads"
       },
       {
         "func": "func:oimg_load_blob",
-        "loc": "src/oimg_loader.c:211",
+        "loc": "src/oimg_loader.c:214",
         "via": "reads"
       },
       {
         "func": "func:oimg_load_blob",
-        "loc": "src/oimg_loader.c:215",
+        "loc": "src/oimg_loader.c:218",
         "via": "reads"
       }
     ]
@@ -9883,17 +9799,17 @@
     "sites": [
       {
         "func": "func:oimg_load_blob",
-        "loc": "src/oimg_loader.c:188",
+        "loc": "src/oimg_loader.c:191",
         "via": "writes"
       },
       {
         "func": "func:oimg_load_blob",
-        "loc": "src/oimg_loader.c:208",
+        "loc": "src/oimg_loader.c:211",
         "via": "reads"
       },
       {
         "func": "func:oimg_load_blob",
-        "loc": "src/oimg_loader.c:210",
+        "loc": "src/oimg_loader.c:213",
         "via": "reads"
       }
     ]
@@ -9906,17 +9822,17 @@
     "sites": [
       {
         "func": "func:oimg_bootstrap",
-        "loc": "src/oimg_loader.c:311",
+        "loc": "src/oimg_loader.c:313",
         "via": "reads"
       },
       {
         "func": "func:oimg_bootstrap",
-        "loc": "src/oimg_loader.c:316",
+        "loc": "src/oimg_loader.c:317",
         "via": "reads"
       },
       {
         "func": "func:oimg_load_blob",
-        "loc": "src/oimg_loader.c:185",
+        "loc": "src/oimg_loader.c:188",
         "via": "writes"
       }
     ]
@@ -9929,12 +9845,12 @@
     "sites": [
       {
         "func": "func:oimg_load_blob",
-        "loc": "src/oimg_loader.c:170",
+        "loc": "src/oimg_loader.c:173",
         "via": "writes"
       },
       {
         "func": "func:oimg_root",
-        "loc": "src/oimg_loader.c:272",
+        "loc": "src/oimg_loader.c:275",
         "via": "reads"
       }
     ]
@@ -9947,17 +9863,17 @@
     "sites": [
       {
         "func": "func:oimg_bootstrap",
-        "loc": "src/oimg_loader.c:307",
-        "via": "reads"
-      },
-      {
-        "func": "func:oimg_bootstrap",
         "loc": "src/oimg_loader.c:310",
         "via": "reads"
       },
       {
+        "func": "func:oimg_bootstrap",
+        "loc": "src/oimg_loader.c:312",
+        "via": "reads"
+      },
+      {
         "func": "func:oimg_load_blob",
-        "loc": "src/oimg_loader.c:180",
+        "loc": "src/oimg_loader.c:183",
         "via": "writes"
       }
     ]
@@ -9975,7 +9891,7 @@
       },
       {
         "func": "func:oimg_load_blob",
-        "loc": "src/oimg_loader.c:182",
+        "loc": "src/oimg_loader.c:185",
         "via": "writes"
       }
     ]
@@ -9993,7 +9909,7 @@
       },
       {
         "func": "func:oimg_load_blob",
-        "loc": "src/oimg_loader.c:184",
+        "loc": "src/oimg_loader.c:187",
         "via": "writes"
       }
     ]
@@ -10011,7 +9927,7 @@
       },
       {
         "func": "func:oimg_load_blob",
-        "loc": "src/oimg_loader.c:183",
+        "loc": "src/oimg_loader.c:186",
         "via": "writes"
       }
     ]
@@ -10024,7 +9940,7 @@
     "sites": [
       {
         "func": "func:oimg_bootstrap",
-        "loc": "src/oimg_loader.c:328",
+        "loc": "src/oimg_loader.c:329",
         "via": "reads"
       },
       {
@@ -10034,7 +9950,7 @@
       },
       {
         "func": "func:oimg_load_blob",
-        "loc": "src/oimg_loader.c:181",
+        "loc": "src/oimg_loader.c:184",
         "via": "writes"
       }
     ]
@@ -10377,12 +10293,12 @@
     "sites": [
       {
         "func": "func:zephyr/src/observer.c:obs_trace_dump",
-        "loc": "zephyr/src/observer.c:118",
+        "loc": "zephyr/src/observer.c:115",
         "via": "writes"
       },
       {
         "func": "func:zephyr/src/observer.c:obs_trace_record",
-        "loc": "zephyr/src/observer.c:104",
+        "loc": "zephyr/src/observer.c:101",
         "via": "writes"
       }
     ]
@@ -10395,12 +10311,12 @@
     "sites": [
       {
         "func": "func:zephyr/src/observer.c:observer_thread_fn",
-        "loc": "zephyr/src/observer.c:347",
+        "loc": "zephyr/src/observer.c:344",
         "via": "writes"
       },
       {
         "func": "func:zephyr/src/observer.c:observer_thread_fn",
-        "loc": "zephyr/src/observer.c:371",
+        "loc": "zephyr/src/observer.c:368",
         "via": "reads"
       }
     ]
@@ -10413,12 +10329,12 @@
     "sites": [
       {
         "func": "func:oimg_load_blob",
-        "loc": "src/oimg_loader.c:158",
+        "loc": "src/oimg_loader.c:161",
         "via": "reads"
       },
       {
         "func": "func:oimg_load_blob",
-        "loc": "src/oimg_loader.c:160",
+        "loc": "src/oimg_loader.c:163",
         "via": "reads"
       }
     ]
@@ -10600,7 +10516,7 @@
     "sites": [
       {
         "func": "func:observer_start",
-        "loc": "zephyr/src/observer.c:398",
+        "loc": "zephyr/src/observer.c:395",
         "via": "writes"
       }
     ]
@@ -10639,7 +10555,7 @@
     "sites": [
       {
         "func": "func:observer_start",
-        "loc": "zephyr/src/observer.c:418",
+        "loc": "zephyr/src/observer.c:415",
         "via": "writes"
       }
     ]
@@ -10711,7 +10627,7 @@
     "sites": [
       {
         "func": "func:gc_allocate",
-        "loc": "src/gc.c:374",
+        "loc": "src/gc.c:376",
         "via": "reads"
       }
     ]
@@ -10830,7 +10746,7 @@
     "sites": [
       {
         "func": "func:heap_init",
-        "loc": "src/gc.c:166",
+        "loc": "src/gc.c:168",
         "via": "writes"
       }
     ]
@@ -11355,12 +11271,12 @@
     "sites": [
       {
         "func": "func:observer_start",
-        "loc": "zephyr/src/observer.c:418",
+        "loc": "zephyr/src/observer.c:415",
         "via": "writes"
       },
       {
         "func": "func:observer_start",
-        "loc": "zephyr/src/observer.c:422",
+        "loc": "zephyr/src/observer.c:419",
         "via": "writes"
       }
     ]
@@ -11491,12 +11407,12 @@
     "sites": [
       {
         "func": "func:zephyr/src/observer.c:observer_verdict",
-        "loc": "zephyr/src/observer.c:148",
+        "loc": "zephyr/src/observer.c:145",
         "via": "zephyr/src"
       },
       {
         "func": "func:zephyr/src/observer.c:observer_dump",
-        "loc": "zephyr/src/observer.c:320",
+        "loc": "zephyr/src/observer.c:317",
         "via": "zephyr/src"
       }
     ]
@@ -12265,11 +12181,11 @@
       },
       {
         "func": "func:gc_temp_root_push",
-        "loc": "src/gc.c:818"
+        "loc": "src/gc.c:820"
       },
       {
         "func": "func:gc_temp_roots_clear",
-        "loc": "src/gc.c:828"
+        "loc": "src/gc.c:830"
       },
       {
         "func": "func:platform_dispatch",
@@ -12501,15 +12417,11 @@
     "sites": [
       {
         "func": "func:oevm_free",
-        "loc": "src/gc.c:120"
+        "loc": "src/gc.c:122"
       },
       {
         "func": "func:oevm_free",
-        "loc": "src/gc.c:121"
-      },
-      {
-        "func": "func:oevm_malloc",
-        "loc": "src/gc.c:108"
+        "loc": "src/gc.c:123"
       },
       {
         "func": "func:oevm_malloc",
@@ -12521,23 +12433,27 @@
       },
       {
         "func": "func:oevm_malloc",
-        "loc": "src/gc.c:113"
+        "loc": "src/gc.c:114"
+      },
+      {
+        "func": "func:oevm_malloc",
+        "loc": "src/gc.c:115"
       },
       {
         "func": "func:oevm_realloc",
-        "loc": "src/gc.c:130"
-      },
-      {
-        "func": "func:oevm_realloc",
-        "loc": "src/gc.c:134"
-      },
-      {
-        "func": "func:oevm_realloc",
-        "loc": "src/gc.c:135"
+        "loc": "src/gc.c:132"
       },
       {
         "func": "func:oevm_realloc",
         "loc": "src/gc.c:136"
+      },
+      {
+        "func": "func:oevm_realloc",
+        "loc": "src/gc.c:137"
+      },
+      {
+        "func": "func:oevm_realloc",
+        "loc": "src/gc.c:138"
       }
     ]
   },
@@ -12945,27 +12861,27 @@
     "sites": [
       {
         "func": "func:float_alloc",
-        "loc": "src/gc.c:433"
-      },
-      {
-        "func": "func:float_alloc",
         "loc": "src/gc.c:435"
       },
       {
         "func": "func:float_alloc",
-        "loc": "src/gc.c:465"
+        "loc": "src/gc.c:437"
       },
       {
         "func": "func:float_alloc",
         "loc": "src/gc.c:467"
       },
       {
-        "func": "func:gc_allocate",
-        "loc": "src/gc.c:366"
+        "func": "func:float_alloc",
+        "loc": "src/gc.c:469"
       },
       {
         "func": "func:gc_allocate",
         "loc": "src/gc.c:368"
+      },
+      {
+        "func": "func:gc_allocate",
+        "loc": "src/gc.c:370"
       }
     ]
   },
@@ -13033,23 +12949,23 @@
     "sites": [
       {
         "func": "func:float_alloc",
-        "loc": "src/gc.c:428"
+        "loc": "src/gc.c:430"
       },
       {
         "func": "func:float_alloc",
-        "loc": "src/gc.c:438"
+        "loc": "src/gc.c:440"
       },
       {
         "func": "func:float_alloc",
-        "loc": "src/gc.c:470"
+        "loc": "src/gc.c:472"
       },
       {
         "func": "func:src/gc.c:float_sweep",
-        "loc": "src/gc.c:561"
+        "loc": "src/gc.c:563"
       },
       {
         "func": "func:src/gc.c:float_sweep",
-        "loc": "src/gc.c:571"
+        "loc": "src/gc.c:573"
       }
     ]
   },
@@ -13065,19 +12981,19 @@
       },
       {
         "func": "func:heap_init",
-        "loc": "src/gc.c:170"
+        "loc": "src/gc.c:172"
       },
       {
         "func": "func:src/gc.c:arena_try_alloc",
-        "loc": "src/gc.c:283"
+        "loc": "src/gc.c:285"
       },
       {
         "func": "func:src/gc.c:arena_try_alloc",
-        "loc": "src/gc.c:328"
+        "loc": "src/gc.c:330"
       },
       {
         "func": "func:src/gc.c:bin_push",
-        "loc": "src/gc.c:70"
+        "loc": "src/gc.c:72"
       }
     ]
   },
@@ -13253,11 +13169,11 @@
       },
       {
         "func": "func:src/gc.c:arena_try_alloc",
-        "loc": "src/gc.c:301"
+        "loc": "src/gc.c:303"
       },
       {
         "func": "func:src/gc.c:arena_try_alloc",
-        "loc": "src/gc.c:304"
+        "loc": "src/gc.c:306"
       }
     ]
   },
@@ -13637,11 +13553,11 @@
       },
       {
         "func": "func:src/gc.c:bin_note_pop",
-        "loc": "src/gc.c:74"
+        "loc": "src/gc.c:76"
       },
       {
         "func": "func:src/gc.c:bin_push",
-        "loc": "src/gc.c:71"
+        "loc": "src/gc.c:73"
       }
     ]
   },
@@ -13653,15 +13569,15 @@
     "sites": [
       {
         "func": "func:heap_init",
-        "loc": "src/gc.c:169"
+        "loc": "src/gc.c:171"
       },
       {
         "func": "func:src/gc.c:bm_clear",
-        "loc": "src/gc.c:42"
+        "loc": "src/gc.c:44"
       },
       {
         "func": "func:src/gc.c:bm_set",
-        "loc": "src/gc.c:41"
+        "loc": "src/gc.c:43"
       }
     ]
   },
@@ -13677,11 +13593,11 @@
       },
       {
         "func": "func:heap_init",
-        "loc": "src/gc.c:171"
+        "loc": "src/gc.c:173"
       },
       {
         "func": "func:src/gc.c:heap_stats_on_alloc",
-        "loc": "src/gc.c:154"
+        "loc": "src/gc.c:156"
       }
     ]
   },
@@ -13697,11 +13613,11 @@
       },
       {
         "func": "func:heap_init",
-        "loc": "src/gc.c:167"
+        "loc": "src/gc.c:169"
       },
       {
         "func": "func:src/gc.c:arena_try_alloc",
-        "loc": "src/gc.c:316"
+        "loc": "src/gc.c:318"
       }
     ]
   },
@@ -13713,15 +13629,15 @@
     "sites": [
       {
         "func": "func:gc_collect",
-        "loc": "src/gc.c:842"
+        "loc": "src/gc.c:844"
       },
       {
         "func": "func:src/gc.c:mark",
-        "loc": "src/gc.c:628"
+        "loc": "src/gc.c:630"
       },
       {
         "func": "func:src/gc.c:mark_drain_with_recovery",
-        "loc": "src/gc.c:747"
+        "loc": "src/gc.c:749"
       }
     ]
   },
@@ -13733,15 +13649,15 @@
     "sites": [
       {
         "func": "func:gc_collect",
-        "loc": "src/gc.c:841"
+        "loc": "src/gc.c:843"
       },
       {
         "func": "func:src/gc.c:drain_mark_stack",
-        "loc": "src/gc.c:735"
+        "loc": "src/gc.c:737"
       },
       {
         "func": "func:src/gc.c:mark",
-        "loc": "src/gc.c:626"
+        "loc": "src/gc.c:628"
       }
     ]
   },
@@ -14089,11 +14005,11 @@
     "sites": [
       {
         "func": "func:oimg_load_blob",
-        "loc": "src/oimg_loader.c:201"
+        "loc": "src/oimg_loader.c:204"
       },
       {
         "func": "func:oimg_load_blob",
-        "loc": "src/oimg_loader.c:232"
+        "loc": "src/oimg_loader.c:235"
       }
     ]
   },
@@ -14105,11 +14021,11 @@
     "sites": [
       {
         "func": "func:oimg_load_blob",
-        "loc": "src/oimg_loader.c:202"
+        "loc": "src/oimg_loader.c:205"
       },
       {
         "func": "func:oimg_load_blob",
-        "loc": "src/oimg_loader.c:232"
+        "loc": "src/oimg_loader.c:235"
       }
     ]
   },
@@ -14361,11 +14277,11 @@
     "sites": [
       {
         "func": "func:float_alloc",
-        "loc": "src/gc.c:483"
+        "loc": "src/gc.c:485"
       },
       {
         "func": "func:float_alloc",
-        "loc": "src/gc.c:493"
+        "loc": "src/gc.c:495"
       }
     ]
   },
@@ -14381,7 +14297,7 @@
       },
       {
         "func": "func:heap_init",
-        "loc": "src/gc.c:173"
+        "loc": "src/gc.c:175"
       }
     ]
   },
@@ -14393,11 +14309,11 @@
     "sites": [
       {
         "func": "func:heap_init",
-        "loc": "src/gc.c:172"
+        "loc": "src/gc.c:174"
       },
       {
         "func": "func:src/gc.c:heap_stats_on_alloc",
-        "loc": "src/gc.c:155"
+        "loc": "src/gc.c:157"
       }
     ]
   },
@@ -14697,11 +14613,11 @@
     "sites": [
       {
         "func": "func:observer_start",
-        "loc": "zephyr/src/observer.c:398"
+        "loc": "zephyr/src/observer.c:395"
       },
       {
         "func": "func:observer_start",
-        "loc": "zephyr/src/observer.c:399"
+        "loc": "zephyr/src/observer.c:396"
       }
     ]
   },
@@ -14713,11 +14629,11 @@
     "sites": [
       {
         "func": "func:zephyr/src/observer.c:obs_trace_dump",
-        "loc": "zephyr/src/observer.c:118"
+        "loc": "zephyr/src/observer.c:115"
       },
       {
         "func": "func:zephyr/src/observer.c:obs_trace_record",
-        "loc": "zephyr/src/observer.c:104"
+        "loc": "zephyr/src/observer.c:101"
       }
     ]
   },
@@ -14729,11 +14645,11 @@
     "sites": [
       {
         "func": "func:observer_start",
-        "loc": "zephyr/src/observer.c:418"
+        "loc": "zephyr/src/observer.c:415"
       },
       {
         "func": "func:observer_start",
-        "loc": "zephyr/src/observer.c:422"
+        "loc": "zephyr/src/observer.c:419"
       }
     ]
   },
@@ -14822,11 +14738,11 @@
       },
       {
         "func": "func:gc_temp_root_push",
-        "loc": "src/gc.c:818"
+        "loc": "src/gc.c:820"
       },
       {
         "func": "func:gc_temp_roots_clear",
-        "loc": "src/gc.c:828"
+        "loc": "src/gc.c:830"
       },
       {
         "func": "func:platform_dispatch",
@@ -15146,22 +15062,12 @@
     "sites": [
       {
         "func": "func:gc_collect",
-        "loc": "src/gc.c:842"
+        "loc": "src/gc.c:844"
       },
       {
         "func": "func:gc_collect",
-        "loc": "src/gc.c:853",
+        "loc": "src/gc.c:855",
         "via": "calls scan_vm_stack"
-      },
-      {
-        "func": "func:gc_collect",
-        "loc": "src/gc.c:867",
-        "via": "calls mark"
-      },
-      {
-        "func": "func:gc_collect",
-        "loc": "src/gc.c:868",
-        "via": "calls mark"
       },
       {
         "func": "func:gc_collect",
@@ -15201,6 +15107,16 @@
       {
         "func": "func:gc_collect",
         "loc": "src/gc.c:876",
+        "via": "calls mark"
+      },
+      {
+        "func": "func:gc_collect",
+        "loc": "src/gc.c:877",
+        "via": "calls mark"
+      },
+      {
+        "func": "func:gc_collect",
+        "loc": "src/gc.c:878",
         "via": "calls mark"
       },
       {
@@ -15260,85 +15176,80 @@
       },
       {
         "func": "func:mark_object",
-        "loc": "src/gc.c:800",
+        "loc": "src/gc.c:802",
         "via": "calls mark"
       },
       {
         "func": "func:src/gc.c:drain_mark_stack",
-        "loc": "src/gc.c:736",
+        "loc": "src/gc.c:738",
         "via": "calls trace_one"
       },
       {
         "func": "func:src/gc.c:mark",
-        "loc": "src/gc.c:628"
+        "loc": "src/gc.c:630"
       },
       {
         "func": "func:src/gc.c:mark_drain_with_recovery",
-        "loc": "src/gc.c:745",
+        "loc": "src/gc.c:747",
         "via": "calls drain_mark_stack"
       },
       {
         "func": "func:src/gc.c:mark_drain_with_recovery",
-        "loc": "src/gc.c:747"
+        "loc": "src/gc.c:749"
       },
       {
         "func": "func:src/gc.c:mark_drain_with_recovery",
-        "loc": "src/gc.c:751",
+        "loc": "src/gc.c:753",
         "via": "calls trace_one"
       },
       {
         "func": "func:src/gc.c:mark_drain_with_recovery",
-        "loc": "src/gc.c:754",
+        "loc": "src/gc.c:756",
         "via": "calls drain_mark_stack"
       },
       {
         "func": "func:src/gc.c:scan_vm_stack",
-        "loc": "src/gc.c:772",
+        "loc": "src/gc.c:774",
         "via": "calls mark"
       },
       {
         "func": "func:src/gc.c:scan_vm_stack",
-        "loc": "src/gc.c:773",
+        "loc": "src/gc.c:775",
         "via": "calls mark"
       },
       {
         "func": "func:src/gc.c:scan_vm_stack",
-        "loc": "src/gc.c:787",
+        "loc": "src/gc.c:789",
         "via": "calls mark"
       },
       {
         "func": "func:src/gc.c:trace_object",
-        "loc": "src/gc.c:597",
+        "loc": "src/gc.c:599",
         "via": "calls mark"
       },
       {
         "func": "func:src/gc.c:trace_one",
-        "loc": "src/gc.c:647",
+        "loc": "src/gc.c:649",
         "via": "calls mark"
       },
       {
         "func": "func:src/gc.c:trace_one",
-        "loc": "src/gc.c:650",
+        "loc": "src/gc.c:652",
         "via": "calls mark"
       },
       {
         "func": "func:src/gc.c:trace_one",
-        "loc": "src/gc.c:651",
+        "loc": "src/gc.c:653",
         "via": "calls mark"
       },
       {
         "func": "func:src/gc.c:trace_one",
-        "loc": "src/gc.c:655",
+        "loc": "src/gc.c:657",
         "via": "calls mark"
       },
       {
         "func": "func:src/gc.c:trace_one",
-        "loc": "src/gc.c:662",
-        "via": "calls mark"
-      },
-      {
-        "func": "func:src/gc.c:trace_one",
-        "loc": "src/gc.c:669",
+        "loc": "src/gc.c:664",
         "via": "calls mark"
       },
       {
@@ -15348,32 +15259,27 @@
       },
       {
         "func": "func:src/gc.c:trace_one",
-        "loc": "src/gc.c:684",
+        "loc": "src/gc.c:673",
         "via": "calls mark"
       },
       {
         "func": "func:src/gc.c:trace_one",
-        "loc": "src/gc.c:691",
+        "loc": "src/gc.c:686",
         "via": "calls mark"
       },
       {
         "func": "func:src/gc.c:trace_one",
-        "loc": "src/gc.c:692",
+        "loc": "src/gc.c:693",
         "via": "calls mark"
       },
       {
         "func": "func:src/gc.c:trace_one",
-        "loc": "src/gc.c:696",
+        "loc": "src/gc.c:694",
         "via": "calls mark"
       },
       {
         "func": "func:src/gc.c:trace_one",
-        "loc": "src/gc.c:710",
-        "via": "calls mark"
-      },
-      {
-        "func": "func:src/gc.c:trace_one",
-        "loc": "src/gc.c:711",
+        "loc": "src/gc.c:698",
         "via": "calls mark"
       },
       {
@@ -15383,7 +15289,17 @@
       },
       {
         "func": "func:src/gc.c:trace_one",
-        "loc": "src/gc.c:716",
+        "loc": "src/gc.c:713",
+        "via": "calls mark"
+      },
+      {
+        "func": "func:src/gc.c:trace_one",
+        "loc": "src/gc.c:714",
+        "via": "calls mark"
+      },
+      {
+        "func": "func:src/gc.c:trace_one",
+        "loc": "src/gc.c:718",
         "via": "calls trace_object"
       }
     ]
@@ -15396,22 +15312,12 @@
     "sites": [
       {
         "func": "func:gc_collect",
-        "loc": "src/gc.c:841"
+        "loc": "src/gc.c:843"
       },
       {
         "func": "func:gc_collect",
-        "loc": "src/gc.c:853",
+        "loc": "src/gc.c:855",
         "via": "calls scan_vm_stack"
-      },
-      {
-        "func": "func:gc_collect",
-        "loc": "src/gc.c:867",
-        "via": "calls mark"
-      },
-      {
-        "func": "func:gc_collect",
-        "loc": "src/gc.c:868",
-        "via": "calls mark"
       },
       {
         "func": "func:gc_collect",
@@ -15451,6 +15357,16 @@
       {
         "func": "func:gc_collect",
         "loc": "src/gc.c:876",
+        "via": "calls mark"
+      },
+      {
+        "func": "func:gc_collect",
+        "loc": "src/gc.c:877",
+        "via": "calls mark"
+      },
+      {
+        "func": "func:gc_collect",
+        "loc": "src/gc.c:878",
         "via": "calls mark"
       },
       {
@@ -15510,85 +15426,80 @@
       },
       {
         "func": "func:mark_object",
-        "loc": "src/gc.c:800",
+        "loc": "src/gc.c:802",
         "via": "calls mark"
       },
       {
         "func": "func:src/gc.c:drain_mark_stack",
-        "loc": "src/gc.c:735"
+        "loc": "src/gc.c:737"
       },
       {
         "func": "func:src/gc.c:drain_mark_stack",
-        "loc": "src/gc.c:736",
+        "loc": "src/gc.c:738",
         "via": "calls trace_one"
       },
       {
         "func": "func:src/gc.c:mark",
-        "loc": "src/gc.c:626"
+        "loc": "src/gc.c:628"
       },
       {
         "func": "func:src/gc.c:mark_drain_with_recovery",
-        "loc": "src/gc.c:745",
+        "loc": "src/gc.c:747",
         "via": "calls drain_mark_stack"
       },
       {
         "func": "func:src/gc.c:mark_drain_with_recovery",
-        "loc": "src/gc.c:751",
+        "loc": "src/gc.c:753",
         "via": "calls trace_one"
       },
       {
         "func": "func:src/gc.c:mark_drain_with_recovery",
-        "loc": "src/gc.c:754",
+        "loc": "src/gc.c:756",
         "via": "calls drain_mark_stack"
       },
       {
         "func": "func:src/gc.c:scan_vm_stack",
-        "loc": "src/gc.c:772",
+        "loc": "src/gc.c:774",
         "via": "calls mark"
       },
       {
         "func": "func:src/gc.c:scan_vm_stack",
-        "loc": "src/gc.c:773",
+        "loc": "src/gc.c:775",
         "via": "calls mark"
       },
       {
         "func": "func:src/gc.c:scan_vm_stack",
-        "loc": "src/gc.c:787",
+        "loc": "src/gc.c:789",
         "via": "calls mark"
       },
       {
         "func": "func:src/gc.c:trace_object",
-        "loc": "src/gc.c:597",
+        "loc": "src/gc.c:599",
         "via": "calls mark"
       },
       {
         "func": "func:src/gc.c:trace_one",
-        "loc": "src/gc.c:647",
+        "loc": "src/gc.c:649",
         "via": "calls mark"
       },
       {
         "func": "func:src/gc.c:trace_one",
-        "loc": "src/gc.c:650",
+        "loc": "src/gc.c:652",
         "via": "calls mark"
       },
       {
         "func": "func:src/gc.c:trace_one",
-        "loc": "src/gc.c:651",
+        "loc": "src/gc.c:653",
         "via": "calls mark"
       },
       {
         "func": "func:src/gc.c:trace_one",
-        "loc": "src/gc.c:655",
+        "loc": "src/gc.c:657",
         "via": "calls mark"
       },
       {
         "func": "func:src/gc.c:trace_one",
-        "loc": "src/gc.c:662",
-        "via": "calls mark"
-      },
-      {
-        "func": "func:src/gc.c:trace_one",
-        "loc": "src/gc.c:669",
+        "loc": "src/gc.c:664",
         "via": "calls mark"
       },
       {
@@ -15598,32 +15509,27 @@
       },
       {
         "func": "func:src/gc.c:trace_one",
-        "loc": "src/gc.c:684",
+        "loc": "src/gc.c:673",
         "via": "calls mark"
       },
       {
         "func": "func:src/gc.c:trace_one",
-        "loc": "src/gc.c:691",
+        "loc": "src/gc.c:686",
         "via": "calls mark"
       },
       {
         "func": "func:src/gc.c:trace_one",
-        "loc": "src/gc.c:692",
+        "loc": "src/gc.c:693",
         "via": "calls mark"
       },
       {
         "func": "func:src/gc.c:trace_one",
-        "loc": "src/gc.c:696",
+        "loc": "src/gc.c:694",
         "via": "calls mark"
       },
       {
         "func": "func:src/gc.c:trace_one",
-        "loc": "src/gc.c:710",
-        "via": "calls mark"
-      },
-      {
-        "func": "func:src/gc.c:trace_one",
-        "loc": "src/gc.c:711",
+        "loc": "src/gc.c:698",
         "via": "calls mark"
       },
       {
@@ -15633,7 +15539,17 @@
       },
       {
         "func": "func:src/gc.c:trace_one",
-        "loc": "src/gc.c:716",
+        "loc": "src/gc.c:713",
+        "via": "calls mark"
+      },
+      {
+        "func": "func:src/gc.c:trace_one",
+        "loc": "src/gc.c:714",
+        "via": "calls mark"
+      },
+      {
+        "func": "func:src/gc.c:trace_one",
+        "loc": "src/gc.c:718",
         "via": "calls trace_object"
       }
     ]
@@ -15646,18 +15562,8 @@
     "sites": [
       {
         "func": "func:gc_collect",
-        "loc": "src/gc.c:853",
+        "loc": "src/gc.c:855",
         "via": "calls scan_vm_stack"
-      },
-      {
-        "func": "func:gc_collect",
-        "loc": "src/gc.c:867",
-        "via": "calls mark"
-      },
-      {
-        "func": "func:gc_collect",
-        "loc": "src/gc.c:868",
-        "via": "calls mark"
       },
       {
         "func": "func:gc_collect",
@@ -15697,6 +15603,16 @@
       {
         "func": "func:gc_collect",
         "loc": "src/gc.c:876",
+        "via": "calls mark"
+      },
+      {
+        "func": "func:gc_collect",
+        "loc": "src/gc.c:877",
+        "via": "calls mark"
+      },
+      {
+        "func": "func:gc_collect",
+        "loc": "src/gc.c:878",
         "via": "calls mark"
       },
       {
@@ -15756,81 +15672,76 @@
       },
       {
         "func": "func:mark_object",
-        "loc": "src/gc.c:800",
+        "loc": "src/gc.c:802",
         "via": "calls mark"
       },
       {
         "func": "func:src/gc.c:drain_mark_stack",
-        "loc": "src/gc.c:736",
+        "loc": "src/gc.c:738",
         "via": "calls trace_one"
       },
       {
         "func": "func:src/gc.c:mark",
-        "loc": "src/gc.c:626"
+        "loc": "src/gc.c:628"
       },
       {
         "func": "func:src/gc.c:mark_drain_with_recovery",
-        "loc": "src/gc.c:745",
+        "loc": "src/gc.c:747",
         "via": "calls drain_mark_stack"
       },
       {
         "func": "func:src/gc.c:mark_drain_with_recovery",
-        "loc": "src/gc.c:751",
+        "loc": "src/gc.c:753",
         "via": "calls trace_one"
       },
       {
         "func": "func:src/gc.c:mark_drain_with_recovery",
-        "loc": "src/gc.c:754",
+        "loc": "src/gc.c:756",
         "via": "calls drain_mark_stack"
       },
       {
         "func": "func:src/gc.c:scan_vm_stack",
-        "loc": "src/gc.c:772",
+        "loc": "src/gc.c:774",
         "via": "calls mark"
       },
       {
         "func": "func:src/gc.c:scan_vm_stack",
-        "loc": "src/gc.c:773",
+        "loc": "src/gc.c:775",
         "via": "calls mark"
       },
       {
         "func": "func:src/gc.c:scan_vm_stack",
-        "loc": "src/gc.c:787",
+        "loc": "src/gc.c:789",
         "via": "calls mark"
       },
       {
         "func": "func:src/gc.c:trace_object",
-        "loc": "src/gc.c:597",
+        "loc": "src/gc.c:599",
         "via": "calls mark"
       },
       {
         "func": "func:src/gc.c:trace_one",
-        "loc": "src/gc.c:647",
+        "loc": "src/gc.c:649",
         "via": "calls mark"
       },
       {
         "func": "func:src/gc.c:trace_one",
-        "loc": "src/gc.c:650",
+        "loc": "src/gc.c:652",
         "via": "calls mark"
       },
       {
         "func": "func:src/gc.c:trace_one",
-        "loc": "src/gc.c:651",
+        "loc": "src/gc.c:653",
         "via": "calls mark"
       },
       {
         "func": "func:src/gc.c:trace_one",
-        "loc": "src/gc.c:655",
+        "loc": "src/gc.c:657",
         "via": "calls mark"
       },
       {
         "func": "func:src/gc.c:trace_one",
-        "loc": "src/gc.c:662",
-        "via": "calls mark"
-      },
-      {
-        "func": "func:src/gc.c:trace_one",
-        "loc": "src/gc.c:669",
+        "loc": "src/gc.c:664",
         "via": "calls mark"
       },
       {
@@ -15840,32 +15751,27 @@
       },
       {
         "func": "func:src/gc.c:trace_one",
-        "loc": "src/gc.c:684",
+        "loc": "src/gc.c:673",
         "via": "calls mark"
       },
       {
         "func": "func:src/gc.c:trace_one",
-        "loc": "src/gc.c:691",
+        "loc": "src/gc.c:686",
         "via": "calls mark"
       },
       {
         "func": "func:src/gc.c:trace_one",
-        "loc": "src/gc.c:692",
+        "loc": "src/gc.c:693",
         "via": "calls mark"
       },
       {
         "func": "func:src/gc.c:trace_one",
-        "loc": "src/gc.c:696",
+        "loc": "src/gc.c:694",
         "via": "calls mark"
       },
       {
         "func": "func:src/gc.c:trace_one",
-        "loc": "src/gc.c:710",
-        "via": "calls mark"
-      },
-      {
-        "func": "func:src/gc.c:trace_one",
-        "loc": "src/gc.c:711",
+        "loc": "src/gc.c:698",
         "via": "calls mark"
       },
       {
@@ -15875,7 +15781,17 @@
       },
       {
         "func": "func:src/gc.c:trace_one",
-        "loc": "src/gc.c:716",
+        "loc": "src/gc.c:713",
+        "via": "calls mark"
+      },
+      {
+        "func": "func:src/gc.c:trace_one",
+        "loc": "src/gc.c:714",
+        "via": "calls mark"
+      },
+      {
+        "func": "func:src/gc.c:trace_one",
+        "loc": "src/gc.c:718",
         "via": "calls trace_object"
       }
     ]
@@ -16149,12 +16065,12 @@
     "sites": [
       {
         "func": "func:gc_allocate",
-        "loc": "src/gc.c:361",
+        "loc": "src/gc.c:363",
         "via": "calls arena_try_alloc"
       },
       {
         "func": "func:gc_allocate",
-        "loc": "src/gc.c:369",
+        "loc": "src/gc.c:371",
         "via": "calls arena_try_alloc"
       },
       {
@@ -16169,39 +16085,39 @@
       },
       {
         "func": "func:heap_init",
-        "loc": "src/gc.c:169"
+        "loc": "src/gc.c:171"
       },
       {
         "func": "func:src/gc.c:arena_try_alloc",
-        "loc": "src/gc.c:289",
+        "loc": "src/gc.c:291",
         "via": "calls finish_reuse"
       },
       {
         "func": "func:src/gc.c:arena_try_alloc",
-        "loc": "src/gc.c:308",
+        "loc": "src/gc.c:310",
         "via": "calls bm_set"
       },
       {
         "func": "func:src/gc.c:arena_try_alloc",
-        "loc": "src/gc.c:319",
+        "loc": "src/gc.c:321",
         "via": "calls bm_set"
       },
       {
         "func": "func:src/gc.c:arena_try_alloc",
-        "loc": "src/gc.c:334",
+        "loc": "src/gc.c:336",
         "via": "calls finish_reuse"
       },
       {
         "func": "func:src/gc.c:bm_clear",
-        "loc": "src/gc.c:42"
+        "loc": "src/gc.c:44"
       },
       {
         "func": "func:src/gc.c:bm_set",
-        "loc": "src/gc.c:41"
+        "loc": "src/gc.c:43"
       },
       {
         "func": "func:src/gc.c:finish_reuse",
-        "loc": "src/gc.c:273",
+        "loc": "src/gc.c:275",
         "via": "calls bm_set"
       }
     ]
@@ -16865,12 +16781,12 @@
     "sites": [
       {
         "func": "func:gc_allocate",
-        "loc": "src/gc.c:361",
+        "loc": "src/gc.c:363",
         "via": "calls arena_try_alloc"
       },
       {
         "func": "func:gc_allocate",
-        "loc": "src/gc.c:369",
+        "loc": "src/gc.c:371",
         "via": "calls arena_try_alloc"
       },
       {
@@ -16884,35 +16800,35 @@
       },
       {
         "func": "func:src/gc.c:arena_try_alloc",
-        "loc": "src/gc.c:288",
+        "loc": "src/gc.c:290",
         "via": "calls bin_note_pop"
       },
       {
         "func": "func:src/gc.c:arena_try_alloc",
-        "loc": "src/gc.c:289",
+        "loc": "src/gc.c:291",
         "via": "calls finish_reuse"
       },
       {
         "func": "func:src/gc.c:arena_try_alloc",
-        "loc": "src/gc.c:333",
+        "loc": "src/gc.c:335",
         "via": "calls bin_note_pop"
       },
       {
         "func": "func:src/gc.c:arena_try_alloc",
-        "loc": "src/gc.c:334",
+        "loc": "src/gc.c:336",
         "via": "calls finish_reuse"
       },
       {
         "func": "func:src/gc.c:bin_note_pop",
-        "loc": "src/gc.c:74"
+        "loc": "src/gc.c:76"
       },
       {
         "func": "func:src/gc.c:bin_push",
-        "loc": "src/gc.c:71"
+        "loc": "src/gc.c:73"
       },
       {
         "func": "func:src/gc.c:finish_reuse",
-        "loc": "src/gc.c:267",
+        "loc": "src/gc.c:269",
         "via": "calls bin_push"
       }
     ]
@@ -16925,12 +16841,12 @@
     "sites": [
       {
         "func": "func:gc_allocate",
-        "loc": "src/gc.c:361",
+        "loc": "src/gc.c:363",
         "via": "calls arena_try_alloc"
       },
       {
         "func": "func:gc_allocate",
-        "loc": "src/gc.c:369",
+        "loc": "src/gc.c:371",
         "via": "calls arena_try_alloc"
       },
       {
@@ -16944,33 +16860,33 @@
       },
       {
         "func": "func:heap_init",
-        "loc": "src/gc.c:170"
+        "loc": "src/gc.c:172"
       },
       {
         "func": "func:src/gc.c:arena_try_alloc",
-        "loc": "src/gc.c:283"
+        "loc": "src/gc.c:285"
       },
       {
         "func": "func:src/gc.c:arena_try_alloc",
-        "loc": "src/gc.c:289",
+        "loc": "src/gc.c:291",
         "via": "calls finish_reuse"
       },
       {
         "func": "func:src/gc.c:arena_try_alloc",
-        "loc": "src/gc.c:328"
+        "loc": "src/gc.c:330"
       },
       {
         "func": "func:src/gc.c:arena_try_alloc",
-        "loc": "src/gc.c:334",
+        "loc": "src/gc.c:336",
         "via": "calls finish_reuse"
       },
       {
         "func": "func:src/gc.c:bin_push",
-        "loc": "src/gc.c:70"
+        "loc": "src/gc.c:72"
       },
       {
         "func": "func:src/gc.c:finish_reuse",
-        "loc": "src/gc.c:267",
+        "loc": "src/gc.c:269",
         "via": "calls bin_push"
       }
     ]
@@ -17588,12 +17504,12 @@
     "sites": [
       {
         "func": "func:gc_allocate",
-        "loc": "src/gc.c:362",
+        "loc": "src/gc.c:364",
         "via": "calls heap_stats_on_alloc"
       },
       {
         "func": "func:gc_allocate",
-        "loc": "src/gc.c:370",
+        "loc": "src/gc.c:372",
         "via": "calls heap_stats_on_alloc"
       },
       {
@@ -17602,11 +17518,11 @@
       },
       {
         "func": "func:heap_init",
-        "loc": "src/gc.c:171"
+        "loc": "src/gc.c:173"
       },
       {
         "func": "func:src/gc.c:heap_stats_on_alloc",
-        "loc": "src/gc.c:154"
+        "loc": "src/gc.c:156"
       }
     ]
   },
@@ -17618,12 +17534,12 @@
     "sites": [
       {
         "func": "func:gc_allocate",
-        "loc": "src/gc.c:361",
+        "loc": "src/gc.c:363",
         "via": "calls arena_try_alloc"
       },
       {
         "func": "func:gc_allocate",
-        "loc": "src/gc.c:369",
+        "loc": "src/gc.c:371",
         "via": "calls arena_try_alloc"
       },
       {
@@ -17632,11 +17548,11 @@
       },
       {
         "func": "func:heap_init",
-        "loc": "src/gc.c:167"
+        "loc": "src/gc.c:169"
       },
       {
         "func": "func:src/gc.c:arena_try_alloc",
-        "loc": "src/gc.c:316"
+        "loc": "src/gc.c:318"
       }
     ]
   },
@@ -17804,25 +17720,25 @@
     "sites": [
       {
         "func": "func:zephyr/src/observer.c:obs_trace_dump",
-        "loc": "zephyr/src/observer.c:118"
+        "loc": "zephyr/src/observer.c:115"
       },
       {
         "func": "func:zephyr/src/observer.c:obs_trace_record",
-        "loc": "zephyr/src/observer.c:104"
+        "loc": "zephyr/src/observer.c:101"
       },
       {
         "func": "func:zephyr/src/observer.c:observer_dump",
-        "loc": "zephyr/src/observer.c:324",
+        "loc": "zephyr/src/observer.c:321",
         "via": "calls obs_trace_dump"
       },
       {
         "func": "func:zephyr/src/observer.c:observer_thread_fn",
-        "loc": "zephyr/src/observer.c:368",
+        "loc": "zephyr/src/observer.c:365",
         "via": "calls obs_trace_record"
       },
       {
         "func": "func:zephyr/src/observer.c:observer_thread_fn",
-        "loc": "zephyr/src/observer.c:373",
+        "loc": "zephyr/src/observer.c:370",
         "via": "calls observer_dump"
       }
     ]
@@ -18280,12 +18196,12 @@
     "sites": [
       {
         "func": "func:gc_allocate",
-        "loc": "src/gc.c:361",
+        "loc": "src/gc.c:363",
         "via": "calls arena_try_alloc"
       },
       {
         "func": "func:gc_allocate",
-        "loc": "src/gc.c:369",
+        "loc": "src/gc.c:371",
         "via": "calls arena_try_alloc"
       },
       {
@@ -18298,11 +18214,11 @@
       },
       {
         "func": "func:src/gc.c:arena_try_alloc",
-        "loc": "src/gc.c:301"
+        "loc": "src/gc.c:303"
       },
       {
         "func": "func:src/gc.c:arena_try_alloc",
-        "loc": "src/gc.c:304"
+        "loc": "src/gc.c:306"
       }
     ]
   },
@@ -18314,15 +18230,11 @@
     "sites": [
       {
         "func": "func:oevm_free",
-        "loc": "src/gc.c:120"
+        "loc": "src/gc.c:122"
       },
       {
         "func": "func:oevm_free",
-        "loc": "src/gc.c:121"
-      },
-      {
-        "func": "func:oevm_malloc",
-        "loc": "src/gc.c:108"
+        "loc": "src/gc.c:123"
       },
       {
         "func": "func:oevm_malloc",
@@ -18334,23 +18246,27 @@
       },
       {
         "func": "func:oevm_malloc",
-        "loc": "src/gc.c:113"
+        "loc": "src/gc.c:114"
+      },
+      {
+        "func": "func:oevm_malloc",
+        "loc": "src/gc.c:115"
       },
       {
         "func": "func:oevm_realloc",
-        "loc": "src/gc.c:130"
-      },
-      {
-        "func": "func:oevm_realloc",
-        "loc": "src/gc.c:134"
-      },
-      {
-        "func": "func:oevm_realloc",
-        "loc": "src/gc.c:135"
+        "loc": "src/gc.c:132"
       },
       {
         "func": "func:oevm_realloc",
         "loc": "src/gc.c:136"
+      },
+      {
+        "func": "func:oevm_realloc",
+        "loc": "src/gc.c:137"
+      },
+      {
+        "func": "func:oevm_realloc",
+        "loc": "src/gc.c:138"
       }
     ]
   },
@@ -18362,15 +18278,15 @@
     "sites": [
       {
         "func": "func:float_alloc",
-        "loc": "src/gc.c:428"
+        "loc": "src/gc.c:430"
       },
       {
         "func": "func:float_alloc",
-        "loc": "src/gc.c:438"
+        "loc": "src/gc.c:440"
       },
       {
         "func": "func:float_alloc",
-        "loc": "src/gc.c:470"
+        "loc": "src/gc.c:472"
       },
       {
         "func": "func:gc_collect",
@@ -18379,11 +18295,11 @@
       },
       {
         "func": "func:src/gc.c:float_sweep",
-        "loc": "src/gc.c:561"
+        "loc": "src/gc.c:563"
       },
       {
         "func": "func:src/gc.c:float_sweep",
-        "loc": "src/gc.c:571"
+        "loc": "src/gc.c:573"
       }
     ]
   },
@@ -18395,21 +18311,21 @@
     "sites": [
       {
         "func": "func:gc_allocate",
-        "loc": "src/gc.c:362",
+        "loc": "src/gc.c:364",
         "via": "calls heap_stats_on_alloc"
       },
       {
         "func": "func:gc_allocate",
-        "loc": "src/gc.c:370",
+        "loc": "src/gc.c:372",
         "via": "calls heap_stats_on_alloc"
       },
       {
         "func": "func:heap_init",
-        "loc": "src/gc.c:172"
+        "loc": "src/gc.c:174"
       },
       {
         "func": "func:src/gc.c:heap_stats_on_alloc",
-        "loc": "src/gc.c:155"
+        "loc": "src/gc.c:157"
       }
     ]
   },
@@ -19006,27 +18922,27 @@
     "sites": [
       {
         "func": "func:float_alloc",
-        "loc": "src/gc.c:433"
-      },
-      {
-        "func": "func:float_alloc",
         "loc": "src/gc.c:435"
       },
       {
         "func": "func:float_alloc",
-        "loc": "src/gc.c:465"
+        "loc": "src/gc.c:437"
       },
       {
         "func": "func:float_alloc",
         "loc": "src/gc.c:467"
       },
       {
-        "func": "func:gc_allocate",
-        "loc": "src/gc.c:366"
+        "func": "func:float_alloc",
+        "loc": "src/gc.c:469"
       },
       {
         "func": "func:gc_allocate",
         "loc": "src/gc.c:368"
+      },
+      {
+        "func": "func:gc_allocate",
+        "loc": "src/gc.c:370"
       }
     ]
   },
@@ -19042,7 +18958,7 @@
       },
       {
         "func": "func:heap_init",
-        "loc": "src/gc.c:173"
+        "loc": "src/gc.c:175"
       }
     ]
   },
@@ -19446,12 +19362,12 @@
     "sites": [
       {
         "func": "func:zephyr/src/observer.c:observer_thread_fn",
-        "loc": "zephyr/src/observer.c:369",
+        "loc": "zephyr/src/observer.c:366",
         "via": "calls observer_verdict"
       },
       {
         "func": "func:zephyr/src/observer.c:observer_verdict",
-        "loc": "zephyr/src/observer.c:150"
+        "loc": "zephyr/src/observer.c:147"
       }
     ]
   },
@@ -19463,11 +19379,11 @@
     "sites": [
       {
         "func": "func:zephyr/src/observer.c:obs_trace_record",
-        "loc": "zephyr/src/observer.c:109"
+        "loc": "zephyr/src/observer.c:106"
       },
       {
         "func": "func:zephyr/src/observer.c:observer_thread_fn",
-        "loc": "zephyr/src/observer.c:368",
+        "loc": "zephyr/src/observer.c:365",
         "via": "calls obs_trace_record"
       }
     ]
@@ -19792,7 +19708,7 @@
     "sites": [
       {
         "func": "func:observer_start",
-        "loc": "zephyr/src/observer.c:398"
+        "loc": "zephyr/src/observer.c:395"
       }
     ]
   },
@@ -19984,7 +19900,7 @@
     "sites": [
       {
         "func": "func:gc_temp_root_push",
-        "loc": "src/gc.c:818"
+        "loc": "src/gc.c:820"
       }
     ]
   },
@@ -19996,7 +19912,7 @@
     "sites": [
       {
         "func": "func:observer_start",
-        "loc": "zephyr/src/observer.c:418"
+        "loc": "zephyr/src/observer.c:415"
       }
     ]
   },
@@ -20048,11 +19964,11 @@
     "sites": [
       {
         "func": "func:oimg_load_blob",
-        "loc": "src/oimg_loader.c:201"
+        "loc": "src/oimg_loader.c:204"
       },
       {
         "func": "func:oimg_load_blob",
-        "loc": "src/oimg_loader.c:232"
+        "loc": "src/oimg_loader.c:235"
       }
     ]
   },
@@ -20064,11 +19980,11 @@
     "sites": [
       {
         "func": "func:oimg_load_blob",
-        "loc": "src/oimg_loader.c:202"
+        "loc": "src/oimg_loader.c:205"
       },
       {
         "func": "func:oimg_load_blob",
-        "loc": "src/oimg_loader.c:232"
+        "loc": "src/oimg_loader.c:235"
       }
     ]
   },
@@ -20436,7 +20352,7 @@
     "sites": [
       {
         "func": "func:float_alloc",
-        "loc": "src/gc.c:490"
+        "loc": "src/gc.c:492"
       }
     ]
   },
@@ -20448,7 +20364,7 @@
     "sites": [
       {
         "func": "func:float_alloc",
-        "loc": "src/gc.c:489"
+        "loc": "src/gc.c:491"
       }
     ]
   },
@@ -20460,7 +20376,7 @@
     "sites": [
       {
         "func": "func:float_alloc",
-        "loc": "src/gc.c:482"
+        "loc": "src/gc.c:484"
       }
     ]
   },
@@ -20472,7 +20388,7 @@
     "sites": [
       {
         "func": "func:float_alloc",
-        "loc": "src/gc.c:484"
+        "loc": "src/gc.c:486"
       }
     ]
   },
@@ -20484,11 +20400,11 @@
     "sites": [
       {
         "func": "func:float_alloc",
-        "loc": "src/gc.c:483"
+        "loc": "src/gc.c:485"
       },
       {
         "func": "func:float_alloc",
-        "loc": "src/gc.c:493"
+        "loc": "src/gc.c:495"
       }
     ]
   },
@@ -20500,7 +20416,7 @@
     "sites": [
       {
         "func": "func:gc_allocate",
-        "loc": "src/gc.c:352"
+        "loc": "src/gc.c:354"
       }
     ]
   },
@@ -20512,7 +20428,7 @@
     "sites": [
       {
         "func": "func:heap_init",
-        "loc": "src/gc.c:166"
+        "loc": "src/gc.c:168"
       }
     ]
   },
@@ -20524,7 +20440,7 @@
     "sites": [
       {
         "func": "func:heap_init",
-        "loc": "src/gc.c:168"
+        "loc": "src/gc.c:170"
       }
     ]
   },
@@ -20536,7 +20452,7 @@
     "sites": [
       {
         "func": "func:heap_init",
-        "loc": "src/gc.c:166"
+        "loc": "src/gc.c:168"
       }
     ]
   },
@@ -20716,7 +20632,7 @@
     "sites": [
       {
         "func": "func:oimg_load_blob",
-        "loc": "src/oimg_loader.c:187"
+        "loc": "src/oimg_loader.c:190"
       }
     ]
   },
@@ -20728,7 +20644,7 @@
     "sites": [
       {
         "func": "func:oimg_load_blob",
-        "loc": "src/oimg_loader.c:186"
+        "loc": "src/oimg_loader.c:189"
       }
     ]
   },
@@ -20740,7 +20656,7 @@
     "sites": [
       {
         "func": "func:oimg_load_blob",
-        "loc": "src/oimg_loader.c:174"
+        "loc": "src/oimg_loader.c:177"
       }
     ]
   },
@@ -20752,7 +20668,7 @@
     "sites": [
       {
         "func": "func:oimg_load_blob",
-        "loc": "src/oimg_loader.c:173"
+        "loc": "src/oimg_loader.c:176"
       }
     ]
   },
@@ -20764,7 +20680,7 @@
     "sites": [
       {
         "func": "func:oimg_load_blob",
-        "loc": "src/oimg_loader.c:171"
+        "loc": "src/oimg_loader.c:174"
       }
     ]
   },
@@ -20776,7 +20692,7 @@
     "sites": [
       {
         "func": "func:oimg_load_blob",
-        "loc": "src/oimg_loader.c:178"
+        "loc": "src/oimg_loader.c:181"
       }
     ]
   },
@@ -20788,7 +20704,7 @@
     "sites": [
       {
         "func": "func:oimg_load_blob",
-        "loc": "src/oimg_loader.c:179"
+        "loc": "src/oimg_loader.c:182"
       }
     ]
   },
@@ -20800,7 +20716,7 @@
     "sites": [
       {
         "func": "func:oimg_load_blob",
-        "loc": "src/oimg_loader.c:177"
+        "loc": "src/oimg_loader.c:180"
       }
     ]
   },
@@ -20812,7 +20728,7 @@
     "sites": [
       {
         "func": "func:oimg_load_blob",
-        "loc": "src/oimg_loader.c:172"
+        "loc": "src/oimg_loader.c:175"
       }
     ]
   },
@@ -20824,7 +20740,7 @@
     "sites": [
       {
         "func": "func:oimg_load_blob",
-        "loc": "src/oimg_loader.c:189"
+        "loc": "src/oimg_loader.c:192"
       }
     ]
   },
@@ -20836,7 +20752,7 @@
     "sites": [
       {
         "func": "func:oimg_load_blob",
-        "loc": "src/oimg_loader.c:188"
+        "loc": "src/oimg_loader.c:191"
       }
     ]
   },
@@ -20848,7 +20764,7 @@
     "sites": [
       {
         "func": "func:oimg_load_blob",
-        "loc": "src/oimg_loader.c:185"
+        "loc": "src/oimg_loader.c:188"
       }
     ]
   },
@@ -20860,7 +20776,7 @@
     "sites": [
       {
         "func": "func:oimg_load_blob",
-        "loc": "src/oimg_loader.c:170"
+        "loc": "src/oimg_loader.c:173"
       }
     ]
   },
@@ -20872,7 +20788,7 @@
     "sites": [
       {
         "func": "func:oimg_load_blob",
-        "loc": "src/oimg_loader.c:180"
+        "loc": "src/oimg_loader.c:183"
       }
     ]
   },
@@ -20884,7 +20800,7 @@
     "sites": [
       {
         "func": "func:oimg_load_blob",
-        "loc": "src/oimg_loader.c:182"
+        "loc": "src/oimg_loader.c:185"
       }
     ]
   },
@@ -20896,7 +20812,7 @@
     "sites": [
       {
         "func": "func:oimg_load_blob",
-        "loc": "src/oimg_loader.c:184"
+        "loc": "src/oimg_loader.c:187"
       }
     ]
   },
@@ -20908,7 +20824,7 @@
     "sites": [
       {
         "func": "func:oimg_load_blob",
-        "loc": "src/oimg_loader.c:183"
+        "loc": "src/oimg_loader.c:186"
       }
     ]
   },
@@ -20920,7 +20836,7 @@
     "sites": [
       {
         "func": "func:oimg_load_blob",
-        "loc": "src/oimg_loader.c:181"
+        "loc": "src/oimg_loader.c:184"
       }
     ]
   },
@@ -21308,11 +21224,11 @@
     "sites": [
       {
         "func": "func:observer_start",
-        "loc": "zephyr/src/observer.c:398"
+        "loc": "zephyr/src/observer.c:395"
       },
       {
         "func": "func:observer_start",
-        "loc": "zephyr/src/observer.c:399"
+        "loc": "zephyr/src/observer.c:396"
       }
     ]
   },
@@ -21324,7 +21240,7 @@
     "sites": [
       {
         "func": "func:zephyr/src/observer.c:observer_thread_fn",
-        "loc": "zephyr/src/observer.c:347"
+        "loc": "zephyr/src/observer.c:344"
       }
     ]
   },
@@ -21336,11 +21252,11 @@
     "sites": [
       {
         "func": "func:observer_start",
-        "loc": "zephyr/src/observer.c:418"
+        "loc": "zephyr/src/observer.c:415"
       },
       {
         "func": "func:observer_start",
-        "loc": "zephyr/src/observer.c:422"
+        "loc": "zephyr/src/observer.c:419"
       }
     ]
   },

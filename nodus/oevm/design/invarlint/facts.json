@@ -1,5 +1,5 @@
 {
-  "commit": "4673a9c6",
+  "commit": "c376a38f",
   "root": "/home/david/workspace/rete/nodus/oevm",
   "config": "build-esp32c6-B",
   "partial": false,
@@ -207,7 +207,7 @@
     {
       "id": "func:float_alloc",
       "kind": "func",
-      "loc": "src/gc.c:423",
+      "loc": "src/gc.c:425",
       "attrs": {
         "exported": "true",
         "is_handler": "false",
@@ -220,7 +220,7 @@
     {
       "id": "func:float_arena_free_count",
       "kind": "func",
-      "loc": "src/gc.c:509",
+      "loc": "src/gc.c:511",
       "attrs": {
         "exported": "true",
         "is_handler": "false",
@@ -233,7 +233,7 @@
     {
       "id": "func:float_arena_slab_budget",
       "kind": "func",
-      "loc": "src/gc.c:507",
+      "loc": "src/gc.c:509",
       "attrs": {
         "exported": "true",
         "is_handler": "false",
@@ -246,7 +246,7 @@
     {
       "id": "func:float_arena_slab_count",
       "kind": "func",
-      "loc": "src/gc.c:504",
+      "loc": "src/gc.c:506",
       "attrs": {
         "exported": "true",
         "is_handler": "false",
@@ -259,7 +259,7 @@
     {
       "id": "func:float_is_live",
       "kind": "func",
-      "loc": "src/gc.c:518",
+      "loc": "src/gc.c:520",
       "attrs": {
         "exported": "true",
         "is_handler": "false",
@@ -285,7 +285,7 @@
     {
       "id": "func:gc_allocate",
       "kind": "func",
-      "loc": "src/gc.c:343",
+      "loc": "src/gc.c:345",
       "attrs": {
         "exported": "true",
         "is_handler": "false",
@@ -298,11 +298,11 @@
     {
       "id": "func:gc_collect",
       "kind": "func",
-      "loc": "src/gc.c:832",
+      "loc": "src/gc.c:834",
       "attrs": {
         "exported": "true",
         "is_handler": "false",
-        "loc_count": "180",
+        "loc_count": "178",
         "sig": "void (void)",
         "unit": "unit:src"
       }
@@ -310,7 +310,7 @@
     {
       "id": "func:gc_forensics",
       "kind": "func",
-      "loc": "src/gc.c:726",
+      "loc": "src/gc.c:728",
       "attrs": {
         "exported": "true",
         "is_handler": "false",
@@ -322,7 +322,7 @@
     {
       "id": "func:gc_is_live",
       "kind": "func",
-      "loc": "src/gc.c:244",
+      "loc": "src/gc.c:246",
       "attrs": {
         "exported": "true",
         "is_handler": "false",
@@ -335,7 +335,7 @@
     {
       "id": "func:gc_temp_root_push",
       "kind": "func",
-      "loc": "src/gc.c:816",
+      "loc": "src/gc.c:818",
       "attrs": {
         "exported": "true",
         "is_handler": "false",
@@ -348,7 +348,7 @@
     {
       "id": "func:gc_temp_roots_clear",
       "kind": "func",
-      "loc": "src/gc.c:827",
+      "loc": "src/gc.c:829",
       "attrs": {
         "exported": "true",
         "is_handler": "false",
@@ -470,7 +470,7 @@
     {
       "id": "func:heap_init",
       "kind": "func",
-      "loc": "src/gc.c:165",
+      "loc": "src/gc.c:167",
       "attrs": {
         "exported": "true",
         "is_handler": "false",
@@ -774,7 +774,7 @@
     {
       "id": "func:is_read_only",
       "kind": "func",
-      "loc": "src/gc.c:223",
+      "loc": "src/gc.c:225",
       "attrs": {
         "exported": "true",
         "is_handler": "false",
@@ -964,7 +964,7 @@
     {
       "id": "func:mark_object",
       "kind": "func",
-      "loc": "src/gc.c:799",
+      "loc": "src/gc.c:801",
       "attrs": {
         "exported": "true",
         "is_handler": "false",
@@ -1136,7 +1136,7 @@
     {
       "id": "func:observer_halt",
       "kind": "func",
-      "loc": "zephyr/src/observer.c:335",
+      "loc": "zephyr/src/observer.c:332",
       "attrs": {
         "exported": "true",
         "is_handler": "false",
@@ -1148,7 +1148,7 @@
     {
       "id": "func:observer_start",
       "kind": "func",
-      "loc": "zephyr/src/observer.c:396",
+      "loc": "zephyr/src/observer.c:393",
       "attrs": {
         "exported": "true",
         "is_handler": "false",
@@ -1160,7 +1160,7 @@
     {
       "id": "func:oevm_cheap_stats",
       "kind": "func",
-      "loc": "src/gc.c:143",
+      "loc": "src/gc.c:145",
       "attrs": {
         "exported": "true",
         "is_handler": "false",
@@ -1172,7 +1172,7 @@
     {
       "id": "func:oevm_free",
       "kind": "func",
-      "loc": "src/gc.c:117",
+      "loc": "src/gc.c:119",
       "attrs": {
         "exported": "true",
         "is_handler": "false",
@@ -1313,7 +1313,7 @@
     {
       "id": "func:oevm_malloc",
       "kind": "func",
-      "loc": "src/gc.c:106",
+      "loc": "src/gc.c:108",
       "attrs": {
         "exported": "true",
         "is_handler": "false",
@@ -1338,7 +1338,7 @@
     {
       "id": "func:oevm_realloc",
       "kind": "func",
-      "loc": "src/gc.c:125",
+      "loc": "src/gc.c:127",
       "attrs": {
         "exported": "true",
         "is_handler": "false",
@@ -1387,11 +1387,11 @@
     {
       "id": "func:oimg_bootstrap",
       "kind": "func",
-      "loc": "src/oimg_loader.c:281",
+      "loc": "src/oimg_loader.c:284",
       "attrs": {
         "exported": "true",
         "is_handler": "false",
-        "loc_count": "70",
+        "loc_count": "67",
         "sig": "oop (oop)",
         "type": "struct Object * (struct Object *)",
         "unit": "unit:src"
@@ -1400,7 +1400,7 @@
     {
       "id": "func:oimg_kernel_vtable",
       "kind": "func",
-      "loc": "src/oimg_loader.c:277",
+      "loc": "src/oimg_loader.c:280",
       "attrs": {
         "exported": "true",
         "is_handler": "false",
@@ -1413,7 +1413,7 @@
     {
       "id": "func:oimg_load_blob",
       "kind": "func",
-      "loc": "src/oimg_loader.c:143",
+      "loc": "src/oimg_loader.c:146",
       "attrs": {
         "exported": "true",
         "is_handler": "false",
@@ -1426,7 +1426,7 @@
     {
       "id": "func:oimg_root",
       "kind": "func",
-      "loc": "src/oimg_loader.c:271",
+      "loc": "src/oimg_loader.c:274",
       "attrs": {
         "exported": "true",
         "is_handler": "false",
@@ -1439,7 +1439,7 @@
     {
       "id": "func:oimg_vtable_name",
       "kind": "func",
-      "loc": "src/oimg_loader.c:241",
+      "loc": "src/oimg_loader.c:244",
       "attrs": {
         "exported": "true",
         "is_handler": "false",
@@ -3939,7 +3939,7 @@
     {
       "id": "func:src/gc.c:arena_try_alloc",
       "kind": "func",
-      "loc": "src/gc.c:280",
+      "loc": "src/gc.c:282",
       "attrs": {
         "exported": "false",
         "is_handler": "false",
@@ -3952,7 +3952,7 @@
     {
       "id": "func:src/gc.c:bin_index",
       "kind": "func",
-      "loc": "src/gc.c:158",
+      "loc": "src/gc.c:160",
       "attrs": {
         "exported": "false",
         "is_handler": "false",
@@ -3965,7 +3965,7 @@
     {
       "id": "func:src/gc.c:bin_note_pop",
       "kind": "func",
-      "loc": "src/gc.c:73",
+      "loc": "src/gc.c:75",
       "attrs": {
         "exported": "false",
         "is_handler": "false",
@@ -3978,7 +3978,7 @@
     {
       "id": "func:src/gc.c:bin_push",
       "kind": "func",
-      "loc": "src/gc.c:68",
+      "loc": "src/gc.c:70",
       "attrs": {
         "exported": "false",
         "is_handler": "false",
@@ -3991,7 +3991,7 @@
     {
       "id": "func:src/gc.c:bm_clear",
       "kind": "func",
-      "loc": "src/gc.c:42",
+      "loc": "src/gc.c:44",
       "attrs": {
         "exported": "false",
         "is_handler": "false",
@@ -4004,7 +4004,7 @@
     {
       "id": "func:src/gc.c:bm_granule",
       "kind": "func",
-      "loc": "src/gc.c:44",
+      "loc": "src/gc.c:46",
       "attrs": {
         "exported": "false",
         "is_handler": "false",
@@ -4017,7 +4017,7 @@
     {
       "id": "func:src/gc.c:bm_set",
       "kind": "func",
-      "loc": "src/gc.c:41",
+      "loc": "src/gc.c:43",
       "attrs": {
         "exported": "false",
         "is_handler": "false",
@@ -4030,7 +4030,7 @@
     {
       "id": "func:src/gc.c:bm_test",
       "kind": "func",
-      "loc": "src/gc.c:43",
+      "loc": "src/gc.c:45",
       "attrs": {
         "exported": "false",
         "is_handler": "false",
@@ -4043,7 +4043,7 @@
     {
       "id": "func:src/gc.c:default_oom",
       "kind": "func",
-      "loc": "src/gc.c:196",
+      "loc": "src/gc.c:198",
       "attrs": {
         "exported": "false",
         "is_handler": "false",
@@ -4056,7 +4056,7 @@
     {
       "id": "func:src/gc.c:drain_mark_stack",
       "kind": "func",
-      "loc": "src/gc.c:733",
+      "loc": "src/gc.c:735",
       "attrs": {
         "exported": "false",
         "is_handler": "false",
@@ -4068,7 +4068,7 @@
     {
       "id": "func:src/gc.c:finish_reuse",
       "kind": "func",
-      "loc": "src/gc.c:261",
+      "loc": "src/gc.c:263",
       "attrs": {
         "exported": "false",
         "is_handler": "false",
@@ -4081,7 +4081,7 @@
     {
       "id": "func:src/gc.c:float_mark",
       "kind": "func",
-      "loc": "src/gc.c:544",
+      "loc": "src/gc.c:546",
       "attrs": {
         "exported": "false",
         "is_handler": "false",
@@ -4094,7 +4094,7 @@
     {
       "id": "func:src/gc.c:float_sweep",
       "kind": "func",
-      "loc": "src/gc.c:560",
+      "loc": "src/gc.c:562",
       "attrs": {
         "exported": "false",
         "is_handler": "false",
@@ -4106,7 +4106,7 @@
     {
       "id": "func:src/gc.c:heap_stats_on_alloc",
       "kind": "func",
-      "loc": "src/gc.c:149",
+      "loc": "src/gc.c:151",
       "attrs": {
         "exported": "false",
         "is_handler": "false",
@@ -4119,7 +4119,7 @@
     {
       "id": "func:src/gc.c:hh_clear_mark",
       "kind": "func",
-      "loc": "src/gc.c:18",
+      "loc": "src/gc.c:20",
       "attrs": {
         "exported": "false",
         "is_handler": "false",
@@ -4131,7 +4131,7 @@
     {
       "id": "func:src/gc.c:hh_init",
       "kind": "func",
-      "loc": "src/gc.c:19",
+      "loc": "src/gc.c:21",
       "attrs": {
         "exported": "false",
         "is_handler": "false",
@@ -4144,7 +4144,7 @@
     {
       "id": "func:src/gc.c:hh_marked",
       "kind": "func",
-      "loc": "src/gc.c:16",
+      "loc": "src/gc.c:18",
       "attrs": {
         "exported": "false",
         "is_handler": "false",
@@ -4156,7 +4156,7 @@
     {
       "id": "func:src/gc.c:hh_next",
       "kind": "func",
-      "loc": "src/gc.c:20",
+      "loc": "src/gc.c:22",
       "attrs": {
         "exported": "false",
         "is_handler": "false",
@@ -4168,7 +4168,7 @@
     {
       "id": "func:src/gc.c:hh_set_mark",
       "kind": "func",
-      "loc": "src/gc.c:17",
+      "loc": "src/gc.c:19",
       "attrs": {
         "exported": "false",
         "is_handler": "false",
@@ -4180,7 +4180,7 @@
     {
       "id": "func:src/gc.c:hh_size",
       "kind": "func",
-      "loc": "src/gc.c:15",
+      "loc": "src/gc.c:17",
       "attrs": {
         "exported": "false",
         "is_handler": "false",
@@ -4193,7 +4193,7 @@
     {
       "id": "func:src/gc.c:is_in_float_arena",
       "kind": "func",
-      "loc": "src/gc.c:528",
+      "loc": "src/gc.c:530",
       "attrs": {
         "exported": "false",
         "is_handler": "false",
@@ -4206,7 +4206,7 @@
     {
       "id": "func:src/gc.c:is_valid_heap_object",
       "kind": "func",
-      "loc": "src/gc.c:235",
+      "loc": "src/gc.c:237",
       "attrs": {
         "exported": "false",
         "is_handler": "false",
@@ -4219,7 +4219,7 @@
     {
       "id": "func:src/gc.c:mark",
       "kind": "func",
-      "loc": "src/gc.c:603",
+      "loc": "src/gc.c:605",
       "attrs": {
         "exported": "false",
         "is_handler": "false",
@@ -4232,7 +4232,7 @@
     {
       "id": "func:src/gc.c:mark_drain_with_recovery",
       "kind": "func",
-      "loc": "src/gc.c:744",
+      "loc": "src/gc.c:746",
       "attrs": {
         "exported": "false",
         "is_handler": "false",
@@ -4244,7 +4244,7 @@
     {
       "id": "func:src/gc.c:scan_vm_stack",
       "kind": "func",
-      "loc": "src/gc.c:766",
+      "loc": "src/gc.c:768",
       "attrs": {
         "exported": "false",
         "is_handler": "false",
@@ -4256,7 +4256,7 @@
     {
       "id": "func:src/gc.c:trace_object",
       "kind": "func",
-      "loc": "src/gc.c:592",
+      "loc": "src/gc.c:594",
       "attrs": {
         "exported": "false",
         "is_handler": "false",
@@ -4269,7 +4269,7 @@
     {
       "id": "func:src/gc.c:trace_one",
       "kind": "func",
-      "loc": "src/gc.c:635",
+      "loc": "src/gc.c:637",
       "attrs": {
         "exported": "false",
         "is_handler": "false",
@@ -4545,7 +4545,7 @@
     {
       "id": "func:src/oimg_loader.c:read_u16",
       "kind": "func",
-      "loc": "src/oimg_loader.c:139",
+      "loc": "src/oimg_loader.c:142",
       "attrs": {
         "exported": "false",
         "is_handler": "false",
@@ -4558,7 +4558,7 @@
     {
       "id": "func:src/oimg_loader.c:read_u32",
       "kind": "func",
-      "loc": "src/oimg_loader.c:136",
+      "loc": "src/oimg_loader.c:139",
       "attrs": {
         "exported": "false",
         "is_handler": "false",
@@ -4571,7 +4571,7 @@
     {
       "id": "func:src/oimg_loader.c:read_word",
       "kind": "func",
-      "loc": "src/oimg_loader.c:131",
+      "loc": "src/oimg_loader.c:134",
       "attrs": {
         "exported": "false",
         "is_handler": "false",
@@ -6374,7 +6374,7 @@
     {
       "id": "func:zephyr/src/observer.c:obs_trace_dump",
       "kind": "func",
-      "loc": "zephyr/src/observer.c:112",
+      "loc": "zephyr/src/observer.c:109",
       "attrs": {
         "exported": "false",
         "is_handler": "false",
@@ -6386,7 +6386,7 @@
     {
       "id": "func:zephyr/src/observer.c:obs_trace_record",
       "kind": "func",
-      "loc": "zephyr/src/observer.c:103",
+      "loc": "zephyr/src/observer.c:100",
       "attrs": {
         "exported": "false",
         "is_handler": "false",
@@ -6398,7 +6398,7 @@
     {
       "id": "func:zephyr/src/observer.c:observer_dump",
       "kind": "func",
-      "loc": "zephyr/src/observer.c:315",
+      "loc": "zephyr/src/observer.c:312",
       "attrs": {
         "exported": "false",
         "is_handler": "false",
@@ -6410,7 +6410,7 @@
     {
       "id": "func:zephyr/src/observer.c:observer_forensics",
       "kind": "func",
-      "loc": "zephyr/src/observer.c:304",
+      "loc": "zephyr/src/observer.c:301",
       "attrs": {
         "exported": "false",
         "is_handler": "false",
@@ -6422,7 +6422,7 @@
     {
       "id": "func:zephyr/src/observer.c:observer_thread_fn",
       "kind": "func",
-      "loc": "zephyr/src/observer.c:344",
+      "loc": "zephyr/src/observer.c:341",
       "attrs": {
         "exported": "false",
         "is_handler": "false",
@@ -6434,7 +6434,7 @@
     {
       "id": "func:zephyr/src/observer.c:observer_verdict",
       "kind": "func",
-      "loc": "zephyr/src/observer.c:143",
+      "loc": "zephyr/src/observer.c:140",
       "attrs": {
         "exported": "false",
         "is_handler": "false",
@@ -6459,7 +6459,7 @@
     {
       "id": "global:BUILTIN_REGISTRY_VERSION",
       "kind": "global",
-      "loc": "src/oimg_loader.c:25",
+      "loc": "src/oimg_loader.c:28",
       "attrs": {
         "type": "const uint32_t",
         "unit": "unit:src"
@@ -6747,7 +6747,7 @@
     {
       "id": "global:builtin_registry",
       "kind": "global",
-      "loc": "src/oimg_loader.c:19",
+      "loc": "src/oimg_loader.c:22",
       "attrs": {
         "type": "oop[18]",
         "unit": "unit:src"
@@ -6783,7 +6783,7 @@
     {
       "id": "global:flash_rom_end",
       "kind": "global",
-      "loc": "src/gc.c:48",
+      "loc": "src/gc.c:50",
       "attrs": {
         "type": "uintptr_t",
         "unit": "unit:src"
@@ -6792,7 +6792,7 @@
     {
       "id": "global:flash_rom_start",
       "kind": "global",
-      "loc": "src/gc.c:47",
+      "loc": "src/gc.c:49",
       "attrs": {
         "type": "uintptr_t",
         "unit": "unit:src"
@@ -6873,7 +6873,7 @@
     {
       "id": "global:gc_additional_roots_hook",
       "kind": "global",
-      "loc": "src/gc.c:796",
+      "loc": "src/gc.c:798",
       "attrs": {
         "type": "void (*)(void)",
         "unit": "unit:src"
@@ -6882,7 +6882,7 @@
     {
       "id": "global:gc_temp_roots",
       "kind": "global",
-      "loc": "src/gc.c:813",
+      "loc": "src/gc.c:815",
       "attrs": {
         "type": "oop[16]",
         "unit": "unit:src"
@@ -6891,7 +6891,7 @@
     {
       "id": "global:gc_temp_roots_count",
       "kind": "global",
-      "loc": "src/gc.c:814",
+      "loc": "src/gc.c:816",
       "attrs": {
         "type": "int",
         "unit": "unit:src"
@@ -6918,7 +6918,7 @@
     {
       "id": "global:observer_stack",
       "kind": "global",
-      "loc": "zephyr/src/observer.c:393",
+      "loc": "zephyr/src/observer.c:390",
       "attrs": {
         "type": "struct z_thread_stack_element[2048]",
         "unit": "unit:zephyr/src"
@@ -6936,7 +6936,7 @@
     {
       "id": "global:oevm_oom_handler",
       "kind": "global",
-      "loc": "src/gc.c:211",
+      "loc": "src/gc.c:213",
       "attrs": {
         "type": "oop (*)(size_t)",
         "unit": "unit:src"
@@ -6945,7 +6945,7 @@
     {
       "id": "global:oimg_blob_base",
       "kind": "global",
-      "loc": "src/oimg_loader.c:16",
+      "loc": "src/oimg_loader.c:19",
       "attrs": {
         "type": "const uint8_t *",
         "unit": "unit:src"
@@ -6954,7 +6954,7 @@
     {
       "id": "global:oimg_blob_end",
       "kind": "global",
-      "loc": "src/oimg_loader.c:17",
+      "loc": "src/oimg_loader.c:20",
       "attrs": {
         "type": "const uint8_t *",
         "unit": "unit:src"
@@ -6963,7 +6963,7 @@
     {
       "id": "global:oimg_singleton",
       "kind": "global",
-      "loc": "src/oimg_loader.c:20",
+      "loc": "src/oimg_loader.c:23",
       "attrs": {
         "type": "oop[3]",
         "unit": "unit:src"
@@ -7656,7 +7656,7 @@
     {
       "id": "global:src/gc.c:big_free",
       "kind": "global",
-      "loc": "src/gc.c:63",
+      "loc": "src/gc.c:65",
       "attrs": {
         "type": "struct HeapHeader *",
         "unit": "unit:src"
@@ -7665,7 +7665,7 @@
     {
       "id": "global:src/gc.c:bins_nonempty",
       "kind": "global",
-      "loc": "src/gc.c:67",
+      "loc": "src/gc.c:69",
       "attrs": {
         "type": "uint64_t",
         "unit": "unit:src"
@@ -7674,7 +7674,7 @@
     {
       "id": "global:src/gc.c:cheap",
       "kind": "global",
-      "loc": "src/gc.c:94",
+      "loc": "src/gc.c:96",
       "attrs": {
         "type": "struct OevmCHeapStats",
         "unit": "unit:src"
@@ -7683,7 +7683,7 @@
     {
       "id": "global:src/gc.c:float_arena_hi",
       "kind": "global",
-      "loc": "src/gc.c:419",
+      "loc": "src/gc.c:421",
       "attrs": {
         "type": "char *",
         "unit": "unit:src"
@@ -7692,7 +7692,7 @@
     {
       "id": "global:src/gc.c:float_arena_lo",
       "kind": "global",
-      "loc": "src/gc.c:418",
+      "loc": "src/gc.c:420",
       "attrs": {
         "type": "char *",
         "unit": "unit:src"
@@ -7701,7 +7701,7 @@
     {
       "id": "global:src/gc.c:float_freelist",
       "kind": "global",
-      "loc": "src/gc.c:417",
+      "loc": "src/gc.c:419",
       "attrs": {
         "type": "struct Float *",
         "unit": "unit:src"
@@ -7710,7 +7710,7 @@
     {
       "id": "global:src/gc.c:float_slab",
       "kind": "global",
-      "loc": "src/gc.c:410",
+      "loc": "src/gc.c:412",
       "attrs": {
         "type": "struct FloatSlab *",
         "unit": "unit:src"
@@ -7719,7 +7719,7 @@
     {
       "id": "global:src/gc.c:float_slab_count",
       "kind": "global",
-      "loc": "src/gc.c:421",
+      "loc": "src/gc.c:423",
       "attrs": {
         "type": "size_t",
         "unit": "unit:src"
@@ -7728,7 +7728,7 @@
     {
       "id": "global:src/gc.c:float_slab_used",
       "kind": "global",
-      "loc": "src/gc.c:412",
+      "loc": "src/gc.c:414",
       "attrs": {
         "type": "size_t",
         "unit": "unit:src"
@@ -7737,7 +7737,7 @@
     {
       "id": "global:src/gc.c:free_bins",
       "kind": "global",
-      "loc": "src/gc.c:54",
+      "loc": "src/gc.c:56",
       "attrs": {
         "type": "struct HeapHeader *[64]",
         "unit": "unit:src"
@@ -7746,7 +7746,7 @@
     {
       "id": "global:src/gc.c:gc_allocate.gc_stress_cached",
       "kind": "global",
-      "loc": "src/gc.c:350",
+      "loc": "src/gc.c:352",
       "attrs": {
         "type": "int",
         "unit": "unit:src"
@@ -7755,7 +7755,7 @@
     {
       "id": "global:src/gc.c:gc_in_progress",
       "kind": "global",
-      "loc": "src/gc.c:215",
+      "loc": "src/gc.c:217",
       "attrs": {
         "type": "int",
         "unit": "unit:src"
@@ -7764,7 +7764,7 @@
     {
       "id": "global:src/gc.c:heap_base",
       "kind": "global",
-      "loc": "src/gc.c:32",
+      "loc": "src/gc.c:34",
       "attrs": {
         "type": "uint8_t *",
         "unit": "unit:src"
@@ -7773,7 +7773,7 @@
     {
       "id": "global:src/gc.c:heap_bitmap",
       "kind": "global",
-      "loc": "src/gc.c:39",
+      "loc": "src/gc.c:41",
       "attrs": {
         "type": "uint8_t[4097]",
         "unit": "unit:src"
@@ -7782,7 +7782,7 @@
     {
       "id": "global:src/gc.c:heap_end",
       "kind": "global",
-      "loc": "src/gc.c:34",
+      "loc": "src/gc.c:36",
       "attrs": {
         "type": "uint8_t *",
         "unit": "unit:src"
@@ -7791,7 +7791,7 @@
     {
       "id": "global:src/gc.c:heap_gc_cycles",
       "kind": "global",
-      "loc": "src/gc.c:90",
+      "loc": "src/gc.c:92",
       "attrs": {
         "type": "size_t",
         "unit": "unit:src"
@@ -7800,7 +7800,7 @@
     {
       "id": "global:src/gc.c:heap_high_water",
       "kind": "global",
-      "loc": "src/gc.c:89",
+      "loc": "src/gc.c:91",
       "attrs": {
         "type": "size_t",
         "unit": "unit:src"
@@ -7809,7 +7809,7 @@
     {
       "id": "global:src/gc.c:heap_live_bytes",
       "kind": "global",
-      "loc": "src/gc.c:88",
+      "loc": "src/gc.c:90",
       "attrs": {
         "type": "size_t",
         "unit": "unit:src"
@@ -7818,7 +7818,7 @@
     {
       "id": "global:src/gc.c:heap_top",
       "kind": "global",
-      "loc": "src/gc.c:33",
+      "loc": "src/gc.c:35",
       "attrs": {
         "type": "uint8_t *",
         "unit": "unit:src"
@@ -7827,7 +7827,7 @@
     {
       "id": "global:src/gc.c:mark_overflowed",
       "kind": "global",
-      "loc": "src/gc.c:584",
+      "loc": "src/gc.c:586",
       "attrs": {
         "type": "int",
         "unit": "unit:src"
@@ -7836,7 +7836,7 @@
     {
       "id": "global:src/gc.c:mark_sp",
       "kind": "global",
-      "loc": "src/gc.c:583",
+      "loc": "src/gc.c:585",
       "attrs": {
         "type": "size_t",
         "unit": "unit:src"
@@ -7845,7 +7845,7 @@
     {
       "id": "global:src/gc.c:mark_stack",
       "kind": "global",
-      "loc": "src/gc.c:582",
+      "loc": "src/gc.c:584",
       "attrs": {
         "type": "oop[512]",
         "unit": "unit:src"
@@ -7854,7 +7854,7 @@
     {
       "id": "global:src/gc.c:oevm_heap_store",
       "kind": "global",
-      "loc": "src/gc.c:30",
+      "loc": "src/gc.c:32",
       "attrs": {
         "type": "oevm_align_cell[8192]",
         "unit": "unit:src"
@@ -8034,7 +8034,7 @@
     {
       "id": "global:src/oimg_loader.c:img_classnames_count",
       "kind": "global",
-      "loc": "src/oimg_loader.c:126",
+      "loc": "src/oimg_loader.c:129",
       "attrs": {
         "type": "uint16_t",
         "unit": "unit:src"
@@ -8043,7 +8043,7 @@
     {
       "id": "global:src/oimg_loader.c:img_classnames_ref",
       "kind": "global",
-      "loc": "src/oimg_loader.c:125",
+      "loc": "src/oimg_loader.c:128",
       "attrs": {
         "type": "uintptr_t",
         "unit": "unit:src"
@@ -8052,7 +8052,7 @@
     {
       "id": "global:src/oimg_loader.c:img_entry_nslots",
       "kind": "global",
-      "loc": "src/oimg_loader.c:108",
+      "loc": "src/oimg_loader.c:111",
       "attrs": {
         "type": "uint16_t",
         "unit": "unit:src"
@@ -8061,7 +8061,7 @@
     {
       "id": "global:src/oimg_loader.c:img_init_argc",
       "kind": "global",
-      "loc": "src/oimg_loader.c:107",
+      "loc": "src/oimg_loader.c:110",
       "attrs": {
         "type": "uint16_t",
         "unit": "unit:src"
@@ -8070,7 +8070,7 @@
     {
       "id": "global:src/oimg_loader.c:img_init_sel_ref",
       "kind": "global",
-      "loc": "src/oimg_loader.c:105",
+      "loc": "src/oimg_loader.c:108",
       "attrs": {
         "type": "uintptr_t",
         "unit": "unit:src"
@@ -8079,7 +8079,7 @@
     {
       "id": "global:src/oimg_loader.c:img_kernel_init_sel_ref",
       "kind": "global",
-      "loc": "src/oimg_loader.c:112",
+      "loc": "src/oimg_loader.c:115",
       "attrs": {
         "type": "uintptr_t",
         "unit": "unit:src"
@@ -8088,7 +8088,7 @@
     {
       "id": "global:src/oimg_loader.c:img_kernel_nslots",
       "kind": "global",
-      "loc": "src/oimg_loader.c:113",
+      "loc": "src/oimg_loader.c:116",
       "attrs": {
         "type": "uint16_t",
         "unit": "unit:src"
@@ -8097,7 +8097,7 @@
     {
       "id": "global:src/oimg_loader.c:img_kernel_vtable_ref",
       "kind": "global",
-      "loc": "src/oimg_loader.c:111",
+      "loc": "src/oimg_loader.c:114",
       "attrs": {
         "type": "uintptr_t",
         "unit": "unit:src"
@@ -8106,7 +8106,7 @@
     {
       "id": "global:src/oimg_loader.c:img_main_sel_ref",
       "kind": "global",
-      "loc": "src/oimg_loader.c:106",
+      "loc": "src/oimg_loader.c:109",
       "attrs": {
         "type": "uintptr_t",
         "unit": "unit:src"
@@ -8115,7 +8115,7 @@
     {
       "id": "global:src/oimg_loader.c:img_methods_count",
       "kind": "global",
-      "loc": "src/oimg_loader.c:129",
+      "loc": "src/oimg_loader.c:132",
       "attrs": {
         "type": "uint32_t",
         "unit": "unit:src"
@@ -8124,7 +8124,7 @@
     {
       "id": "global:src/oimg_loader.c:img_methods_ref",
       "kind": "global",
-      "loc": "src/oimg_loader.c:128",
+      "loc": "src/oimg_loader.c:131",
       "attrs": {
         "type": "uintptr_t",
         "unit": "unit:src"
@@ -8133,7 +8133,7 @@
     {
       "id": "global:src/oimg_loader.c:img_net_on_sel_ref",
       "kind": "global",
-      "loc": "src/oimg_loader.c:123",
+      "loc": "src/oimg_loader.c:126",
       "attrs": {
         "type": "uintptr_t",
         "unit": "unit:src"
@@ -8142,7 +8142,7 @@
     {
       "id": "global:src/oimg_loader.c:img_root_ref",
       "kind": "global",
-      "loc": "src/oimg_loader.c:104",
+      "loc": "src/oimg_loader.c:107",
       "attrs": {
         "type": "uintptr_t",
         "unit": "unit:src"
@@ -8151,7 +8151,7 @@
     {
       "id": "global:src/oimg_loader.c:img_serial_on_sel_ref",
       "kind": "global",
-      "loc": "src/oimg_loader.c:116",
+      "loc": "src/oimg_loader.c:119",
       "attrs": {
         "type": "uintptr_t",
         "unit": "unit:src"
@@ -8160,7 +8160,7 @@
     {
       "id": "global:src/oimg_loader.c:img_supervisor_init_sel_ref",
       "kind": "global",
-      "loc": "src/oimg_loader.c:119",
+      "loc": "src/oimg_loader.c:122",
       "attrs": {
         "type": "uintptr_t",
         "unit": "unit:src"
@@ -8169,7 +8169,7 @@
     {
       "id": "global:src/oimg_loader.c:img_supervisor_nslots",
       "kind": "global",
-      "loc": "src/oimg_loader.c:121",
+      "loc": "src/oimg_loader.c:124",
       "attrs": {
         "type": "uint16_t",
         "unit": "unit:src"
@@ -8178,7 +8178,7 @@
     {
       "id": "global:src/oimg_loader.c:img_supervisor_run_sel_ref",
       "kind": "global",
-      "loc": "src/oimg_loader.c:120",
+      "loc": "src/oimg_loader.c:123",
       "attrs": {
         "type": "uintptr_t",
         "unit": "unit:src"
@@ -8187,7 +8187,7 @@
     {
       "id": "global:src/oimg_loader.c:img_supervisor_vtable_ref",
       "kind": "global",
-      "loc": "src/oimg_loader.c:118",
+      "loc": "src/oimg_loader.c:121",
       "attrs": {
         "type": "uintptr_t",
         "unit": "unit:src"
@@ -8817,7 +8817,7 @@
     {
       "id": "global:zephyr/src/observer.c:g_core",
       "kind": "global",
-      "loc": "zephyr/src/observer.c:88",
+      "loc": "zephyr/src/observer.c:85",
       "attrs": {
         "type": "struct ObsCore",
         "unit": "unit:zephyr/src"
@@ -8826,7 +8826,7 @@
     {
       "id": "global:zephyr/src/observer.c:g_hw_wdt",
       "kind": "global",
-      "loc": "zephyr/src/observer.c:81",
+      "loc": "zephyr/src/observer.c:78",
       "attrs": {
         "type": "const struct device *",
         "unit": "unit:zephyr/src"
@@ -8835,7 +8835,7 @@
     {
       "id": "global:zephyr/src/observer.c:g_trace",
       "kind": "global",
-      "loc": "zephyr/src/observer.c:100",
+      "loc": "zephyr/src/observer.c:97",
       "attrs": {
         "type": "struct ObsTrace[32]",
         "unit": "unit:zephyr/src"
@@ -8844,7 +8844,7 @@
     {
       "id": "global:zephyr/src/observer.c:g_trace_w",
       "kind": "global",
-      "loc": "zephyr/src/observer.c:101",
+      "loc": "zephyr/src/observer.c:98",
       "attrs": {
         "type": "uint32_t",
         "unit": "unit:zephyr/src"
@@ -8853,7 +8853,7 @@
     {
       "id": "global:zephyr/src/observer.c:g_wdt_channel",
       "kind": "global",
-      "loc": "zephyr/src/observer.c:82",
+      "loc": "zephyr/src/observer.c:79",
       "attrs": {
         "type": "int",
         "unit": "unit:zephyr/src"
@@ -8862,7 +8862,7 @@
     {
       "id": "global:zephyr/src/observer.c:observer_thread",
       "kind": "global",
-      "loc": "zephyr/src/observer.c:394",
+      "loc": "zephyr/src/observer.c:391",
       "attrs": {
         "type": "struct k_thread",
         "unit": "unit:zephyr/src"
@@ -9083,37 +9083,37 @@
       "kind": "calls",
       "from": "func:float_alloc",
       "to": "func:abort",
-      "loc": "src/gc.c:478"
-    },
-    {
-      "kind": "calls",
-      "from": "func:float_alloc",
-      "to": "func:fprintf",
-      "loc": "src/gc.c:477"
-    },
-    {
-      "kind": "calls",
-      "from": "func:float_alloc",
-      "to": "func:gc_collect",
-      "loc": "src/gc.c:434"
-    },
-    {
-      "kind": "calls",
-      "from": "func:float_alloc",
-      "to": "func:gc_collect",
-      "loc": "src/gc.c:466"
-    },
-    {
-      "kind": "calls",
-      "from": "func:float_alloc",
-      "to": "func:memset",
       "loc": "src/gc.c:480"
     },
     {
       "kind": "calls",
       "from": "func:float_alloc",
+      "to": "func:fprintf",
+      "loc": "src/gc.c:479"
+    },
+    {
+      "kind": "calls",
+      "from": "func:float_alloc",
+      "to": "func:gc_collect",
+      "loc": "src/gc.c:436"
+    },
+    {
+      "kind": "calls",
+      "from": "func:float_alloc",
+      "to": "func:gc_collect",
+      "loc": "src/gc.c:468"
+    },
+    {
+      "kind": "calls",
+      "from": "func:float_alloc",
+      "to": "func:memset",
+      "loc": "src/gc.c:482"
+    },
+    {
+      "kind": "calls",
+      "from": "func:float_alloc",
       "to": "func:oevm_malloc",
-      "loc": "src/gc.c:444"
+      "loc": "src/gc.c:446"
     },
     {
       "kind": "calls",
@@ -9137,49 +9137,49 @@
       "kind": "calls",
       "from": "func:gc_allocate",
       "to": "func:gc_collect",
-      "loc": "src/gc.c:353"
+      "loc": "src/gc.c:355"
     },
     {
       "kind": "calls",
       "from": "func:gc_allocate",
       "to": "func:gc_collect",
-      "loc": "src/gc.c:367"
-    },
-    {
-      "kind": "calls",
-      "from": "func:gc_allocate",
-      "to": "func:getenv",
-      "loc": "src/gc.c:352"
-    },
-    {
-      "kind": "calls",
-      "from": "func:gc_allocate",
-      "to": "func:heap_init",
-      "loc": "src/gc.c:344"
-    },
-    {
-      "kind": "calls",
-      "from": "func:gc_allocate",
-      "to": "func:src/gc.c:arena_try_alloc",
-      "loc": "src/gc.c:361"
-    },
-    {
-      "kind": "calls",
-      "from": "func:gc_allocate",
-      "to": "func:src/gc.c:arena_try_alloc",
       "loc": "src/gc.c:369"
     },
     {
       "kind": "calls",
       "from": "func:gc_allocate",
-      "to": "func:src/gc.c:heap_stats_on_alloc",
-      "loc": "src/gc.c:362"
+      "to": "func:getenv",
+      "loc": "src/gc.c:354"
+    },
+    {
+      "kind": "calls",
+      "from": "func:gc_allocate",
+      "to": "func:heap_init",
+      "loc": "src/gc.c:346"
+    },
+    {
+      "kind": "calls",
+      "from": "func:gc_allocate",
+      "to": "func:src/gc.c:arena_try_alloc",
+      "loc": "src/gc.c:363"
+    },
+    {
+      "kind": "calls",
+      "from": "func:gc_allocate",
+      "to": "func:src/gc.c:arena_try_alloc",
+      "loc": "src/gc.c:371"
     },
     {
       "kind": "calls",
       "from": "func:gc_allocate",
       "to": "func:src/gc.c:heap_stats_on_alloc",
-      "loc": "src/gc.c:370"
+      "loc": "src/gc.c:364"
+    },
+    {
+      "kind": "calls",
+      "from": "func:gc_allocate",
+      "to": "func:src/gc.c:heap_stats_on_alloc",
+      "loc": "src/gc.c:372"
     },
     {
       "kind": "calls",
@@ -9191,19 +9191,19 @@
       "kind": "calls",
       "from": "func:gc_collect",
       "to": "func:heap_init",
-      "loc": "src/gc.c:834"
+      "loc": "src/gc.c:836"
     },
     {
       "kind": "calls",
       "from": "func:gc_collect",
       "to": "func:method_cache_flush",
-      "loc": "src/gc.c:840"
+      "loc": "src/gc.c:842"
     },
     {
       "kind": "calls",
       "from": "func:gc_collect",
       "to": "func:space_gc_trace",
-      "loc": "src/gc.c:883"
+      "loc": "src/gc.c:884"
     },
     {
       "kind": "calls",
@@ -9251,7 +9251,7 @@
       "kind": "calls",
       "from": "func:gc_collect",
       "to": "func:src/gc.c:hh_clear_mark",
-      "loc": "src/gc.c:847"
+      "loc": "src/gc.c:849"
     },
     {
       "kind": "calls",
@@ -9287,7 +9287,7 @@
       "kind": "calls",
       "from": "func:gc_collect",
       "to": "func:src/gc.c:hh_size",
-      "loc": "src/gc.c:848"
+      "loc": "src/gc.c:850"
     },
     {
       "kind": "calls",
@@ -9306,18 +9306,6 @@
       "from": "func:gc_collect",
       "to": "func:src/gc.c:hh_size",
       "loc": "src/gc.c:987"
-    },
-    {
-      "kind": "calls",
-      "from": "func:gc_collect",
-      "to": "func:src/gc.c:mark",
-      "loc": "src/gc.c:867"
-    },
-    {
-      "kind": "calls",
-      "from": "func:gc_collect",
-      "to": "func:src/gc.c:mark",
-      "loc": "src/gc.c:868"
     },
     {
       "kind": "calls",
@@ -9366,6 +9354,18 @@
       "from": "func:gc_collect",
       "to": "func:src/gc.c:mark",
       "loc": "src/gc.c:876"
+    },
+    {
+      "kind": "calls",
+      "from": "func:gc_collect",
+      "to": "func:src/gc.c:mark",
+      "loc": "src/gc.c:877"
+    },
+    {
+      "kind": "calls",
+      "from": "func:gc_collect",
+      "to": "func:src/gc.c:mark",
+      "loc": "src/gc.c:878"
     },
     {
       "kind": "calls",
@@ -9437,25 +9437,25 @@
       "kind": "calls",
       "from": "func:gc_collect",
       "to": "func:src/gc.c:scan_vm_stack",
-      "loc": "src/gc.c:853"
+      "loc": "src/gc.c:855"
     },
     {
       "kind": "calls",
       "from": "func:gc_is_live",
       "to": "func:src/gc.c:is_valid_heap_object",
-      "loc": "src/gc.c:244"
+      "loc": "src/gc.c:246"
     },
     {
       "kind": "calls",
       "from": "func:gc_temp_root_push",
       "to": "func:abort",
-      "loc": "src/gc.c:823"
+      "loc": "src/gc.c:825"
     },
     {
       "kind": "calls",
       "from": "func:gc_temp_root_push",
       "to": "func:fprintf",
-      "loc": "src/gc.c:822"
+      "loc": "src/gc.c:824"
     },
     {
       "kind": "calls",
@@ -9515,19 +9515,19 @@
       "kind": "calls",
       "from": "func:heap_init",
       "to": "func:abort",
-      "loc": "src/gc.c:183"
+      "loc": "src/gc.c:185"
     },
     {
       "kind": "calls",
       "from": "func:heap_init",
       "to": "func:fprintf",
-      "loc": "src/gc.c:182"
+      "loc": "src/gc.c:184"
     },
     {
       "kind": "calls",
       "from": "func:heap_init",
       "to": "func:memset",
-      "loc": "src/gc.c:169"
+      "loc": "src/gc.c:171"
     },
     {
       "kind": "calls",
@@ -10481,7 +10481,7 @@
       "kind": "calls",
       "from": "func:mark_object",
       "to": "func:src/gc.c:mark",
-      "loc": "src/gc.c:800"
+      "loc": "src/gc.c:802"
     },
     {
       "kind": "calls",
@@ -10865,67 +10865,67 @@
       "kind": "calls",
       "from": "func:observer_halt",
       "to": "func:arch_irq_lock",
-      "loc": "zephyr/src/observer.c:340"
-    },
-    {
-      "kind": "calls",
-      "from": "func:observer_halt",
-      "to": "func:k_busy_wait",
-      "loc": "zephyr/src/observer.c:339"
-    },
-    {
-      "kind": "calls",
-      "from": "func:observer_halt",
-      "to": "func:printk",
       "loc": "zephyr/src/observer.c:337"
     },
     {
       "kind": "calls",
       "from": "func:observer_halt",
-      "to": "func:wdt_disable",
+      "to": "func:k_busy_wait",
       "loc": "zephyr/src/observer.c:336"
+    },
+    {
+      "kind": "calls",
+      "from": "func:observer_halt",
+      "to": "func:printk",
+      "loc": "zephyr/src/observer.c:334"
+    },
+    {
+      "kind": "calls",
+      "from": "func:observer_halt",
+      "to": "func:wdt_disable",
+      "loc": "zephyr/src/observer.c:333"
     },
     {
       "kind": "calls",
       "from": "func:observer_start",
       "to": "func:device_is_ready",
-      "loc": "zephyr/src/observer.c:399"
+      "loc": "zephyr/src/observer.c:396"
     },
     {
       "kind": "calls",
       "from": "func:observer_start",
       "to": "func:k_thread_create",
-      "loc": "zephyr/src/observer.c:418"
-    },
-    {
-      "kind": "calls",
-      "from": "func:observer_start",
-      "to": "func:k_thread_name_set",
-      "loc": "zephyr/src/observer.c:422"
-    },
-    {
-      "kind": "calls",
-      "from": "func:observer_start",
-      "to": "func:printk",
-      "loc": "zephyr/src/observer.c:407"
-    },
-    {
-      "kind": "calls",
-      "from": "func:observer_start",
-      "to": "func:printk",
       "loc": "zephyr/src/observer.c:415"
     },
     {
       "kind": "calls",
       "from": "func:observer_start",
+      "to": "func:k_thread_name_set",
+      "loc": "zephyr/src/observer.c:419"
+    },
+    {
+      "kind": "calls",
+      "from": "func:observer_start",
+      "to": "func:printk",
+      "loc": "zephyr/src/observer.c:404"
+    },
+    {
+      "kind": "calls",
+      "from": "func:observer_start",
+      "to": "func:printk",
+      "loc": "zephyr/src/observer.c:412"
+    },
+    {
+      "kind": "calls",
+      "from": "func:observer_start",
       "to": "func:task_wdt_init",
-      "loc": "zephyr/src/observer.c:403"
+      "loc": "zephyr/src/observer.c:400"
     },
     {
       "kind": "calls",
       "from": "func:oevm_free",
       "to": "func:free",
-      "loc": "src/gc.c:122"
+      "loc": "src/gc.c:124"
     },
     {
       "kind": "calls",
@@ -11081,13 +11081,13 @@
       "kind": "calls",
       "from": "func:oevm_malloc",
       "to": "func:malloc",
-      "loc": "src/gc.c:107"
+      "loc": "src/gc.c:109"
     },
     {
       "kind": "calls",
       "from": "func:oevm_malloc",
       "to": "func:mprof_alloc",
-      "loc": "src/gc.c:111"
+      "loc": "src/gc.c:113"
     },
     {
       "kind": "calls",
@@ -11111,19 +11111,19 @@
       "kind": "calls",
       "from": "func:oevm_realloc",
       "to": "func:mprof_alloc",
-      "loc": "src/gc.c:139"
+      "loc": "src/gc.c:141"
     },
     {
       "kind": "calls",
       "from": "func:oevm_realloc",
       "to": "func:oevm_malloc",
-      "loc": "src/gc.c:126"
+      "loc": "src/gc.c:128"
     },
     {
       "kind": "calls",
       "from": "func:oevm_realloc",
       "to": "func:realloc",
-      "loc": "src/gc.c:129"
+      "loc": "src/gc.c:131"
     },
     {
       "kind": "calls",
@@ -11255,13 +11255,13 @@
       "kind": "calls",
       "from": "func:oimg_bootstrap",
       "to": "func:gc_allocate",
-      "loc": "src/oimg_loader.c:292"
+      "loc": "src/oimg_loader.c:295"
     },
     {
       "kind": "calls",
       "from": "func:oimg_bootstrap",
       "to": "func:gc_allocate",
-      "loc": "src/oimg_loader.c:298"
+      "loc": "src/oimg_loader.c:301"
     },
     {
       "kind": "calls",
@@ -11273,25 +11273,25 @@
       "kind": "calls",
       "from": "func:oimg_bootstrap",
       "to": "func:gc_temp_root_push",
-      "loc": "src/oimg_loader.c:291"
-    },
-    {
-      "kind": "calls",
-      "from": "func:oimg_bootstrap",
-      "to": "func:gc_temp_root_push",
       "loc": "src/oimg_loader.c:294"
     },
     {
       "kind": "calls",
       "from": "func:oimg_bootstrap",
       "to": "func:gc_temp_root_push",
-      "loc": "src/oimg_loader.c:300"
+      "loc": "src/oimg_loader.c:297"
     },
     {
       "kind": "calls",
       "from": "func:oimg_bootstrap",
       "to": "func:gc_temp_root_push",
-      "loc": "src/oimg_loader.c:318"
+      "loc": "src/oimg_loader.c:303"
+    },
+    {
+      "kind": "calls",
+      "from": "func:oimg_bootstrap",
+      "to": "func:gc_temp_root_push",
+      "loc": "src/oimg_loader.c:319"
     },
     {
       "kind": "calls",
@@ -11321,7 +11321,7 @@
       "kind": "calls",
       "from": "func:oimg_bootstrap",
       "to": "func:oimg_kernel_vtable",
-      "loc": "src/oimg_loader.c:292"
+      "loc": "src/oimg_loader.c:295"
     },
     {
       "kind": "calls",
@@ -11333,31 +11333,31 @@
       "kind": "calls",
       "from": "func:oimg_bootstrap",
       "to": "func:platform_object",
-      "loc": "src/oimg_loader.c:290"
+      "loc": "src/oimg_loader.c:293"
     },
     {
       "kind": "calls",
       "from": "func:oimg_bootstrap",
       "to": "func:send",
-      "loc": "src/oimg_loader.c:296"
+      "loc": "src/oimg_loader.c:299"
     },
     {
       "kind": "calls",
       "from": "func:oimg_bootstrap",
       "to": "func:send",
-      "loc": "src/oimg_loader.c:310"
+      "loc": "src/oimg_loader.c:312"
     },
     {
       "kind": "calls",
       "from": "func:oimg_bootstrap",
       "to": "func:send",
-      "loc": "src/oimg_loader.c:316"
+      "loc": "src/oimg_loader.c:317"
     },
     {
       "kind": "calls",
       "from": "func:oimg_bootstrap",
       "to": "func:send",
-      "loc": "src/oimg_loader.c:320"
+      "loc": "src/oimg_loader.c:321"
     },
     {
       "kind": "calls",
@@ -11381,31 +11381,31 @@
       "kind": "calls",
       "from": "func:oimg_bootstrap",
       "to": "func:serial_object",
-      "loc": "src/oimg_loader.c:309"
+      "loc": "src/oimg_loader.c:311"
     },
     {
       "kind": "calls",
       "from": "func:oimg_bootstrap",
       "to": "func:src/oimg.h:oimg_resolve",
-      "loc": "src/oimg_loader.c:296"
+      "loc": "src/oimg_loader.c:299"
     },
     {
       "kind": "calls",
       "from": "func:oimg_bootstrap",
       "to": "func:src/oimg.h:oimg_resolve",
-      "loc": "src/oimg_loader.c:310"
+      "loc": "src/oimg_loader.c:312"
     },
     {
       "kind": "calls",
       "from": "func:oimg_bootstrap",
       "to": "func:src/oimg.h:oimg_resolve",
-      "loc": "src/oimg_loader.c:316"
+      "loc": "src/oimg_loader.c:317"
     },
     {
       "kind": "calls",
       "from": "func:oimg_bootstrap",
       "to": "func:src/oimg.h:oimg_resolve",
-      "loc": "src/oimg_loader.c:320"
+      "loc": "src/oimg_loader.c:321"
     },
     {
       "kind": "calls",
@@ -11435,103 +11435,97 @@
       "kind": "calls",
       "from": "func:oimg_bootstrap",
       "to": "func:udp_object",
-      "loc": "src/oimg_loader.c:315"
+      "loc": "src/oimg_loader.c:316"
     },
     {
       "kind": "calls",
       "from": "func:oimg_kernel_vtable",
       "to": "func:src/oimg.h:oimg_resolve",
-      "loc": "src/oimg_loader.c:278"
+      "loc": "src/oimg_loader.c:281"
     },
     {
       "kind": "calls",
       "from": "func:oimg_load_blob",
       "to": "func:fprintf",
-      "loc": "src/oimg_loader.c:145"
-    },
-    {
-      "kind": "calls",
-      "from": "func:oimg_load_blob",
-      "to": "func:fprintf",
-      "loc": "src/oimg_loader.c:149"
-    },
-    {
-      "kind": "calls",
-      "from": "func:oimg_load_blob",
-      "to": "func:fprintf",
-      "loc": "src/oimg_loader.c:155"
-    },
-    {
-      "kind": "calls",
-      "from": "func:oimg_load_blob",
-      "to": "func:fprintf",
-      "loc": "src/oimg_loader.c:159"
-    },
-    {
-      "kind": "calls",
-      "from": "func:oimg_load_blob",
-      "to": "func:fprintf",
-      "loc": "src/oimg_loader.c:164"
-    },
-    {
-      "kind": "calls",
-      "from": "func:oimg_load_blob",
-      "to": "func:fprintf",
-      "loc": "src/oimg_loader.c:196"
-    },
-    {
-      "kind": "calls",
-      "from": "func:oimg_load_blob",
-      "to": "func:fprintf",
-      "loc": "src/oimg_loader.c:212"
-    },
-    {
-      "kind": "calls",
-      "from": "func:oimg_load_blob",
-      "to": "func:fprintf",
-      "loc": "src/oimg_loader.c:226"
-    },
-    {
-      "kind": "calls",
-      "from": "func:oimg_load_blob",
-      "to": "func:memcmp",
       "loc": "src/oimg_loader.c:148"
     },
     {
       "kind": "calls",
       "from": "func:oimg_load_blob",
-      "to": "func:oevm_method_check",
-      "loc": "src/oimg_loader.c:224"
+      "to": "func:fprintf",
+      "loc": "src/oimg_loader.c:152"
     },
     {
       "kind": "calls",
       "from": "func:oimg_load_blob",
-      "to": "func:src/oimg_loader.c:read_u16",
+      "to": "func:fprintf",
+      "loc": "src/oimg_loader.c:158"
+    },
+    {
+      "kind": "calls",
+      "from": "func:oimg_load_blob",
+      "to": "func:fprintf",
+      "loc": "src/oimg_loader.c:162"
+    },
+    {
+      "kind": "calls",
+      "from": "func:oimg_load_blob",
+      "to": "func:fprintf",
+      "loc": "src/oimg_loader.c:167"
+    },
+    {
+      "kind": "calls",
+      "from": "func:oimg_load_blob",
+      "to": "func:fprintf",
+      "loc": "src/oimg_loader.c:199"
+    },
+    {
+      "kind": "calls",
+      "from": "func:oimg_load_blob",
+      "to": "func:fprintf",
+      "loc": "src/oimg_loader.c:215"
+    },
+    {
+      "kind": "calls",
+      "from": "func:oimg_load_blob",
+      "to": "func:fprintf",
+      "loc": "src/oimg_loader.c:229"
+    },
+    {
+      "kind": "calls",
+      "from": "func:oimg_load_blob",
+      "to": "func:memcmp",
       "loc": "src/oimg_loader.c:151"
     },
     {
       "kind": "calls",
       "from": "func:oimg_load_blob",
-      "to": "func:src/oimg_loader.c:read_u16",
-      "loc": "src/oimg_loader.c:173"
+      "to": "func:oevm_method_check",
+      "loc": "src/oimg_loader.c:227"
     },
     {
       "kind": "calls",
       "from": "func:oimg_load_blob",
       "to": "func:src/oimg_loader.c:read_u16",
-      "loc": "src/oimg_loader.c:174"
+      "loc": "src/oimg_loader.c:154"
     },
     {
       "kind": "calls",
       "from": "func:oimg_load_blob",
       "to": "func:src/oimg_loader.c:read_u16",
-      "loc": "src/oimg_loader.c:179"
+      "loc": "src/oimg_loader.c:176"
     },
     {
       "kind": "calls",
       "from": "func:oimg_load_blob",
       "to": "func:src/oimg_loader.c:read_u16",
-      "loc": "src/oimg_loader.c:184"
+      "loc": "src/oimg_loader.c:177"
+    },
+    {
+      "kind": "calls",
+      "from": "func:oimg_load_blob",
+      "to": "func:src/oimg_loader.c:read_u16",
+      "loc": "src/oimg_loader.c:182"
     },
     {
       "kind": "calls",
@@ -11542,50 +11536,44 @@
     {
       "kind": "calls",
       "from": "func:oimg_load_blob",
-      "to": "func:src/oimg_loader.c:read_u32",
-      "loc": "src/oimg_loader.c:152"
+      "to": "func:src/oimg_loader.c:read_u16",
+      "loc": "src/oimg_loader.c:190"
     },
     {
       "kind": "calls",
       "from": "func:oimg_load_blob",
       "to": "func:src/oimg_loader.c:read_u32",
-      "loc": "src/oimg_loader.c:153"
+      "loc": "src/oimg_loader.c:155"
     },
     {
       "kind": "calls",
       "from": "func:oimg_load_blob",
       "to": "func:src/oimg_loader.c:read_u32",
-      "loc": "src/oimg_loader.c:189"
+      "loc": "src/oimg_loader.c:156"
+    },
+    {
+      "kind": "calls",
+      "from": "func:oimg_load_blob",
+      "to": "func:src/oimg_loader.c:read_u32",
+      "loc": "src/oimg_loader.c:192"
     },
     {
       "kind": "calls",
       "from": "func:oimg_load_blob",
       "to": "func:src/oimg_loader.c:read_word",
-      "loc": "src/oimg_loader.c:170"
+      "loc": "src/oimg_loader.c:173"
     },
     {
       "kind": "calls",
       "from": "func:oimg_load_blob",
       "to": "func:src/oimg_loader.c:read_word",
-      "loc": "src/oimg_loader.c:171"
+      "loc": "src/oimg_loader.c:174"
     },
     {
       "kind": "calls",
       "from": "func:oimg_load_blob",
       "to": "func:src/oimg_loader.c:read_word",
-      "loc": "src/oimg_loader.c:172"
-    },
-    {
-      "kind": "calls",
-      "from": "func:oimg_load_blob",
-      "to": "func:src/oimg_loader.c:read_word",
-      "loc": "src/oimg_loader.c:177"
-    },
-    {
-      "kind": "calls",
-      "from": "func:oimg_load_blob",
-      "to": "func:src/oimg_loader.c:read_word",
-      "loc": "src/oimg_loader.c:178"
+      "loc": "src/oimg_loader.c:175"
     },
     {
       "kind": "calls",
@@ -11603,13 +11591,13 @@
       "kind": "calls",
       "from": "func:oimg_load_blob",
       "to": "func:src/oimg_loader.c:read_word",
-      "loc": "src/oimg_loader.c:182"
+      "loc": "src/oimg_loader.c:183"
     },
     {
       "kind": "calls",
       "from": "func:oimg_load_blob",
       "to": "func:src/oimg_loader.c:read_word",
-      "loc": "src/oimg_loader.c:183"
+      "loc": "src/oimg_loader.c:184"
     },
     {
       "kind": "calls",
@@ -11631,45 +11619,57 @@
     },
     {
       "kind": "calls",
+      "from": "func:oimg_load_blob",
+      "to": "func:src/oimg_loader.c:read_word",
+      "loc": "src/oimg_loader.c:189"
+    },
+    {
+      "kind": "calls",
+      "from": "func:oimg_load_blob",
+      "to": "func:src/oimg_loader.c:read_word",
+      "loc": "src/oimg_loader.c:191"
+    },
+    {
+      "kind": "calls",
       "from": "func:oimg_root",
       "to": "func:src/oimg.h:oimg_resolve",
-      "loc": "src/oimg_loader.c:272"
+      "loc": "src/oimg_loader.c:275"
     },
     {
       "kind": "calls",
       "from": "func:oimg_vtable_name",
       "to": "func:src/oimg.h:is_in_blob",
-      "loc": "src/oimg_loader.c:242"
+      "loc": "src/oimg_loader.c:245"
     },
     {
       "kind": "calls",
       "from": "func:oimg_vtable_name",
       "to": "func:src/oimg.h:oimg_resolve",
-      "loc": "src/oimg_loader.c:246"
+      "loc": "src/oimg_loader.c:249"
     },
     {
       "kind": "calls",
       "from": "func:oimg_vtable_name",
       "to": "func:src/oimg.h:oimg_resolve",
-      "loc": "src/oimg_loader.c:248"
+      "loc": "src/oimg_loader.c:251"
     },
     {
       "kind": "calls",
       "from": "func:oimg_vtable_name",
       "to": "func:src/oimg.h:symbol_name",
+      "loc": "src/oimg_loader.c:252"
+    },
+    {
+      "kind": "calls",
+      "from": "func:oimg_vtable_name",
+      "to": "func:src/oimg_loader.c:read_word",
       "loc": "src/oimg_loader.c:249"
     },
     {
       "kind": "calls",
       "from": "func:oimg_vtable_name",
       "to": "func:src/oimg_loader.c:read_word",
-      "loc": "src/oimg_loader.c:246"
-    },
-    {
-      "kind": "calls",
-      "from": "func:oimg_vtable_name",
-      "to": "func:src/oimg_loader.c:read_word",
-      "loc": "src/oimg_loader.c:248"
+      "loc": "src/oimg_loader.c:251"
     },
     {
       "kind": "calls",
@@ -18425,73 +18425,67 @@
       "kind": "calls",
       "from": "func:src/gc.c:arena_try_alloc",
       "to": "func:__builtin_ctzll",
-      "loc": "src/gc.c:327"
+      "loc": "src/gc.c:329"
     },
     {
       "kind": "calls",
       "from": "func:src/gc.c:arena_try_alloc",
       "to": "func:src/gc.c:bin_index",
-      "loc": "src/gc.c:281"
+      "loc": "src/gc.c:283"
     },
     {
       "kind": "calls",
       "from": "func:src/gc.c:arena_try_alloc",
       "to": "func:src/gc.c:bin_note_pop",
-      "loc": "src/gc.c:288"
+      "loc": "src/gc.c:290"
     },
     {
       "kind": "calls",
       "from": "func:src/gc.c:arena_try_alloc",
       "to": "func:src/gc.c:bin_note_pop",
-      "loc": "src/gc.c:333"
+      "loc": "src/gc.c:335"
     },
     {
       "kind": "calls",
       "from": "func:src/gc.c:arena_try_alloc",
       "to": "func:src/gc.c:bm_granule",
-      "loc": "src/gc.c:308"
+      "loc": "src/gc.c:310"
     },
     {
       "kind": "calls",
       "from": "func:src/gc.c:arena_try_alloc",
       "to": "func:src/gc.c:bm_granule",
-      "loc": "src/gc.c:319"
+      "loc": "src/gc.c:321"
     },
     {
       "kind": "calls",
       "from": "func:src/gc.c:arena_try_alloc",
       "to": "func:src/gc.c:bm_set",
-      "loc": "src/gc.c:308"
+      "loc": "src/gc.c:310"
     },
     {
       "kind": "calls",
       "from": "func:src/gc.c:arena_try_alloc",
       "to": "func:src/gc.c:bm_set",
-      "loc": "src/gc.c:319"
+      "loc": "src/gc.c:321"
     },
     {
       "kind": "calls",
       "from": "func:src/gc.c:arena_try_alloc",
       "to": "func:src/gc.c:finish_reuse",
-      "loc": "src/gc.c:289"
+      "loc": "src/gc.c:291"
     },
     {
       "kind": "calls",
       "from": "func:src/gc.c:arena_try_alloc",
       "to": "func:src/gc.c:finish_reuse",
-      "loc": "src/gc.c:334"
+      "loc": "src/gc.c:336"
     },
     {
       "kind": "calls",
       "from": "func:src/gc.c:arena_try_alloc",
       "to": "func:src/gc.c:hh_clear_mark",
-      "loc": "src/gc.c:305"
-    },
-    {
-      "kind": "calls",
-      "from": "func:src/gc.c:arena_try_alloc",
-      "to": "func:src/gc.c:hh_init",
-      "loc": "src/gc.c:300"
+      "loc": "src/gc.c:307"
     },
     {
       "kind": "calls",
@@ -18503,43 +18497,43 @@
       "kind": "calls",
       "from": "func:src/gc.c:arena_try_alloc",
       "to": "func:src/gc.c:hh_init",
-      "loc": "src/gc.c:317"
+      "loc": "src/gc.c:304"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/gc.c:arena_try_alloc",
+      "to": "func:src/gc.c:hh_init",
+      "loc": "src/gc.c:319"
     },
     {
       "kind": "calls",
       "from": "func:src/gc.c:arena_try_alloc",
       "to": "func:src/gc.c:hh_next",
+      "loc": "src/gc.c:289"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/gc.c:arena_try_alloc",
+      "to": "func:src/gc.c:hh_next",
+      "loc": "src/gc.c:293"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/gc.c:arena_try_alloc",
+      "to": "func:src/gc.c:hh_next",
+      "loc": "src/gc.c:334"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/gc.c:arena_try_alloc",
+      "to": "func:src/gc.c:hh_next",
+      "loc": "src/gc.c:338"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/gc.c:arena_try_alloc",
+      "to": "func:src/gc.c:hh_size",
       "loc": "src/gc.c:287"
-    },
-    {
-      "kind": "calls",
-      "from": "func:src/gc.c:arena_try_alloc",
-      "to": "func:src/gc.c:hh_next",
-      "loc": "src/gc.c:291"
-    },
-    {
-      "kind": "calls",
-      "from": "func:src/gc.c:arena_try_alloc",
-      "to": "func:src/gc.c:hh_next",
-      "loc": "src/gc.c:332"
-    },
-    {
-      "kind": "calls",
-      "from": "func:src/gc.c:arena_try_alloc",
-      "to": "func:src/gc.c:hh_next",
-      "loc": "src/gc.c:336"
-    },
-    {
-      "kind": "calls",
-      "from": "func:src/gc.c:arena_try_alloc",
-      "to": "func:src/gc.c:hh_size",
-      "loc": "src/gc.c:285"
-    },
-    {
-      "kind": "calls",
-      "from": "func:src/gc.c:arena_try_alloc",
-      "to": "func:src/gc.c:hh_size",
-      "loc": "src/gc.c:295"
     },
     {
       "kind": "calls",
@@ -18551,79 +18545,79 @@
       "kind": "calls",
       "from": "func:src/gc.c:arena_try_alloc",
       "to": "func:src/gc.c:hh_size",
-      "loc": "src/gc.c:330"
+      "loc": "src/gc.c:299"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/gc.c:arena_try_alloc",
+      "to": "func:src/gc.c:hh_size",
+      "loc": "src/gc.c:332"
     },
     {
       "kind": "calls",
       "from": "func:src/gc.c:bin_push",
       "to": "func:src/gc.c:hh_next",
-      "loc": "src/gc.c:69"
+      "loc": "src/gc.c:71"
     },
     {
       "kind": "calls",
       "from": "func:src/gc.c:default_oom",
       "to": "func:abort",
-      "loc": "src/gc.c:208"
+      "loc": "src/gc.c:210"
     },
     {
       "kind": "calls",
       "from": "func:src/gc.c:default_oom",
       "to": "func:platform_console_flush",
-      "loc": "src/gc.c:203"
+      "loc": "src/gc.c:205"
     },
     {
       "kind": "calls",
       "from": "func:src/gc.c:default_oom",
       "to": "func:platform_console_write",
-      "loc": "src/gc.c:202"
+      "loc": "src/gc.c:204"
     },
     {
       "kind": "calls",
       "from": "func:src/gc.c:default_oom",
       "to": "func:snprintf",
-      "loc": "src/gc.c:198"
+      "loc": "src/gc.c:200"
     },
     {
       "kind": "calls",
       "from": "func:src/gc.c:drain_mark_stack",
       "to": "func:src/gc.c:trace_one",
-      "loc": "src/gc.c:736"
+      "loc": "src/gc.c:738"
     },
     {
       "kind": "calls",
       "from": "func:src/gc.c:finish_reuse",
       "to": "func:src/gc.c:bin_index",
-      "loc": "src/gc.c:267"
+      "loc": "src/gc.c:269"
     },
     {
       "kind": "calls",
       "from": "func:src/gc.c:finish_reuse",
       "to": "func:src/gc.c:bin_push",
-      "loc": "src/gc.c:267"
+      "loc": "src/gc.c:269"
     },
     {
       "kind": "calls",
       "from": "func:src/gc.c:finish_reuse",
       "to": "func:src/gc.c:bm_granule",
-      "loc": "src/gc.c:273"
+      "loc": "src/gc.c:275"
     },
     {
       "kind": "calls",
       "from": "func:src/gc.c:finish_reuse",
       "to": "func:src/gc.c:bm_set",
-      "loc": "src/gc.c:273"
+      "loc": "src/gc.c:275"
     },
     {
       "kind": "calls",
       "from": "func:src/gc.c:finish_reuse",
       "to": "func:src/gc.c:hh_clear_mark",
-      "loc": "src/gc.c:270"
-    },
-    {
-      "kind": "calls",
-      "from": "func:src/gc.c:finish_reuse",
-      "to": "func:src/gc.c:hh_init",
-      "loc": "src/gc.c:266"
+      "loc": "src/gc.c:272"
     },
     {
       "kind": "calls",
@@ -18634,176 +18628,176 @@
     {
       "kind": "calls",
       "from": "func:src/gc.c:finish_reuse",
-      "to": "func:src/gc.c:hh_size",
-      "loc": "src/gc.c:262"
+      "to": "func:src/gc.c:hh_init",
+      "loc": "src/gc.c:270"
     },
     {
       "kind": "calls",
       "from": "func:src/gc.c:finish_reuse",
       "to": "func:src/gc.c:hh_size",
-      "loc": "src/gc.c:267"
+      "loc": "src/gc.c:264"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/gc.c:finish_reuse",
+      "to": "func:src/gc.c:hh_size",
+      "loc": "src/gc.c:269"
     },
     {
       "kind": "calls",
       "from": "func:src/gc.c:heap_stats_on_alloc",
       "to": "func:mprof_alloc",
-      "loc": "src/gc.c:153"
+      "loc": "src/gc.c:155"
     },
     {
       "kind": "calls",
       "from": "func:src/gc.c:is_valid_heap_object",
       "to": "func:src/gc.c:bm_test",
-      "loc": "src/gc.c:240"
+      "loc": "src/gc.c:242"
     },
     {
       "kind": "calls",
       "from": "func:src/gc.c:mark",
       "to": "func:is_read_only",
-      "loc": "src/gc.c:607"
-    },
-    {
-      "kind": "calls",
-      "from": "func:src/gc.c:mark",
-      "to": "func:src/gc.c:float_mark",
-      "loc": "src/gc.c:610"
-    },
-    {
-      "kind": "calls",
-      "from": "func:src/gc.c:mark",
-      "to": "func:src/gc.c:hh_marked",
-      "loc": "src/gc.c:619"
-    },
-    {
-      "kind": "calls",
-      "from": "func:src/gc.c:mark",
-      "to": "func:src/gc.c:hh_set_mark",
-      "loc": "src/gc.c:623"
-    },
-    {
-      "kind": "calls",
-      "from": "func:src/gc.c:mark",
-      "to": "func:src/gc.c:is_in_float_arena",
       "loc": "src/gc.c:609"
     },
     {
       "kind": "calls",
       "from": "func:src/gc.c:mark",
+      "to": "func:src/gc.c:float_mark",
+      "loc": "src/gc.c:612"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/gc.c:mark",
+      "to": "func:src/gc.c:hh_marked",
+      "loc": "src/gc.c:621"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/gc.c:mark",
+      "to": "func:src/gc.c:hh_set_mark",
+      "loc": "src/gc.c:625"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/gc.c:mark",
+      "to": "func:src/gc.c:is_in_float_arena",
+      "loc": "src/gc.c:611"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/gc.c:mark",
       "to": "func:src/gc.c:is_valid_heap_object",
-      "loc": "src/gc.c:614"
+      "loc": "src/gc.c:616"
     },
     {
       "kind": "calls",
       "from": "func:src/gc.c:mark",
       "to": "func:src/oimg.h:is_in_blob",
-      "loc": "src/gc.c:606"
+      "loc": "src/gc.c:608"
     },
     {
       "kind": "calls",
       "from": "func:src/gc.c:mark_drain_with_recovery",
       "to": "func:src/gc.c:drain_mark_stack",
-      "loc": "src/gc.c:745"
+      "loc": "src/gc.c:747"
     },
     {
       "kind": "calls",
       "from": "func:src/gc.c:mark_drain_with_recovery",
       "to": "func:src/gc.c:drain_mark_stack",
-      "loc": "src/gc.c:754"
+      "loc": "src/gc.c:756"
     },
     {
       "kind": "calls",
       "from": "func:src/gc.c:mark_drain_with_recovery",
       "to": "func:src/gc.c:hh_marked",
-      "loc": "src/gc.c:751"
+      "loc": "src/gc.c:753"
     },
     {
       "kind": "calls",
       "from": "func:src/gc.c:mark_drain_with_recovery",
       "to": "func:src/gc.c:hh_size",
-      "loc": "src/gc.c:752"
+      "loc": "src/gc.c:754"
     },
     {
       "kind": "calls",
       "from": "func:src/gc.c:mark_drain_with_recovery",
       "to": "func:src/gc.c:trace_one",
-      "loc": "src/gc.c:751"
+      "loc": "src/gc.c:753"
     },
     {
       "kind": "calls",
       "from": "func:src/gc.c:scan_vm_stack",
       "to": "func:src/frame_abi.h:frame_link_decode",
-      "loc": "src/gc.c:791"
+      "loc": "src/gc.c:793"
     },
     {
       "kind": "calls",
       "from": "func:src/gc.c:scan_vm_stack",
       "to": "func:src/gc.c:mark",
-      "loc": "src/gc.c:772"
+      "loc": "src/gc.c:774"
     },
     {
       "kind": "calls",
       "from": "func:src/gc.c:scan_vm_stack",
       "to": "func:src/gc.c:mark",
-      "loc": "src/gc.c:773"
+      "loc": "src/gc.c:775"
     },
     {
       "kind": "calls",
       "from": "func:src/gc.c:scan_vm_stack",
       "to": "func:src/gc.c:mark",
-      "loc": "src/gc.c:787"
+      "loc": "src/gc.c:789"
     },
     {
       "kind": "calls",
       "from": "func:src/gc.c:trace_object",
       "to": "func:src/gc.c:mark",
-      "loc": "src/gc.c:597"
+      "loc": "src/gc.c:599"
     },
     {
       "kind": "calls",
       "from": "func:src/gc.c:trace_one",
       "to": "func:src/frame_abi.h:frame_link_decode",
-      "loc": "src/gc.c:699"
+      "loc": "src/gc.c:701"
     },
     {
       "kind": "calls",
       "from": "func:src/gc.c:trace_one",
       "to": "func:src/gc.c:hh_size",
-      "loc": "src/gc.c:716"
+      "loc": "src/gc.c:718"
     },
     {
       "kind": "calls",
       "from": "func:src/gc.c:trace_one",
       "to": "func:src/gc.c:mark",
-      "loc": "src/gc.c:647"
+      "loc": "src/gc.c:649"
     },
     {
       "kind": "calls",
       "from": "func:src/gc.c:trace_one",
       "to": "func:src/gc.c:mark",
-      "loc": "src/gc.c:650"
+      "loc": "src/gc.c:652"
     },
     {
       "kind": "calls",
       "from": "func:src/gc.c:trace_one",
       "to": "func:src/gc.c:mark",
-      "loc": "src/gc.c:651"
+      "loc": "src/gc.c:653"
     },
     {
       "kind": "calls",
       "from": "func:src/gc.c:trace_one",
       "to": "func:src/gc.c:mark",
-      "loc": "src/gc.c:655"
+      "loc": "src/gc.c:657"
     },
     {
       "kind": "calls",
       "from": "func:src/gc.c:trace_one",
       "to": "func:src/gc.c:mark",
-      "loc": "src/gc.c:662"
-    },
-    {
-      "kind": "calls",
-      "from": "func:src/gc.c:trace_one",
-      "to": "func:src/gc.c:mark",
-      "loc": "src/gc.c:669"
+      "loc": "src/gc.c:664"
     },
     {
       "kind": "calls",
@@ -18815,37 +18809,31 @@
       "kind": "calls",
       "from": "func:src/gc.c:trace_one",
       "to": "func:src/gc.c:mark",
-      "loc": "src/gc.c:684"
+      "loc": "src/gc.c:673"
     },
     {
       "kind": "calls",
       "from": "func:src/gc.c:trace_one",
       "to": "func:src/gc.c:mark",
-      "loc": "src/gc.c:691"
+      "loc": "src/gc.c:686"
     },
     {
       "kind": "calls",
       "from": "func:src/gc.c:trace_one",
       "to": "func:src/gc.c:mark",
-      "loc": "src/gc.c:692"
+      "loc": "src/gc.c:693"
     },
     {
       "kind": "calls",
       "from": "func:src/gc.c:trace_one",
       "to": "func:src/gc.c:mark",
-      "loc": "src/gc.c:696"
+      "loc": "src/gc.c:694"
     },
     {
       "kind": "calls",
       "from": "func:src/gc.c:trace_one",
       "to": "func:src/gc.c:mark",
-      "loc": "src/gc.c:710"
-    },
-    {
-      "kind": "calls",
-      "from": "func:src/gc.c:trace_one",
-      "to": "func:src/gc.c:mark",
-      "loc": "src/gc.c:711"
+      "loc": "src/gc.c:698"
     },
     {
       "kind": "calls",
@@ -18856,8 +18844,20 @@
     {
       "kind": "calls",
       "from": "func:src/gc.c:trace_one",
+      "to": "func:src/gc.c:mark",
+      "loc": "src/gc.c:713"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/gc.c:trace_one",
+      "to": "func:src/gc.c:mark",
+      "loc": "src/gc.c:714"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/gc.c:trace_one",
       "to": "func:src/gc.c:trace_object",
-      "loc": "src/gc.c:716"
+      "loc": "src/gc.c:718"
     },
     {
       "kind": "calls",
@@ -18989,19 +18989,19 @@
       "kind": "calls",
       "from": "func:src/oimg_loader.c:read_u16",
       "to": "func:memcpy",
-      "loc": "src/oimg_loader.c:140"
+      "loc": "src/oimg_loader.c:143"
     },
     {
       "kind": "calls",
       "from": "func:src/oimg_loader.c:read_u32",
       "to": "func:memcpy",
-      "loc": "src/oimg_loader.c:137"
+      "loc": "src/oimg_loader.c:140"
     },
     {
       "kind": "calls",
       "from": "func:src/oimg_loader.c:read_word",
       "to": "func:memcpy",
-      "loc": "src/oimg_loader.c:133"
+      "loc": "src/oimg_loader.c:136"
     },
     {
       "kind": "calls",
@@ -22601,205 +22601,205 @@
       "kind": "calls",
       "from": "func:zephyr/src/observer.c:obs_trace_dump",
       "to": "func:k_busy_wait",
-      "loc": "zephyr/src/observer.c:122"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/observer.c:obs_trace_dump",
-      "to": "func:printk",
-      "loc": "zephyr/src/observer.c:115"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/observer.c:obs_trace_dump",
-      "to": "func:printk",
       "loc": "zephyr/src/observer.c:119"
+    },
+    {
+      "kind": "calls",
+      "from": "func:zephyr/src/observer.c:obs_trace_dump",
+      "to": "func:printk",
+      "loc": "zephyr/src/observer.c:112"
+    },
+    {
+      "kind": "calls",
+      "from": "func:zephyr/src/observer.c:obs_trace_dump",
+      "to": "func:printk",
+      "loc": "zephyr/src/observer.c:116"
     },
     {
       "kind": "calls",
       "from": "func:zephyr/src/observer.c:obs_trace_record",
       "to": "func:k_uptime_get_32",
-      "loc": "zephyr/src/observer.c:105"
+      "loc": "zephyr/src/observer.c:102"
     },
     {
       "kind": "calls",
       "from": "func:zephyr/src/observer.c:obs_trace_record",
       "to": "func:pulse_drained",
-      "loc": "zephyr/src/observer.c:107"
+      "loc": "zephyr/src/observer.c:104"
     },
     {
       "kind": "calls",
       "from": "func:zephyr/src/observer.c:obs_trace_record",
       "to": "func:pulse_pending",
-      "loc": "zephyr/src/observer.c:106"
+      "loc": "zephyr/src/observer.c:103"
     },
     {
       "kind": "calls",
       "from": "func:zephyr/src/observer.c:observer_dump",
       "to": "func:k_uptime_get_32",
-      "loc": "zephyr/src/observer.c:320"
+      "loc": "zephyr/src/observer.c:317"
     },
     {
       "kind": "calls",
       "from": "func:zephyr/src/observer.c:observer_dump",
       "to": "func:platform_app_cad_ms",
-      "loc": "zephyr/src/observer.c:320"
+      "loc": "zephyr/src/observer.c:317"
     },
     {
       "kind": "calls",
       "from": "func:zephyr/src/observer.c:observer_dump",
       "to": "func:printk",
-      "loc": "zephyr/src/observer.c:316"
+      "loc": "zephyr/src/observer.c:313"
     },
     {
       "kind": "calls",
       "from": "func:zephyr/src/observer.c:observer_dump",
       "to": "func:pulse_coalesced",
-      "loc": "zephyr/src/observer.c:322"
+      "loc": "zephyr/src/observer.c:319"
     },
     {
       "kind": "calls",
       "from": "func:zephyr/src/observer.c:observer_dump",
       "to": "func:pulse_drops",
-      "loc": "zephyr/src/observer.c:321"
+      "loc": "zephyr/src/observer.c:318"
     },
     {
       "kind": "calls",
       "from": "func:zephyr/src/observer.c:observer_dump",
       "to": "func:pulse_pending",
-      "loc": "zephyr/src/observer.c:321"
+      "loc": "zephyr/src/observer.c:318"
     },
     {
       "kind": "calls",
       "from": "func:zephyr/src/observer.c:observer_dump",
       "to": "func:pulse_stale",
-      "loc": "zephyr/src/observer.c:322"
+      "loc": "zephyr/src/observer.c:319"
     },
     {
       "kind": "calls",
       "from": "func:zephyr/src/observer.c:observer_dump",
       "to": "func:reboot_note_consecutive",
-      "loc": "zephyr/src/observer.c:323"
+      "loc": "zephyr/src/observer.c:320"
     },
     {
       "kind": "calls",
       "from": "func:zephyr/src/observer.c:observer_dump",
       "to": "func:zephyr/src/observer.c:obs_trace_dump",
-      "loc": "zephyr/src/observer.c:324"
+      "loc": "zephyr/src/observer.c:321"
     },
     {
       "kind": "calls",
       "from": "func:zephyr/src/observer.c:observer_thread_fn",
       "to": "func:k_sleep",
-      "loc": "zephyr/src/observer.c:379"
+      "loc": "zephyr/src/observer.c:376"
     },
     {
       "kind": "calls",
       "from": "func:zephyr/src/observer.c:observer_thread_fn",
       "to": "func:k_uptime_get_32",
-      "loc": "zephyr/src/observer.c:375"
+      "loc": "zephyr/src/observer.c:372"
     },
     {
       "kind": "calls",
       "from": "func:zephyr/src/observer.c:observer_thread_fn",
       "to": "func:observer_halt",
-      "loc": "zephyr/src/observer.c:376"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/observer.c:observer_thread_fn",
-      "to": "func:reboot_note_consecutive",
-      "loc": "zephyr/src/observer.c:376"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/observer.c:observer_thread_fn",
-      "to": "func:reboot_note_write",
-      "loc": "zephyr/src/observer.c:375"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/observer.c:observer_thread_fn",
-      "to": "func:sys_reboot",
-      "loc": "zephyr/src/observer.c:377"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/observer.c:observer_thread_fn",
-      "to": "func:task_wdt_add",
-      "loc": "zephyr/src/observer.c:347"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/observer.c:observer_thread_fn",
-      "to": "func:task_wdt_feed",
-      "loc": "zephyr/src/observer.c:371"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/observer.c:observer_thread_fn",
-      "to": "func:zephyr/src/observer.c:obs_trace_record",
-      "loc": "zephyr/src/observer.c:368"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/observer.c:observer_thread_fn",
-      "to": "func:zephyr/src/observer.c:observer_dump",
       "loc": "zephyr/src/observer.c:373"
     },
     {
       "kind": "calls",
       "from": "func:zephyr/src/observer.c:observer_thread_fn",
-      "to": "func:zephyr/src/observer.c:observer_forensics",
+      "to": "func:reboot_note_consecutive",
+      "loc": "zephyr/src/observer.c:373"
+    },
+    {
+      "kind": "calls",
+      "from": "func:zephyr/src/observer.c:observer_thread_fn",
+      "to": "func:reboot_note_write",
+      "loc": "zephyr/src/observer.c:372"
+    },
+    {
+      "kind": "calls",
+      "from": "func:zephyr/src/observer.c:observer_thread_fn",
+      "to": "func:sys_reboot",
       "loc": "zephyr/src/observer.c:374"
     },
     {
       "kind": "calls",
       "from": "func:zephyr/src/observer.c:observer_thread_fn",
+      "to": "func:task_wdt_add",
+      "loc": "zephyr/src/observer.c:344"
+    },
+    {
+      "kind": "calls",
+      "from": "func:zephyr/src/observer.c:observer_thread_fn",
+      "to": "func:task_wdt_feed",
+      "loc": "zephyr/src/observer.c:368"
+    },
+    {
+      "kind": "calls",
+      "from": "func:zephyr/src/observer.c:observer_thread_fn",
+      "to": "func:zephyr/src/observer.c:obs_trace_record",
+      "loc": "zephyr/src/observer.c:365"
+    },
+    {
+      "kind": "calls",
+      "from": "func:zephyr/src/observer.c:observer_thread_fn",
+      "to": "func:zephyr/src/observer.c:observer_dump",
+      "loc": "zephyr/src/observer.c:370"
+    },
+    {
+      "kind": "calls",
+      "from": "func:zephyr/src/observer.c:observer_thread_fn",
+      "to": "func:zephyr/src/observer.c:observer_forensics",
+      "loc": "zephyr/src/observer.c:371"
+    },
+    {
+      "kind": "calls",
+      "from": "func:zephyr/src/observer.c:observer_thread_fn",
       "to": "func:zephyr/src/observer.c:observer_verdict",
-      "loc": "zephyr/src/observer.c:369"
+      "loc": "zephyr/src/observer.c:366"
     },
     {
       "kind": "calls",
       "from": "func:zephyr/src/observer.c:observer_verdict",
       "to": "func:k_uptime_get_32",
-      "loc": "zephyr/src/observer.c:146"
+      "loc": "zephyr/src/observer.c:143"
     },
     {
       "kind": "calls",
       "from": "func:zephyr/src/observer.c:observer_verdict",
       "to": "func:platform_app_cad_ms",
-      "loc": "zephyr/src/observer.c:148"
+      "loc": "zephyr/src/observer.c:145"
     },
     {
       "kind": "calls",
       "from": "func:zephyr/src/observer.c:observer_verdict",
       "to": "func:platform_debug_held",
-      "loc": "zephyr/src/observer.c:149"
+      "loc": "zephyr/src/observer.c:146"
     },
     {
       "kind": "calls",
       "from": "func:zephyr/src/observer.c:observer_verdict",
       "to": "func:pulse_drained",
-      "loc": "zephyr/src/observer.c:147"
+      "loc": "zephyr/src/observer.c:144"
     },
     {
       "kind": "calls",
       "from": "func:zephyr/src/observer.c:observer_verdict",
       "to": "func:src/observer_core.h:observer_core_verdict",
-      "loc": "zephyr/src/observer.c:150"
+      "loc": "zephyr/src/observer.c:147"
     },
     {
       "kind": "calls",
       "from": "func:zephyr/src/observer.c:observer_verdict",
       "to": "func:timer_target_snapshot",
-      "loc": "zephyr/src/observer.c:145"
+      "loc": "zephyr/src/observer.c:142"
     },
     {
       "kind": "calls_indirect",
       "from": "func:gc_allocate",
       "to": "fnptr:oop (*)(size_t)",
-      "loc": "src/gc.c:374"
+      "loc": "src/gc.c:376"
     },
     {
       "kind": "calls_indirect",
@@ -22993,7 +22993,7 @@
       "kind": "declares",
       "from": "unit:src",
       "to": "func:gc_collect",
-      "loc": "src/gc.c:248",
+      "loc": "src/gc.c:250",
       "attrs": {
         "sig": "void (void)"
       }
@@ -23042,15 +23042,6 @@
       "loc": "src/handles.h:45",
       "attrs": {
         "sig": "void (int)"
-      }
-    },
-    {
-      "kind": "declares",
-      "from": "unit:src",
-      "to": "func:handle_gc_trace",
-      "loc": "src/gc.c:887",
-      "attrs": {
-        "sig": "void (void)"
       }
     },
     {
@@ -23433,16 +23424,6 @@
       "from": "unit:src",
       "to": "func:mirror_object",
       "loc": "src/mirror.h:4",
-      "attrs": {
-        "sig": "oop (void)",
-        "type": "struct Object * (void)"
-      }
-    },
-    {
-      "kind": "declares",
-      "from": "unit:src",
-      "to": "func:mirror_object",
-      "loc": "src/oimg_loader.c:329",
       "attrs": {
         "sig": "oop (void)",
         "type": "struct Object * (void)"
@@ -24613,16 +24594,6 @@
       "kind": "declares",
       "from": "unit:src",
       "to": "func:serial_object",
-      "loc": "src/oimg_loader.c:308",
-      "attrs": {
-        "sig": "oop (void)",
-        "type": "struct Object * (void)"
-      }
-    },
-    {
-      "kind": "declares",
-      "from": "unit:src",
-      "to": "func:serial_object",
       "loc": "src/serial.h:4",
       "attrs": {
         "sig": "oop (void)",
@@ -24693,15 +24664,6 @@
       "attrs": {
         "sig": "void (oop)",
         "type": "void (struct Object *)"
-      }
-    },
-    {
-      "kind": "declares",
-      "from": "unit:src",
-      "to": "func:space_gc_trace",
-      "loc": "src/gc.c:882",
-      "attrs": {
-        "sig": "void (void)"
       }
     },
     {
@@ -24953,7 +24915,7 @@
       "kind": "declares",
       "from": "unit:src",
       "to": "func:src/gc.c:mark",
-      "loc": "src/gc.c:589",
+      "loc": "src/gc.c:591",
       "attrs": {
         "sig": "void (oop)",
         "type": "void (struct Object *)"
@@ -24963,7 +24925,7 @@
       "kind": "declares",
       "from": "unit:src",
       "to": "func:src/gc.c:trace_one",
-      "loc": "src/gc.c:586",
+      "loc": "src/gc.c:588",
       "attrs": {
         "sig": "void (oop)",
         "type": "void (struct Object *)"
@@ -25074,16 +25036,6 @@
       "attrs": {
         "sig": "oop (oop, int, oop *)",
         "type": "struct Object * (struct Object *, int, struct Object * *)"
-      }
-    },
-    {
-      "kind": "declares",
-      "from": "unit:src",
-      "to": "func:udp_object",
-      "loc": "src/oimg_loader.c:314",
-      "attrs": {
-        "sig": "oop (void)",
-        "type": "struct Object * (void)"
       }
     },
     {
@@ -25288,15 +25240,6 @@
     {
       "kind": "declares",
       "from": "unit:zephyr/src",
-      "to": "func:platform_debug_held",
-      "loc": "zephyr/src/observer.c:61",
-      "attrs": {
-        "sig": "int (void)"
-      }
-    },
-    {
-      "kind": "declares",
-      "from": "unit:zephyr/src",
       "to": "func:runner_confirm",
       "loc": "zephyr/src/runner.h:22",
       "attrs": {
@@ -25465,67 +25408,61 @@
       "kind": "reads_global",
       "from": "func:float_alloc",
       "to": "global:_impure_ptr",
-      "loc": "src/gc.c:477"
+      "loc": "src/gc.c:479"
     },
     {
       "kind": "reads_global",
       "from": "func:float_alloc",
       "to": "global:src/gc.c:float_arena_hi",
-      "loc": "src/gc.c:490"
+      "loc": "src/gc.c:492"
     },
     {
       "kind": "reads_global",
       "from": "func:float_alloc",
       "to": "global:src/gc.c:float_arena_lo",
-      "loc": "src/gc.c:489"
+      "loc": "src/gc.c:491"
     },
     {
       "kind": "reads_global",
       "from": "func:float_alloc",
       "to": "global:src/gc.c:float_freelist",
-      "loc": "src/gc.c:425"
+      "loc": "src/gc.c:427"
     },
     {
       "kind": "reads_global",
       "from": "func:float_alloc",
       "to": "global:src/gc.c:float_freelist",
-      "loc": "src/gc.c:426"
+      "loc": "src/gc.c:428"
     },
     {
       "kind": "reads_global",
       "from": "func:float_alloc",
       "to": "global:src/gc.c:float_freelist",
-      "loc": "src/gc.c:436"
+      "loc": "src/gc.c:438"
     },
     {
       "kind": "reads_global",
       "from": "func:float_alloc",
       "to": "global:src/gc.c:float_freelist",
-      "loc": "src/gc.c:437"
+      "loc": "src/gc.c:439"
     },
     {
       "kind": "reads_global",
       "from": "func:float_alloc",
       "to": "global:src/gc.c:float_freelist",
-      "loc": "src/gc.c:468"
+      "loc": "src/gc.c:470"
     },
     {
       "kind": "reads_global",
       "from": "func:float_alloc",
       "to": "global:src/gc.c:float_freelist",
-      "loc": "src/gc.c:469"
+      "loc": "src/gc.c:471"
     },
     {
       "kind": "reads_global",
       "from": "func:float_alloc",
       "to": "global:src/gc.c:float_slab",
-      "loc": "src/gc.c:481"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:float_alloc",
-      "to": "global:src/gc.c:float_slab",
-      "loc": "src/gc.c:493"
+      "loc": "src/gc.c:483"
     },
     {
       "kind": "reads_global",
@@ -25537,61 +25474,61 @@
       "kind": "reads_global",
       "from": "func:float_alloc",
       "to": "global:src/gc.c:float_slab",
-      "loc": "src/gc.c:496"
+      "loc": "src/gc.c:497"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:float_alloc",
+      "to": "global:src/gc.c:float_slab",
+      "loc": "src/gc.c:498"
     },
     {
       "kind": "reads_global",
       "from": "func:float_alloc",
       "to": "global:src/gc.c:float_slab_count",
-      "loc": "src/gc.c:432"
+      "loc": "src/gc.c:434"
     },
     {
       "kind": "reads_global",
       "from": "func:float_alloc",
       "to": "global:src/gc.c:float_slab_used",
-      "loc": "src/gc.c:430"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:float_alloc",
-      "to": "global:src/gc.c:gc_in_progress",
       "loc": "src/gc.c:432"
     },
     {
       "kind": "reads_global",
       "from": "func:float_alloc",
       "to": "global:src/gc.c:gc_in_progress",
-      "loc": "src/gc.c:464"
+      "loc": "src/gc.c:434"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:float_alloc",
+      "to": "global:src/gc.c:gc_in_progress",
+      "loc": "src/gc.c:466"
     },
     {
       "kind": "reads_global",
       "from": "func:float_arena_free_count",
       "to": "global:src/gc.c:float_freelist",
-      "loc": "src/gc.c:511"
+      "loc": "src/gc.c:513"
     },
     {
       "kind": "reads_global",
       "from": "func:float_arena_slab_count",
       "to": "global:src/gc.c:float_slab_count",
-      "loc": "src/gc.c:504"
+      "loc": "src/gc.c:506"
     },
     {
       "kind": "reads_global",
       "from": "func:float_is_live",
       "to": "global:src/gc.c:float_freelist",
-      "loc": "src/gc.c:519"
+      "loc": "src/gc.c:521"
     },
     {
       "kind": "reads_global",
       "from": "func:gc_allocate",
       "to": "global:oevm_oom_handler",
-      "loc": "src/gc.c:374"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:gc_allocate",
-      "to": "global:src/gc.c:gc_allocate.gc_stress_cached",
-      "loc": "src/gc.c:351"
+      "loc": "src/gc.c:376"
     },
     {
       "kind": "reads_global",
@@ -25602,26 +25539,32 @@
     {
       "kind": "reads_global",
       "from": "func:gc_allocate",
-      "to": "global:src/gc.c:gc_in_progress",
-      "loc": "src/gc.c:353"
+      "to": "global:src/gc.c:gc_allocate.gc_stress_cached",
+      "loc": "src/gc.c:355"
     },
     {
       "kind": "reads_global",
       "from": "func:gc_allocate",
       "to": "global:src/gc.c:gc_in_progress",
-      "loc": "src/gc.c:365"
+      "loc": "src/gc.c:355"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:gc_allocate",
+      "to": "global:src/gc.c:gc_in_progress",
+      "loc": "src/gc.c:367"
     },
     {
       "kind": "reads_global",
       "from": "func:gc_allocate",
       "to": "global:src/gc.c:heap_base",
-      "loc": "src/gc.c:344"
+      "loc": "src/gc.c:346"
     },
     {
       "kind": "reads_global",
       "from": "func:gc_collect",
       "to": "global:BytecodeClosureVtable",
-      "loc": "src/gc.c:875"
+      "loc": "src/gc.c:877"
     },
     {
       "kind": "reads_global",
@@ -25633,31 +25576,31 @@
       "kind": "reads_global",
       "from": "func:gc_collect",
       "to": "global:FloatVtable",
-      "loc": "src/gc.c:868"
+      "loc": "src/gc.c:870"
     },
     {
       "kind": "reads_global",
       "from": "func:gc_collect",
       "to": "global:IntegerVtable",
-      "loc": "src/gc.c:867"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:gc_collect",
-      "to": "global:MethodContextVtable",
       "loc": "src/gc.c:869"
     },
     {
       "kind": "reads_global",
       "from": "func:gc_collect",
+      "to": "global:MethodContextVtable",
+      "loc": "src/gc.c:871"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:gc_collect",
       "to": "global:PrimitiveClosureVtable",
-      "loc": "src/gc.c:874"
+      "loc": "src/gc.c:876"
     },
     {
       "kind": "reads_global",
       "from": "func:gc_collect",
       "to": "global:RawBytesVtable",
-      "loc": "src/gc.c:872"
+      "loc": "src/gc.c:874"
     },
     {
       "kind": "reads_global",
@@ -25669,13 +25612,13 @@
       "kind": "reads_global",
       "from": "func:gc_collect",
       "to": "global:StringVtable",
-      "loc": "src/gc.c:871"
+      "loc": "src/gc.c:873"
     },
     {
       "kind": "reads_global",
       "from": "func:gc_collect",
       "to": "global:SymbolVtable",
-      "loc": "src/gc.c:870"
+      "loc": "src/gc.c:872"
     },
     {
       "kind": "reads_global",
@@ -25687,13 +25630,13 @@
       "kind": "reads_global",
       "from": "func:gc_collect",
       "to": "global:Symbol_value",
-      "loc": "src/gc.c:876"
+      "loc": "src/gc.c:878"
     },
     {
       "kind": "reads_global",
       "from": "func:gc_collect",
       "to": "global:VtableVtable",
-      "loc": "src/gc.c:873"
+      "loc": "src/gc.c:875"
     },
     {
       "kind": "reads_global",
@@ -25771,13 +25714,13 @@
       "kind": "reads_global",
       "from": "func:gc_collect",
       "to": "global:src/gc.c:heap_base",
-      "loc": "src/gc.c:834"
+      "loc": "src/gc.c:836"
     },
     {
       "kind": "reads_global",
       "from": "func:gc_collect",
       "to": "global:src/gc.c:heap_base",
-      "loc": "src/gc.c:844"
+      "loc": "src/gc.c:846"
     },
     {
       "kind": "reads_global",
@@ -25789,7 +25732,7 @@
       "kind": "reads_global",
       "from": "func:gc_collect",
       "to": "global:src/gc.c:heap_top",
-      "loc": "src/gc.c:845"
+      "loc": "src/gc.c:847"
     },
     {
       "kind": "reads_global",
@@ -25813,31 +25756,31 @@
       "kind": "reads_global",
       "from": "func:gc_forensics",
       "to": "global:src/gc.c:gc_in_progress",
-      "loc": "src/gc.c:727"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:gc_forensics",
-      "to": "global:src/gc.c:mark_overflowed",
       "loc": "src/gc.c:729"
     },
     {
       "kind": "reads_global",
       "from": "func:gc_forensics",
+      "to": "global:src/gc.c:mark_overflowed",
+      "loc": "src/gc.c:731"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:gc_forensics",
       "to": "global:src/gc.c:mark_sp",
-      "loc": "src/gc.c:728"
+      "loc": "src/gc.c:730"
     },
     {
       "kind": "reads_global",
       "from": "func:gc_temp_root_push",
       "to": "global:_impure_ptr",
-      "loc": "src/gc.c:822"
+      "loc": "src/gc.c:824"
     },
     {
       "kind": "reads_global",
       "from": "func:gc_temp_root_push",
       "to": "global:gc_temp_roots_count",
-      "loc": "src/gc.c:817"
+      "loc": "src/gc.c:819"
     },
     {
       "kind": "reads_global",
@@ -25903,55 +25846,55 @@
       "kind": "reads_global",
       "from": "func:heap_init",
       "to": "global:_impure_ptr",
+      "loc": "src/gc.c:184"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:heap_init",
+      "to": "global:flash_rom_end",
+      "loc": "src/gc.c:181"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:heap_init",
+      "to": "global:flash_rom_end",
+      "loc": "src/gc.c:183"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:heap_init",
+      "to": "global:flash_rom_start",
+      "loc": "src/gc.c:181"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:heap_init",
+      "to": "global:flash_rom_start",
+      "loc": "src/gc.c:183"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:heap_init",
+      "to": "global:src/gc.c:heap_base",
+      "loc": "src/gc.c:169"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:heap_init",
+      "to": "global:src/gc.c:heap_base",
+      "loc": "src/gc.c:170"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:heap_init",
+      "to": "global:src/gc.c:heap_base",
       "loc": "src/gc.c:182"
     },
     {
       "kind": "reads_global",
       "from": "func:heap_init",
-      "to": "global:flash_rom_end",
-      "loc": "src/gc.c:179"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:heap_init",
-      "to": "global:flash_rom_end",
-      "loc": "src/gc.c:181"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:heap_init",
-      "to": "global:flash_rom_start",
-      "loc": "src/gc.c:179"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:heap_init",
-      "to": "global:flash_rom_start",
-      "loc": "src/gc.c:181"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:heap_init",
-      "to": "global:src/gc.c:heap_base",
-      "loc": "src/gc.c:167"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:heap_init",
-      "to": "global:src/gc.c:heap_base",
-      "loc": "src/gc.c:168"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:heap_init",
-      "to": "global:src/gc.c:heap_base",
-      "loc": "src/gc.c:180"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:heap_init",
       "to": "global:src/gc.c:heap_end",
-      "loc": "src/gc.c:180"
+      "loc": "src/gc.c:182"
     },
     {
       "kind": "reads_global",
@@ -26125,13 +26068,13 @@
       "kind": "reads_global",
       "from": "func:is_read_only",
       "to": "global:flash_rom_end",
-      "loc": "src/gc.c:227"
+      "loc": "src/gc.c:229"
     },
     {
       "kind": "reads_global",
       "from": "func:is_read_only",
       "to": "global:flash_rom_start",
-      "loc": "src/gc.c:227"
+      "loc": "src/gc.c:229"
     },
     {
       "kind": "reads_global",
@@ -26485,31 +26428,31 @@
       "kind": "reads_global",
       "from": "func:observer_halt",
       "to": "global:zephyr/src/observer.c:g_hw_wdt",
-      "loc": "zephyr/src/observer.c:336"
+      "loc": "zephyr/src/observer.c:333"
     },
     {
       "kind": "reads_global",
       "from": "func:observer_start",
       "to": "global:zephyr/src/observer.c:g_hw_wdt",
-      "loc": "zephyr/src/observer.c:399"
+      "loc": "zephyr/src/observer.c:396"
     },
     {
       "kind": "reads_global",
       "from": "func:observer_start",
       "to": "global:zephyr/src/observer.c:g_hw_wdt",
-      "loc": "zephyr/src/observer.c:403"
+      "loc": "zephyr/src/observer.c:400"
     },
     {
       "kind": "reads_global",
       "from": "func:observer_start",
       "to": "global:zephyr/src/observer.c:g_hw_wdt",
-      "loc": "zephyr/src/observer.c:417"
+      "loc": "zephyr/src/observer.c:414"
     },
     {
       "kind": "reads_global",
       "from": "func:oevm_cheap_stats",
       "to": "global:src/gc.c:cheap",
-      "loc": "src/gc.c:143"
+      "loc": "src/gc.c:145"
     },
     {
       "kind": "reads_global",
@@ -26587,61 +26530,61 @@
       "kind": "reads_global",
       "from": "func:oevm_malloc",
       "to": "global:src/gc.c:cheap",
-      "loc": "src/gc.c:113"
+      "loc": "src/gc.c:115"
     },
     {
       "kind": "reads_global",
       "from": "func:oevm_realloc",
       "to": "global:src/gc.c:cheap",
-      "loc": "src/gc.c:134"
+      "loc": "src/gc.c:136"
     },
     {
       "kind": "reads_global",
       "from": "func:oevm_realloc",
       "to": "global:src/gc.c:cheap",
-      "loc": "src/gc.c:135"
+      "loc": "src/gc.c:137"
     },
     {
       "kind": "reads_global",
       "from": "func:oimg_bootstrap",
       "to": "global:src/oimg_loader.c:img_entry_nslots",
-      "loc": "src/oimg_loader.c:299"
+      "loc": "src/oimg_loader.c:302"
     },
     {
       "kind": "reads_global",
       "from": "func:oimg_bootstrap",
       "to": "global:src/oimg_loader.c:img_init_argc",
-      "loc": "src/oimg_loader.c:307"
+      "loc": "src/oimg_loader.c:310"
     },
     {
       "kind": "reads_global",
       "from": "func:oimg_bootstrap",
       "to": "global:src/oimg_loader.c:img_init_argc",
-      "loc": "src/oimg_loader.c:311"
+      "loc": "src/oimg_loader.c:313"
     },
     {
       "kind": "reads_global",
       "from": "func:oimg_bootstrap",
       "to": "global:src/oimg_loader.c:img_init_argc",
-      "loc": "src/oimg_loader.c:320"
+      "loc": "src/oimg_loader.c:321"
     },
     {
       "kind": "reads_global",
       "from": "func:oimg_bootstrap",
       "to": "global:src/oimg_loader.c:img_init_sel_ref",
-      "loc": "src/oimg_loader.c:320"
+      "loc": "src/oimg_loader.c:321"
     },
     {
       "kind": "reads_global",
       "from": "func:oimg_bootstrap",
       "to": "global:src/oimg_loader.c:img_kernel_init_sel_ref",
-      "loc": "src/oimg_loader.c:296"
+      "loc": "src/oimg_loader.c:299"
     },
     {
       "kind": "reads_global",
       "from": "func:oimg_bootstrap",
       "to": "global:src/oimg_loader.c:img_kernel_nslots",
-      "loc": "src/oimg_loader.c:293"
+      "loc": "src/oimg_loader.c:296"
     },
     {
       "kind": "reads_global",
@@ -26653,25 +26596,25 @@
       "kind": "reads_global",
       "from": "func:oimg_bootstrap",
       "to": "global:src/oimg_loader.c:img_net_on_sel_ref",
-      "loc": "src/oimg_loader.c:311"
+      "loc": "src/oimg_loader.c:313"
     },
     {
       "kind": "reads_global",
       "from": "func:oimg_bootstrap",
       "to": "global:src/oimg_loader.c:img_net_on_sel_ref",
-      "loc": "src/oimg_loader.c:316"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:oimg_bootstrap",
-      "to": "global:src/oimg_loader.c:img_serial_on_sel_ref",
-      "loc": "src/oimg_loader.c:307"
+      "loc": "src/oimg_loader.c:317"
     },
     {
       "kind": "reads_global",
       "from": "func:oimg_bootstrap",
       "to": "global:src/oimg_loader.c:img_serial_on_sel_ref",
       "loc": "src/oimg_loader.c:310"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:oimg_bootstrap",
+      "to": "global:src/oimg_loader.c:img_serial_on_sel_ref",
+      "loc": "src/oimg_loader.c:312"
     },
     {
       "kind": "reads_global",
@@ -26695,7 +26638,7 @@
       "kind": "reads_global",
       "from": "func:oimg_bootstrap",
       "to": "global:src/oimg_loader.c:img_supervisor_vtable_ref",
-      "loc": "src/oimg_loader.c:328"
+      "loc": "src/oimg_loader.c:329"
     },
     {
       "kind": "reads_global",
@@ -26707,73 +26650,67 @@
       "kind": "reads_global",
       "from": "func:oimg_kernel_vtable",
       "to": "global:src/oimg_loader.c:img_kernel_vtable_ref",
-      "loc": "src/oimg_loader.c:278"
+      "loc": "src/oimg_loader.c:281"
     },
     {
       "kind": "reads_global",
       "from": "func:oimg_load_blob",
       "to": "global:BUILTIN_REGISTRY_VERSION",
+      "loc": "src/oimg_loader.c:161"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:oimg_load_blob",
+      "to": "global:BUILTIN_REGISTRY_VERSION",
+      "loc": "src/oimg_loader.c:163"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:oimg_load_blob",
+      "to": "global:_impure_ptr",
+      "loc": "src/oimg_loader.c:148"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:oimg_load_blob",
+      "to": "global:_impure_ptr",
+      "loc": "src/oimg_loader.c:152"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:oimg_load_blob",
+      "to": "global:_impure_ptr",
       "loc": "src/oimg_loader.c:158"
     },
     {
       "kind": "reads_global",
       "from": "func:oimg_load_blob",
-      "to": "global:BUILTIN_REGISTRY_VERSION",
-      "loc": "src/oimg_loader.c:160"
+      "to": "global:_impure_ptr",
+      "loc": "src/oimg_loader.c:162"
     },
     {
       "kind": "reads_global",
       "from": "func:oimg_load_blob",
       "to": "global:_impure_ptr",
-      "loc": "src/oimg_loader.c:145"
+      "loc": "src/oimg_loader.c:167"
     },
     {
       "kind": "reads_global",
       "from": "func:oimg_load_blob",
       "to": "global:_impure_ptr",
-      "loc": "src/oimg_loader.c:149"
+      "loc": "src/oimg_loader.c:199"
     },
     {
       "kind": "reads_global",
       "from": "func:oimg_load_blob",
       "to": "global:_impure_ptr",
-      "loc": "src/oimg_loader.c:155"
+      "loc": "src/oimg_loader.c:215"
     },
     {
       "kind": "reads_global",
       "from": "func:oimg_load_blob",
       "to": "global:_impure_ptr",
-      "loc": "src/oimg_loader.c:159"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:oimg_load_blob",
-      "to": "global:_impure_ptr",
-      "loc": "src/oimg_loader.c:164"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:oimg_load_blob",
-      "to": "global:_impure_ptr",
-      "loc": "src/oimg_loader.c:196"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:oimg_load_blob",
-      "to": "global:_impure_ptr",
-      "loc": "src/oimg_loader.c:212"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:oimg_load_blob",
-      "to": "global:_impure_ptr",
-      "loc": "src/oimg_loader.c:226"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:oimg_load_blob",
-      "to": "global:src/oimg_loader.c:img_classnames_count",
-      "loc": "src/oimg_loader.c:192"
+      "loc": "src/oimg_loader.c:229"
     },
     {
       "kind": "reads_global",
@@ -26784,74 +26721,80 @@
     {
       "kind": "reads_global",
       "from": "func:oimg_load_blob",
-      "to": "global:src/oimg_loader.c:img_classnames_ref",
-      "loc": "src/oimg_loader.c:193"
+      "to": "global:src/oimg_loader.c:img_classnames_count",
+      "loc": "src/oimg_loader.c:198"
     },
     {
       "kind": "reads_global",
       "from": "func:oimg_load_blob",
       "to": "global:src/oimg_loader.c:img_classnames_ref",
-      "loc": "src/oimg_loader.c:194"
+      "loc": "src/oimg_loader.c:196"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:oimg_load_blob",
+      "to": "global:src/oimg_loader.c:img_classnames_ref",
+      "loc": "src/oimg_loader.c:197"
     },
     {
       "kind": "reads_global",
       "from": "func:oimg_load_blob",
       "to": "global:src/oimg_loader.c:img_methods_count",
-      "loc": "src/oimg_loader.c:209"
+      "loc": "src/oimg_loader.c:212"
     },
     {
       "kind": "reads_global",
       "from": "func:oimg_load_blob",
       "to": "global:src/oimg_loader.c:img_methods_count",
+      "loc": "src/oimg_loader.c:214"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:oimg_load_blob",
+      "to": "global:src/oimg_loader.c:img_methods_count",
+      "loc": "src/oimg_loader.c:218"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:oimg_load_blob",
+      "to": "global:src/oimg_loader.c:img_methods_ref",
       "loc": "src/oimg_loader.c:211"
     },
     {
       "kind": "reads_global",
       "from": "func:oimg_load_blob",
-      "to": "global:src/oimg_loader.c:img_methods_count",
-      "loc": "src/oimg_loader.c:215"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:oimg_load_blob",
       "to": "global:src/oimg_loader.c:img_methods_ref",
-      "loc": "src/oimg_loader.c:208"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:oimg_load_blob",
-      "to": "global:src/oimg_loader.c:img_methods_ref",
-      "loc": "src/oimg_loader.c:210"
+      "loc": "src/oimg_loader.c:213"
     },
     {
       "kind": "reads_global",
       "from": "func:oimg_root",
       "to": "global:src/oimg_loader.c:img_root_ref",
-      "loc": "src/oimg_loader.c:272"
+      "loc": "src/oimg_loader.c:275"
     },
     {
       "kind": "reads_global",
       "from": "func:oimg_vtable_name",
       "to": "global:oimg_blob_base",
-      "loc": "src/oimg_loader.c:242"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:oimg_vtable_name",
-      "to": "global:oimg_blob_base",
-      "loc": "src/oimg_loader.c:244"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:oimg_vtable_name",
-      "to": "global:src/oimg_loader.c:img_classnames_count",
       "loc": "src/oimg_loader.c:245"
     },
     {
       "kind": "reads_global",
       "from": "func:oimg_vtable_name",
+      "to": "global:oimg_blob_base",
+      "loc": "src/oimg_loader.c:247"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:oimg_vtable_name",
+      "to": "global:src/oimg_loader.c:img_classnames_count",
+      "loc": "src/oimg_loader.c:248"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:oimg_vtable_name",
       "to": "global:src/oimg_loader.c:img_classnames_ref",
-      "loc": "src/oimg_loader.c:244"
+      "loc": "src/oimg_loader.c:247"
     },
     {
       "kind": "reads_global",
@@ -29779,151 +29722,145 @@
       "kind": "reads_global",
       "from": "func:src/gc.c:arena_try_alloc",
       "to": "global:src/gc.c:big_free",
-      "loc": "src/gc.c:295"
+      "loc": "src/gc.c:297"
     },
     {
       "kind": "reads_global",
       "from": "func:src/gc.c:arena_try_alloc",
       "to": "global:src/gc.c:big_free",
-      "loc": "src/gc.c:296"
+      "loc": "src/gc.c:298"
     },
     {
       "kind": "reads_global",
       "from": "func:src/gc.c:arena_try_alloc",
       "to": "global:src/gc.c:bins_nonempty",
-      "loc": "src/gc.c:325"
+      "loc": "src/gc.c:327"
     },
     {
       "kind": "reads_global",
       "from": "func:src/gc.c:arena_try_alloc",
       "to": "global:src/gc.c:heap_end",
-      "loc": "src/gc.c:314"
+      "loc": "src/gc.c:316"
     },
     {
       "kind": "reads_global",
       "from": "func:src/gc.c:arena_try_alloc",
       "to": "global:src/gc.c:heap_top",
-      "loc": "src/gc.c:314"
+      "loc": "src/gc.c:316"
     },
     {
       "kind": "reads_global",
       "from": "func:src/gc.c:arena_try_alloc",
       "to": "global:src/gc.c:heap_top",
-      "loc": "src/gc.c:315"
+      "loc": "src/gc.c:317"
     },
     {
       "kind": "reads_global",
       "from": "func:src/gc.c:bin_note_pop",
       "to": "global:src/gc.c:free_bins",
-      "loc": "src/gc.c:74"
+      "loc": "src/gc.c:76"
     },
     {
       "kind": "reads_global",
       "from": "func:src/gc.c:bin_push",
       "to": "global:src/gc.c:free_bins",
-      "loc": "src/gc.c:69"
+      "loc": "src/gc.c:71"
     },
     {
       "kind": "reads_global",
       "from": "func:src/gc.c:bm_granule",
       "to": "global:src/gc.c:heap_base",
-      "loc": "src/gc.c:44"
+      "loc": "src/gc.c:46"
     },
     {
       "kind": "reads_global",
       "from": "func:src/gc.c:bm_test",
       "to": "global:src/gc.c:heap_bitmap",
-      "loc": "src/gc.c:43"
+      "loc": "src/gc.c:45"
     },
     {
       "kind": "reads_global",
       "from": "func:src/gc.c:default_oom",
       "to": "global:src/gc.c:heap_base",
-      "loc": "src/gc.c:200"
+      "loc": "src/gc.c:202"
     },
     {
       "kind": "reads_global",
       "from": "func:src/gc.c:default_oom",
       "to": "global:src/gc.c:heap_top",
-      "loc": "src/gc.c:200"
+      "loc": "src/gc.c:202"
     },
     {
       "kind": "reads_global",
       "from": "func:src/gc.c:drain_mark_stack",
       "to": "global:src/gc.c:mark_sp",
-      "loc": "src/gc.c:734"
+      "loc": "src/gc.c:736"
     },
     {
       "kind": "reads_global",
       "from": "func:src/gc.c:drain_mark_stack",
       "to": "global:src/gc.c:mark_stack",
-      "loc": "src/gc.c:735"
+      "loc": "src/gc.c:737"
     },
     {
       "kind": "reads_global",
       "from": "func:src/gc.c:float_mark",
       "to": "global:src/gc.c:float_slab",
-      "loc": "src/gc.c:546"
+      "loc": "src/gc.c:548"
     },
     {
       "kind": "reads_global",
       "from": "func:src/gc.c:float_sweep",
       "to": "global:src/gc.c:float_freelist",
-      "loc": "src/gc.c:570"
+      "loc": "src/gc.c:572"
     },
     {
       "kind": "reads_global",
       "from": "func:src/gc.c:float_sweep",
       "to": "global:src/gc.c:float_slab",
-      "loc": "src/gc.c:562"
+      "loc": "src/gc.c:564"
     },
     {
       "kind": "reads_global",
       "from": "func:src/gc.c:float_sweep",
       "to": "global:src/gc.c:float_slab",
-      "loc": "src/gc.c:563"
+      "loc": "src/gc.c:565"
     },
     {
       "kind": "reads_global",
       "from": "func:src/gc.c:float_sweep",
       "to": "global:src/gc.c:float_slab_used",
-      "loc": "src/gc.c:563"
+      "loc": "src/gc.c:565"
     },
     {
       "kind": "reads_global",
       "from": "func:src/gc.c:heap_stats_on_alloc",
       "to": "global:src/gc.c:heap_high_water",
-      "loc": "src/gc.c:155"
+      "loc": "src/gc.c:157"
     },
     {
       "kind": "reads_global",
       "from": "func:src/gc.c:heap_stats_on_alloc",
       "to": "global:src/gc.c:heap_live_bytes",
-      "loc": "src/gc.c:155"
+      "loc": "src/gc.c:157"
     },
     {
       "kind": "reads_global",
       "from": "func:src/gc.c:is_in_float_arena",
       "to": "global:src/gc.c:float_arena_hi",
-      "loc": "src/gc.c:530"
+      "loc": "src/gc.c:532"
     },
     {
       "kind": "reads_global",
       "from": "func:src/gc.c:is_in_float_arena",
       "to": "global:src/gc.c:float_arena_lo",
-      "loc": "src/gc.c:530"
+      "loc": "src/gc.c:532"
     },
     {
       "kind": "reads_global",
       "from": "func:src/gc.c:is_in_float_arena",
       "to": "global:src/gc.c:float_slab",
-      "loc": "src/gc.c:531"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:src/gc.c:is_valid_heap_object",
-      "to": "global:src/gc.c:heap_base",
-      "loc": "src/gc.c:236"
+      "loc": "src/gc.c:533"
     },
     {
       "kind": "reads_global",
@@ -29940,104 +29877,110 @@
     {
       "kind": "reads_global",
       "from": "func:src/gc.c:is_valid_heap_object",
+      "to": "global:src/gc.c:heap_base",
+      "loc": "src/gc.c:242"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:src/gc.c:is_valid_heap_object",
       "to": "global:src/gc.c:heap_top",
-      "loc": "src/gc.c:238"
+      "loc": "src/gc.c:240"
     },
     {
       "kind": "reads_global",
       "from": "func:src/gc.c:mark",
       "to": "global:src/gc.c:mark_sp",
-      "loc": "src/gc.c:625"
+      "loc": "src/gc.c:627"
     },
     {
       "kind": "reads_global",
       "from": "func:src/gc.c:mark_drain_with_recovery",
       "to": "global:src/gc.c:heap_base",
-      "loc": "src/gc.c:748"
+      "loc": "src/gc.c:750"
     },
     {
       "kind": "reads_global",
       "from": "func:src/gc.c:mark_drain_with_recovery",
       "to": "global:src/gc.c:heap_top",
-      "loc": "src/gc.c:749"
+      "loc": "src/gc.c:751"
     },
     {
       "kind": "reads_global",
       "from": "func:src/gc.c:mark_drain_with_recovery",
       "to": "global:src/gc.c:mark_overflowed",
-      "loc": "src/gc.c:746"
+      "loc": "src/gc.c:748"
     },
     {
       "kind": "reads_global",
       "from": "func:src/gc.c:scan_vm_stack",
       "to": "global:current_frame",
-      "loc": "src/gc.c:767"
+      "loc": "src/gc.c:769"
     },
     {
       "kind": "reads_global",
       "from": "func:src/gc.c:scan_vm_stack",
       "to": "global:vm_stack",
-      "loc": "src/gc.c:782"
+      "loc": "src/gc.c:784"
     },
     {
       "kind": "reads_global",
       "from": "func:src/gc.c:scan_vm_stack",
       "to": "global:vm_stack",
-      "loc": "src/gc.c:791"
+      "loc": "src/gc.c:793"
     },
     {
       "kind": "reads_global",
       "from": "func:src/gc.c:scan_vm_stack",
       "to": "global:vm_stack_ptr",
-      "loc": "src/gc.c:782"
+      "loc": "src/gc.c:784"
     },
     {
       "kind": "reads_global",
       "from": "func:src/gc.c:trace_one",
       "to": "global:ContextVtable",
-      "loc": "src/gc.c:702"
+      "loc": "src/gc.c:704"
     },
     {
       "kind": "reads_global",
       "from": "func:src/gc.c:trace_one",
       "to": "global:FloatVtable",
-      "loc": "src/gc.c:670"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:src/gc.c:trace_one",
-      "to": "global:RawBytesVtable",
-      "loc": "src/gc.c:656"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:src/gc.c:trace_one",
-      "to": "global:StackVtable",
       "loc": "src/gc.c:672"
     },
     {
       "kind": "reads_global",
       "from": "func:src/gc.c:trace_one",
+      "to": "global:RawBytesVtable",
+      "loc": "src/gc.c:658"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:src/gc.c:trace_one",
+      "to": "global:StackVtable",
+      "loc": "src/gc.c:674"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:src/gc.c:trace_one",
       "to": "global:StringVtable",
-      "loc": "src/gc.c:654"
+      "loc": "src/gc.c:656"
     },
     {
       "kind": "reads_global",
       "from": "func:src/gc.c:trace_one",
       "to": "global:SymbolVtable",
-      "loc": "src/gc.c:663"
+      "loc": "src/gc.c:665"
     },
     {
       "kind": "reads_global",
       "from": "func:src/gc.c:trace_one",
       "to": "global:VtableVtable",
-      "loc": "src/gc.c:645"
+      "loc": "src/gc.c:647"
     },
     {
       "kind": "reads_global",
       "from": "func:src/gc.c:trace_one",
       "to": "global:g_active_stack",
-      "loc": "src/gc.c:685"
+      "loc": "src/gc.c:687"
     },
     {
       "kind": "reads_global",
@@ -31039,37 +30982,37 @@
       "kind": "reads_global",
       "from": "func:zephyr/src/observer.c:obs_trace_dump",
       "to": "global:zephyr/src/observer.c:g_trace_w",
-      "loc": "zephyr/src/observer.c:113"
+      "loc": "zephyr/src/observer.c:110"
     },
     {
       "kind": "reads_global",
       "from": "func:zephyr/src/observer.c:obs_trace_dump",
       "to": "global:zephyr/src/observer.c:g_trace_w",
-      "loc": "zephyr/src/observer.c:114"
+      "loc": "zephyr/src/observer.c:111"
     },
     {
       "kind": "reads_global",
       "from": "func:zephyr/src/observer.c:obs_trace_record",
       "to": "global:zephyr/src/observer.c:g_core",
-      "loc": "zephyr/src/observer.c:108"
+      "loc": "zephyr/src/observer.c:105"
     },
     {
       "kind": "reads_global",
       "from": "func:zephyr/src/observer.c:obs_trace_record",
       "to": "global:zephyr/src/observer.c:g_trace_w",
-      "loc": "zephyr/src/observer.c:104"
+      "loc": "zephyr/src/observer.c:101"
     },
     {
       "kind": "reads_global",
       "from": "func:zephyr/src/observer.c:observer_dump",
       "to": "global:zephyr/src/observer.c:g_core",
-      "loc": "zephyr/src/observer.c:319"
+      "loc": "zephyr/src/observer.c:316"
     },
     {
       "kind": "reads_global",
       "from": "func:zephyr/src/observer.c:observer_thread_fn",
       "to": "global:zephyr/src/observer.c:g_wdt_channel",
-      "loc": "zephyr/src/observer.c:371"
+      "loc": "zephyr/src/observer.c:368"
     },
     {
       "kind": "reads_path",
@@ -31143,7 +31086,7 @@
       "kind": "stores_fn",
       "from": "func:observer_start",
       "to": "func:zephyr/src/observer.c:observer_thread_fn",
-      "loc": "zephyr/src/observer.c:420",
+      "loc": "zephyr/src/observer.c:417",
       "attrs": {
         "into": ""
       }
@@ -31215,7 +31158,7 @@
       "kind": "stores_fn",
       "from": "global:oevm_oom_handler",
       "to": "func:src/gc.c:default_oom",
-      "loc": "src/gc.c:211",
+      "loc": "src/gc.c:213",
       "attrs": {
         "into": "global:oevm_oom_handler"
       }
@@ -31296,7 +31239,7 @@
       "kind": "writes_global",
       "from": "func:float_alloc",
       "to": "global:src/gc.c:float_arena_hi",
-      "loc": "src/gc.c:490",
+      "loc": "src/gc.c:492",
       "attrs": {
         "op": "assign"
       }
@@ -31305,7 +31248,7 @@
       "kind": "writes_global",
       "from": "func:float_alloc",
       "to": "global:src/gc.c:float_arena_lo",
-      "loc": "src/gc.c:489",
+      "loc": "src/gc.c:491",
       "attrs": {
         "op": "assign"
       }
@@ -31314,7 +31257,7 @@
       "kind": "writes_global",
       "from": "func:float_alloc",
       "to": "global:src/gc.c:float_freelist",
-      "loc": "src/gc.c:428",
+      "loc": "src/gc.c:430",
       "attrs": {
         "op": "assign"
       }
@@ -31323,7 +31266,7 @@
       "kind": "writes_global",
       "from": "func:float_alloc",
       "to": "global:src/gc.c:float_freelist",
-      "loc": "src/gc.c:438",
+      "loc": "src/gc.c:440",
       "attrs": {
         "op": "assign"
       }
@@ -31332,7 +31275,7 @@
       "kind": "writes_global",
       "from": "func:float_alloc",
       "to": "global:src/gc.c:float_freelist",
-      "loc": "src/gc.c:470",
+      "loc": "src/gc.c:472",
       "attrs": {
         "op": "assign"
       }
@@ -31341,7 +31284,7 @@
       "kind": "writes_global",
       "from": "func:float_alloc",
       "to": "global:src/gc.c:float_slab",
-      "loc": "src/gc.c:482",
+      "loc": "src/gc.c:484",
       "attrs": {
         "op": "assign"
       }
@@ -31350,7 +31293,7 @@
       "kind": "writes_global",
       "from": "func:float_alloc",
       "to": "global:src/gc.c:float_slab_count",
-      "loc": "src/gc.c:484",
+      "loc": "src/gc.c:486",
       "attrs": {
         "op": "incdec"
       }
@@ -31359,7 +31302,7 @@
       "kind": "writes_global",
       "from": "func:float_alloc",
       "to": "global:src/gc.c:float_slab_used",
-      "loc": "src/gc.c:483",
+      "loc": "src/gc.c:485",
       "attrs": {
         "op": "assign"
       }
@@ -31368,18 +31311,9 @@
       "kind": "writes_global",
       "from": "func:float_alloc",
       "to": "global:src/gc.c:float_slab_used",
-      "loc": "src/gc.c:493",
+      "loc": "src/gc.c:495",
       "attrs": {
         "op": "incdec"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:float_alloc",
-      "to": "global:src/gc.c:gc_in_progress",
-      "loc": "src/gc.c:433",
-      "attrs": {
-        "op": "assign"
       }
     },
     {
@@ -31395,7 +31329,7 @@
       "kind": "writes_global",
       "from": "func:float_alloc",
       "to": "global:src/gc.c:gc_in_progress",
-      "loc": "src/gc.c:465",
+      "loc": "src/gc.c:437",
       "attrs": {
         "op": "assign"
       }
@@ -31411,9 +31345,9 @@
     },
     {
       "kind": "writes_global",
-      "from": "func:gc_allocate",
-      "to": "global:src/gc.c:gc_allocate.gc_stress_cached",
-      "loc": "src/gc.c:352",
+      "from": "func:float_alloc",
+      "to": "global:src/gc.c:gc_in_progress",
+      "loc": "src/gc.c:469",
       "attrs": {
         "op": "assign"
       }
@@ -31421,8 +31355,8 @@
     {
       "kind": "writes_global",
       "from": "func:gc_allocate",
-      "to": "global:src/gc.c:gc_in_progress",
-      "loc": "src/gc.c:366",
+      "to": "global:src/gc.c:gc_allocate.gc_stress_cached",
+      "loc": "src/gc.c:354",
       "attrs": {
         "op": "assign"
       }
@@ -31432,6 +31366,15 @@
       "from": "func:gc_allocate",
       "to": "global:src/gc.c:gc_in_progress",
       "loc": "src/gc.c:368",
+      "attrs": {
+        "op": "assign"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:gc_allocate",
+      "to": "global:src/gc.c:gc_in_progress",
+      "loc": "src/gc.c:370",
       "attrs": {
         "op": "assign"
       }
@@ -31503,7 +31446,7 @@
       "kind": "writes_global",
       "from": "func:gc_collect",
       "to": "global:src/gc.c:mark_overflowed",
-      "loc": "src/gc.c:842",
+      "loc": "src/gc.c:844",
       "attrs": {
         "op": "assign"
       }
@@ -31512,7 +31455,7 @@
       "kind": "writes_global",
       "from": "func:gc_collect",
       "to": "global:src/gc.c:mark_sp",
-      "loc": "src/gc.c:841",
+      "loc": "src/gc.c:843",
       "attrs": {
         "op": "assign"
       }
@@ -31521,7 +31464,7 @@
       "kind": "writes_global",
       "from": "func:gc_temp_root_push",
       "to": "global:gc_temp_roots",
-      "loc": "src/gc.c:818",
+      "loc": "src/gc.c:820",
       "attrs": {
         "op": "assign"
       }
@@ -31530,7 +31473,7 @@
       "kind": "writes_global",
       "from": "func:gc_temp_root_push",
       "to": "global:gc_temp_roots_count",
-      "loc": "src/gc.c:818",
+      "loc": "src/gc.c:820",
       "attrs": {
         "op": "incdec"
       }
@@ -31539,7 +31482,7 @@
       "kind": "writes_global",
       "from": "func:gc_temp_roots_clear",
       "to": "global:gc_temp_roots_count",
-      "loc": "src/gc.c:828",
+      "loc": "src/gc.c:830",
       "attrs": {
         "op": "assign"
       }
@@ -31638,51 +31581,6 @@
       "kind": "writes_global",
       "from": "func:heap_init",
       "to": "global:src/gc.c:free_bins",
-      "loc": "src/gc.c:170",
-      "attrs": {
-        "op": "assign"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:heap_init",
-      "to": "global:src/gc.c:heap_base",
-      "loc": "src/gc.c:166",
-      "attrs": {
-        "op": "assign"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:heap_init",
-      "to": "global:src/gc.c:heap_bitmap",
-      "loc": "src/gc.c:169",
-      "attrs": {
-        "op": "decay"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:heap_init",
-      "to": "global:src/gc.c:heap_end",
-      "loc": "src/gc.c:168",
-      "attrs": {
-        "op": "assign"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:heap_init",
-      "to": "global:src/gc.c:heap_gc_cycles",
-      "loc": "src/gc.c:173",
-      "attrs": {
-        "op": "assign"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:heap_init",
-      "to": "global:src/gc.c:heap_high_water",
       "loc": "src/gc.c:172",
       "attrs": {
         "op": "assign"
@@ -31691,8 +31589,53 @@
     {
       "kind": "writes_global",
       "from": "func:heap_init",
-      "to": "global:src/gc.c:heap_live_bytes",
+      "to": "global:src/gc.c:heap_base",
+      "loc": "src/gc.c:168",
+      "attrs": {
+        "op": "assign"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:heap_init",
+      "to": "global:src/gc.c:heap_bitmap",
       "loc": "src/gc.c:171",
+      "attrs": {
+        "op": "decay"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:heap_init",
+      "to": "global:src/gc.c:heap_end",
+      "loc": "src/gc.c:170",
+      "attrs": {
+        "op": "assign"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:heap_init",
+      "to": "global:src/gc.c:heap_gc_cycles",
+      "loc": "src/gc.c:175",
+      "attrs": {
+        "op": "assign"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:heap_init",
+      "to": "global:src/gc.c:heap_high_water",
+      "loc": "src/gc.c:174",
+      "attrs": {
+        "op": "assign"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:heap_init",
+      "to": "global:src/gc.c:heap_live_bytes",
+      "loc": "src/gc.c:173",
       "attrs": {
         "op": "assign"
       }
@@ -31701,7 +31644,7 @@
       "kind": "writes_global",
       "from": "func:heap_init",
       "to": "global:src/gc.c:heap_top",
-      "loc": "src/gc.c:167",
+      "loc": "src/gc.c:169",
       "attrs": {
         "op": "assign"
       }
@@ -31710,7 +31653,7 @@
       "kind": "writes_global",
       "from": "func:heap_init",
       "to": "global:src/gc.c:oevm_heap_store",
-      "loc": "src/gc.c:166",
+      "loc": "src/gc.c:168",
       "attrs": {
         "op": "decay"
       }
@@ -32835,7 +32778,7 @@
       "kind": "writes_global",
       "from": "func:observer_start",
       "to": "global:__device_dts_ord_44",
-      "loc": "zephyr/src/observer.c:398",
+      "loc": "zephyr/src/observer.c:395",
       "attrs": {
         "op": "addr"
       }
@@ -32844,7 +32787,7 @@
       "kind": "writes_global",
       "from": "func:observer_start",
       "to": "global:observer_stack",
-      "loc": "zephyr/src/observer.c:418",
+      "loc": "zephyr/src/observer.c:415",
       "attrs": {
         "op": "decay"
       }
@@ -32853,7 +32796,7 @@
       "kind": "writes_global",
       "from": "func:observer_start",
       "to": "global:zephyr/src/observer.c:g_hw_wdt",
-      "loc": "zephyr/src/observer.c:398",
+      "loc": "zephyr/src/observer.c:395",
       "attrs": {
         "op": "assign"
       }
@@ -32862,7 +32805,7 @@
       "kind": "writes_global",
       "from": "func:observer_start",
       "to": "global:zephyr/src/observer.c:g_hw_wdt",
-      "loc": "zephyr/src/observer.c:399",
+      "loc": "zephyr/src/observer.c:396",
       "attrs": {
         "op": "assign"
       }
@@ -32871,7 +32814,7 @@
       "kind": "writes_global",
       "from": "func:observer_start",
       "to": "global:zephyr/src/observer.c:observer_thread",
-      "loc": "zephyr/src/observer.c:418",
+      "loc": "zephyr/src/observer.c:415",
       "attrs": {
         "op": "addr"
       }
@@ -32880,7 +32823,7 @@
       "kind": "writes_global",
       "from": "func:observer_start",
       "to": "global:zephyr/src/observer.c:observer_thread",
-      "loc": "zephyr/src/observer.c:422",
+      "loc": "zephyr/src/observer.c:419",
       "attrs": {
         "op": "addr"
       }
@@ -32889,7 +32832,7 @@
       "kind": "writes_global",
       "from": "func:oevm_free",
       "to": "global:src/gc.c:cheap",
-      "loc": "src/gc.c:120",
+      "loc": "src/gc.c:122",
       "attrs": {
         "op": "compound"
       }
@@ -32898,16 +32841,7 @@
       "kind": "writes_global",
       "from": "func:oevm_free",
       "to": "global:src/gc.c:cheap",
-      "loc": "src/gc.c:121",
-      "attrs": {
-        "op": "incdec"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:oevm_malloc",
-      "to": "global:src/gc.c:cheap",
-      "loc": "src/gc.c:108",
+      "loc": "src/gc.c:123",
       "attrs": {
         "op": "incdec"
       }
@@ -32927,6 +32861,15 @@
       "to": "global:src/gc.c:cheap",
       "loc": "src/gc.c:112",
       "attrs": {
+        "op": "incdec"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:oevm_malloc",
+      "to": "global:src/gc.c:cheap",
+      "loc": "src/gc.c:114",
+      "attrs": {
         "op": "compound"
       }
     },
@@ -32934,7 +32877,7 @@
       "kind": "writes_global",
       "from": "func:oevm_malloc",
       "to": "global:src/gc.c:cheap",
-      "loc": "src/gc.c:113",
+      "loc": "src/gc.c:115",
       "attrs": {
         "op": "assign"
       }
@@ -32943,7 +32886,7 @@
       "kind": "writes_global",
       "from": "func:oevm_realloc",
       "to": "global:src/gc.c:cheap",
-      "loc": "src/gc.c:130",
+      "loc": "src/gc.c:132",
       "attrs": {
         "op": "incdec"
       }
@@ -32952,25 +32895,25 @@
       "kind": "writes_global",
       "from": "func:oevm_realloc",
       "to": "global:src/gc.c:cheap",
-      "loc": "src/gc.c:134",
-      "attrs": {
-        "op": "assign"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:oevm_realloc",
-      "to": "global:src/gc.c:cheap",
-      "loc": "src/gc.c:135",
-      "attrs": {
-        "op": "assign"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:oevm_realloc",
-      "to": "global:src/gc.c:cheap",
       "loc": "src/gc.c:136",
+      "attrs": {
+        "op": "assign"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:oevm_realloc",
+      "to": "global:src/gc.c:cheap",
+      "loc": "src/gc.c:137",
+      "attrs": {
+        "op": "assign"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:oevm_realloc",
+      "to": "global:src/gc.c:cheap",
+      "loc": "src/gc.c:138",
       "attrs": {
         "op": "incdec"
       }
@@ -32997,7 +32940,7 @@
       "kind": "writes_global",
       "from": "func:oimg_load_blob",
       "to": "global:oimg_blob_base",
-      "loc": "src/oimg_loader.c:201",
+      "loc": "src/oimg_loader.c:204",
       "attrs": {
         "op": "assign"
       }
@@ -33006,7 +32949,7 @@
       "kind": "writes_global",
       "from": "func:oimg_load_blob",
       "to": "global:oimg_blob_base",
-      "loc": "src/oimg_loader.c:232",
+      "loc": "src/oimg_loader.c:235",
       "attrs": {
         "op": "assign"
       }
@@ -33015,7 +32958,7 @@
       "kind": "writes_global",
       "from": "func:oimg_load_blob",
       "to": "global:oimg_blob_end",
-      "loc": "src/oimg_loader.c:202",
+      "loc": "src/oimg_loader.c:205",
       "attrs": {
         "op": "assign"
       }
@@ -33024,7 +32967,7 @@
       "kind": "writes_global",
       "from": "func:oimg_load_blob",
       "to": "global:oimg_blob_end",
-      "loc": "src/oimg_loader.c:232",
+      "loc": "src/oimg_loader.c:235",
       "attrs": {
         "op": "assign"
       }
@@ -33033,7 +32976,7 @@
       "kind": "writes_global",
       "from": "func:oimg_load_blob",
       "to": "global:src/oimg_loader.c:img_classnames_count",
-      "loc": "src/oimg_loader.c:187",
+      "loc": "src/oimg_loader.c:190",
       "attrs": {
         "op": "assign"
       }
@@ -33042,78 +32985,6 @@
       "kind": "writes_global",
       "from": "func:oimg_load_blob",
       "to": "global:src/oimg_loader.c:img_classnames_ref",
-      "loc": "src/oimg_loader.c:186",
-      "attrs": {
-        "op": "assign"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:oimg_load_blob",
-      "to": "global:src/oimg_loader.c:img_entry_nslots",
-      "loc": "src/oimg_loader.c:174",
-      "attrs": {
-        "op": "assign"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:oimg_load_blob",
-      "to": "global:src/oimg_loader.c:img_init_argc",
-      "loc": "src/oimg_loader.c:173",
-      "attrs": {
-        "op": "assign"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:oimg_load_blob",
-      "to": "global:src/oimg_loader.c:img_init_sel_ref",
-      "loc": "src/oimg_loader.c:171",
-      "attrs": {
-        "op": "assign"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:oimg_load_blob",
-      "to": "global:src/oimg_loader.c:img_kernel_init_sel_ref",
-      "loc": "src/oimg_loader.c:178",
-      "attrs": {
-        "op": "assign"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:oimg_load_blob",
-      "to": "global:src/oimg_loader.c:img_kernel_nslots",
-      "loc": "src/oimg_loader.c:179",
-      "attrs": {
-        "op": "assign"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:oimg_load_blob",
-      "to": "global:src/oimg_loader.c:img_kernel_vtable_ref",
-      "loc": "src/oimg_loader.c:177",
-      "attrs": {
-        "op": "assign"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:oimg_load_blob",
-      "to": "global:src/oimg_loader.c:img_main_sel_ref",
-      "loc": "src/oimg_loader.c:172",
-      "attrs": {
-        "op": "assign"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:oimg_load_blob",
-      "to": "global:src/oimg_loader.c:img_methods_count",
       "loc": "src/oimg_loader.c:189",
       "attrs": {
         "op": "assign"
@@ -33122,8 +32993,8 @@
     {
       "kind": "writes_global",
       "from": "func:oimg_load_blob",
-      "to": "global:src/oimg_loader.c:img_methods_ref",
-      "loc": "src/oimg_loader.c:188",
+      "to": "global:src/oimg_loader.c:img_entry_nslots",
+      "loc": "src/oimg_loader.c:177",
       "attrs": {
         "op": "assign"
       }
@@ -33131,8 +33002,8 @@
     {
       "kind": "writes_global",
       "from": "func:oimg_load_blob",
-      "to": "global:src/oimg_loader.c:img_net_on_sel_ref",
-      "loc": "src/oimg_loader.c:185",
+      "to": "global:src/oimg_loader.c:img_init_argc",
+      "loc": "src/oimg_loader.c:176",
       "attrs": {
         "op": "assign"
       }
@@ -33140,8 +33011,8 @@
     {
       "kind": "writes_global",
       "from": "func:oimg_load_blob",
-      "to": "global:src/oimg_loader.c:img_root_ref",
-      "loc": "src/oimg_loader.c:170",
+      "to": "global:src/oimg_loader.c:img_init_sel_ref",
+      "loc": "src/oimg_loader.c:174",
       "attrs": {
         "op": "assign"
       }
@@ -33149,8 +33020,8 @@
     {
       "kind": "writes_global",
       "from": "func:oimg_load_blob",
-      "to": "global:src/oimg_loader.c:img_serial_on_sel_ref",
-      "loc": "src/oimg_loader.c:180",
+      "to": "global:src/oimg_loader.c:img_kernel_init_sel_ref",
+      "loc": "src/oimg_loader.c:181",
       "attrs": {
         "op": "assign"
       }
@@ -33158,7 +33029,7 @@
     {
       "kind": "writes_global",
       "from": "func:oimg_load_blob",
-      "to": "global:src/oimg_loader.c:img_supervisor_init_sel_ref",
+      "to": "global:src/oimg_loader.c:img_kernel_nslots",
       "loc": "src/oimg_loader.c:182",
       "attrs": {
         "op": "assign"
@@ -33167,8 +33038,8 @@
     {
       "kind": "writes_global",
       "from": "func:oimg_load_blob",
-      "to": "global:src/oimg_loader.c:img_supervisor_nslots",
-      "loc": "src/oimg_loader.c:184",
+      "to": "global:src/oimg_loader.c:img_kernel_vtable_ref",
+      "loc": "src/oimg_loader.c:180",
       "attrs": {
         "op": "assign"
       }
@@ -33176,7 +33047,52 @@
     {
       "kind": "writes_global",
       "from": "func:oimg_load_blob",
-      "to": "global:src/oimg_loader.c:img_supervisor_run_sel_ref",
+      "to": "global:src/oimg_loader.c:img_main_sel_ref",
+      "loc": "src/oimg_loader.c:175",
+      "attrs": {
+        "op": "assign"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:oimg_load_blob",
+      "to": "global:src/oimg_loader.c:img_methods_count",
+      "loc": "src/oimg_loader.c:192",
+      "attrs": {
+        "op": "assign"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:oimg_load_blob",
+      "to": "global:src/oimg_loader.c:img_methods_ref",
+      "loc": "src/oimg_loader.c:191",
+      "attrs": {
+        "op": "assign"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:oimg_load_blob",
+      "to": "global:src/oimg_loader.c:img_net_on_sel_ref",
+      "loc": "src/oimg_loader.c:188",
+      "attrs": {
+        "op": "assign"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:oimg_load_blob",
+      "to": "global:src/oimg_loader.c:img_root_ref",
+      "loc": "src/oimg_loader.c:173",
+      "attrs": {
+        "op": "assign"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:oimg_load_blob",
+      "to": "global:src/oimg_loader.c:img_serial_on_sel_ref",
       "loc": "src/oimg_loader.c:183",
       "attrs": {
         "op": "assign"
@@ -33185,8 +33101,35 @@
     {
       "kind": "writes_global",
       "from": "func:oimg_load_blob",
+      "to": "global:src/oimg_loader.c:img_supervisor_init_sel_ref",
+      "loc": "src/oimg_loader.c:185",
+      "attrs": {
+        "op": "assign"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:oimg_load_blob",
+      "to": "global:src/oimg_loader.c:img_supervisor_nslots",
+      "loc": "src/oimg_loader.c:187",
+      "attrs": {
+        "op": "assign"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:oimg_load_blob",
+      "to": "global:src/oimg_loader.c:img_supervisor_run_sel_ref",
+      "loc": "src/oimg_loader.c:186",
+      "attrs": {
+        "op": "assign"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:oimg_load_blob",
       "to": "global:src/oimg_loader.c:img_supervisor_vtable_ref",
-      "loc": "src/oimg_loader.c:181",
+      "loc": "src/oimg_loader.c:184",
       "attrs": {
         "op": "assign"
       }
@@ -36651,7 +36594,7 @@
       "kind": "writes_global",
       "from": "func:src/gc.c:arena_try_alloc",
       "to": "global:src/gc.c:big_free",
-      "loc": "src/gc.c:301",
+      "loc": "src/gc.c:303",
       "attrs": {
         "op": "assign"
       }
@@ -36660,7 +36603,7 @@
       "kind": "writes_global",
       "from": "func:src/gc.c:arena_try_alloc",
       "to": "global:src/gc.c:big_free",
-      "loc": "src/gc.c:304",
+      "loc": "src/gc.c:306",
       "attrs": {
         "op": "assign"
       }
@@ -36669,7 +36612,7 @@
       "kind": "writes_global",
       "from": "func:src/gc.c:arena_try_alloc",
       "to": "global:src/gc.c:free_bins",
-      "loc": "src/gc.c:283",
+      "loc": "src/gc.c:285",
       "attrs": {
         "op": "addr"
       }
@@ -36678,7 +36621,7 @@
       "kind": "writes_global",
       "from": "func:src/gc.c:arena_try_alloc",
       "to": "global:src/gc.c:free_bins",
-      "loc": "src/gc.c:328",
+      "loc": "src/gc.c:330",
       "attrs": {
         "op": "addr"
       }
@@ -36687,7 +36630,7 @@
       "kind": "writes_global",
       "from": "func:src/gc.c:arena_try_alloc",
       "to": "global:src/gc.c:heap_top",
-      "loc": "src/gc.c:316",
+      "loc": "src/gc.c:318",
       "attrs": {
         "op": "compound"
       }
@@ -36696,7 +36639,7 @@
       "kind": "writes_global",
       "from": "func:src/gc.c:bin_note_pop",
       "to": "global:src/gc.c:bins_nonempty",
-      "loc": "src/gc.c:74",
+      "loc": "src/gc.c:76",
       "attrs": {
         "op": "compound"
       }
@@ -36705,7 +36648,7 @@
       "kind": "writes_global",
       "from": "func:src/gc.c:bin_push",
       "to": "global:src/gc.c:bins_nonempty",
-      "loc": "src/gc.c:71",
+      "loc": "src/gc.c:73",
       "attrs": {
         "op": "compound"
       }
@@ -36714,7 +36657,7 @@
       "kind": "writes_global",
       "from": "func:src/gc.c:bin_push",
       "to": "global:src/gc.c:free_bins",
-      "loc": "src/gc.c:70",
+      "loc": "src/gc.c:72",
       "attrs": {
         "op": "assign"
       }
@@ -36723,7 +36666,7 @@
       "kind": "writes_global",
       "from": "func:src/gc.c:bm_clear",
       "to": "global:src/gc.c:heap_bitmap",
-      "loc": "src/gc.c:42",
+      "loc": "src/gc.c:44",
       "attrs": {
         "op": "compound"
       }
@@ -36732,7 +36675,7 @@
       "kind": "writes_global",
       "from": "func:src/gc.c:bm_set",
       "to": "global:src/gc.c:heap_bitmap",
-      "loc": "src/gc.c:41",
+      "loc": "src/gc.c:43",
       "attrs": {
         "op": "compound"
       }
@@ -36741,7 +36684,7 @@
       "kind": "writes_global",
       "from": "func:src/gc.c:drain_mark_stack",
       "to": "global:src/gc.c:mark_sp",
-      "loc": "src/gc.c:735",
+      "loc": "src/gc.c:737",
       "attrs": {
         "op": "incdec"
       }
@@ -36750,7 +36693,7 @@
       "kind": "writes_global",
       "from": "func:src/gc.c:float_sweep",
       "to": "global:src/gc.c:float_freelist",
-      "loc": "src/gc.c:561",
+      "loc": "src/gc.c:563",
       "attrs": {
         "op": "assign"
       }
@@ -36759,7 +36702,7 @@
       "kind": "writes_global",
       "from": "func:src/gc.c:float_sweep",
       "to": "global:src/gc.c:float_freelist",
-      "loc": "src/gc.c:571",
+      "loc": "src/gc.c:573",
       "attrs": {
         "op": "assign"
       }
@@ -36768,7 +36711,7 @@
       "kind": "writes_global",
       "from": "func:src/gc.c:heap_stats_on_alloc",
       "to": "global:src/gc.c:heap_high_water",
-      "loc": "src/gc.c:155",
+      "loc": "src/gc.c:157",
       "attrs": {
         "op": "assign"
       }
@@ -36777,7 +36720,7 @@
       "kind": "writes_global",
       "from": "func:src/gc.c:heap_stats_on_alloc",
       "to": "global:src/gc.c:heap_live_bytes",
-      "loc": "src/gc.c:154",
+      "loc": "src/gc.c:156",
       "attrs": {
         "op": "compound"
       }
@@ -36786,7 +36729,7 @@
       "kind": "writes_global",
       "from": "func:src/gc.c:mark",
       "to": "global:src/gc.c:mark_overflowed",
-      "loc": "src/gc.c:628",
+      "loc": "src/gc.c:630",
       "attrs": {
         "op": "assign"
       }
@@ -36795,7 +36738,7 @@
       "kind": "writes_global",
       "from": "func:src/gc.c:mark",
       "to": "global:src/gc.c:mark_sp",
-      "loc": "src/gc.c:626",
+      "loc": "src/gc.c:628",
       "attrs": {
         "op": "incdec"
       }
@@ -36804,7 +36747,7 @@
       "kind": "writes_global",
       "from": "func:src/gc.c:mark",
       "to": "global:src/gc.c:mark_stack",
-      "loc": "src/gc.c:626",
+      "loc": "src/gc.c:628",
       "attrs": {
         "op": "assign"
       }
@@ -36813,7 +36756,7 @@
       "kind": "writes_global",
       "from": "func:src/gc.c:mark_drain_with_recovery",
       "to": "global:src/gc.c:mark_overflowed",
-      "loc": "src/gc.c:747",
+      "loc": "src/gc.c:749",
       "attrs": {
         "op": "assign"
       }
@@ -37551,7 +37494,7 @@
       "kind": "writes_global",
       "from": "func:zephyr/src/observer.c:obs_trace_dump",
       "to": "global:zephyr/src/observer.c:g_trace",
-      "loc": "zephyr/src/observer.c:118",
+      "loc": "zephyr/src/observer.c:115",
       "attrs": {
         "op": "addr"
       }
@@ -37560,7 +37503,7 @@
       "kind": "writes_global",
       "from": "func:zephyr/src/observer.c:obs_trace_record",
       "to": "global:zephyr/src/observer.c:g_trace",
-      "loc": "zephyr/src/observer.c:104",
+      "loc": "zephyr/src/observer.c:101",
       "attrs": {
         "op": "addr"
       }
@@ -37569,7 +37512,7 @@
       "kind": "writes_global",
       "from": "func:zephyr/src/observer.c:obs_trace_record",
       "to": "global:zephyr/src/observer.c:g_trace_w",
-      "loc": "zephyr/src/observer.c:109",
+      "loc": "zephyr/src/observer.c:106",
       "attrs": {
         "op": "incdec"
       }
@@ -37578,7 +37521,7 @@
       "kind": "writes_global",
       "from": "func:zephyr/src/observer.c:observer_thread_fn",
       "to": "global:zephyr/src/observer.c:g_wdt_channel",
-      "loc": "zephyr/src/observer.c:347",
+      "loc": "zephyr/src/observer.c:344",
       "attrs": {
         "op": "assign"
       }
@@ -37587,7 +37530,7 @@
       "kind": "writes_global",
       "from": "func:zephyr/src/observer.c:observer_verdict",
       "to": "global:zephyr/src/observer.c:g_core",
-      "loc": "zephyr/src/observer.c:150",
+      "loc": "zephyr/src/observer.c:147",
       "attrs": {
         "op": "addr"
       }
