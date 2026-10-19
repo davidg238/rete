@@ -931,6 +931,634 @@
     "message": "zephyr/src/ed25519: 1 unit, 75 funcs, 0 handlers, writes 0 tables, calls into 0 contexts"
   },
   {
+    "rule": "extern-redeclared",
+    "subject": "func:gc_allocate",
+    "loc": "src/gc.c:343",
+    "message": "gc_allocate is declared by hand in 5 .c files, not by a header",
+    "count": 5,
+    "sites": [
+      {
+        "func": "file:src/http.c",
+        "loc": "src/http.c:15",
+        "via": "struct Object * (struct Object *, unsigned int)"
+      },
+      {
+        "func": "file:src/platform.c",
+        "loc": "src/platform.c:572",
+        "via": "struct Object * (struct Object *, unsigned int)"
+      },
+      {
+        "func": "file:src/space.c",
+        "loc": "src/space.c:54",
+        "via": "struct Object * (struct Object *, unsigned int)"
+      },
+      {
+        "func": "file:src/udp.c",
+        "loc": "src/udp.c:21",
+        "via": "struct Object * (struct Object *, unsigned int)"
+      },
+      {
+        "func": "file:src/vm.c",
+        "loc": "src/vm.c:51",
+        "via": "struct Object * (struct Object *, unsigned int)"
+      }
+    ]
+  },
+  {
+    "rule": "extern-redeclared",
+    "subject": "func:indexable_new",
+    "loc": "src/platform.c:601",
+    "message": "indexable_new is declared by hand in 4 .c files, not by a header",
+    "count": 4,
+    "sites": [
+      {
+        "func": "file:src/http.c",
+        "loc": "src/http.c:16",
+        "via": "struct Object * (long)"
+      },
+      {
+        "func": "file:src/space.c",
+        "loc": "src/space.c:40",
+        "via": "struct Object * (long)"
+      },
+      {
+        "func": "file:src/udp.c",
+        "loc": "src/udp.c:22",
+        "via": "struct Object * (long)"
+      },
+      {
+        "func": "file:src/vm.c",
+        "loc": "src/vm.c:2323",
+        "via": "struct Object * (long)"
+      }
+    ]
+  },
+  {
+    "rule": "extern-redeclared",
+    "subject": "func:mark_object",
+    "loc": "src/gc.c:799",
+    "message": "mark_object is declared by hand in 2 .c files, not by a header",
+    "count": 2,
+    "sites": [
+      {
+        "func": "file:src/handles.c",
+        "loc": "src/handles.c:8",
+        "via": "void (struct Object *)"
+      },
+      {
+        "func": "file:src/space.c",
+        "loc": "src/space.c:46",
+        "via": "void (struct Object *)"
+      }
+    ]
+  },
+  {
+    "rule": "extern-redeclared",
+    "subject": "func:bell_target_available",
+    "loc": "zephyr/src/main.c:857",
+    "message": "bell_target_available is declared by hand in 1 .c files, not by a header",
+    "count": 1,
+    "sites": [
+      {
+        "func": "file:src/platform.c",
+        "loc": "src/platform.c:518",
+        "via": "int (void)"
+      }
+    ]
+  },
+  {
+    "rule": "extern-redeclared",
+    "subject": "func:bell_target_strike",
+    "loc": "zephyr/src/main.c:866",
+    "message": "bell_target_strike is declared by hand in 1 .c files, not by a header",
+    "count": 1,
+    "sites": [
+      {
+        "func": "file:src/platform.c",
+        "loc": "src/platform.c:519",
+        "via": "int (int)"
+      }
+    ]
+  },
+  {
+    "rule": "extern-redeclared",
+    "subject": "func:deep_sleep_target",
+    "loc": "zephyr/src/main.c:581",
+    "message": "deep_sleep_target is declared by hand in 1 .c files, not by a header",
+    "count": 1,
+    "sites": [
+      {
+        "func": "file:src/platform.c",
+        "loc": "src/platform.c:550",
+        "via": "void (int)"
+      }
+    ]
+  },
+  {
+    "rule": "extern-redeclared",
+    "subject": "func:display_target_available",
+    "loc": "zephyr/src/main.c:1090",
+    "message": "display_target_available is declared by hand in 1 .c files, not by a header",
+    "count": 1,
+    "sites": [
+      {
+        "func": "file:src/platform.c",
+        "loc": "src/platform.c:274",
+        "via": "int (void)"
+      }
+    ]
+  },
+  {
+    "rule": "extern-redeclared",
+    "subject": "func:display_target_clear",
+    "loc": "zephyr/src/main.c:1114",
+    "message": "display_target_clear is declared by hand in 1 .c files, not by a header",
+    "count": 1,
+    "sites": [
+      {
+        "func": "file:src/platform.c",
+        "loc": "src/platform.c:275",
+        "via": "int (void)"
+      }
+    ]
+  },
+  {
+    "rule": "extern-redeclared",
+    "subject": "func:display_target_put",
+    "loc": "zephyr/src/main.c:1124",
+    "message": "display_target_put is declared by hand in 1 .c files, not by a header",
+    "count": 1,
+    "sites": [
+      {
+        "func": "file:src/platform.c",
+        "loc": "src/platform.c:276",
+        "via": "int (int, int, const char *, int)"
+      }
+    ]
+  },
+  {
+    "rule": "extern-redeclared",
+    "subject": "func:display_target_refresh",
+    "loc": "zephyr/src/main.c:1141",
+    "message": "display_target_refresh is declared by hand in 1 .c files, not by a header",
+    "count": 1,
+    "sites": [
+      {
+        "func": "file:src/platform.c",
+        "loc": "src/platform.c:277",
+        "via": "int (void)"
+      }
+    ]
+  },
+  {
+    "rule": "extern-redeclared",
+    "subject": "func:display_target_refresh_row",
+    "loc": "zephyr/src/main.c:1153",
+    "message": "display_target_refresh_row is declared by hand in 1 .c files, not by a header",
+    "count": 1,
+    "sites": [
+      {
+        "func": "file:src/platform.c",
+        "loc": "src/platform.c:278",
+        "via": "int (int)"
+      }
+    ]
+  },
+  {
+    "rule": "extern-redeclared",
+    "subject": "func:gc_temp_root_push",
+    "loc": "src/gc.c:816",
+    "message": "gc_temp_root_push is declared by hand in 1 .c files, not by a header",
+    "count": 1,
+    "sites": [
+      {
+        "func": "file:src/http.c",
+        "loc": "src/http.c:17",
+        "via": "void (struct Object *)"
+      }
+    ]
+  },
+  {
+    "rule": "extern-redeclared",
+    "subject": "func:gc_temp_roots_clear",
+    "loc": "src/gc.c:827",
+    "message": "gc_temp_roots_clear is declared by hand in 1 .c files, not by a header",
+    "count": 1,
+    "sites": [
+      {
+        "func": "file:src/http.c",
+        "loc": "src/http.c:18",
+        "via": "void (void)"
+      }
+    ]
+  },
+  {
+    "rule": "extern-redeclared",
+    "subject": "func:gpio_target_level",
+    "loc": "zephyr/src/main.c:1518",
+    "message": "gpio_target_level is declared by hand in 1 .c files, not by a header",
+    "count": 1,
+    "sites": [
+      {
+        "func": "file:src/platform.c",
+        "loc": "src/platform.c:171",
+        "via": "int (int)"
+      }
+    ]
+  },
+  {
+    "rule": "extern-redeclared",
+    "subject": "func:gpio_target_set",
+    "loc": "zephyr/src/main.c:1508",
+    "message": "gpio_target_set is declared by hand in 1 .c files, not by a header",
+    "count": 1,
+    "sites": [
+      {
+        "func": "file:src/platform.c",
+        "loc": "src/platform.c:170",
+        "via": "int (int, int)"
+      }
+    ]
+  },
+  {
+    "rule": "extern-redeclared",
+    "subject": "func:log_udp_drain",
+    "loc": "src/backend/zephyr/log_udp.c:405",
+    "message": "log_udp_drain is declared by hand in 1 .c files, not by a header",
+    "count": 1,
+    "sites": [
+      {
+        "func": "file:src/backend/zephyr/platform_zephyr.c",
+        "loc": "src/backend/zephyr/platform_zephyr.c:38",
+        "via": "void (int)"
+      }
+    ]
+  },
+  {
+    "rule": "extern-redeclared",
+    "subject": "func:log_udp_set_target",
+    "loc": "src/backend/zephyr/log_udp.c:352",
+    "message": "log_udp_set_target is declared by hand in 1 .c files, not by a header",
+    "count": 1,
+    "sites": [
+      {
+        "func": "file:src/backend/zephyr/platform_zephyr.c",
+        "loc": "src/backend/zephyr/platform_zephyr.c:37",
+        "via": "int (const char *, unsigned int, int)"
+      }
+    ]
+  },
+  {
+    "rule": "extern-redeclared",
+    "subject": "func:log_udp_tee",
+    "loc": "src/backend/zephyr/log_udp.c:152",
+    "message": "log_udp_tee is declared by hand in 1 .c files, not by a header",
+    "count": 1,
+    "sites": [
+      {
+        "func": "file:src/backend/zephyr/platform_zephyr.c",
+        "loc": "src/backend/zephyr/platform_zephyr.c:33",
+        "via": "void (const char *, unsigned int)"
+      }
+    ]
+  },
+  {
+    "rule": "extern-redeclared",
+    "subject": "func:log_udp_tee_paced",
+    "loc": "src/backend/zephyr/log_udp.c:165",
+    "message": "log_udp_tee_paced is declared by hand in 1 .c files, not by a header",
+    "count": 1,
+    "sites": [
+      {
+        "func": "file:src/backend/zephyr/platform_zephyr.c",
+        "loc": "src/backend/zephyr/platform_zephyr.c:36",
+        "via": "void (const char *, unsigned int)"
+      }
+    ]
+  },
+  {
+    "rule": "extern-redeclared",
+    "subject": "func:ntp_target_date",
+    "loc": "zephyr/src/main.c:257",
+    "message": "ntp_target_date is declared by hand in 1 .c files, not by a header",
+    "count": 1,
+    "sites": [
+      {
+        "func": "file:src/platform.c",
+        "loc": "src/platform.c:527",
+        "via": "int (void)"
+      }
+    ]
+  },
+  {
+    "rule": "extern-redeclared",
+    "subject": "func:ntp_target_sync",
+    "loc": "zephyr/src/main.c:203",
+    "message": "ntp_target_sync is declared by hand in 1 .c files, not by a header",
+    "count": 1,
+    "sites": [
+      {
+        "func": "file:src/platform.c",
+        "loc": "src/platform.c:523",
+        "via": "int (int)"
+      }
+    ]
+  },
+  {
+    "rule": "extern-redeclared",
+    "subject": "func:observer_halt",
+    "loc": "zephyr/src/observer.c:339",
+    "message": "observer_halt is declared by hand in 1 .c files, not by a header",
+    "count": 1,
+    "sites": [
+      {
+        "func": "file:zephyr/src/reboot_note.c",
+        "loc": "zephyr/src/reboot_note.c:22",
+        "via": "void (void)"
+      }
+    ]
+  },
+  {
+    "rule": "extern-redeclared",
+    "subject": "func:observer_start",
+    "loc": "zephyr/src/observer.c:400",
+    "message": "observer_start is declared by hand in 1 .c files, not by a header",
+    "count": 1,
+    "sites": [
+      {
+        "func": "file:zephyr/src/main.c",
+        "loc": "zephyr/src/main.c:32",
+        "via": "void (void)"
+      }
+    ]
+  },
+  {
+    "rule": "extern-redeclared",
+    "subject": "func:oimg_bootstrap",
+    "loc": "src/oimg_loader.c:281",
+    "message": "oimg_bootstrap is declared by hand in 1 .c files, not by a header",
+    "count": 1,
+    "sites": [
+      {
+        "func": "file:zephyr/src/main.c",
+        "loc": "zephyr/src/main.c:1571",
+        "via": "struct Object * (struct Object *)"
+      }
+    ]
+  },
+  {
+    "rule": "extern-redeclared",
+    "subject": "func:oimg_root",
+    "loc": "src/oimg_loader.c:271",
+    "message": "oimg_root is declared by hand in 1 .c files, not by a header",
+    "count": 1,
+    "sites": [
+      {
+        "func": "file:zephyr/src/main.c",
+        "loc": "zephyr/src/main.c:1570",
+        "via": "struct Object * (void)"
+      }
+    ]
+  },
+  {
+    "rule": "extern-redeclared",
+    "subject": "func:platform_app_cad_ms",
+    "loc": "src/platform.c:18",
+    "message": "platform_app_cad_ms is declared by hand in 1 .c files, not by a header",
+    "count": 1,
+    "sites": [
+      {
+        "func": "file:zephyr/src/observer.c",
+        "loc": "zephyr/src/observer.c:61",
+        "via": "unsigned int (void)"
+      }
+    ]
+  },
+  {
+    "rule": "extern-redeclared",
+    "subject": "func:platform_debug_held",
+    "loc": "src/backend/zephyr/platform_zephyr.c:257",
+    "message": "platform_debug_held is declared by hand in 1 .c files, not by a header",
+    "count": 1,
+    "sites": [
+      {
+        "func": "file:zephyr/src/observer.c",
+        "loc": "zephyr/src/observer.c:65",
+        "via": "int (void)"
+      }
+    ]
+  },
+  {
+    "rule": "extern-redeclared",
+    "subject": "func:reboot_note_ack",
+    "loc": "zephyr/src/reboot_note.c:66",
+    "message": "reboot_note_ack is declared by hand in 1 .c files, not by a header",
+    "count": 1,
+    "sites": [
+      {
+        "func": "file:src/platform.c",
+        "loc": "src/platform.c:546",
+        "via": "void (unsigned int)"
+      }
+    ]
+  },
+  {
+    "rule": "extern-redeclared",
+    "subject": "func:reboot_note_consecutive",
+    "loc": "zephyr/src/reboot_note.c:71",
+    "message": "reboot_note_consecutive is declared by hand in 1 .c files, not by a header",
+    "count": 1,
+    "sites": [
+      {
+        "func": "file:src/platform.c",
+        "loc": "src/platform.c:547",
+        "via": "unsigned int (void)"
+      }
+    ]
+  },
+  {
+    "rule": "extern-redeclared",
+    "subject": "func:reboot_note_init",
+    "loc": "zephyr/src/reboot_note.c:39",
+    "message": "reboot_note_init is declared by hand in 1 .c files, not by a header",
+    "count": 1,
+    "sites": [
+      {
+        "func": "file:src/platform.c",
+        "loc": "src/platform.c:542",
+        "via": "void (void)"
+      }
+    ]
+  },
+  {
+    "rule": "extern-redeclared",
+    "subject": "func:reboot_note_read",
+    "loc": "zephyr/src/reboot_note.c:43",
+    "message": "reboot_note_read is declared by hand in 1 .c files, not by a header",
+    "count": 1,
+    "sites": [
+      {
+        "func": "file:src/platform.c",
+        "loc": "src/platform.c:543",
+        "via": "int (struct RebootNote *)"
+      }
+    ]
+  },
+  {
+    "rule": "extern-redeclared",
+    "subject": "func:reboot_note_write",
+    "loc": "zephyr/src/reboot_note.c:49",
+    "message": "reboot_note_write is declared by hand in 1 .c files, not by a header",
+    "count": 1,
+    "sites": [
+      {
+        "func": "file:src/platform.c",
+        "loc": "src/platform.c:544",
+        "via": "void (unsigned int, unsigned int, unsigned int, unsigned int, unsigned int)"
+      }
+    ]
+  },
+  {
+    "rule": "extern-redeclared",
+    "subject": "func:reset_cause_timer_wake",
+    "loc": "zephyr/src/main.c:305",
+    "message": "reset_cause_timer_wake is declared by hand in 1 .c files, not by a header",
+    "count": 1,
+    "sites": [
+      {
+        "func": "file:src/platform.c",
+        "loc": "src/platform.c:537",
+        "via": "int (void)"
+      }
+    ]
+  },
+  {
+    "rule": "extern-redeclared",
+    "subject": "func:rtc_alarm_arm",
+    "loc": "zephyr/src/main.c:554",
+    "message": "rtc_alarm_arm is declared by hand in 1 .c files, not by a header",
+    "count": 1,
+    "sites": [
+      {
+        "func": "file:src/platform.c",
+        "loc": "src/platform.c:561",
+        "via": "int (int, int, int)"
+      }
+    ]
+  },
+  {
+    "rule": "extern-redeclared",
+    "subject": "func:rtc_target_get",
+    "loc": "zephyr/src/main.c:293",
+    "message": "rtc_target_get is declared by hand in 1 .c files, not by a header",
+    "count": 1,
+    "sites": [
+      {
+        "func": "file:src/platform.c",
+        "loc": "src/platform.c:532",
+        "via": "int (int)"
+      }
+    ]
+  },
+  {
+    "rule": "extern-redeclared",
+    "subject": "func:rtc_target_put",
+    "loc": "zephyr/src/main.c:294",
+    "message": "rtc_target_put is declared by hand in 1 .c files, not by a header",
+    "count": 1,
+    "sites": [
+      {
+        "func": "file:src/platform.c",
+        "loc": "src/platform.c:533",
+        "via": "void (int, int)"
+      }
+    ]
+  },
+  {
+    "rule": "extern-redeclared",
+    "subject": "func:rtc_target_valid",
+    "loc": "zephyr/src/main.c:292",
+    "message": "rtc_target_valid is declared by hand in 1 .c files, not by a header",
+    "count": 1,
+    "sites": [
+      {
+        "func": "file:src/platform.c",
+        "loc": "src/platform.c:531",
+        "via": "int (void)"
+      }
+    ]
+  },
+  {
+    "rule": "extern-redeclared",
+    "subject": "func:run_interpreter",
+    "loc": "src/vm.c:1024",
+    "message": "run_interpreter is declared by hand in 1 .c files, not by a header",
+    "count": 1,
+    "sites": [
+      {
+        "func": "file:src/dispatch.c",
+        "loc": "src/dispatch.c:325",
+        "via": "struct Object * (struct Object *, struct Object *, int, struct Object * *)"
+      }
+    ]
+  },
+  {
+    "rule": "extern-redeclared",
+    "subject": "func:send",
+    "loc": "src/dispatch.c:2078",
+    "message": "send is declared by hand in 1 .c files, not by a header",
+    "count": 1,
+    "sites": [
+      {
+        "func": "file:src/vm.c",
+        "loc": "src/vm.c:742",
+        "via": "struct Object * (struct Object *, struct Object *, int, struct Object * *)"
+      }
+    ]
+  },
+  {
+    "rule": "extern-redeclared",
+    "subject": "func:timer_target_snapshot",
+    "loc": "src/backend/zephyr/timer_zephyr.c:125",
+    "message": "timer_target_snapshot is declared by hand in 1 .c files, not by a header",
+    "count": 1,
+    "sites": [
+      {
+        "func": "file:zephyr/src/observer.c",
+        "loc": "zephyr/src/observer.c:58",
+        "via": "int (unsigned int *, unsigned int *, int)"
+      }
+    ]
+  },
+  {
+    "rule": "extern-redeclared",
+    "subject": "func:wallclock_target_read",
+    "loc": "zephyr/src/main.c:354",
+    "message": "wallclock_target_read is declared by hand in 1 .c files, not by a header",
+    "count": 1,
+    "sites": [
+      {
+        "func": "file:src/platform.c",
+        "loc": "src/platform.c:555",
+        "via": "int (void)"
+      }
+    ]
+  },
+  {
+    "rule": "extern-redeclared",
+    "subject": "func:wallclock_target_set",
+    "loc": "zephyr/src/main.c:412",
+    "message": "wallclock_target_set is declared by hand in 1 .c files, not by a header",
+    "count": 1,
+    "sites": [
+      {
+        "func": "file:src/platform.c",
+        "loc": "src/platform.c:556",
+        "via": "int (int, int)"
+      }
+    ]
+  },
+  {
     "rule": "global-flow",
     "subject": "global:_impure_ptr",
     "message": "_impure_ptr: written by 0, read by 44 functions; no writer in the module",

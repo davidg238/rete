@@ -1,4 +1,4 @@
-# invarlint findings — e9ef1a02
+# invarlint findings — 1336c164
 
 ## root-bypassed (5)
 
@@ -55,6 +55,52 @@
 | global:oimg_singleton | 3 | `kernel_boot` (src/kernel_boot.c:144)<br>`kernel_boot` (src/kernel_boot.c:145)<br>`kernel_boot` (src/kernel_boot.c:146) |
 | global:rl_q | 3 | `platform_console_take_line` (src/backend/zephyr/platform_zephyr.c:194)<br>`platform_zephyr.c:rl_getc` (src/backend/zephyr/platform_zephyr.c:173)<br>`platform_zephyr.c:rl_isr` (src/backend/zephyr/platform_zephyr.c:149) |
 | … 74 more unowned-writer rows; see findings.json | | |
+
+## extern-redeclared (42)
+
+| subject | count | sites |
+|---|---|---|
+| gc_allocate | 5 | `http.c` (src/http.c:15; struct Object * (struct Object *, unsigned int))<br>`platform.c` (src/platform.c:572; struct Object * (struct Object *, unsigned int))<br>`space.c` (src/space.c:54; struct Object * (struct Object *, unsigned int))<br>`udp.c` (src/udp.c:21; struct Object * (struct Object *, unsigned int))<br>`vm.c` (src/vm.c:51; struct Object * (struct Object *, unsigned int)) |
+| indexable_new | 4 | `http.c` (src/http.c:16; struct Object * (long))<br>`space.c` (src/space.c:40; struct Object * (long))<br>`udp.c` (src/udp.c:22; struct Object * (long))<br>`vm.c` (src/vm.c:2323; struct Object * (long)) |
+| mark_object | 2 | `handles.c` (src/handles.c:8; void (struct Object *))<br>`space.c` (src/space.c:46; void (struct Object *)) |
+| bell_target_available | 1 | `platform.c` (src/platform.c:518; int (void)) |
+| bell_target_strike | 1 | `platform.c` (src/platform.c:519; int (int)) |
+| deep_sleep_target | 1 | `platform.c` (src/platform.c:550; void (int)) |
+| display_target_available | 1 | `platform.c` (src/platform.c:274; int (void)) |
+| display_target_clear | 1 | `platform.c` (src/platform.c:275; int (void)) |
+| display_target_put | 1 | `platform.c` (src/platform.c:276; int (int, int, const char *, int)) |
+| display_target_refresh | 1 | `platform.c` (src/platform.c:277; int (void)) |
+| display_target_refresh_row | 1 | `platform.c` (src/platform.c:278; int (int)) |
+| gc_temp_root_push | 1 | `http.c` (src/http.c:17; void (struct Object *)) |
+| gc_temp_roots_clear | 1 | `http.c` (src/http.c:18; void (void)) |
+| gpio_target_level | 1 | `platform.c` (src/platform.c:171; int (int)) |
+| gpio_target_set | 1 | `platform.c` (src/platform.c:170; int (int, int)) |
+| log_udp_drain | 1 | `platform_zephyr.c` (src/backend/zephyr/platform_zephyr.c:38; void (int)) |
+| log_udp_set_target | 1 | `platform_zephyr.c` (src/backend/zephyr/platform_zephyr.c:37; int (const char *, unsigned int, int)) |
+| log_udp_tee | 1 | `platform_zephyr.c` (src/backend/zephyr/platform_zephyr.c:33; void (const char *, unsigned int)) |
+| log_udp_tee_paced | 1 | `platform_zephyr.c` (src/backend/zephyr/platform_zephyr.c:36; void (const char *, unsigned int)) |
+| ntp_target_date | 1 | `platform.c` (src/platform.c:527; int (void)) |
+| ntp_target_sync | 1 | `platform.c` (src/platform.c:523; int (int)) |
+| observer_halt | 1 | `reboot_note.c` (zephyr/src/reboot_note.c:22; void (void)) |
+| observer_start | 1 | `main.c` (zephyr/src/main.c:32; void (void)) |
+| oimg_bootstrap | 1 | `main.c` (zephyr/src/main.c:1571; struct Object * (struct Object *)) |
+| oimg_root | 1 | `main.c` (zephyr/src/main.c:1570; struct Object * (void)) |
+| platform_app_cad_ms | 1 | `observer.c` (zephyr/src/observer.c:61; unsigned int (void)) |
+| platform_debug_held | 1 | `observer.c` (zephyr/src/observer.c:65; int (void)) |
+| reboot_note_ack | 1 | `platform.c` (src/platform.c:546; void (unsigned int)) |
+| reboot_note_consecutive | 1 | `platform.c` (src/platform.c:547; unsigned int (void)) |
+| reboot_note_init | 1 | `platform.c` (src/platform.c:542; void (void)) |
+| reboot_note_read | 1 | `platform.c` (src/platform.c:543; int (struct RebootNote *)) |
+| reboot_note_write | 1 | `platform.c` (src/platform.c:544; void (unsigned int, unsigned int, unsigned int, unsigned int, unsigned int)) |
+| reset_cause_timer_wake | 1 | `platform.c` (src/platform.c:537; int (void)) |
+| rtc_alarm_arm | 1 | `platform.c` (src/platform.c:561; int (int, int, int)) |
+| rtc_target_get | 1 | `platform.c` (src/platform.c:532; int (int)) |
+| rtc_target_put | 1 | `platform.c` (src/platform.c:533; void (int, int)) |
+| rtc_target_valid | 1 | `platform.c` (src/platform.c:531; int (void)) |
+| run_interpreter | 1 | `dispatch.c` (src/dispatch.c:325; struct Object * (struct Object *, struct Object *, int, struct Object * *)) |
+| send | 1 | `vm.c` (src/vm.c:742; struct Object * (struct Object *, struct Object *, int, struct Object * *)) |
+| timer_target_snapshot | 1 | `observer.c` (zephyr/src/observer.c:58; int (unsigned int *, unsigned int *, int)) |
+| … 2 more extern-redeclared rows; see findings.json | | |
 
 ## context-coupling (7)
 
@@ -178,4 +224,4 @@
 | global:src/space.c:q_head | 6 | `space_dequeue` (src/space.c:363; reads)<br>`space_gc_trace` (src/space.c:426; reads)<br>`space_post_id` (src/space.c:228; reads)<br>`space_post_id` (src/space.c:242; reads)<br>`space_take` (src/space.c:261; reads)<br>`space_take` (src/space.c:266; reads)<br>`space.c:compact_head` (src/space.c:182; reads)<br>`space.c:compact_head` (src/space.c:183; reads)<br>`space.c:compact_head` (src/space.c:183; writes) |
 | … 227 more global-flow rows; see findings.json | | |
 
-… 513 more rows; see findings.json
+… 515 more rows; see findings.json

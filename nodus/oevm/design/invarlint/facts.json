@@ -1,6 +1,6 @@
 {
-  "commit": "e9ef1a02",
-  "root": "/home/david/rete-invarlint/nodus/oevm",
+  "commit": "1336c164",
+  "root": "/home/david/workspace/rete/nodus/oevm",
   "config": "build-esp32c6-B",
   "partial": false,
   "nodes": [
@@ -13,6 +13,7 @@
         "is_handler": "false",
         "loc_count": "96",
         "sig": "int (const uint8_t *, size_t, const uint8_t *, const uint8_t *)",
+        "type": "int (const unsigned char *, unsigned int, const unsigned char *, const unsigned char *)",
         "unit": "unit:zephyr/src/ed25519"
       }
     },
@@ -25,6 +26,7 @@
         "is_handler": "false",
         "loc_count": "6",
         "sig": "int (uint8_t *, const uint8_t *, const uint8_t *)",
+        "type": "int (unsigned char *, const unsigned char *, const unsigned char *)",
         "unit": "unit:zephyr/src/ed25519"
       }
     },
@@ -37,6 +39,7 @@
         "is_handler": "false",
         "loc_count": "10",
         "sig": "int (const uint8_t *, const uint8_t *, size_t)",
+        "type": "int (const unsigned char *, const unsigned char *, unsigned int)",
         "unit": "unit:zephyr/src/ed25519"
       }
     },
@@ -49,6 +52,7 @@
         "is_handler": "false",
         "loc_count": "8",
         "sig": "unsigned int (uint8_t *, unsigned int, const uint8_t *, unsigned int)",
+        "type": "unsigned int (unsigned char *, unsigned int, const unsigned char *, unsigned int)",
         "unit": "unit:zephyr/src/ed25519"
       }
     },
@@ -61,6 +65,7 @@
         "is_handler": "false",
         "loc_count": "3",
         "sig": "uint8_t (uint8_t)",
+        "type": "unsigned char (unsigned char)",
         "unit": "unit:zephyr/src/ed25519"
       }
     },
@@ -73,6 +78,7 @@
         "is_handler": "false",
         "loc_count": "3",
         "sig": "void (void *, uint8_t, unsigned int)",
+        "type": "void (void *, unsigned char, unsigned int)",
         "unit": "unit:zephyr/src/ed25519"
       }
     },
@@ -109,6 +115,7 @@
         "is_handler": "false",
         "loc_count": "4",
         "sig": "int (oop)",
+        "type": "int (struct Object *)",
         "unit": "unit:src"
       }
     },
@@ -121,6 +128,7 @@
         "is_handler": "false",
         "loc_count": "19",
         "sig": "oop (uint32_t, oop)",
+        "type": "struct Object * (unsigned int, struct Object *)",
         "unit": "unit:src"
       }
     },
@@ -205,6 +213,7 @@
         "is_handler": "false",
         "loc_count": "79",
         "sig": "oop (oop)",
+        "type": "struct Object * (struct Object *)",
         "unit": "unit:src"
       }
     },
@@ -217,6 +226,7 @@
         "is_handler": "false",
         "loc_count": "6",
         "sig": "size_t (void)",
+        "type": "unsigned int (void)",
         "unit": "unit:src"
       }
     },
@@ -229,6 +239,7 @@
         "is_handler": "false",
         "loc_count": "1",
         "sig": "size_t (void)",
+        "type": "unsigned int (void)",
         "unit": "unit:src"
       }
     },
@@ -241,6 +252,7 @@
         "is_handler": "false",
         "loc_count": "1",
         "sig": "size_t (void)",
+        "type": "unsigned int (void)",
         "unit": "unit:src"
       }
     },
@@ -253,6 +265,7 @@
         "is_handler": "false",
         "loc_count": "7",
         "sig": "int (oop)",
+        "type": "int (struct Object *)",
         "unit": "unit:src"
       }
     },
@@ -265,6 +278,7 @@
         "is_handler": "false",
         "loc_count": "21",
         "sig": "int (const struct CompiledMethod *, oop, int, oop *, oop *)",
+        "type": "int (const struct CompiledMethod *, struct Object *, int, struct Object * *, struct Object * *)",
         "unit": "unit:src"
       }
     },
@@ -277,6 +291,7 @@
         "is_handler": "false",
         "loc_count": "33",
         "sig": "oop (oop, size_t)",
+        "type": "struct Object * (struct Object *, unsigned int)",
         "unit": "unit:src"
       }
     },
@@ -313,6 +328,7 @@
         "is_handler": "false",
         "loc_count": "1",
         "sig": "int (oop)",
+        "type": "int (struct Object *)",
         "unit": "unit:src"
       }
     },
@@ -325,6 +341,7 @@
         "is_handler": "false",
         "loc_count": "10",
         "sig": "void (oop)",
+        "type": "void (struct Object *)",
         "unit": "unit:src"
       }
     },
@@ -409,6 +426,7 @@
         "is_handler": "false",
         "loc_count": "4",
         "sig": "oop (int)",
+        "type": "struct Object * (int)",
         "unit": "unit:src"
       }
     },
@@ -445,6 +463,7 @@
         "is_handler": "false",
         "loc_count": "15",
         "sig": "int (oop)",
+        "type": "int (struct Object *)",
         "unit": "unit:src"
       }
     },
@@ -469,6 +488,7 @@
         "is_handler": "false",
         "loc_count": "1",
         "sig": "uint32_t (void)",
+        "type": "unsigned int (void)",
         "unit": "unit:src/backend/zephyr"
       }
     },
@@ -721,6 +741,7 @@
         "is_handler": "false",
         "loc_count": "10",
         "sig": "oop (intptr_t)",
+        "type": "struct Object * (long)",
         "unit": "unit:src"
       }
     },
@@ -733,6 +754,7 @@
         "is_handler": "false",
         "loc_count": "4",
         "sig": "oop (intptr_t)",
+        "type": "struct Object * (long)",
         "unit": "unit:src"
       }
     },
@@ -745,6 +767,7 @@
         "is_handler": "false",
         "loc_count": "3",
         "sig": "oop (uint64_t)",
+        "type": "struct Object * (unsigned long long)",
         "unit": "unit:src"
       }
     },
@@ -757,6 +780,7 @@
         "is_handler": "false",
         "loc_count": "9",
         "sig": "int (oop)",
+        "type": "int (struct Object *)",
         "unit": "unit:src"
       }
     },
@@ -769,6 +793,7 @@
         "is_handler": "false",
         "loc_count": "16",
         "sig": "int (oop)",
+        "type": "int (struct Object *)",
         "unit": "unit:src"
       }
     },
@@ -805,6 +830,7 @@
         "is_handler": "false",
         "loc_count": "8",
         "sig": "oop (int, uint64_t)",
+        "type": "struct Object * (int, unsigned long long)",
         "unit": "unit:src"
       }
     },
@@ -829,6 +855,7 @@
         "is_handler": "false",
         "loc_count": "29",
         "sig": "int (const char *, size_t, int)",
+        "type": "int (const char *, unsigned int, int)",
         "unit": "unit:src/backend/zephyr"
       }
     },
@@ -853,6 +880,7 @@
         "is_handler": "false",
         "loc_count": "5",
         "sig": "void (const char *, size_t)",
+        "type": "void (const char *, unsigned int)",
         "unit": "unit:src/backend/zephyr"
       }
     },
@@ -865,6 +893,7 @@
         "is_handler": "false",
         "loc_count": "23",
         "sig": "void (const char *, size_t)",
+        "type": "void (const char *, unsigned int)",
         "unit": "unit:src/backend/zephyr"
       }
     },
@@ -877,6 +906,7 @@
         "is_handler": "false",
         "loc_count": "4",
         "sig": "oop (oop, oop, int)",
+        "type": "struct Object * (struct Object *, struct Object *, int)",
         "unit": "unit:src"
       }
     },
@@ -889,6 +919,7 @@
         "is_handler": "false",
         "loc_count": "30",
         "sig": "oop (oop, oop, oop *, int)",
+        "type": "struct Object * (struct Object *, struct Object *, struct Object * *, int)",
         "unit": "unit:src"
       }
     },
@@ -901,6 +932,7 @@
         "is_handler": "false",
         "loc_count": "33",
         "sig": "oop (oop, oop, oop *, oop *, int)",
+        "type": "struct Object * (struct Object *, struct Object *, struct Object * *, struct Object * *, int)",
         "unit": "unit:src"
       }
     },
@@ -925,6 +957,7 @@
         "is_handler": "false",
         "loc_count": "26",
         "sig": "oop (oop)",
+        "type": "struct Object * (struct Object *)",
         "unit": "unit:src"
       }
     },
@@ -937,6 +970,7 @@
         "is_handler": "false",
         "loc_count": "3",
         "sig": "void (oop)",
+        "type": "void (struct Object *)",
         "unit": "unit:src"
       }
     },
@@ -961,6 +995,7 @@
         "is_handler": "false",
         "loc_count": "59",
         "sig": "oop (oop, int, oop *)",
+        "type": "struct Object * (struct Object *, int, struct Object * *)",
         "unit": "unit:src"
       }
     },
@@ -973,6 +1008,7 @@
         "is_handler": "false",
         "loc_count": "13",
         "sig": "oop (void)",
+        "type": "struct Object * (void)",
         "unit": "unit:src"
       }
     },
@@ -985,6 +1021,7 @@
         "is_handler": "false",
         "loc_count": "17",
         "sig": "void (unsigned int, size_t)",
+        "type": "void (unsigned int, unsigned int)",
         "unit": "unit:src"
       }
     },
@@ -1165,6 +1202,7 @@
         "is_handler": "false",
         "loc_count": "28",
         "sig": "const char *(const struct CompiledMethod *, size_t, uint32_t)",
+        "type": "const char *(const struct CompiledMethod *, unsigned int, unsigned int)",
         "unit": "unit:src"
       }
     },
@@ -1177,6 +1215,7 @@
         "is_handler": "false",
         "loc_count": "5",
         "sig": "oop (oop, oop)",
+        "type": "struct Object * (struct Object *, struct Object *)",
         "unit": "unit:src"
       }
     },
@@ -1189,6 +1228,7 @@
         "is_handler": "false",
         "loc_count": "12",
         "sig": "oop (oop)",
+        "type": "struct Object * (struct Object *)",
         "unit": "unit:src"
       }
     },
@@ -1201,6 +1241,7 @@
         "is_handler": "false",
         "loc_count": "12",
         "sig": "oop (oop, oop)",
+        "type": "struct Object * (struct Object *, struct Object *)",
         "unit": "unit:src"
       }
     },
@@ -1213,6 +1254,7 @@
         "is_handler": "false",
         "loc_count": "12",
         "sig": "oop (oop, oop)",
+        "type": "struct Object * (struct Object *, struct Object *)",
         "unit": "unit:src"
       }
     },
@@ -1225,6 +1267,7 @@
         "is_handler": "false",
         "loc_count": "10",
         "sig": "oop (oop, oop)",
+        "type": "struct Object * (struct Object *, struct Object *)",
         "unit": "unit:src"
       }
     },
@@ -1237,6 +1280,7 @@
         "is_handler": "false",
         "loc_count": "5",
         "sig": "oop (oop, oop)",
+        "type": "struct Object * (struct Object *, struct Object *)",
         "unit": "unit:src"
       }
     },
@@ -1249,6 +1293,7 @@
         "is_handler": "false",
         "loc_count": "5",
         "sig": "double (oop)",
+        "type": "double (struct Object *)",
         "unit": "unit:src"
       }
     },
@@ -1261,6 +1306,7 @@
         "is_handler": "false",
         "loc_count": "4",
         "sig": "int (oop)",
+        "type": "int (struct Object *)",
         "unit": "unit:src"
       }
     },
@@ -1273,6 +1319,7 @@
         "is_handler": "false",
         "loc_count": "10",
         "sig": "void *(size_t)",
+        "type": "void *(unsigned int)",
         "unit": "unit:src"
       }
     },
@@ -1297,6 +1344,7 @@
         "is_handler": "false",
         "loc_count": "17",
         "sig": "void *(void *, size_t)",
+        "type": "void *(void *, unsigned int)",
         "unit": "unit:src"
       }
     },
@@ -1345,6 +1393,7 @@
         "is_handler": "false",
         "loc_count": "74",
         "sig": "oop (oop)",
+        "type": "struct Object * (struct Object *)",
         "unit": "unit:src"
       }
     },
@@ -1357,6 +1406,7 @@
         "is_handler": "false",
         "loc_count": "3",
         "sig": "oop (void)",
+        "type": "struct Object * (void)",
         "unit": "unit:src"
       }
     },
@@ -1369,6 +1419,7 @@
         "is_handler": "false",
         "loc_count": "92",
         "sig": "int (const uint8_t *, size_t)",
+        "type": "int (const unsigned char *, unsigned int)",
         "unit": "unit:src"
       }
     },
@@ -1381,6 +1432,7 @@
         "is_handler": "false",
         "loc_count": "3",
         "sig": "oop (void)",
+        "type": "struct Object * (void)",
         "unit": "unit:src"
       }
     },
@@ -1393,6 +1445,7 @@
         "is_handler": "false",
         "loc_count": "13",
         "sig": "const char *(oop)",
+        "type": "const char *(struct Object *)",
         "unit": "unit:src"
       }
     },
@@ -1405,6 +1458,7 @@
         "is_handler": "false",
         "loc_count": "8",
         "sig": "void (const uint8_t *, const uint8_t *, int)",
+        "type": "void (const unsigned char *, const unsigned char *, int)",
         "unit": "unit:src"
       }
     },
@@ -1453,6 +1507,7 @@
         "is_handler": "false",
         "loc_count": "6",
         "sig": "int (const uint8_t *)",
+        "type": "int (const unsigned char *)",
         "unit": "unit:src"
       }
     },
@@ -1465,6 +1520,7 @@
         "is_handler": "false",
         "loc_count": "8",
         "sig": "void (const uint8_t *)",
+        "type": "void (const unsigned char *)",
         "unit": "unit:src/backend/zephyr"
       }
     },
@@ -1477,6 +1533,7 @@
         "is_handler": "false",
         "loc_count": "14",
         "sig": "int (uint8_t *)",
+        "type": "int (unsigned char *)",
         "unit": "unit:src"
       }
     },
@@ -1489,6 +1546,7 @@
         "is_handler": "false",
         "loc_count": "6",
         "sig": "void (const uint8_t *, long, uint8_t *)",
+        "type": "void (const unsigned char *, long, unsigned char *)",
         "unit": "unit:src"
       }
     },
@@ -1513,6 +1571,7 @@
         "is_handler": "false",
         "loc_count": "73",
         "sig": "int (const uint8_t *, const uint8_t *, int, const char *, int, long *)",
+        "type": "int (const unsigned char *, const unsigned char *, int, const char *, int, long *)",
         "unit": "unit:src"
       }
     },
@@ -1525,6 +1584,7 @@
         "is_handler": "false",
         "loc_count": "39",
         "sig": "int (const uint8_t *, int)",
+        "type": "int (const unsigned char *, int)",
         "unit": "unit:src/backend/zephyr"
       }
     },
@@ -1537,6 +1597,7 @@
         "is_handler": "false",
         "loc_count": "9",
         "sig": "int (uint8_t *, long, long)",
+        "type": "int (unsigned char *, long, long)",
         "unit": "unit:src/backend/zephyr"
       }
     },
@@ -1609,6 +1670,7 @@
         "is_handler": "false",
         "loc_count": "8",
         "sig": "int (const uint8_t *, const uint8_t *, int)",
+        "type": "int (const unsigned char *, const unsigned char *, int)",
         "unit": "unit:src/backend/zephyr"
       }
     },
@@ -1621,6 +1683,7 @@
         "is_handler": "false",
         "loc_count": "1",
         "sig": "uint32_t (void)",
+        "type": "unsigned int (void)",
         "unit": "unit:src"
       }
     },
@@ -1633,6 +1696,7 @@
         "is_handler": "false",
         "loc_count": "6",
         "sig": "size_t (char *, size_t)",
+        "type": "unsigned int (char *, unsigned int)",
         "unit": "unit:src/backend/zephyr"
       }
     },
@@ -1657,6 +1721,7 @@
         "is_handler": "false",
         "loc_count": "5",
         "sig": "size_t (char *, size_t)",
+        "type": "unsigned int (char *, unsigned int)",
         "unit": "unit:src/backend/zephyr"
       }
     },
@@ -1693,6 +1758,7 @@
         "is_handler": "false",
         "loc_count": "6",
         "sig": "void (const char *, size_t)",
+        "type": "void (const char *, unsigned int)",
         "unit": "unit:src/backend/zephyr"
       }
     },
@@ -1741,6 +1807,7 @@
         "is_handler": "false",
         "loc_count": "3",
         "sig": "int (const char *, size_t, int)",
+        "type": "int (const char *, unsigned int, int)",
         "unit": "unit:src/backend/zephyr"
       }
     },
@@ -1753,6 +1820,7 @@
         "is_handler": "false",
         "loc_count": "6",
         "sig": "void (const char *, size_t)",
+        "type": "void (const char *, unsigned int)",
         "unit": "unit:src/backend/zephyr"
       }
     },
@@ -1813,6 +1881,7 @@
         "is_handler": "false",
         "loc_count": "1298",
         "sig": "int (int, int, oop *, oop *)",
+        "type": "int (int, int, struct Object * *, struct Object * *)",
         "unit": "unit:src"
       }
     },
@@ -1825,6 +1894,7 @@
         "is_handler": "false",
         "loc_count": "14",
         "sig": "oop (void)",
+        "type": "struct Object * (void)",
         "unit": "unit:src"
       }
     },
@@ -1837,6 +1907,7 @@
         "is_handler": "false",
         "loc_count": "8",
         "sig": "oop (oop, int, oop *)",
+        "type": "struct Object * (struct Object *, int, struct Object * *)",
         "unit": "unit:src"
       }
     },
@@ -1849,6 +1920,7 @@
         "is_handler": "false",
         "loc_count": "11",
         "sig": "oop (oop, int, oop *)",
+        "type": "struct Object * (struct Object *, int, struct Object * *)",
         "unit": "unit:src"
       }
     },
@@ -1861,6 +1933,7 @@
         "is_handler": "false",
         "loc_count": "11",
         "sig": "oop (oop, int, oop *)",
+        "type": "struct Object * (struct Object *, int, struct Object * *)",
         "unit": "unit:src"
       }
     },
@@ -1873,6 +1946,7 @@
         "is_handler": "false",
         "loc_count": "11",
         "sig": "oop (oop, int, oop *)",
+        "type": "struct Object * (struct Object *, int, struct Object * *)",
         "unit": "unit:src"
       }
     },
@@ -1885,6 +1959,7 @@
         "is_handler": "false",
         "loc_count": "9",
         "sig": "oop (oop, int, oop *)",
+        "type": "struct Object * (struct Object *, int, struct Object * *)",
         "unit": "unit:src"
       }
     },
@@ -1897,6 +1972,7 @@
         "is_handler": "false",
         "loc_count": "18",
         "sig": "oop (oop, int, oop *)",
+        "type": "struct Object * (struct Object *, int, struct Object * *)",
         "unit": "unit:src"
       }
     },
@@ -1909,6 +1985,7 @@
         "is_handler": "false",
         "loc_count": "20",
         "sig": "oop (oop, int, oop *)",
+        "type": "struct Object * (struct Object *, int, struct Object * *)",
         "unit": "unit:src"
       }
     },
@@ -1921,6 +1998,7 @@
         "is_handler": "false",
         "loc_count": "21",
         "sig": "oop (oop, int, oop *)",
+        "type": "struct Object * (struct Object *, int, struct Object * *)",
         "unit": "unit:src"
       }
     },
@@ -1933,6 +2011,7 @@
         "is_handler": "false",
         "loc_count": "66",
         "sig": "oop (oop, int, oop *)",
+        "type": "struct Object * (struct Object *, int, struct Object * *)",
         "unit": "unit:src"
       }
     },
@@ -1945,6 +2024,7 @@
         "is_handler": "false",
         "loc_count": "18",
         "sig": "oop (oop, int, oop *)",
+        "type": "struct Object * (struct Object *, int, struct Object * *)",
         "unit": "unit:src"
       }
     },
@@ -1957,6 +2037,7 @@
         "is_handler": "false",
         "loc_count": "16",
         "sig": "oop (oop, int, oop *)",
+        "type": "struct Object * (struct Object *, int, struct Object * *)",
         "unit": "unit:src"
       }
     },
@@ -1969,6 +2050,7 @@
         "is_handler": "false",
         "loc_count": "11",
         "sig": "oop (oop, int, oop *)",
+        "type": "struct Object * (struct Object *, int, struct Object * *)",
         "unit": "unit:src"
       }
     },
@@ -1981,6 +2063,7 @@
         "is_handler": "false",
         "loc_count": "6",
         "sig": "oop (oop, int, oop *)",
+        "type": "struct Object * (struct Object *, int, struct Object * *)",
         "unit": "unit:src"
       }
     },
@@ -1993,6 +2076,7 @@
         "is_handler": "false",
         "loc_count": "19",
         "sig": "oop (oop, int, oop *)",
+        "type": "struct Object * (struct Object *, int, struct Object * *)",
         "unit": "unit:src"
       }
     },
@@ -2005,6 +2089,7 @@
         "is_handler": "false",
         "loc_count": "21",
         "sig": "oop (oop, int, oop *)",
+        "type": "struct Object * (struct Object *, int, struct Object * *)",
         "unit": "unit:src"
       }
     },
@@ -2017,6 +2102,7 @@
         "is_handler": "false",
         "loc_count": "13",
         "sig": "oop (oop, int, oop *)",
+        "type": "struct Object * (struct Object *, int, struct Object * *)",
         "unit": "unit:src"
       }
     },
@@ -2029,6 +2115,7 @@
         "is_handler": "false",
         "loc_count": "8",
         "sig": "oop (oop, int, oop *)",
+        "type": "struct Object * (struct Object *, int, struct Object * *)",
         "unit": "unit:src"
       }
     },
@@ -2041,6 +2128,7 @@
         "is_handler": "false",
         "loc_count": "6",
         "sig": "oop (oop, int, oop *)",
+        "type": "struct Object * (struct Object *, int, struct Object * *)",
         "unit": "unit:src"
       }
     },
@@ -2053,6 +2141,7 @@
         "is_handler": "false",
         "loc_count": "10",
         "sig": "oop (oop, int, oop *)",
+        "type": "struct Object * (struct Object *, int, struct Object * *)",
         "unit": "unit:src"
       }
     },
@@ -2065,6 +2154,7 @@
         "is_handler": "false",
         "loc_count": "6",
         "sig": "oop (oop, int, oop *)",
+        "type": "struct Object * (struct Object *, int, struct Object * *)",
         "unit": "unit:src"
       }
     },
@@ -2077,6 +2167,7 @@
         "is_handler": "false",
         "loc_count": "14",
         "sig": "oop (oop, int, oop *)",
+        "type": "struct Object * (struct Object *, int, struct Object * *)",
         "unit": "unit:src"
       }
     },
@@ -2089,6 +2180,7 @@
         "is_handler": "false",
         "loc_count": "7",
         "sig": "oop (oop, int, oop *)",
+        "type": "struct Object * (struct Object *, int, struct Object * *)",
         "unit": "unit:src"
       }
     },
@@ -2101,6 +2193,7 @@
         "is_handler": "false",
         "loc_count": "65",
         "sig": "oop (oop, int, oop *)",
+        "type": "struct Object * (struct Object *, int, struct Object * *)",
         "unit": "unit:src"
       }
     },
@@ -2113,6 +2206,7 @@
         "is_handler": "false",
         "loc_count": "30",
         "sig": "oop (oop, int, oop *)",
+        "type": "struct Object * (struct Object *, int, struct Object * *)",
         "unit": "unit:src"
       }
     },
@@ -2125,6 +2219,7 @@
         "is_handler": "false",
         "loc_count": "9",
         "sig": "oop (oop, int, oop *)",
+        "type": "struct Object * (struct Object *, int, struct Object * *)",
         "unit": "unit:src"
       }
     },
@@ -2137,6 +2232,7 @@
         "is_handler": "false",
         "loc_count": "16",
         "sig": "oop (oop, int, oop *)",
+        "type": "struct Object * (struct Object *, int, struct Object * *)",
         "unit": "unit:src"
       }
     },
@@ -2149,6 +2245,7 @@
         "is_handler": "false",
         "loc_count": "16",
         "sig": "oop (oop, int, oop *)",
+        "type": "struct Object * (struct Object *, int, struct Object * *)",
         "unit": "unit:src"
       }
     },
@@ -2161,6 +2258,7 @@
         "is_handler": "false",
         "loc_count": "1",
         "sig": "uint32_t (void)",
+        "type": "unsigned int (void)",
         "unit": "unit:src/backend/zephyr"
       }
     },
@@ -2173,6 +2271,7 @@
         "is_handler": "false",
         "loc_count": "1",
         "sig": "uint32_t (void)",
+        "type": "unsigned int (void)",
         "unit": "unit:src/backend/zephyr"
       }
     },
@@ -2185,6 +2284,7 @@
         "is_handler": "false",
         "loc_count": "1",
         "sig": "uint32_t (void)",
+        "type": "unsigned int (void)",
         "unit": "unit:src/backend/zephyr"
       }
     },
@@ -2197,6 +2297,7 @@
         "is_handler": "false",
         "loc_count": "1",
         "sig": "uint32_t (void)",
+        "type": "unsigned int (void)",
         "unit": "unit:src/backend/zephyr"
       }
     },
@@ -2221,6 +2322,7 @@
         "is_handler": "false",
         "loc_count": "3",
         "sig": "void (int, oop)",
+        "type": "void (int, struct Object *)",
         "unit": "unit:src/backend/zephyr"
       }
     },
@@ -2257,6 +2359,7 @@
         "is_handler": "false",
         "loc_count": "1",
         "sig": "uint32_t (void)",
+        "type": "unsigned int (void)",
         "unit": "unit:src/backend/zephyr"
       }
     },
@@ -2269,6 +2372,7 @@
         "is_handler": "false",
         "loc_count": "4",
         "sig": "void (uint32_t)",
+        "type": "void (unsigned int)",
         "unit": "unit:zephyr/src"
       }
     },
@@ -2281,6 +2385,7 @@
         "is_handler": "false",
         "loc_count": "3",
         "sig": "uint32_t (void)",
+        "type": "unsigned int (void)",
         "unit": "unit:zephyr/src"
       }
     },
@@ -2317,6 +2422,7 @@
         "is_handler": "false",
         "loc_count": "15",
         "sig": "void (uint32_t, uint32_t, uint32_t, uint32_t, uint32_t)",
+        "type": "void (unsigned int, unsigned int, unsigned int, unsigned int, unsigned int)",
         "unit": "unit:zephyr/src"
       }
     },
@@ -2389,6 +2495,7 @@
         "is_handler": "false",
         "loc_count": "757",
         "sig": "oop (oop, oop, int, oop *)",
+        "type": "struct Object * (struct Object *, struct Object *, int, struct Object * *)",
         "unit": "unit:src"
       }
     },
@@ -2425,6 +2532,7 @@
         "is_handler": "false",
         "loc_count": "1",
         "sig": "uint8_t (void)",
+        "type": "unsigned char (void)",
         "unit": "unit:src/backend/zephyr"
       }
     },
@@ -2437,6 +2545,7 @@
         "is_handler": "false",
         "loc_count": "11",
         "sig": "int (const uint8_t *, const uint8_t *, int)",
+        "type": "int (const unsigned char *, const unsigned char *, int)",
         "unit": "unit:src/backend/zephyr"
       }
     },
@@ -2449,6 +2558,7 @@
         "is_handler": "false",
         "loc_count": "59",
         "sig": "int (const uint8_t **, size_t *)",
+        "type": "int (const unsigned char **, unsigned int *)",
         "unit": "unit:src/backend/zephyr"
       }
     },
@@ -2485,6 +2595,7 @@
         "is_handler": "false",
         "loc_count": "14",
         "sig": "oop (oop, oop, int, oop *)",
+        "type": "struct Object * (struct Object *, struct Object *, int, struct Object * *)",
         "unit": "unit:src"
       }
     },
@@ -2497,6 +2608,7 @@
         "is_handler": "false",
         "loc_count": "817",
         "sig": "oop (oop, oop, int, oop *, oop *, oop *, int *, int)",
+        "type": "struct Object * (struct Object *, struct Object *, int, struct Object * *, struct Object * *, struct Object * *, int *, int)",
         "unit": "unit:src"
       }
     },
@@ -2509,6 +2621,7 @@
         "is_handler": "false",
         "loc_count": "10",
         "sig": "oop (oop, oop, oop, int, oop *)",
+        "type": "struct Object * (struct Object *, struct Object *, struct Object *, int, struct Object * *)",
         "unit": "unit:src"
       }
     },
@@ -2521,6 +2634,7 @@
         "is_handler": "false",
         "loc_count": "26",
         "sig": "oop (oop, oop, oop, int, oop *, oop *, oop *, int *, int)",
+        "type": "struct Object * (struct Object *, struct Object *, struct Object *, int, struct Object * *, struct Object * *, struct Object * *, int *, int)",
         "unit": "unit:src"
       }
     },
@@ -2533,6 +2647,7 @@
         "is_handler": "false",
         "loc_count": "4",
         "sig": "int (int, int, int32_t)",
+        "type": "int (int, int, int)",
         "unit": "unit:src/backend/zephyr"
       }
     },
@@ -2545,6 +2660,7 @@
         "is_handler": "false",
         "loc_count": "12",
         "sig": "int (int32_t *)",
+        "type": "int (int *)",
         "unit": "unit:src/backend/zephyr"
       }
     },
@@ -2569,6 +2685,7 @@
         "is_handler": "false",
         "loc_count": "18",
         "sig": "oop (oop, int, oop *)",
+        "type": "struct Object * (struct Object *, int, struct Object * *)",
         "unit": "unit:src"
       }
     },
@@ -2581,6 +2698,7 @@
         "is_handler": "false",
         "loc_count": "11",
         "sig": "oop (void)",
+        "type": "struct Object * (void)",
         "unit": "unit:src"
       }
     },
@@ -2629,6 +2747,7 @@
         "is_handler": "false",
         "loc_count": "24",
         "sig": "int (uint32_t, const char *, size_t, int *, int)",
+        "type": "int (unsigned int, const char *, unsigned int, int *, int)",
         "unit": "unit:src"
       }
     },
@@ -2653,6 +2772,7 @@
         "is_handler": "false",
         "loc_count": "63",
         "sig": "oop (void)",
+        "type": "struct Object * (void)",
         "unit": "unit:src"
       }
     },
@@ -2665,6 +2785,7 @@
         "is_handler": "false",
         "loc_count": "13",
         "sig": "void (oop)",
+        "type": "void (struct Object *)",
         "unit": "unit:src"
       }
     },
@@ -2689,6 +2810,7 @@
         "is_handler": "false",
         "loc_count": "29",
         "sig": "int (const char *, size_t)",
+        "type": "int (const char *, unsigned int)",
         "unit": "unit:src"
       }
     },
@@ -2701,6 +2823,7 @@
         "is_handler": "false",
         "loc_count": "5",
         "sig": "int (const char *, size_t)",
+        "type": "int (const char *, unsigned int)",
         "unit": "unit:src"
       }
     },
@@ -2725,6 +2848,7 @@
         "is_handler": "false",
         "loc_count": "1",
         "sig": "uint32_t (int)",
+        "type": "unsigned int (int)",
         "unit": "unit:src"
       }
     },
@@ -2737,6 +2861,7 @@
         "is_handler": "false",
         "loc_count": "7",
         "sig": "oop (const char *, size_t)",
+        "type": "struct Object * (const char *, unsigned int)",
         "unit": "unit:src"
       }
     },
@@ -2749,6 +2874,7 @@
         "is_handler": "false",
         "loc_count": "6",
         "sig": "uint32_t (const char *, size_t)",
+        "type": "unsigned int (const char *, unsigned int)",
         "unit": "unit:src"
       }
     },
@@ -2761,6 +2887,7 @@
         "is_handler": "false",
         "loc_count": "4",
         "sig": "const char *(int, size_t *)",
+        "type": "const char *(int, unsigned int *)",
         "unit": "unit:src"
       }
     },
@@ -2773,6 +2900,7 @@
         "is_handler": "false",
         "loc_count": "6",
         "sig": "oop (const char *, size_t)",
+        "type": "struct Object * (const char *, unsigned int)",
         "unit": "unit:src"
       }
     },
@@ -2785,6 +2913,7 @@
         "is_handler": "false",
         "loc_count": "3",
         "sig": "void (const char *, size_t, oop)",
+        "type": "void (const char *, unsigned int, struct Object *)",
         "unit": "unit:src"
       }
     },
@@ -2797,6 +2926,7 @@
         "is_handler": "false",
         "loc_count": "64",
         "sig": "void (int, oop)",
+        "type": "void (int, struct Object *)",
         "unit": "unit:src"
       }
     },
@@ -2809,6 +2939,7 @@
         "is_handler": "false",
         "loc_count": "20",
         "sig": "void (const char *, size_t, oop)",
+        "type": "void (const char *, unsigned int, struct Object *)",
         "unit": "unit:src"
       }
     },
@@ -2821,6 +2952,7 @@
         "is_handler": "false",
         "loc_count": "1",
         "sig": "uint32_t (void)",
+        "type": "unsigned int (void)",
         "unit": "unit:src"
       }
     },
@@ -2833,6 +2965,7 @@
         "is_handler": "false",
         "loc_count": "11",
         "sig": "void (const char *, size_t, oop, oop)",
+        "type": "void (const char *, unsigned int, struct Object *, struct Object *)",
         "unit": "unit:src"
       }
     },
@@ -2845,6 +2978,7 @@
         "is_handler": "false",
         "loc_count": "1",
         "sig": "uint32_t (void)",
+        "type": "unsigned int (void)",
         "unit": "unit:src"
       }
     },
@@ -2857,6 +2991,7 @@
         "is_handler": "false",
         "loc_count": "1",
         "sig": "uint32_t (void)",
+        "type": "unsigned int (void)",
         "unit": "unit:src"
       }
     },
@@ -2869,6 +3004,7 @@
         "is_handler": "false",
         "loc_count": "17",
         "sig": "oop (const char *, size_t, int *)",
+        "type": "struct Object * (const char *, unsigned int, int *)",
         "unit": "unit:src"
       }
     },
@@ -2881,6 +3017,7 @@
         "is_handler": "false",
         "loc_count": "1",
         "sig": "oop (int)",
+        "type": "struct Object * (int)",
         "unit": "unit:src"
       }
     },
@@ -2905,6 +3042,7 @@
         "is_handler": "false",
         "loc_count": "6",
         "sig": "uint32_t (uint32_t)",
+        "type": "unsigned int (unsigned int)",
         "unit": "unit:src/backend/zephyr"
       }
     },
@@ -2929,6 +3067,7 @@
         "is_handler": "false",
         "loc_count": "12",
         "sig": "void (int, uint32_t)",
+        "type": "void (int, unsigned int)",
         "unit": "unit:src"
       }
     },
@@ -2953,6 +3092,7 @@
         "is_handler": "false",
         "loc_count": "3",
         "sig": "uint32_t (void)",
+        "type": "unsigned int (void)",
         "unit": "unit:src/backend/zephyr"
       }
     },
@@ -2965,6 +3105,7 @@
         "is_handler": "false",
         "loc_count": "16",
         "sig": "void (int, uint32_t *)",
+        "type": "void (int, unsigned int *)",
         "unit": "unit:src"
       }
     },
@@ -3037,6 +3178,7 @@
         "is_handler": "false",
         "loc_count": "7",
         "sig": "uint32_t (void)",
+        "type": "unsigned int (void)",
         "unit": "unit:src/backend/zephyr"
       }
     },
@@ -3073,6 +3215,7 @@
         "is_handler": "false",
         "loc_count": "6",
         "sig": "uint32_t (void)",
+        "type": "unsigned int (void)",
         "unit": "unit:src/backend/zephyr"
       }
     },
@@ -3133,6 +3276,7 @@
         "is_handler": "false",
         "loc_count": "12",
         "sig": "uint32_t (const struct tee_keep *)",
+        "type": "unsigned int (const struct tee_keep *)",
         "unit": "unit:src/backend/zephyr"
       }
     },
@@ -3193,6 +3337,7 @@
         "is_handler": "false",
         "loc_count": "6",
         "sig": "int (const char *, size_t, settings_read_cb, void *)",
+        "type": "int (const char *, unsigned int, int (*)(void *, void *, unsigned int), void *)",
         "unit": "unit:src/backend/zephyr"
       }
     },
@@ -3205,6 +3350,7 @@
         "is_handler": "false",
         "loc_count": "4",
         "sig": "size_t (uint8_t *)",
+        "type": "unsigned int (unsigned char *)",
         "unit": "unit:src/backend/zephyr"
       }
     },
@@ -3289,6 +3435,7 @@
         "is_handler": "false",
         "loc_count": "30",
         "sig": "void (int, int, oop)",
+        "type": "void (int, int, struct Object *)",
         "unit": "unit:src/backend/zephyr"
       }
     },
@@ -3301,6 +3448,7 @@
         "is_handler": "false",
         "loc_count": "3",
         "sig": "oop (const struct PulseItem *)",
+        "type": "struct Object * (const struct PulseItem *)",
         "unit": "unit:src/backend/zephyr"
       }
     },
@@ -3325,6 +3473,7 @@
         "is_handler": "false",
         "loc_count": "6",
         "sig": "int (int, uint8_t *)",
+        "type": "int (int, unsigned char *)",
         "unit": "unit:src/backend/zephyr"
       }
     },
@@ -3337,6 +3486,7 @@
         "is_handler": "false",
         "loc_count": "5",
         "sig": "void (const uint8_t *, char *)",
+        "type": "void (const unsigned char *, char *)",
         "unit": "unit:src/backend/zephyr"
       }
     },
@@ -3385,6 +3535,7 @@
         "is_handler": "false",
         "loc_count": "20",
         "sig": "int (const char *, size_t, settings_read_cb, void *)",
+        "type": "int (const char *, unsigned int, int (*)(void *, void *, unsigned int), void *)",
         "unit": "unit:src/backend/zephyr"
       }
     },
@@ -3397,6 +3548,7 @@
         "is_handler": "false",
         "loc_count": "15",
         "sig": "int (int, const uint8_t **, size_t *)",
+        "type": "int (int, const unsigned char **, unsigned int *)",
         "unit": "unit:src/backend/zephyr"
       }
     },
@@ -3433,6 +3585,7 @@
         "is_handler": "false",
         "loc_count": "4",
         "sig": "int (const uint8_t *, const uint8_t *, int)",
+        "type": "int (const unsigned char *, const unsigned char *, int)",
         "unit": "unit:src/backend/zephyr"
       }
     },
@@ -3469,6 +3622,7 @@
         "is_handler": "false",
         "loc_count": "22",
         "sig": "void (int, uint64_t, int)",
+        "type": "void (int, unsigned long long, int)",
         "unit": "unit:src/backend/zephyr"
       }
     },
@@ -3481,6 +3635,7 @@
         "is_handler": "false",
         "loc_count": "7",
         "sig": "int (oop, int)",
+        "type": "int (struct Object *, int)",
         "unit": "unit:src"
       }
     },
@@ -3493,6 +3648,7 @@
         "is_handler": "false",
         "loc_count": "16",
         "sig": "oop (int, uint64_t, int, uint64_t)",
+        "type": "struct Object * (int, unsigned long long, int, unsigned long long)",
         "unit": "unit:src"
       }
     },
@@ -3505,6 +3661,7 @@
         "is_handler": "false",
         "loc_count": "71",
         "sig": "oop (oop, oop, int, oop *, int)",
+        "type": "struct Object * (struct Object *, struct Object *, int, struct Object * *, int)",
         "unit": "unit:src"
       }
     },
@@ -3517,6 +3674,7 @@
         "is_handler": "false",
         "loc_count": "38",
         "sig": "oop (oop, oop)",
+        "type": "struct Object * (struct Object *, struct Object *)",
         "unit": "unit:src"
       }
     },
@@ -3529,6 +3687,7 @@
         "is_handler": "false",
         "loc_count": "37",
         "sig": "oop (oop)",
+        "type": "struct Object * (struct Object *)",
         "unit": "unit:src"
       }
     },
@@ -3565,6 +3724,7 @@
         "is_handler": "false",
         "loc_count": "20",
         "sig": "const char *(oop, const char *)",
+        "type": "const char *(struct Object *, const char *)",
         "unit": "unit:src"
       }
     },
@@ -3577,6 +3737,7 @@
         "is_handler": "false",
         "loc_count": "12",
         "sig": "const char *(oop)",
+        "type": "const char *(struct Object *)",
         "unit": "unit:src"
       }
     },
@@ -3589,6 +3750,7 @@
         "is_handler": "false",
         "loc_count": "53",
         "sig": "oop (oop, oop, int, oop *)",
+        "type": "struct Object * (struct Object *, struct Object *, int, struct Object * *)",
         "unit": "unit:src"
       }
     },
@@ -3601,6 +3763,7 @@
         "is_handler": "false",
         "loc_count": "9",
         "sig": "oop (void)",
+        "type": "struct Object * (void)",
         "unit": "unit:src"
       }
     },
@@ -3613,6 +3776,7 @@
         "is_handler": "false",
         "loc_count": "11",
         "sig": "void (oop, int *, uint64_t *)",
+        "type": "void (struct Object *, int *, unsigned long long *)",
         "unit": "unit:src"
       }
     },
@@ -3625,6 +3789,7 @@
         "is_handler": "false",
         "loc_count": "12",
         "sig": "oop (oop)",
+        "type": "struct Object * (struct Object *)",
         "unit": "unit:src"
       }
     },
@@ -3637,6 +3802,7 @@
         "is_handler": "false",
         "loc_count": "7",
         "sig": "oop (const char *, size_t)",
+        "type": "struct Object * (const char *, unsigned int)",
         "unit": "unit:src"
       }
     },
@@ -3649,6 +3815,7 @@
         "is_handler": "false",
         "loc_count": "4",
         "sig": "size_t (oop, oop)",
+        "type": "unsigned int (struct Object *, struct Object *)",
         "unit": "unit:src"
       }
     },
@@ -3661,6 +3828,7 @@
         "is_handler": "false",
         "loc_count": "17",
         "sig": "int (oop, oop)",
+        "type": "int (struct Object *, struct Object *)",
         "unit": "unit:src"
       }
     },
@@ -3673,6 +3841,7 @@
         "is_handler": "false",
         "loc_count": "8",
         "sig": "oop (oop, oop, int, oop *)",
+        "type": "struct Object * (struct Object *, struct Object *, int, struct Object * *)",
         "unit": "unit:src"
       }
     },
@@ -3685,6 +3854,7 @@
         "is_handler": "false",
         "loc_count": "9",
         "sig": "oop (int, uint64_t)",
+        "type": "struct Object * (int, unsigned long long)",
         "unit": "unit:src"
       }
     },
@@ -3697,6 +3867,7 @@
         "is_handler": "false",
         "loc_count": "4",
         "sig": "struct MethodContext *(oop *, oop)",
+        "type": "struct MethodContext *(struct Object * *, struct Object *)",
         "unit": "unit:src"
       }
     },
@@ -3709,6 +3880,7 @@
         "is_handler": "false",
         "loc_count": "4",
         "sig": "oop (const oop *, const struct MethodContext *)",
+        "type": "struct Object * (const struct Object * *, const struct MethodContext *)",
         "unit": "unit:src"
       }
     },
@@ -3721,6 +3893,7 @@
         "is_handler": "false",
         "loc_count": "3",
         "sig": "struct MethodContext *(oop *, oop)",
+        "type": "struct MethodContext *(struct Object * *, struct Object *)",
         "unit": "unit:src"
       }
     },
@@ -3733,6 +3906,7 @@
         "is_handler": "false",
         "loc_count": "3",
         "sig": "oop (const oop *, const struct MethodContext *)",
+        "type": "struct Object * (const struct Object * *, const struct MethodContext *)",
         "unit": "unit:src"
       }
     },
@@ -3745,6 +3919,7 @@
         "is_handler": "false",
         "loc_count": "1",
         "sig": "int (oop)",
+        "type": "int (struct Object *)",
         "unit": "unit:src"
       }
     },
@@ -3757,6 +3932,7 @@
         "is_handler": "false",
         "loc_count": "1",
         "sig": "int (oop)",
+        "type": "int (struct Object *)",
         "unit": "unit:src"
       }
     },
@@ -3769,6 +3945,7 @@
         "is_handler": "false",
         "loc_count": "62",
         "sig": "oop (oop, size_t, size_t)",
+        "type": "struct Object * (struct Object *, unsigned int, unsigned int)",
         "unit": "unit:src"
       }
     },
@@ -3781,6 +3958,7 @@
         "is_handler": "false",
         "loc_count": "4",
         "sig": "size_t (size_t)",
+        "type": "unsigned int (unsigned int)",
         "unit": "unit:src"
       }
     },
@@ -3793,6 +3971,7 @@
         "is_handler": "false",
         "loc_count": "3",
         "sig": "void (size_t)",
+        "type": "void (unsigned int)",
         "unit": "unit:src"
       }
     },
@@ -3805,6 +3984,7 @@
         "is_handler": "false",
         "loc_count": "5",
         "sig": "void (struct HeapHeader *, size_t)",
+        "type": "void (struct HeapHeader *, unsigned int)",
         "unit": "unit:src"
       }
     },
@@ -3817,6 +3997,7 @@
         "is_handler": "false",
         "loc_count": "1",
         "sig": "void (size_t)",
+        "type": "void (unsigned int)",
         "unit": "unit:src"
       }
     },
@@ -3829,6 +4010,7 @@
         "is_handler": "false",
         "loc_count": "1",
         "sig": "size_t (oop)",
+        "type": "unsigned int (struct Object *)",
         "unit": "unit:src"
       }
     },
@@ -3841,6 +4023,7 @@
         "is_handler": "false",
         "loc_count": "1",
         "sig": "void (size_t)",
+        "type": "void (unsigned int)",
         "unit": "unit:src"
       }
     },
@@ -3853,6 +4036,7 @@
         "is_handler": "false",
         "loc_count": "1",
         "sig": "int (size_t)",
+        "type": "int (unsigned int)",
         "unit": "unit:src"
       }
     },
@@ -3865,6 +4049,7 @@
         "is_handler": "false",
         "loc_count": "15",
         "sig": "oop (size_t)",
+        "type": "struct Object * (unsigned int)",
         "unit": "unit:src"
       }
     },
@@ -3889,6 +4074,7 @@
         "is_handler": "false",
         "loc_count": "16",
         "sig": "oop (struct HeapHeader *, oop, size_t)",
+        "type": "struct Object * (struct HeapHeader *, struct Object *, unsigned int)",
         "unit": "unit:src"
       }
     },
@@ -3901,6 +4087,7 @@
         "is_handler": "false",
         "loc_count": "12",
         "sig": "void (oop)",
+        "type": "void (struct Object *)",
         "unit": "unit:src"
       }
     },
@@ -3925,6 +4112,7 @@
         "is_handler": "false",
         "loc_count": "8",
         "sig": "void (size_t)",
+        "type": "void (unsigned int)",
         "unit": "unit:src"
       }
     },
@@ -3949,6 +4137,7 @@
         "is_handler": "false",
         "loc_count": "1",
         "sig": "void (struct HeapHeader *, size_t)",
+        "type": "void (struct HeapHeader *, unsigned int)",
         "unit": "unit:src"
       }
     },
@@ -3997,6 +4186,7 @@
         "is_handler": "false",
         "loc_count": "1",
         "sig": "size_t (const struct HeapHeader *)",
+        "type": "unsigned int (const struct HeapHeader *)",
         "unit": "unit:src"
       }
     },
@@ -4009,6 +4199,7 @@
         "is_handler": "false",
         "loc_count": "13",
         "sig": "int (oop)",
+        "type": "int (struct Object *)",
         "unit": "unit:src"
       }
     },
@@ -4021,6 +4212,7 @@
         "is_handler": "false",
         "loc_count": "7",
         "sig": "int (oop)",
+        "type": "int (struct Object *)",
         "unit": "unit:src"
       }
     },
@@ -4033,6 +4225,7 @@
         "is_handler": "false",
         "loc_count": "28",
         "sig": "void (oop)",
+        "type": "void (struct Object *)",
         "unit": "unit:src"
       }
     },
@@ -4069,6 +4262,7 @@
         "is_handler": "false",
         "loc_count": "8",
         "sig": "void (oop, size_t)",
+        "type": "void (struct Object *, unsigned int)",
         "unit": "unit:src"
       }
     },
@@ -4081,6 +4275,7 @@
         "is_handler": "false",
         "loc_count": "84",
         "sig": "void (oop)",
+        "type": "void (struct Object *)",
         "unit": "unit:src"
       }
     },
@@ -4117,6 +4312,7 @@
         "is_handler": "false",
         "loc_count": "6",
         "sig": "oop (const char *, size_t)",
+        "type": "struct Object * (const char *, unsigned int)",
         "unit": "unit:src"
       }
     },
@@ -4177,6 +4373,7 @@
         "is_handler": "false",
         "loc_count": "8",
         "sig": "size_t (const uint8_t *, size_t, char *, size_t)",
+        "type": "unsigned int (const unsigned char *, unsigned int, char *, unsigned int)",
         "unit": "unit:src"
       }
     },
@@ -4201,6 +4398,7 @@
         "is_handler": "false",
         "loc_count": "3",
         "sig": "oop (struct Binding *)",
+        "type": "struct Object * (struct Binding *)",
         "unit": "unit:src"
       }
     },
@@ -4213,6 +4411,7 @@
         "is_handler": "false",
         "loc_count": "3",
         "sig": "oop (struct Binding *)",
+        "type": "struct Object * (struct Binding *)",
         "unit": "unit:src"
       }
     },
@@ -4237,6 +4436,7 @@
         "is_handler": "false",
         "loc_count": "5",
         "sig": "oop (struct CompiledMethod *, size_t)",
+        "type": "struct Object * (struct CompiledMethod *, unsigned int)",
         "unit": "unit:src"
       }
     },
@@ -4249,6 +4449,7 @@
         "is_handler": "false",
         "loc_count": "4",
         "sig": "const uint32_t *(struct CompiledMethod *)",
+        "type": "const unsigned int *(struct CompiledMethod *)",
         "unit": "unit:src"
       }
     },
@@ -4261,6 +4462,7 @@
         "is_handler": "false",
         "loc_count": "3",
         "sig": "oop (struct ObjectInstance *, size_t)",
+        "type": "struct Object * (struct ObjectInstance *, unsigned int)",
         "unit": "unit:src"
       }
     },
@@ -4285,6 +4487,7 @@
         "is_handler": "false",
         "loc_count": "5",
         "sig": "oop (oop)",
+        "type": "struct Object * (struct Object *)",
         "unit": "unit:src"
       }
     },
@@ -4297,6 +4500,7 @@
         "is_handler": "false",
         "loc_count": "10",
         "sig": "oop (uintptr_t)",
+        "type": "struct Object * (unsigned long)",
         "unit": "unit:src"
       }
     },
@@ -4321,6 +4525,7 @@
         "is_handler": "false",
         "loc_count": "5",
         "sig": "struct Binding *(oop)",
+        "type": "struct Binding *(struct Object *)",
         "unit": "unit:src"
       }
     },
@@ -4333,6 +4538,7 @@
         "is_handler": "false",
         "loc_count": "4",
         "sig": "oop (oop)",
+        "type": "struct Object * (struct Object *)",
         "unit": "unit:src"
       }
     },
@@ -4345,6 +4551,7 @@
         "is_handler": "false",
         "loc_count": "3",
         "sig": "uint16_t (const uint8_t *)",
+        "type": "unsigned short (const unsigned char *)",
         "unit": "unit:src"
       }
     },
@@ -4357,6 +4564,7 @@
         "is_handler": "false",
         "loc_count": "3",
         "sig": "uint32_t (const uint8_t *)",
+        "type": "unsigned int (const unsigned char *)",
         "unit": "unit:src"
       }
     },
@@ -4369,6 +4577,7 @@
         "is_handler": "false",
         "loc_count": "5",
         "sig": "uintptr_t (const uint8_t *)",
+        "type": "unsigned long (const unsigned char *)",
         "unit": "unit:src"
       }
     },
@@ -4381,6 +4590,7 @@
         "is_handler": "false",
         "loc_count": "46",
         "sig": "int (int, const char *, int, const uint8_t *, uint32_t, uint8_t *, int *, int *)",
+        "type": "int (int, const char *, int, const unsigned char *, unsigned int, unsigned char *, int *, int *)",
         "unit": "unit:src"
       }
     },
@@ -4441,6 +4651,7 @@
         "is_handler": "false",
         "loc_count": "20",
         "sig": "void (struct sha256 *, const uint8_t *)",
+        "type": "void (struct sha256 *, const unsigned char *)",
         "unit": "unit:src"
       }
     },
@@ -4453,6 +4664,7 @@
         "is_handler": "false",
         "loc_count": "17",
         "sig": "void (struct sha256 *, uint8_t *)",
+        "type": "void (struct sha256 *, unsigned char *)",
         "unit": "unit:src"
       }
     },
@@ -4477,6 +4689,7 @@
         "is_handler": "false",
         "loc_count": "10",
         "sig": "void (struct sha256 *, const uint8_t *, long)",
+        "type": "void (struct sha256 *, const unsigned char *, long)",
         "unit": "unit:src"
       }
     },
@@ -4489,6 +4702,7 @@
         "is_handler": "false",
         "loc_count": "14",
         "sig": "int (const uint8_t *, long)",
+        "type": "int (const unsigned char *, long)",
         "unit": "unit:src"
       }
     },
@@ -4513,6 +4727,7 @@
         "is_handler": "false",
         "loc_count": "53",
         "sig": "int (double, uint16_t *)",
+        "type": "int (double, unsigned short *)",
         "unit": "unit:src"
       }
     },
@@ -4525,6 +4740,7 @@
         "is_handler": "false",
         "loc_count": "14",
         "sig": "double (uint16_t)",
+        "type": "double (unsigned short)",
         "unit": "unit:src"
       }
     },
@@ -4573,6 +4789,7 @@
         "is_handler": "false",
         "loc_count": "9",
         "sig": "const uint8_t *(oop, size_t *)",
+        "type": "const unsigned char *(struct Object *, unsigned int *)",
         "unit": "unit:src"
       }
     },
@@ -4585,6 +4802,7 @@
         "is_handler": "false",
         "loc_count": "4",
         "sig": "uint32_t (const struct RebootNote *)",
+        "type": "unsigned int (const struct RebootNote *)",
         "unit": "unit:src"
       }
     },
@@ -4621,6 +4839,7 @@
         "is_handler": "false",
         "loc_count": "8",
         "sig": "int (const char *, size_t)",
+        "type": "int (const char *, unsigned int)",
         "unit": "unit:src"
       }
     },
@@ -4645,6 +4864,7 @@
         "is_handler": "false",
         "loc_count": "6",
         "sig": "int (const struct SpaceChannel *, const char *, size_t)",
+        "type": "int (const struct SpaceChannel *, const char *, unsigned int)",
         "unit": "unit:src"
       }
     },
@@ -4657,6 +4877,7 @@
         "is_handler": "false",
         "loc_count": "8",
         "sig": "int (uint32_t)",
+        "type": "int (unsigned int)",
         "unit": "unit:src"
       }
     },
@@ -4681,6 +4902,7 @@
         "is_handler": "false",
         "loc_count": "6",
         "sig": "oop (const uint8_t *, size_t)",
+        "type": "struct Object * (const unsigned char *, unsigned int)",
         "unit": "unit:src"
       }
     },
@@ -4693,6 +4915,7 @@
         "is_handler": "false",
         "loc_count": "6",
         "sig": "oop (const uint8_t *, size_t)",
+        "type": "struct Object * (const unsigned char *, unsigned int)",
         "unit": "unit:src"
       }
     },
@@ -4705,6 +4928,7 @@
         "is_handler": "false",
         "loc_count": "56",
         "sig": "oop (uint8_t, oop, oop)",
+        "type": "struct Object * (unsigned char, struct Object *, struct Object *)",
         "unit": "unit:src"
       }
     },
@@ -4717,6 +4941,7 @@
         "is_handler": "false",
         "loc_count": "14",
         "sig": "void (oop, long)",
+        "type": "void (struct Object *, long)",
         "unit": "unit:src"
       }
     },
@@ -4729,6 +4954,7 @@
         "is_handler": "false",
         "loc_count": "7",
         "sig": "int (oop, long)",
+        "type": "int (struct Object *, long)",
         "unit": "unit:src"
       }
     },
@@ -4741,6 +4967,7 @@
         "is_handler": "false",
         "loc_count": "6",
         "sig": "oop (oop)",
+        "type": "struct Object * (struct Object *)",
         "unit": "unit:src"
       }
     },
@@ -4753,6 +4980,7 @@
         "is_handler": "false",
         "loc_count": "10",
         "sig": "void (oop, long)",
+        "type": "void (struct Object *, long)",
         "unit": "unit:src"
       }
     },
@@ -4765,6 +4993,7 @@
         "is_handler": "false",
         "loc_count": "30",
         "sig": "uint64_t (void)",
+        "type": "unsigned long long (void)",
         "unit": "unit:src"
       }
     },
@@ -4777,6 +5006,7 @@
         "is_handler": "false",
         "loc_count": "8",
         "sig": "struct MethodContext *(oop)",
+        "type": "struct MethodContext *(struct Object *)",
         "unit": "unit:src"
       }
     },
@@ -4801,6 +5031,7 @@
         "is_handler": "false",
         "loc_count": "10",
         "sig": "uint32_t (const void *)",
+        "type": "unsigned int (const void *)",
         "unit": "unit:src"
       }
     },
@@ -4861,6 +5092,7 @@
         "is_handler": "false",
         "loc_count": "38",
         "sig": "struct MethodContext *(oop, oop, int, oop *)",
+        "type": "struct MethodContext *(struct Object *, struct Object *, int, struct Object * *)",
         "unit": "unit:src"
       }
     },
@@ -4885,6 +5117,7 @@
         "is_handler": "false",
         "loc_count": "5",
         "sig": "void (size_t, size_t)",
+        "type": "void (unsigned int, unsigned int)",
         "unit": "unit:src"
       }
     },
@@ -4897,6 +5130,7 @@
         "is_handler": "false",
         "loc_count": "34",
         "sig": "oop (oop)",
+        "type": "struct Object * (struct Object *)",
         "unit": "unit:src"
       }
     },
@@ -4909,6 +5143,7 @@
         "is_handler": "false",
         "loc_count": "10",
         "sig": "oop (uint32_t)",
+        "type": "struct Object * (unsigned int)",
         "unit": "unit:src"
       }
     },
@@ -4921,6 +5156,7 @@
         "is_handler": "false",
         "loc_count": "12",
         "sig": "oop (const char *, size_t)",
+        "type": "struct Object * (const char *, unsigned int)",
         "unit": "unit:src"
       }
     },
@@ -4933,6 +5169,7 @@
         "is_handler": "false",
         "loc_count": "58",
         "sig": "int (uint8_t *, TCSha512State_t)",
+        "type": "int (unsigned char *, struct tc_sha512_state_struct *)",
         "unit": "unit:zephyr/src/ed25519"
       }
     },
@@ -4945,6 +5182,7 @@
         "is_handler": "false",
         "loc_count": "24",
         "sig": "int (TCSha512State_t)",
+        "type": "int (struct tc_sha512_state_struct *)",
         "unit": "unit:zephyr/src/ed25519"
       }
     },
@@ -4957,6 +5195,7 @@
         "is_handler": "false",
         "loc_count": "19",
         "sig": "int (TCSha512State_t, const uint8_t *, size_t)",
+        "type": "int (struct tc_sha512_state_struct *, const unsigned char *, unsigned int)",
         "unit": "unit:zephyr/src/ed25519"
       }
     },
@@ -4969,6 +5208,7 @@
         "is_handler": "false",
         "loc_count": "1",
         "sig": "int (uint64_t)",
+        "type": "int (unsigned long long)",
         "unit": "unit:src/backend/zephyr"
       }
     },
@@ -4981,6 +5221,7 @@
         "is_handler": "false",
         "loc_count": "1",
         "sig": "void (int, uint64_t)",
+        "type": "void (int, unsigned long long)",
         "unit": "unit:src/backend/zephyr"
       }
     },
@@ -5005,6 +5246,7 @@
         "is_handler": "false",
         "loc_count": "1",
         "sig": "void (int, uint64_t)",
+        "type": "void (int, unsigned long long)",
         "unit": "unit:src/backend/zephyr"
       }
     },
@@ -5017,6 +5259,7 @@
         "is_handler": "false",
         "loc_count": "1",
         "sig": "uint64_t (void)",
+        "type": "unsigned long long (void)",
         "unit": "unit:src/backend/zephyr"
       }
     },
@@ -5041,6 +5284,7 @@
         "is_handler": "false",
         "loc_count": "12",
         "sig": "int (uint32_t *, uint32_t *, int)",
+        "type": "int (unsigned int *, unsigned int *, int)",
         "unit": "unit:src/backend/zephyr"
       }
     },
@@ -5065,6 +5309,7 @@
         "is_handler": "false",
         "loc_count": "50",
         "sig": "oop (oop, int, oop *)",
+        "type": "struct Object * (struct Object *, int, struct Object * *)",
         "unit": "unit:src"
       }
     },
@@ -5077,6 +5322,7 @@
         "is_handler": "false",
         "loc_count": "11",
         "sig": "oop (void)",
+        "type": "struct Object * (void)",
         "unit": "unit:src"
       }
     },
@@ -5101,6 +5347,7 @@
         "is_handler": "false",
         "loc_count": "22",
         "sig": "int (int, uint8_t *, int, char *, int, int *)",
+        "type": "int (int, unsigned char *, int, char *, int, int *)",
         "unit": "unit:src/backend/zephyr"
       }
     },
@@ -5113,6 +5360,7 @@
         "is_handler": "false",
         "loc_count": "32",
         "sig": "int (int, const char *, int, const uint8_t *, int)",
+        "type": "int (int, const char *, int, const unsigned char *, int)",
         "unit": "unit:src/backend/zephyr"
       }
     },
@@ -5137,6 +5385,7 @@
         "is_handler": "false",
         "loc_count": "43",
         "sig": "oop (oop, oop)",
+        "type": "struct Object * (struct Object *, struct Object *)",
         "unit": "unit:src"
       }
     },
@@ -5149,6 +5398,7 @@
         "is_handler": "false",
         "loc_count": "39",
         "sig": "oop (oop, oop, oop)",
+        "type": "struct Object * (struct Object *, struct Object *, struct Object *)",
         "unit": "unit:src"
       }
     },
@@ -5161,6 +5411,7 @@
         "is_handler": "false",
         "loc_count": "21",
         "sig": "oop (oop, oop)",
+        "type": "struct Object * (struct Object *, struct Object *)",
         "unit": "unit:src"
       }
     },
@@ -5173,6 +5424,7 @@
         "is_handler": "false",
         "loc_count": "27",
         "sig": "void (oop)",
+        "type": "void (struct Object *)",
         "unit": "unit:src"
       }
     },
@@ -5209,6 +5461,7 @@
         "is_handler": "false",
         "loc_count": "16",
         "sig": "void (ge_p1p1 *, const ge_p3 *, const ge_cached *)",
+        "type": "void (struct ge_p1p1 *, const struct ge_p3 *, const struct ge_cached *)",
         "unit": "unit:zephyr/src/ed25519"
       }
     },
@@ -5221,6 +5474,7 @@
         "is_handler": "false",
         "loc_count": "45",
         "sig": "int (ge_p3 *, const uint8_t *)",
+        "type": "int (struct ge_p3 *, const unsigned char *)",
         "unit": "unit:zephyr/src/ed25519"
       }
     },
@@ -5233,6 +5487,7 @@
         "is_handler": "false",
         "loc_count": "5",
         "sig": "void (ge_p2 *, const ge_p1p1 *)",
+        "type": "void (struct ge_p2 *, const struct ge_p1p1 *)",
         "unit": "unit:zephyr/src/ed25519"
       }
     },
@@ -5245,6 +5500,7 @@
         "is_handler": "false",
         "loc_count": "6",
         "sig": "void (ge_p3 *, const ge_p1p1 *)",
+        "type": "void (struct ge_p3 *, const struct ge_p1p1 *)",
         "unit": "unit:zephyr/src/ed25519"
       }
     },
@@ -5257,6 +5513,7 @@
         "is_handler": "false",
         "loc_count": "6",
         "sig": "void (ge_cached *, const ge_p3 *)",
+        "type": "void (struct ge_cached *, const struct ge_p3 *)",
         "unit": "unit:zephyr/src/ed25519"
       }
     },
@@ -5269,6 +5526,7 @@
         "is_handler": "false",
         "loc_count": "16",
         "sig": "void (ge_p1p1 *, const ge_p3 *, const ge_cached *)",
+        "type": "void (struct ge_p1p1 *, const struct ge_p3 *, const struct ge_cached *)",
         "unit": "unit:zephyr/src/ed25519"
       }
     },
@@ -5281,6 +5539,7 @@
         "is_handler": "false",
         "loc_count": "11",
         "sig": "void (uint8_t *, const ge_p2 *)",
+        "type": "void (unsigned char *, const struct ge_p2 *)",
         "unit": "unit:zephyr/src/ed25519"
       }
     },
@@ -5293,6 +5552,7 @@
         "is_handler": "false",
         "loc_count": "332",
         "sig": "void (uint8_t *)",
+        "type": "void (unsigned char *)",
         "unit": "unit:zephyr/src/ed25519"
       }
     },
@@ -5305,6 +5565,7 @@
         "is_handler": "false",
         "loc_count": "11",
         "sig": "int (const void *, const void *, size_t)",
+        "type": "int (const void *, const void *, unsigned int)",
         "unit": "unit:zephyr/src/ed25519"
       }
     },
@@ -5317,6 +5578,7 @@
         "is_handler": "false",
         "loc_count": "7",
         "sig": "void (fe *)",
+        "type": "void (struct fe *)",
         "unit": "unit:zephyr/src/ed25519"
       }
     },
@@ -5329,6 +5591,7 @@
         "is_handler": "false",
         "loc_count": "8",
         "sig": "void (fe *)",
+        "type": "void (struct fe *)",
         "unit": "unit:zephyr/src/ed25519"
       }
     },
@@ -5341,6 +5604,7 @@
         "is_handler": "false",
         "loc_count": "6",
         "sig": "void (fe_loose *, const fe *, const fe *)",
+        "type": "void (struct fe_loose *, const struct fe *, const struct fe *)",
         "unit": "unit:zephyr/src/ed25519"
       }
     },
@@ -5353,6 +5617,7 @@
         "is_handler": "false",
         "loc_count": "5",
         "sig": "void (fe *, const fe_loose *)",
+        "type": "void (struct fe *, const struct fe_loose *)",
         "unit": "unit:zephyr/src/ed25519"
       }
     },
@@ -5365,6 +5630,7 @@
         "is_handler": "false",
         "loc_count": "3",
         "sig": "void (fe *, const fe *)",
+        "type": "void (struct fe *, const struct fe *)",
         "unit": "unit:zephyr/src/ed25519"
       }
     },
@@ -5377,6 +5643,7 @@
         "is_handler": "false",
         "loc_count": "5",
         "sig": "void (fe_loose *, const fe *)",
+        "type": "void (struct fe_loose *, const struct fe *)",
         "unit": "unit:zephyr/src/ed25519"
       }
     },
@@ -5389,6 +5656,7 @@
         "is_handler": "false",
         "loc_count": "9",
         "sig": "void (fe *, fe *, fe_limb_t)",
+        "type": "void (struct fe *, struct fe *, unsigned int)",
         "unit": "unit:zephyr/src/ed25519"
       }
     },
@@ -5401,6 +5669,7 @@
         "is_handler": "false",
         "loc_count": "6",
         "sig": "void (fe *, const uint8_t *)",
+        "type": "void (struct fe *, const unsigned char *)",
         "unit": "unit:zephyr/src/ed25519"
       }
     },
@@ -5413,6 +5682,7 @@
         "is_handler": "false",
         "loc_count": "6",
         "sig": "void (fe *, const uint8_t *)",
+        "type": "void (struct fe *, const unsigned char *)",
         "unit": "unit:zephyr/src/ed25519"
       }
     },
@@ -5425,6 +5695,7 @@
         "is_handler": "false",
         "loc_count": "5",
         "sig": "void (fe *, const fe *)",
+        "type": "void (struct fe *, const struct fe *)",
         "unit": "unit:zephyr/src/ed25519"
       }
     },
@@ -5437,6 +5708,7 @@
         "is_handler": "false",
         "loc_count": "5",
         "sig": "int (const fe *)",
+        "type": "int (const struct fe *)",
         "unit": "unit:zephyr/src/ed25519"
       }
     },
@@ -5449,6 +5721,7 @@
         "is_handler": "false",
         "loc_count": "9",
         "sig": "int (const fe_loose *)",
+        "type": "int (const struct fe_loose *)",
         "unit": "unit:zephyr/src/ed25519"
       }
     },
@@ -5461,6 +5734,7 @@
         "is_handler": "false",
         "loc_count": "57",
         "sig": "void (fe *, const fe_loose *)",
+        "type": "void (struct fe *, const struct fe_loose *)",
         "unit": "unit:zephyr/src/ed25519"
       }
     },
@@ -5473,6 +5747,7 @@
         "is_handler": "false",
         "loc_count": "5",
         "sig": "void (fe *, const fe_loose *)",
+        "type": "void (struct fe *, const struct fe_loose *)",
         "unit": "unit:zephyr/src/ed25519"
       }
     },
@@ -5485,6 +5760,7 @@
         "is_handler": "false",
         "loc_count": "6",
         "sig": "void (fe_limb_t *, const fe_limb_t *, const fe_limb_t *)",
+        "type": "void (unsigned int *, const unsigned int *, const unsigned int *)",
         "unit": "unit:zephyr/src/ed25519"
       }
     },
@@ -5497,6 +5773,7 @@
         "is_handler": "false",
         "loc_count": "3",
         "sig": "void (fe_loose *, const fe *, const fe *)",
+        "type": "void (struct fe_loose *, const struct fe *, const struct fe *)",
         "unit": "unit:zephyr/src/ed25519"
       }
     },
@@ -5509,6 +5786,7 @@
         "is_handler": "false",
         "loc_count": "3",
         "sig": "void (fe *, const fe_loose *, const fe_loose *)",
+        "type": "void (struct fe *, const struct fe_loose *, const struct fe_loose *)",
         "unit": "unit:zephyr/src/ed25519"
       }
     },
@@ -5521,6 +5799,7 @@
         "is_handler": "false",
         "loc_count": "3",
         "sig": "void (fe *, const fe_loose *, const fe *)",
+        "type": "void (struct fe *, const struct fe_loose *, const struct fe *)",
         "unit": "unit:zephyr/src/ed25519"
       }
     },
@@ -5533,6 +5812,7 @@
         "is_handler": "false",
         "loc_count": "3",
         "sig": "void (fe *, const fe *, const fe_loose *)",
+        "type": "void (struct fe *, const struct fe *, const struct fe_loose *)",
         "unit": "unit:zephyr/src/ed25519"
       }
     },
@@ -5545,6 +5825,7 @@
         "is_handler": "false",
         "loc_count": "3",
         "sig": "void (fe *, const fe *, const fe *)",
+        "type": "void (struct fe *, const struct fe *, const struct fe *)",
         "unit": "unit:zephyr/src/ed25519"
       }
     },
@@ -5557,6 +5838,7 @@
         "is_handler": "false",
         "loc_count": "5",
         "sig": "void (fe_loose *, const fe *)",
+        "type": "void (struct fe_loose *, const struct fe *)",
         "unit": "unit:zephyr/src/ed25519"
       }
     },
@@ -5569,6 +5851,7 @@
         "is_handler": "false",
         "loc_count": "56",
         "sig": "void (fe *, const fe *)",
+        "type": "void (struct fe *, const struct fe *)",
         "unit": "unit:zephyr/src/ed25519"
       }
     },
@@ -5581,6 +5864,7 @@
         "is_handler": "false",
         "loc_count": "9",
         "sig": "void (fe *, const fe *)",
+        "type": "void (struct fe *, const struct fe *)",
         "unit": "unit:zephyr/src/ed25519"
       }
     },
@@ -5593,6 +5877,7 @@
         "is_handler": "false",
         "loc_count": "5",
         "sig": "void (fe *, const fe_loose *)",
+        "type": "void (struct fe *, const struct fe_loose *)",
         "unit": "unit:zephyr/src/ed25519"
       }
     },
@@ -5605,6 +5890,7 @@
         "is_handler": "false",
         "loc_count": "5",
         "sig": "void (fe *, const fe *)",
+        "type": "void (struct fe *, const struct fe *)",
         "unit": "unit:zephyr/src/ed25519"
       }
     },
@@ -5617,6 +5903,7 @@
         "is_handler": "false",
         "loc_count": "6",
         "sig": "void (fe_loose *, const fe *, const fe *)",
+        "type": "void (struct fe_loose *, const struct fe *, const struct fe *)",
         "unit": "unit:zephyr/src/ed25519"
       }
     },
@@ -5629,6 +5916,7 @@
         "is_handler": "false",
         "loc_count": "4",
         "sig": "void (uint8_t *, const fe *)",
+        "type": "void (unsigned char *, const struct fe *)",
         "unit": "unit:zephyr/src/ed25519"
       }
     },
@@ -5641,6 +5929,7 @@
         "is_handler": "false",
         "loc_count": "59",
         "sig": "void (uint32_t *, const uint32_t *)",
+        "type": "void (unsigned int *, const unsigned int *)",
         "unit": "unit:zephyr/src/ed25519"
       }
     },
@@ -5653,6 +5942,7 @@
         "is_handler": "false",
         "loc_count": "67",
         "sig": "void (ge_p2 *, const uint8_t *, const ge_p3 *, const uint8_t *)",
+        "type": "void (struct ge_p2 *, const unsigned char *, const struct ge_p3 *, const unsigned char *)",
         "unit": "unit:zephyr/src/ed25519"
       }
     },
@@ -5665,6 +5955,7 @@
         "is_handler": "false",
         "loc_count": "15",
         "sig": "void (ge_p1p1 *, const ge_p3 *, const ge_precomp *)",
+        "type": "void (struct ge_p1p1 *, const struct ge_p3 *, const struct ge_precomp *)",
         "unit": "unit:zephyr/src/ed25519"
       }
     },
@@ -5677,6 +5968,7 @@
         "is_handler": "false",
         "loc_count": "15",
         "sig": "void (ge_p1p1 *, const ge_p3 *, const ge_precomp *)",
+        "type": "void (struct ge_p1p1 *, const struct ge_p3 *, const struct ge_precomp *)",
         "unit": "unit:zephyr/src/ed25519"
       }
     },
@@ -5689,6 +5981,7 @@
         "is_handler": "false",
         "loc_count": "5",
         "sig": "void (ge_p2 *)",
+        "type": "void (struct ge_p2 *)",
         "unit": "unit:zephyr/src/ed25519"
       }
     },
@@ -5701,6 +5994,7 @@
         "is_handler": "false",
         "loc_count": "17",
         "sig": "void (ge_p1p1 *, const ge_p2 *)",
+        "type": "void (struct ge_p1p1 *, const struct ge_p2 *)",
         "unit": "unit:zephyr/src/ed25519"
       }
     },
@@ -5713,6 +6007,7 @@
         "is_handler": "false",
         "loc_count": "5",
         "sig": "void (ge_p1p1 *, const ge_p3 *)",
+        "type": "void (struct ge_p1p1 *, const struct ge_p3 *)",
         "unit": "unit:zephyr/src/ed25519"
       }
     },
@@ -5725,6 +6020,7 @@
         "is_handler": "false",
         "loc_count": "5",
         "sig": "void (ge_p2 *, const ge_p3 *)",
+        "type": "void (struct ge_p2 *, const struct ge_p3 *)",
         "unit": "unit:zephyr/src/ed25519"
       }
     },
@@ -5737,6 +6033,7 @@
         "is_handler": "false",
         "loc_count": "3",
         "sig": "int64_t (int64_t)",
+        "type": "long long (long long)",
         "unit": "unit:zephyr/src/ed25519"
       }
     },
@@ -5749,6 +6046,7 @@
         "is_handler": "false",
         "loc_count": "7",
         "sig": "uint64_t (const uint8_t *)",
+        "type": "unsigned long long (const unsigned char *)",
         "unit": "unit:zephyr/src/ed25519"
       }
     },
@@ -5761,6 +6059,7 @@
         "is_handler": "false",
         "loc_count": "8",
         "sig": "uint64_t (const uint8_t *)",
+        "type": "unsigned long long (const unsigned char *)",
         "unit": "unit:zephyr/src/ed25519"
       }
     },
@@ -5773,6 +6072,7 @@
         "is_handler": "false",
         "loc_count": "33",
         "sig": "void (signed char *, const uint8_t *)",
+        "type": "void (signed char *, const unsigned char *)",
         "unit": "unit:zephyr/src/ed25519"
       }
     },
@@ -5785,6 +6085,7 @@
         "is_handler": "false",
         "loc_count": "79",
         "sig": "void (uint8_t *, const uint8_t *, const uint8_t *)",
+        "type": "void (unsigned char *, const unsigned char *, const unsigned char *)",
         "unit": "unit:zephyr/src/ed25519"
       }
     },
@@ -5797,6 +6098,7 @@
         "is_handler": "false",
         "loc_count": "22",
         "sig": "void (uint32_t *, const uint32_t *, const uint32_t *)",
+        "type": "void (unsigned int *, const unsigned int *, const unsigned int *)",
         "unit": "unit:zephyr/src/ed25519"
       }
     },
@@ -5809,6 +6111,7 @@
         "is_handler": "false",
         "loc_count": "7",
         "sig": "void (uint32_t *, fiat_25519_uint1 *, fiat_25519_uint1, uint32_t, uint32_t)",
+        "type": "void (unsigned int *, unsigned char *, unsigned char, unsigned int, unsigned int)",
         "unit": "unit:zephyr/src/ed25519"
       }
     },
@@ -5821,6 +6124,7 @@
         "is_handler": "false",
         "loc_count": "7",
         "sig": "void (uint32_t *, fiat_25519_uint1 *, fiat_25519_uint1, uint32_t, uint32_t)",
+        "type": "void (unsigned int *, unsigned char *, unsigned char, unsigned int, unsigned int)",
         "unit": "unit:zephyr/src/ed25519"
       }
     },
@@ -5833,6 +6137,7 @@
         "is_handler": "false",
         "loc_count": "34",
         "sig": "void (uint32_t *, const uint32_t *)",
+        "type": "void (unsigned int *, const unsigned int *)",
         "unit": "unit:zephyr/src/ed25519"
       }
     },
@@ -5845,6 +6150,7 @@
         "is_handler": "false",
         "loc_count": "159",
         "sig": "void (uint32_t *, const uint32_t *, const uint32_t *)",
+        "type": "void (unsigned int *, const unsigned int *, const unsigned int *)",
         "unit": "unit:zephyr/src/ed25519"
       }
     },
@@ -5857,6 +6163,7 @@
         "is_handler": "false",
         "loc_count": "132",
         "sig": "void (uint32_t *, const uint32_t *)",
+        "type": "void (unsigned int *, const unsigned int *)",
         "unit": "unit:zephyr/src/ed25519"
       }
     },
@@ -5869,6 +6176,7 @@
         "is_handler": "false",
         "loc_count": "12",
         "sig": "void (uint32_t *, fiat_25519_uint1, uint32_t, uint32_t)",
+        "type": "void (unsigned int *, unsigned char, unsigned int, unsigned int)",
         "unit": "unit:zephyr/src/ed25519"
       }
     },
@@ -5881,6 +6189,7 @@
         "is_handler": "false",
         "loc_count": "79",
         "sig": "void (uint32_t *, const uint8_t *)",
+        "type": "void (unsigned int *, const unsigned char *)",
         "unit": "unit:zephyr/src/ed25519"
       }
     },
@@ -5893,6 +6202,7 @@
         "is_handler": "false",
         "loc_count": "22",
         "sig": "void (uint32_t *, const uint32_t *)",
+        "type": "void (unsigned int *, const unsigned int *)",
         "unit": "unit:zephyr/src/ed25519"
       }
     },
@@ -5905,6 +6215,7 @@
         "is_handler": "false",
         "loc_count": "22",
         "sig": "void (uint32_t *, const uint32_t *, const uint32_t *)",
+        "type": "void (unsigned int *, const unsigned int *, const unsigned int *)",
         "unit": "unit:zephyr/src/ed25519"
       }
     },
@@ -5917,6 +6228,7 @@
         "is_handler": "false",
         "loc_count": "7",
         "sig": "void (uint32_t *, fiat_25519_uint1 *, fiat_25519_uint1, uint32_t, uint32_t)",
+        "type": "void (unsigned int *, unsigned char *, unsigned char, unsigned int, unsigned int)",
         "unit": "unit:zephyr/src/ed25519"
       }
     },
@@ -5929,6 +6241,7 @@
         "is_handler": "false",
         "loc_count": "7",
         "sig": "void (uint32_t *, fiat_25519_uint1 *, fiat_25519_uint1, uint32_t, uint32_t)",
+        "type": "void (unsigned int *, unsigned char *, unsigned char, unsigned int, unsigned int)",
         "unit": "unit:zephyr/src/ed25519"
       }
     },
@@ -5941,6 +6254,7 @@
         "is_handler": "false",
         "loc_count": "173",
         "sig": "void (uint8_t *, const uint32_t *)",
+        "type": "void (unsigned char *, const unsigned int *)",
         "unit": "unit:zephyr/src/ed25519"
       }
     },
@@ -5953,6 +6267,7 @@
         "is_handler": "false",
         "loc_count": "6",
         "sig": "uint32_t (uint32_t)",
+        "type": "unsigned int (unsigned int)",
         "unit": "unit:zephyr/src/ed25519"
       }
     },
@@ -5965,6 +6280,7 @@
         "is_handler": "false",
         "loc_count": "13",
         "sig": "uint64_t (const uint8_t **)",
+        "type": "unsigned long long (const unsigned char **)",
         "unit": "unit:zephyr/src/ed25519"
       }
     },
@@ -5977,6 +6293,7 @@
         "is_handler": "false",
         "loc_count": "3",
         "sig": "uint64_t (uint64_t, uint64_t)",
+        "type": "unsigned long long (unsigned long long, unsigned long long)",
         "unit": "unit:zephyr/src/ed25519"
       }
     },
@@ -5989,6 +6306,7 @@
         "is_handler": "false",
         "loc_count": "36",
         "sig": "void (uint64_t *, const uint8_t *)",
+        "type": "void (unsigned long long *, const unsigned char *)",
         "unit": "unit:zephyr/src/ed25519"
       }
     },
@@ -6049,6 +6367,7 @@
         "is_handler": "false",
         "loc_count": "1",
         "sig": "uint64_t (void)",
+        "type": "unsigned long long (void)",
         "unit": "unit:zephyr/src"
       }
     },
@@ -6133,6 +6452,7 @@
         "is_handler": "false",
         "loc_count": "8",
         "sig": "uint32_t (unsigned int)",
+        "type": "unsigned int (unsigned int)",
         "unit": "unit:zephyr/src"
       }
     },
@@ -7158,7 +7478,7 @@
       "kind": "global",
       "loc": "src/backend/zephyr/runner.c:52",
       "attrs": {
-        "type": "struct (unnamed struct at /home/david/rete-invarlint/nodus/oevm/src/backend/zephyr/runner.c:44:8)",
+        "type": "struct (unnamed struct at /home/david/workspace/rete/nodus/oevm/src/backend/zephyr/runner.c:44:8)",
         "unit": "unit:src/backend/zephyr"
       }
     },
@@ -7176,7 +7496,7 @@
       "kind": "global",
       "loc": "src/backend/zephyr/runner.c:39",
       "attrs": {
-        "type": "const struct (unnamed struct at /home/david/rete-invarlint/nodus/oevm/src/backend/zephyr/runner.c:39:14)[2]",
+        "type": "const struct (unnamed struct at /home/david/workspace/rete/nodus/oevm/src/backend/zephyr/runner.c:39:14)[2]",
         "unit": "unit:src/backend/zephyr"
       }
     },
@@ -7878,7 +8198,7 @@
       "kind": "global",
       "loc": "src/ota.c:277",
       "attrs": {
-        "type": "struct (unnamed struct at /home/david/rete-invarlint/nodus/oevm/src/ota.c:271:8)",
+        "type": "struct (unnamed struct at /home/david/workspace/rete/nodus/oevm/src/ota.c:271:8)",
         "unit": "unit:src"
       }
     },
@@ -8166,7 +8486,7 @@
       "kind": "global",
       "loc": "src/vm.c:354",
       "attrs": {
-        "type": "struct (unnamed struct at /home/david/rete-invarlint/nodus/oevm/src/vm.c:354:8)[64]",
+        "type": "struct (unnamed struct at /home/david/workspace/rete/nodus/oevm/src/vm.c:354:8)[64]",
         "unit": "unit:src"
       }
     },
@@ -22546,6 +22866,2709 @@
       "from": "func:src/dispatch.c:run_method_on",
       "to": "fnptr:oop (*)(oop, int, oop *)",
       "loc": "src/dispatch.c:633"
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:bell_target_available",
+      "loc": "src/platform.c:518",
+      "attrs": {
+        "sig": "int (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:bell_target_strike",
+      "loc": "src/platform.c:519",
+      "attrs": {
+        "sig": "int (int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:boundclass_is",
+      "loc": "src/oevm.h:545",
+      "attrs": {
+        "sig": "int (oop)",
+        "type": "int (struct Object *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:context_alloc",
+      "loc": "src/oevm.h:278",
+      "attrs": {
+        "sig": "oop (uint32_t, oop)",
+        "type": "struct Object * (unsigned int, struct Object *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:deep_sleep_target",
+      "loc": "src/platform.c:550",
+      "attrs": {
+        "sig": "void (int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:display_target_available",
+      "loc": "src/platform.c:274",
+      "attrs": {
+        "sig": "int (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:display_target_clear",
+      "loc": "src/platform.c:275",
+      "attrs": {
+        "sig": "int (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:display_target_put",
+      "loc": "src/platform.c:276",
+      "attrs": {
+        "sig": "int (int, int, const char *, int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:display_target_refresh",
+      "loc": "src/platform.c:277",
+      "attrs": {
+        "sig": "int (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:display_target_refresh_row",
+      "loc": "src/platform.c:278",
+      "attrs": {
+        "sig": "int (int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:float_alloc",
+      "loc": "src/oevm.h:249",
+      "attrs": {
+        "sig": "oop (oop)",
+        "type": "struct Object * (struct Object *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:frameless_send",
+      "loc": "src/oevm.h:396",
+      "attrs": {
+        "sig": "int (const struct CompiledMethod *, oop, int, oop *, oop *)",
+        "type": "int (const struct CompiledMethod *, struct Object *, int, struct Object * *, struct Object * *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:gc_allocate",
+      "loc": "src/http.c:15",
+      "attrs": {
+        "sig": "oop (oop, size_t)",
+        "type": "struct Object * (struct Object *, unsigned int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:gc_allocate",
+      "loc": "src/platform.c:572",
+      "attrs": {
+        "sig": "oop (oop, size_t)",
+        "type": "struct Object * (struct Object *, unsigned int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:gc_allocate",
+      "loc": "src/space.c:54",
+      "attrs": {
+        "sig": "oop (oop, size_t)",
+        "type": "struct Object * (struct Object *, unsigned int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:gc_allocate",
+      "loc": "src/udp.c:21",
+      "attrs": {
+        "sig": "oop (oop, size_t)",
+        "type": "struct Object * (struct Object *, unsigned int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:gc_allocate",
+      "loc": "src/vm.c:51",
+      "attrs": {
+        "sig": "oop (oop, size_t)",
+        "type": "struct Object * (struct Object *, unsigned int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:gc_collect",
+      "loc": "src/gc.c:248",
+      "attrs": {
+        "sig": "void (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:gc_temp_root_push",
+      "loc": "src/http.c:17",
+      "attrs": {
+        "sig": "void (oop)",
+        "type": "void (struct Object *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:gc_temp_roots_clear",
+      "loc": "src/http.c:18",
+      "attrs": {
+        "sig": "void (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:gpio_target_level",
+      "loc": "src/platform.c:171",
+      "attrs": {
+        "sig": "int (int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:gpio_target_set",
+      "loc": "src/platform.c:170",
+      "attrs": {
+        "sig": "int (int, int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:handle_free",
+      "loc": "src/handles.h:45",
+      "attrs": {
+        "sig": "void (int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:handle_gc_trace",
+      "loc": "src/handles.h:47",
+      "attrs": {
+        "sig": "void (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:handle_get",
+      "loc": "src/handles.h:42",
+      "attrs": {
+        "sig": "oop (int)",
+        "type": "struct Object * (int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:handle_high_water",
+      "loc": "src/handles.h:52",
+      "attrs": {
+        "sig": "unsigned int (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:handle_live_count",
+      "loc": "src/handles.h:51",
+      "attrs": {
+        "sig": "unsigned int (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:handle_new",
+      "loc": "src/handles.h:39",
+      "attrs": {
+        "sig": "int (oop)",
+        "type": "int (struct Object *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:http_accept_failures",
+      "loc": "src/http_backend.h:72",
+      "attrs": {
+        "sig": "uint32_t (void)",
+        "type": "unsigned int (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:http_accept_request",
+      "loc": "src/http_backend.h:55",
+      "attrs": {
+        "sig": "int (int, const char *, int, const char *, int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:http_backend_reset",
+      "loc": "src/http_backend.h:62",
+      "attrs": {
+        "sig": "void (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:http_begin",
+      "loc": "src/http_backend.h:43",
+      "attrs": {
+        "sig": "void (int, int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:http_chunk",
+      "loc": "src/http_backend.h:44",
+      "attrs": {
+        "sig": "void (int, const char *, int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:http_close",
+      "loc": "src/http_backend.h:50",
+      "attrs": {
+        "sig": "void (int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:http_emit",
+      "loc": "src/http_backend.h:88",
+      "attrs": {
+        "sig": "void (int, const char *, int, const char *, int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:http_end",
+      "loc": "src/http_backend.h:45",
+      "attrs": {
+        "sig": "void (int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:http_frame_chunk_header",
+      "loc": "src/http_backend.h:40",
+      "attrs": {
+        "sig": "int (int, char *, int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:http_frame_chunked_headers",
+      "loc": "src/http_backend.h:39",
+      "attrs": {
+        "sig": "int (int, char *, int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:http_frame_headers",
+      "loc": "src/http_backend.h:36",
+      "attrs": {
+        "sig": "int (int, int, char *, int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:http_frame_response",
+      "loc": "src/http_backend.h:28",
+      "attrs": {
+        "sig": "int (int, const char *, int, char *, int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:http_inflight_count",
+      "loc": "src/http_backend.h:61",
+      "attrs": {
+        "sig": "int (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:http_is_listening",
+      "loc": "src/http_backend.h:77",
+      "attrs": {
+        "sig": "int (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:http_listen",
+      "loc": "src/http_backend.h:66",
+      "attrs": {
+        "sig": "int (int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:http_parse_reqline",
+      "loc": "src/http_backend.h:33",
+      "attrs": {
+        "sig": "int (const char *, char *, int, char *, int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:http_poll",
+      "loc": "src/http_backend.h:84",
+      "attrs": {
+        "sig": "void (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:http_pump",
+      "loc": "src/http.h:5",
+      "attrs": {
+        "sig": "void (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:http_respond",
+      "loc": "src/http_backend.h:60",
+      "attrs": {
+        "sig": "void (int, int, const char *, int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:http_take_request",
+      "loc": "src/http_backend.h:58",
+      "attrs": {
+        "sig": "int (int *, char *, int, char *, int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:http_write",
+      "loc": "src/http_backend.h:49",
+      "attrs": {
+        "sig": "int (int, const char *, int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:indexable_new",
+      "loc": "src/http.c:16",
+      "attrs": {
+        "sig": "oop (intptr_t)",
+        "type": "struct Object * (long)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:indexable_new",
+      "loc": "src/space.c:40",
+      "attrs": {
+        "sig": "oop (intptr_t)",
+        "type": "struct Object * (long)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:indexable_new",
+      "loc": "src/udp.c:22",
+      "attrs": {
+        "sig": "oop (intptr_t)",
+        "type": "struct Object * (long)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:indexable_new",
+      "loc": "src/vm.c:2323",
+      "attrs": {
+        "sig": "oop (intptr_t)",
+        "type": "struct Object * (long)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:int_from_intptr",
+      "loc": "src/oevm.h:239",
+      "attrs": {
+        "sig": "oop (intptr_t)",
+        "type": "struct Object * (long)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:int_from_uint64",
+      "loc": "src/oevm.h:240",
+      "attrs": {
+        "sig": "oop (uint64_t)",
+        "type": "struct Object * (unsigned long long)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:is_truthy",
+      "loc": "src/oevm.h:580",
+      "attrs": {
+        "sig": "int (oop)",
+        "type": "int (struct Object *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:kernel_boot",
+      "loc": "src/oevm.h:628",
+      "attrs": {
+        "sig": "void (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:largeint_alloc",
+      "loc": "src/oevm.h:228",
+      "attrs": {
+        "sig": "oop (int, uint64_t)",
+        "type": "struct Object * (int, unsigned long long)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:lookup",
+      "loc": "src/oevm.h:558",
+      "attrs": {
+        "sig": "oop (oop, oop, int)",
+        "type": "struct Object * (struct Object *, struct Object *, int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:lookup_defining_vtable",
+      "loc": "src/oevm.h:557",
+      "attrs": {
+        "sig": "oop (oop, oop, oop *, int)",
+        "type": "struct Object * (struct Object *, struct Object *, struct Object * *, int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:lookup_method_cached",
+      "loc": "src/oevm.h:575",
+      "attrs": {
+        "sig": "oop (oop, oop, oop *, oop *, int)",
+        "type": "struct Object * (struct Object *, struct Object *, struct Object * *, struct Object * *, int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:make_closure",
+      "loc": "src/oevm.h:546",
+      "attrs": {
+        "sig": "oop (oop)",
+        "type": "struct Object * (struct Object *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:mark_object",
+      "loc": "src/handles.c:8",
+      "attrs": {
+        "sig": "void (oop)",
+        "type": "void (struct Object *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:mark_object",
+      "loc": "src/space.c:46",
+      "attrs": {
+        "sig": "void (oop)",
+        "type": "void (struct Object *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:method_cache_flush",
+      "loc": "src/oevm.h:576",
+      "attrs": {
+        "sig": "void (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:method_override_install",
+      "loc": "src/oevm.h:566",
+      "attrs": {
+        "sig": "int (oop, oop, oop)",
+        "type": "int (struct Object *, struct Object *, struct Object *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:mirror_dispatch",
+      "loc": "src/mirror.h:5",
+      "attrs": {
+        "sig": "oop (oop, int, oop *)",
+        "type": "struct Object * (struct Object *, int, struct Object * *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:mirror_object",
+      "loc": "src/mirror.h:4",
+      "attrs": {
+        "sig": "oop (void)",
+        "type": "struct Object * (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:mprof_alloc",
+      "loc": "src/oevm.h:490",
+      "attrs": {
+        "sig": "void (unsigned int, size_t)",
+        "type": "void (unsigned int, unsigned int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:mprof_is_running",
+      "loc": "src/oevm.h:485",
+      "attrs": {
+        "sig": "int (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:mprof_start",
+      "loc": "src/oevm.h:483",
+      "attrs": {
+        "sig": "void (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:mprof_stop",
+      "loc": "src/oevm.h:484",
+      "attrs": {
+        "sig": "void (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:ntp_target_date",
+      "loc": "src/platform.c:527",
+      "attrs": {
+        "sig": "int (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:ntp_target_sync",
+      "loc": "src/platform.c:523",
+      "attrs": {
+        "sig": "int (int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:oevm_cheap_stats",
+      "loc": "src/oevm.h:614",
+      "attrs": {
+        "sig": "struct OevmCHeapStats (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:oevm_free",
+      "loc": "src/oevm.h:618",
+      "attrs": {
+        "sig": "void (void *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:oevm_heap_stats",
+      "loc": "src/oevm.h:597",
+      "attrs": {
+        "sig": "struct OevmHeapStats (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:oevm_inst_check",
+      "loc": "src/oimg.h:24",
+      "attrs": {
+        "sig": "const char *(const struct CompiledMethod *, size_t, uint32_t)",
+        "type": "const char *(const struct CompiledMethod *, unsigned int, unsigned int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:oevm_int_add",
+      "loc": "src/oevm.h:234",
+      "attrs": {
+        "sig": "oop (oop, oop)",
+        "type": "struct Object * (struct Object *, struct Object *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:oevm_int_demote",
+      "loc": "src/oevm.h:241",
+      "attrs": {
+        "sig": "oop (oop)",
+        "type": "struct Object * (struct Object *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:oevm_int_floordiv",
+      "loc": "src/oevm.h:237",
+      "attrs": {
+        "sig": "oop (oop, oop)",
+        "type": "struct Object * (struct Object *, struct Object *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:oevm_int_mod",
+      "loc": "src/oevm.h:238",
+      "attrs": {
+        "sig": "oop (oop, oop)",
+        "type": "struct Object * (struct Object *, struct Object *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:oevm_int_mul",
+      "loc": "src/oevm.h:236",
+      "attrs": {
+        "sig": "oop (oop, oop)",
+        "type": "struct Object * (struct Object *, struct Object *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:oevm_int_sub",
+      "loc": "src/oevm.h:235",
+      "attrs": {
+        "sig": "oop (oop, oop)",
+        "type": "struct Object * (struct Object *, struct Object *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:oevm_int_to_double",
+      "loc": "src/oevm.h:242",
+      "attrs": {
+        "sig": "double (oop)",
+        "type": "double (struct Object *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:oevm_is_integer",
+      "loc": "src/oevm.h:233",
+      "attrs": {
+        "sig": "int (oop)",
+        "type": "int (struct Object *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:oevm_malloc",
+      "loc": "src/oevm.h:616",
+      "attrs": {
+        "sig": "void *(size_t)",
+        "type": "void *(unsigned int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:oevm_method_check",
+      "loc": "src/oimg.h:23",
+      "attrs": {
+        "sig": "const char *(struct CompiledMethod *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:oevm_realloc",
+      "loc": "src/oevm.h:617",
+      "attrs": {
+        "sig": "void *(void *, size_t)",
+        "type": "void *(void *, unsigned int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:oimg_load_blob",
+      "loc": "src/oimg.h:15",
+      "attrs": {
+        "sig": "int (const uint8_t *, size_t)",
+        "type": "int (const unsigned char *, unsigned int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:oimg_vtable_name",
+      "loc": "src/oimg.h:19",
+      "attrs": {
+        "sig": "const char *(oop)",
+        "type": "const char *(struct Object *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:ota_activate",
+      "loc": "src/ota.h:71",
+      "attrs": {
+        "sig": "void (const uint8_t *, const uint8_t *, int)",
+        "type": "void (const unsigned char *, const unsigned char *, int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:ota_confirm",
+      "loc": "src/ota.h:66",
+      "attrs": {
+        "sig": "void (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:ota_env",
+      "loc": "src/ota_backend.h:34",
+      "attrs": {
+        "sig": "const char *(const char *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:ota_exit_stage_ready",
+      "loc": "src/ota_backend.h:69",
+      "attrs": {
+        "sig": "void (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:ota_is_running",
+      "loc": "src/ota.h:32",
+      "attrs": {
+        "sig": "int (const uint8_t *)",
+        "type": "int (const unsigned char *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:ota_note_running_hash",
+      "loc": "src/ota_backend.h:40",
+      "attrs": {
+        "sig": "void (const uint8_t *)",
+        "type": "void (const unsigned char *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:ota_running_hash",
+      "loc": "src/ota.h:26",
+      "attrs": {
+        "sig": "int (uint8_t *)",
+        "type": "int (unsigned char *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:ota_sha256",
+      "loc": "src/ota.h:28",
+      "attrs": {
+        "sig": "void (const uint8_t *, long, uint8_t *)",
+        "type": "void (const unsigned char *, long, unsigned char *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:ota_sleep_ms",
+      "loc": "src/ota_backend.h:85",
+      "attrs": {
+        "sig": "void (int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:ota_stage",
+      "loc": "src/ota.h:61",
+      "attrs": {
+        "sig": "int (const uint8_t *, const uint8_t *, int, const char *, int, long *)",
+        "type": "int (const unsigned char *, const unsigned char *, int, const char *, int, long *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:ota_stage_append",
+      "loc": "src/ota_backend.h:53",
+      "attrs": {
+        "sig": "int (const uint8_t *, int)",
+        "type": "int (const unsigned char *, int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:ota_stage_read",
+      "loc": "src/ota_backend.h:48",
+      "attrs": {
+        "sig": "int (uint8_t *, long, long)",
+        "type": "int (unsigned char *, long, long)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:ota_stage_size",
+      "loc": "src/ota_backend.h:45",
+      "attrs": {
+        "sig": "long (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:ota_stage_truncate",
+      "loc": "src/ota_backend.h:57",
+      "attrs": {
+        "sig": "void (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:ota_thread_start",
+      "loc": "src/ota_backend.h:78",
+      "attrs": {
+        "sig": "int (void (*)(void *), void *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:ota_touch_confirm",
+      "loc": "src/ota_backend.h:65",
+      "attrs": {
+        "sig": "void (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:ota_trial",
+      "loc": "src/ota.h:36",
+      "attrs": {
+        "sig": "int (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:ota_write_ready",
+      "loc": "src/ota_backend.h:62",
+      "attrs": {
+        "sig": "int (const uint8_t *, const uint8_t *, int)",
+        "type": "int (const unsigned char *, const unsigned char *, int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:platform_backend_board_name",
+      "loc": "src/platform_backend.h:119",
+      "attrs": {
+        "sig": "size_t (char *, size_t)",
+        "type": "unsigned int (char *, unsigned int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:platform_backend_boot_id",
+      "loc": "src/platform_backend.h:110",
+      "attrs": {
+        "sig": "long (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:platform_backend_node_id",
+      "loc": "src/platform_backend.h:118",
+      "attrs": {
+        "sig": "size_t (char *, size_t)",
+        "type": "unsigned int (char *, unsigned int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:platform_console_arm",
+      "loc": "src/platform_backend.h:75",
+      "attrs": {
+        "sig": "int (int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:platform_console_drain",
+      "loc": "src/platform_backend.h:94",
+      "attrs": {
+        "sig": "void (int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:platform_console_err",
+      "loc": "src/platform_backend.h:93",
+      "attrs": {
+        "sig": "void (const char *, size_t)",
+        "type": "void (const char *, unsigned int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:platform_console_flush",
+      "loc": "src/platform_backend.h:10",
+      "attrs": {
+        "sig": "void (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:platform_console_service",
+      "loc": "src/platform_backend.h:77",
+      "attrs": {
+        "sig": "int (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:platform_console_take_line",
+      "loc": "src/platform_backend.h:76",
+      "attrs": {
+        "sig": "int (char *, int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:platform_console_tee",
+      "loc": "src/platform_backend.h:92",
+      "attrs": {
+        "sig": "int (const char *, size_t, int)",
+        "type": "int (const char *, unsigned int, int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:platform_console_write",
+      "loc": "src/platform_backend.h:9",
+      "attrs": {
+        "sig": "void (const char *, size_t)",
+        "type": "void (const char *, unsigned int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:platform_debug_enabled",
+      "loc": "src/platform_backend.h:47",
+      "attrs": {
+        "sig": "int (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:platform_debug_held",
+      "loc": "src/platform_backend.h:48",
+      "attrs": {
+        "sig": "int (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:platform_debug_hold",
+      "loc": "src/platform_backend.h:49",
+      "attrs": {
+        "sig": "void (int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:platform_debug_readline",
+      "loc": "src/platform_backend.h:19",
+      "attrs": {
+        "sig": "int (char *, int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:platform_dispatch",
+      "loc": "src/platform.h:6",
+      "attrs": {
+        "sig": "int (int, int, oop *, oop *)",
+        "type": "int (int, int, struct Object * *, struct Object * *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:platform_object",
+      "loc": "src/oevm.h:510",
+      "attrs": {
+        "sig": "oop (void)",
+        "type": "struct Object * (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:primitive_blob_offset_of",
+      "loc": "src/oevm.h:502",
+      "attrs": {
+        "sig": "oop (oop, int, oop *)",
+        "type": "struct Object * (struct Object *, int, struct Object * *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:primitive_break_add",
+      "loc": "src/oevm.h:500",
+      "attrs": {
+        "sig": "oop (oop, int, oop *)",
+        "type": "struct Object * (struct Object *, int, struct Object * *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:primitive_break_remove",
+      "loc": "src/oevm.h:501",
+      "attrs": {
+        "sig": "oop (oop, int, oop *)",
+        "type": "struct Object * (struct Object *, int, struct Object * *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:primitive_calls_of",
+      "loc": "src/oevm.h:451",
+      "attrs": {
+        "sig": "oop (oop, int, oop *)",
+        "type": "struct Object * (struct Object *, int, struct Object * *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:primitive_calls_reset",
+      "loc": "src/oevm.h:453",
+      "attrs": {
+        "sig": "oop (oop, int, oop *)",
+        "type": "struct Object * (struct Object *, int, struct Object * *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:primitive_calls_stats",
+      "loc": "src/oevm.h:452",
+      "attrs": {
+        "sig": "oop (oop, int, oop *)",
+        "type": "struct Object * (struct Object *, int, struct Object * *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:primitive_closure_home",
+      "loc": "src/oevm.h:435",
+      "attrs": {
+        "sig": "oop (oop, int, oop *)",
+        "type": "struct Object * (struct Object *, int, struct Object * *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:primitive_compiled_method_instruction_at",
+      "loc": "src/oevm.h:445",
+      "attrs": {
+        "sig": "oop (oop, int, oop *)",
+        "type": "struct Object * (struct Object *, int, struct Object * *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:primitive_compiled_method_set_instruction_at",
+      "loc": "src/oevm.h:524",
+      "attrs": {
+        "sig": "oop (oop, int, oop *)",
+        "type": "struct Object * (struct Object *, int, struct Object * *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:primitive_debugger_set_single_step",
+      "loc": "src/oevm.h:520",
+      "attrs": {
+        "sig": "oop (oop, int, oop *)",
+        "type": "struct Object * (struct Object *, int, struct Object * *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:primitive_lexical_slots_of",
+      "loc": "src/oevm.h:503",
+      "attrs": {
+        "sig": "oop (oop, int, oop *)",
+        "type": "struct Object * (struct Object *, int, struct Object * *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:primitive_method_context_num_registers",
+      "loc": "src/oevm.h:519",
+      "attrs": {
+        "sig": "oop (oop, int, oop *)",
+        "type": "struct Object * (struct Object *, int, struct Object * *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:primitive_method_context_pc",
+      "loc": "src/oevm.h:434",
+      "attrs": {
+        "sig": "oop (oop, int, oop *)",
+        "type": "struct Object * (struct Object *, int, struct Object * *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:primitive_method_context_reg_at",
+      "loc": "src/oevm.h:516",
+      "attrs": {
+        "sig": "oop (oop, int, oop *)",
+        "type": "struct Object * (struct Object *, int, struct Object * *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:primitive_method_context_reg_at_put",
+      "loc": "src/oevm.h:517",
+      "attrs": {
+        "sig": "oop (oop, int, oop *)",
+        "type": "struct Object * (struct Object *, int, struct Object * *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:primitive_method_context_sender",
+      "loc": "src/oevm.h:433",
+      "attrs": {
+        "sig": "oop (oop, int, oop *)",
+        "type": "struct Object * (struct Object *, int, struct Object * *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:primitive_method_offset",
+      "loc": "src/oevm.h:444",
+      "attrs": {
+        "sig": "oop (oop, int, oop *)",
+        "type": "struct Object * (struct Object *, int, struct Object * *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:primitive_object_equals",
+      "loc": "src/oevm.h:436",
+      "attrs": {
+        "sig": "oop (oop, int, oop *)",
+        "type": "struct Object * (struct Object *, int, struct Object * *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:primitive_object_outer",
+      "loc": "src/oevm.h:437",
+      "attrs": {
+        "sig": "oop (oop, int, oop *)",
+        "type": "struct Object * (struct Object *, int, struct Object * *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:primitive_object_vtable",
+      "loc": "src/oevm.h:430",
+      "attrs": {
+        "sig": "oop (oop, int, oop *)",
+        "type": "struct Object * (struct Object *, int, struct Object * *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:primitive_patch",
+      "loc": "src/oevm.h:522",
+      "attrs": {
+        "sig": "oop (oop, int, oop *)",
+        "type": "struct Object * (struct Object *, int, struct Object * *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:primitive_register_debugger_hook",
+      "loc": "src/oevm.h:439",
+      "attrs": {
+        "sig": "oop (oop, int, oop *)",
+        "type": "struct Object * (struct Object *, int, struct Object * *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:primitive_request_step",
+      "loc": "src/oevm.h:442",
+      "attrs": {
+        "sig": "oop (oop, int, oop *)",
+        "type": "struct Object * (struct Object *, int, struct Object * *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:primitive_restart_frame",
+      "loc": "src/oevm.h:523",
+      "attrs": {
+        "sig": "oop (oop, int, oop *)",
+        "type": "struct Object * (struct Object *, int, struct Object * *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:primitive_vtable_bind",
+      "loc": "src/oevm.h:521",
+      "attrs": {
+        "sig": "oop (oop, int, oop *)",
+        "type": "struct Object * (struct Object *, int, struct Object * *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:primitive_vtable_bindings",
+      "loc": "src/oevm.h:432",
+      "attrs": {
+        "sig": "oop (oop, int, oop *)",
+        "type": "struct Object * (struct Object *, int, struct Object * *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:primitive_vtable_delegate",
+      "loc": "src/oevm.h:431",
+      "attrs": {
+        "sig": "oop (oop, int, oop *)",
+        "type": "struct Object * (struct Object *, int, struct Object * *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:primitive_vtable_methods",
+      "loc": "src/oevm.h:505",
+      "attrs": {
+        "sig": "oop (oop, int, oop *)",
+        "type": "struct Object * (struct Object *, int, struct Object * *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:primitive_vtable_selectors",
+      "loc": "src/oevm.h:504",
+      "attrs": {
+        "sig": "oop (oop, int, oop *)",
+        "type": "struct Object * (struct Object *, int, struct Object * *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:pulse_coalesced",
+      "loc": "src/pulse_backend.h:55",
+      "attrs": {
+        "sig": "uint32_t (void)",
+        "type": "unsigned int (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:pulse_drained",
+      "loc": "src/pulse_backend.h:81",
+      "attrs": {
+        "sig": "uint32_t (void)",
+        "type": "unsigned int (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:pulse_drops",
+      "loc": "src/pulse_backend.h:48",
+      "attrs": {
+        "sig": "uint32_t (void)",
+        "type": "unsigned int (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:pulse_pending",
+      "loc": "src/pulse_backend.h:74",
+      "attrs": {
+        "sig": "uint32_t (void)",
+        "type": "unsigned int (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:pulse_post_isr",
+      "loc": "src/pulse_backend.h:27",
+      "attrs": {
+        "sig": "void (int, int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:pulse_post_isr_value",
+      "loc": "src/pulse_backend.h:42",
+      "attrs": {
+        "sig": "void (int, oop)",
+        "type": "void (int, struct Object *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:pulse_pump",
+      "loc": "src/pulse_backend.h:87",
+      "attrs": {
+        "sig": "int (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:pulse_pump_nb",
+      "loc": "src/pulse_backend.h:96",
+      "attrs": {
+        "sig": "int (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:pulse_stale",
+      "loc": "src/pulse_backend.h:65",
+      "attrs": {
+        "sig": "uint32_t (void)",
+        "type": "unsigned int (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:reboot_note_ack",
+      "loc": "src/platform.c:546",
+      "attrs": {
+        "sig": "void (uint32_t)",
+        "type": "void (unsigned int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:reboot_note_ack",
+      "loc": "src/reboot_note.h:80",
+      "attrs": {
+        "sig": "void (uint32_t)",
+        "type": "void (unsigned int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:reboot_note_consecutive",
+      "loc": "src/platform.c:547",
+      "attrs": {
+        "sig": "uint32_t (void)",
+        "type": "unsigned int (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:reboot_note_consecutive",
+      "loc": "src/reboot_note.h:83",
+      "attrs": {
+        "sig": "uint32_t (void)",
+        "type": "unsigned int (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:reboot_note_init",
+      "loc": "src/platform.c:542",
+      "attrs": {
+        "sig": "void (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:reboot_note_init",
+      "loc": "src/reboot_note.h:63",
+      "attrs": {
+        "sig": "void (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:reboot_note_read",
+      "loc": "src/platform.c:543",
+      "attrs": {
+        "sig": "int (struct RebootNote *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:reboot_note_read",
+      "loc": "src/reboot_note.h:68",
+      "attrs": {
+        "sig": "int (struct RebootNote *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:reboot_note_write",
+      "loc": "src/platform.c:544",
+      "attrs": {
+        "sig": "void (uint32_t, uint32_t, uint32_t, uint32_t, uint32_t)",
+        "type": "void (unsigned int, unsigned int, unsigned int, unsigned int, unsigned int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:reboot_note_write",
+      "loc": "src/reboot_note.h:73",
+      "attrs": {
+        "sig": "void (uint32_t, uint32_t, uint32_t, uint32_t, uint32_t)",
+        "type": "void (unsigned int, unsigned int, unsigned int, unsigned int, unsigned int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:reset_cause_timer_wake",
+      "loc": "src/platform.c:537",
+      "attrs": {
+        "sig": "int (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:rtc_alarm_arm",
+      "loc": "src/platform.c:561",
+      "attrs": {
+        "sig": "int (int, int, int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:rtc_target_get",
+      "loc": "src/platform.c:532",
+      "attrs": {
+        "sig": "int (int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:rtc_target_put",
+      "loc": "src/platform.c:533",
+      "attrs": {
+        "sig": "void (int, int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:rtc_target_valid",
+      "loc": "src/platform.c:531",
+      "attrs": {
+        "sig": "int (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:run_interpreter",
+      "loc": "src/dispatch.c:325",
+      "attrs": {
+        "sig": "oop (oop, oop, int, oop *)",
+        "type": "struct Object * (struct Object *, struct Object *, int, struct Object * *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:run_interpreter",
+      "loc": "src/vm.c:168",
+      "attrs": {
+        "sig": "oop (oop, oop, int, oop *)",
+        "type": "struct Object * (struct Object *, struct Object *, int, struct Object * *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:send",
+      "loc": "src/oevm.h:547",
+      "attrs": {
+        "sig": "oop (oop, oop, int, oop *)",
+        "type": "struct Object * (struct Object *, struct Object *, int, struct Object * *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:send",
+      "loc": "src/vm.c:742",
+      "attrs": {
+        "sig": "oop (oop, oop, int, oop *)",
+        "type": "struct Object * (struct Object *, struct Object *, int, struct Object * *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:send_resolve",
+      "loc": "src/oevm.h:552",
+      "attrs": {
+        "sig": "oop (oop, oop, int, oop *, oop *, oop *, int *, int)",
+        "type": "struct Object * (struct Object *, struct Object *, int, struct Object * *, struct Object * *, struct Object * *, int *, int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:send_super",
+      "loc": "src/oevm.h:556",
+      "attrs": {
+        "sig": "oop (oop, oop, oop, int, oop *)",
+        "type": "struct Object * (struct Object *, struct Object *, struct Object *, int, struct Object * *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:send_super_resolve",
+      "loc": "src/oevm.h:554",
+      "attrs": {
+        "sig": "oop (oop, oop, oop, int, oop *, oop *, oop *, int *, int)",
+        "type": "struct Object * (struct Object *, struct Object *, struct Object *, int, struct Object * *, struct Object * *, struct Object * *, int *, int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:sensor_arm_event",
+      "loc": "src/sensor_backend.h:25",
+      "attrs": {
+        "sig": "int (int, int, int32_t)",
+        "type": "int (int, int, int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:sensor_frame_read",
+      "loc": "src/sensor_backend.h:18",
+      "attrs": {
+        "sig": "int (int32_t *)",
+        "type": "int (int *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:serial_at_end",
+      "loc": "src/serial_backend.h:10",
+      "attrs": {
+        "sig": "bool (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:serial_dispatch",
+      "loc": "src/oevm.h:514",
+      "attrs": {
+        "sig": "oop (oop, int, oop *)",
+        "type": "struct Object * (struct Object *, int, struct Object * *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:serial_dispatch",
+      "loc": "src/serial.h:5",
+      "attrs": {
+        "sig": "oop (oop, int, oop *)",
+        "type": "struct Object * (struct Object *, int, struct Object * *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:serial_object",
+      "loc": "src/oevm.h:513",
+      "attrs": {
+        "sig": "oop (void)",
+        "type": "struct Object * (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:serial_object",
+      "loc": "src/serial.h:4",
+      "attrs": {
+        "sig": "oop (void)",
+        "type": "struct Object * (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:serial_open",
+      "loc": "src/serial_backend.h:7",
+      "attrs": {
+        "sig": "void (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:serial_read_byte",
+      "loc": "src/serial_backend.h:8",
+      "attrs": {
+        "sig": "int (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:serial_write_byte",
+      "loc": "src/serial_backend.h:9",
+      "attrs": {
+        "sig": "void (int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:space_changed_since",
+      "loc": "src/space.h:210",
+      "attrs": {
+        "sig": "int (uint32_t, const char *, size_t, int *, int)",
+        "type": "int (unsigned int, const char *, unsigned int, int *, int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:space_channel_count",
+      "loc": "src/space.h:61",
+      "attrs": {
+        "sig": "int (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:space_dequeue",
+      "loc": "src/space.h:125",
+      "attrs": {
+        "sig": "oop (void)",
+        "type": "struct Object * (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:space_drop_reactions_owned_by",
+      "loc": "src/space.h:117",
+      "attrs": {
+        "sig": "void (oop)",
+        "type": "void (struct Object *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:space_gc_trace",
+      "loc": "src/space.h:230",
+      "attrs": {
+        "sig": "void (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:space_intern",
+      "loc": "src/space.h:56",
+      "attrs": {
+        "sig": "int (const char *, size_t)",
+        "type": "int (const char *, unsigned int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:space_kind",
+      "loc": "src/space.h:144",
+      "attrs": {
+        "sig": "int (const char *, size_t)",
+        "type": "int (const char *, unsigned int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:space_kind_of",
+      "loc": "src/space.h:217",
+      "attrs": {
+        "sig": "int (int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:space_last_seq_of",
+      "loc": "src/space.h:192",
+      "attrs": {
+        "sig": "uint32_t (int)",
+        "type": "unsigned int (int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:space_make_string_pub",
+      "loc": "src/space.h:223",
+      "attrs": {
+        "sig": "oop (const char *, size_t)",
+        "type": "struct Object * (const char *, unsigned int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:space_overruns",
+      "loc": "src/space.h:84",
+      "attrs": {
+        "sig": "uint32_t (const char *, size_t)",
+        "type": "unsigned int (const char *, unsigned int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:space_path_of",
+      "loc": "src/space.h:216",
+      "attrs": {
+        "sig": "const char *(int, size_t *)",
+        "type": "const char *(int, unsigned int *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:space_peek",
+      "loc": "src/space.h:159",
+      "attrs": {
+        "sig": "oop (const char *, size_t)",
+        "type": "struct Object * (const char *, unsigned int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:space_post",
+      "loc": "src/space.h:73",
+      "attrs": {
+        "sig": "void (const char *, size_t, oop)",
+        "type": "void (const char *, unsigned int, struct Object *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:space_post_id",
+      "loc": "src/space.h:77",
+      "attrs": {
+        "sig": "void (int, oop)",
+        "type": "void (int, struct Object *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:space_put",
+      "loc": "src/space.h:152",
+      "attrs": {
+        "sig": "void (const char *, size_t, oop)",
+        "type": "void (const char *, unsigned int, struct Object *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:space_queue_high_water",
+      "loc": "src/space.h:89",
+      "attrs": {
+        "sig": "uint32_t (void)",
+        "type": "unsigned int (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:space_register",
+      "loc": "src/space.h:109",
+      "attrs": {
+        "sig": "void (const char *, size_t, oop, oop)",
+        "type": "void (const char *, unsigned int, struct Object *, struct Object *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:space_seq",
+      "loc": "src/space.h:180",
+      "attrs": {
+        "sig": "uint32_t (void)",
+        "type": "unsigned int (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:space_stamp",
+      "loc": "src/space.h:188",
+      "attrs": {
+        "sig": "uint32_t (void)",
+        "type": "unsigned int (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:space_take",
+      "loc": "src/space.h:102",
+      "attrs": {
+        "sig": "oop (const char *, size_t, int *)",
+        "type": "struct Object * (const char *, unsigned int, int *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:space_value_of",
+      "loc": "src/space.h:218",
+      "attrs": {
+        "sig": "oop (int)",
+        "type": "struct Object * (int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:span_begin",
+      "loc": "src/span.h:38",
+      "attrs": {
+        "sig": "void (int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:span_elapsed_us",
+      "loc": "src/span_backend.h:66",
+      "attrs": {
+        "sig": "uint32_t (uint32_t)",
+        "type": "unsigned int (unsigned int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:span_end",
+      "loc": "src/span.h:39",
+      "attrs": {
+        "sig": "void (int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:span_record",
+      "loc": "src/span.h:40",
+      "attrs": {
+        "sig": "void (int, uint32_t)",
+        "type": "void (int, unsigned int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:span_reset_all",
+      "loc": "src/span.h:42",
+      "attrs": {
+        "sig": "void (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:span_stamp",
+      "loc": "src/span_backend.h:62",
+      "attrs": {
+        "sig": "uint32_t (void)",
+        "type": "unsigned int (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:span_stats",
+      "loc": "src/span.h:41",
+      "attrs": {
+        "sig": "void (int, uint32_t *)",
+        "type": "void (int, unsigned int *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:src/gc.c:mark",
+      "loc": "src/gc.c:589",
+      "attrs": {
+        "sig": "void (oop)",
+        "type": "void (struct Object *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:src/gc.c:trace_one",
+      "loc": "src/gc.c:586",
+      "attrs": {
+        "sig": "void (oop)",
+        "type": "void (struct Object *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:stack_alloc",
+      "loc": "src/oevm.h:272",
+      "attrs": {
+        "sig": "oop (uint32_t)",
+        "type": "struct Object * (unsigned int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:symbol_new",
+      "loc": "src/oevm.h:120",
+      "attrs": {
+        "sig": "oop (const char *, size_t)",
+        "type": "struct Object * (const char *, unsigned int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:timer_backend_advance",
+      "loc": "src/timer_backend.h:58",
+      "attrs": {
+        "sig": "int (uint64_t)",
+        "type": "int (unsigned long long)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:timer_backend_after",
+      "loc": "src/timer_backend.h:50",
+      "attrs": {
+        "sig": "void (int, uint64_t)",
+        "type": "void (int, unsigned long long)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:timer_backend_cancel",
+      "loc": "src/timer_backend.h:52",
+      "attrs": {
+        "sig": "void (int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:timer_backend_every",
+      "loc": "src/timer_backend.h:51",
+      "attrs": {
+        "sig": "void (int, uint64_t)",
+        "type": "void (int, unsigned long long)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:timer_backend_millis",
+      "loc": "src/timer_backend.h:53",
+      "attrs": {
+        "sig": "uint64_t (void)",
+        "type": "unsigned long long (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:timer_backend_poll",
+      "loc": "src/timer_backend.h:64",
+      "attrs": {
+        "sig": "int (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:udp_close",
+      "loc": "src/udp_backend.h:16",
+      "attrs": {
+        "sig": "void (int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:udp_dispatch",
+      "loc": "src/udp.h:5",
+      "attrs": {
+        "sig": "oop (oop, int, oop *)",
+        "type": "struct Object * (struct Object *, int, struct Object * *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:udp_object",
+      "loc": "src/udp.h:4",
+      "attrs": {
+        "sig": "oop (void)",
+        "type": "struct Object * (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:udp_open",
+      "loc": "src/udp_backend.h:8",
+      "attrs": {
+        "sig": "void (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:udp_receive",
+      "loc": "src/udp_backend.h:14",
+      "attrs": {
+        "sig": "int (int, uint8_t *, int, char *, int, int *)",
+        "type": "int (int, unsigned char *, int, char *, int, int *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:udp_send",
+      "loc": "src/udp_backend.h:10",
+      "attrs": {
+        "sig": "int (int, const char *, int, const uint8_t *, int)",
+        "type": "int (int, const char *, int, const unsigned char *, int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:udp_socket_bind",
+      "loc": "src/udp_backend.h:9",
+      "attrs": {
+        "sig": "int (int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:vm_ensure",
+      "loc": "src/oevm.h:540",
+      "attrs": {
+        "sig": "oop (oop, oop)",
+        "type": "struct Object * (struct Object *, struct Object *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:vm_on_do",
+      "loc": "src/oevm.h:538",
+      "attrs": {
+        "sig": "oop (oop, oop, oop)",
+        "type": "struct Object * (struct Object *, struct Object *, struct Object *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:vm_protected_fire",
+      "loc": "src/oevm.h:534",
+      "attrs": {
+        "sig": "oop (oop, oop)",
+        "type": "struct Object * (struct Object *, struct Object *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:vm_raise",
+      "loc": "src/oevm.h:541",
+      "attrs": {
+        "sig": "void (oop)",
+        "type": "void (struct Object *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:wallclock_target_read",
+      "loc": "src/platform.c:555",
+      "attrs": {
+        "sig": "int (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:wallclock_target_set",
+      "loc": "src/platform.c:556",
+      "attrs": {
+        "sig": "int (int, int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src/backend/zephyr",
+      "to": "func:log_udp_drain",
+      "loc": "src/backend/zephyr/platform_zephyr.c:38",
+      "attrs": {
+        "sig": "void (int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src/backend/zephyr",
+      "to": "func:log_udp_set_target",
+      "loc": "src/backend/zephyr/platform_zephyr.c:37",
+      "attrs": {
+        "sig": "int (const char *, size_t, int)",
+        "type": "int (const char *, unsigned int, int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src/backend/zephyr",
+      "to": "func:log_udp_tee",
+      "loc": "src/backend/zephyr/platform_zephyr.c:33",
+      "attrs": {
+        "sig": "void (const char *, size_t)",
+        "type": "void (const char *, unsigned int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src/backend/zephyr",
+      "to": "func:log_udp_tee_paced",
+      "loc": "src/backend/zephyr/platform_zephyr.c:36",
+      "attrs": {
+        "sig": "void (const char *, size_t)",
+        "type": "void (const char *, unsigned int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:zephyr/src",
+      "to": "func:log_udp_drain",
+      "loc": "zephyr/src/log_udp.h:42",
+      "attrs": {
+        "sig": "void (int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:zephyr/src",
+      "to": "func:log_udp_set_target",
+      "loc": "zephyr/src/log_udp.h:40",
+      "attrs": {
+        "sig": "int (const char *, size_t, int)",
+        "type": "int (const char *, unsigned int, int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:zephyr/src",
+      "to": "func:log_udp_start",
+      "loc": "zephyr/src/log_udp.h:30",
+      "attrs": {
+        "sig": "void (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:zephyr/src",
+      "to": "func:log_udp_tee",
+      "loc": "zephyr/src/log_udp.h:32",
+      "attrs": {
+        "sig": "void (const char *, size_t)",
+        "type": "void (const char *, unsigned int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:zephyr/src",
+      "to": "func:log_udp_tee_paced",
+      "loc": "zephyr/src/log_udp.h:37",
+      "attrs": {
+        "sig": "void (const char *, size_t)",
+        "type": "void (const char *, unsigned int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:zephyr/src",
+      "to": "func:observer_halt",
+      "loc": "zephyr/src/reboot_note.c:22",
+      "attrs": {
+        "sig": "void (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:zephyr/src",
+      "to": "func:observer_start",
+      "loc": "zephyr/src/main.c:32",
+      "attrs": {
+        "sig": "void (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:zephyr/src",
+      "to": "func:oevm_thread_bringup",
+      "loc": "zephyr/src/thread_bringup.h:9",
+      "attrs": {
+        "sig": "void (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:zephyr/src",
+      "to": "func:oevm_thread_free_buffers",
+      "loc": "zephyr/src/thread_bringup.h:13",
+      "attrs": {
+        "sig": "int (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:zephyr/src",
+      "to": "func:oevm_thread_tx_queued",
+      "loc": "zephyr/src/thread_bringup.h:15",
+      "attrs": {
+        "sig": "int (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:zephyr/src",
+      "to": "func:oimg_bootstrap",
+      "loc": "zephyr/src/main.c:1571",
+      "attrs": {
+        "sig": "oop (oop)",
+        "type": "struct Object * (struct Object *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:zephyr/src",
+      "to": "func:oimg_root",
+      "loc": "zephyr/src/main.c:1570",
+      "attrs": {
+        "sig": "oop (void)",
+        "type": "struct Object * (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:zephyr/src",
+      "to": "func:platform_app_cad_ms",
+      "loc": "zephyr/src/observer.c:61",
+      "attrs": {
+        "sig": "uint32_t (void)",
+        "type": "unsigned int (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:zephyr/src",
+      "to": "func:platform_debug_held",
+      "loc": "zephyr/src/observer.c:65",
+      "attrs": {
+        "sig": "int (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:zephyr/src",
+      "to": "func:runner_confirm",
+      "loc": "zephyr/src/runner.h:22",
+      "attrs": {
+        "sig": "void (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:zephyr/src",
+      "to": "func:runner_has_key",
+      "loc": "zephyr/src/runner.h:25",
+      "attrs": {
+        "sig": "int (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:zephyr/src",
+      "to": "func:runner_inactive_slot_id",
+      "loc": "zephyr/src/runner.h:24",
+      "attrs": {
+        "sig": "uint8_t (void)",
+        "type": "unsigned char (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:zephyr/src",
+      "to": "func:runner_ready",
+      "loc": "zephyr/src/runner.h:21",
+      "attrs": {
+        "sig": "int (const uint8_t *, const uint8_t *, int)",
+        "type": "int (const unsigned char *, const unsigned char *, int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:zephyr/src",
+      "to": "func:runner_select",
+      "loc": "zephyr/src/runner.h:18",
+      "attrs": {
+        "sig": "int (const uint8_t **, size_t *)",
+        "type": "int (const unsigned char **, unsigned int *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:zephyr/src",
+      "to": "func:runner_trial",
+      "loc": "zephyr/src/runner.h:23",
+      "attrs": {
+        "sig": "int (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:zephyr/src",
+      "to": "func:timer_target_snapshot",
+      "loc": "zephyr/src/observer.c:58",
+      "attrs": {
+        "sig": "int (uint32_t *, uint32_t *, int)",
+        "type": "int (unsigned int *, unsigned int *, int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:zephyr/src/ed25519",
+      "to": "func:zephyr/src/ed25519/sha512.c:compress",
+      "loc": "zephyr/src/ed25519/sha512.c:37",
+      "attrs": {
+        "sig": "void (uint64_t *, const uint8_t *)",
+        "type": "void (unsigned long long *, const unsigned char *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:zephyr/src/ed25519/tinycrypt",
+      "to": "func:_compare",
+      "loc": "zephyr/src/ed25519/tinycrypt/utils.h:89",
+      "attrs": {
+        "sig": "int (const uint8_t *, const uint8_t *, size_t)",
+        "type": "int (const unsigned char *, const unsigned char *, unsigned int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:zephyr/src/ed25519/tinycrypt",
+      "to": "func:_copy",
+      "loc": "zephyr/src/ed25519/tinycrypt/utils.h:60",
+      "attrs": {
+        "sig": "unsigned int (uint8_t *, unsigned int, const uint8_t *, unsigned int)",
+        "type": "unsigned int (unsigned char *, unsigned int, const unsigned char *, unsigned int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:zephyr/src/ed25519/tinycrypt",
+      "to": "func:_double_byte",
+      "loc": "zephyr/src/ed25519/tinycrypt/utils.h:79",
+      "attrs": {
+        "sig": "uint8_t (uint8_t)",
+        "type": "unsigned char (unsigned char)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:zephyr/src/ed25519/tinycrypt",
+      "to": "func:_set",
+      "loc": "zephyr/src/ed25519/tinycrypt/utils.h:70",
+      "attrs": {
+        "sig": "void (void *, uint8_t, unsigned int)",
+        "type": "void (void *, unsigned char, unsigned int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:zephyr/src/ed25519/tinycrypt",
+      "to": "func:tc_sha512_final",
+      "loc": "zephyr/src/ed25519/tinycrypt/sha512.h:123",
+      "attrs": {
+        "sig": "int (uint8_t *, TCSha512State_t)",
+        "type": "int (unsigned char *, struct tc_sha512_state_struct *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:zephyr/src/ed25519/tinycrypt",
+      "to": "func:tc_sha512_init",
+      "loc": "zephyr/src/ed25519/tinycrypt/sha512.h:87",
+      "attrs": {
+        "sig": "int (TCSha512State_t)",
+        "type": "int (struct tc_sha512_state_struct *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:zephyr/src/ed25519/tinycrypt",
+      "to": "func:tc_sha512_update",
+      "loc": "zephyr/src/ed25519/tinycrypt/sha512.h:105",
+      "attrs": {
+        "sig": "int (TCSha512State_t, const uint8_t *, size_t)",
+        "type": "int (struct tc_sha512_state_struct *, const unsigned char *, unsigned int)"
+      }
     },
     {
       "kind": "reads_global",
