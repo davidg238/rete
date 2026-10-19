@@ -1,0 +1,10 @@
+name: reboot-note-header
+pattern: Facade
+intent: the note's storage leaves are declared beside the note's rule
+compromise: the header stays header-only logic; only prototypes of the storage leaves are added
+ops:
+  - declare: {func: reboot_note_init, header: src/reboot_note.h}
+  - declare: {func: reboot_note_read, header: src/reboot_note.h}
+  - declare: {func: reboot_note_write, header: src/reboot_note.h}
+  - declare: {func: reboot_note_ack, header: src/reboot_note.h}
+  - declare: {func: reboot_note_consecutive, header: src/reboot_note.h}

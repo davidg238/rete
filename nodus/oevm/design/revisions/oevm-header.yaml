@@ -1,0 +1,7 @@
+name: oevm-header
+pattern: Facade
+intent: oevm.h, which already declares send, is the one declaration of the interpreter's entry points
+compromise: none
+ops:
+  - declare: {func: run_interpreter, header: src/oevm.h}
+  - declare: {func: send, header: src/oevm.h}

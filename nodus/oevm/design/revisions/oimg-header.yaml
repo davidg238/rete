@@ -1,0 +1,7 @@
+name: oimg-header
+pattern: Facade
+intent: oimg.h declares the loader's entry points beside oimg_load_blob
+compromise: none
+ops:
+  - declare: {func: oimg_root, header: src/oimg.h}
+  - declare: {func: oimg_bootstrap, header: src/oimg.h}

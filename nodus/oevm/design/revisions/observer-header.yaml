@@ -1,0 +1,7 @@
+name: observer-header
+pattern: Facade
+intent: one header declares the observer's two entry points
+compromise: a new header for two functions; observer_core.h stays decision-only
+ops:
+  - declare: {func: observer_halt, header: zephyr/src/observer.h}
+  - declare: {func: observer_start, header: zephyr/src/observer.h}

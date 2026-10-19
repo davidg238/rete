@@ -1,0 +1,7 @@
+name: platform-header
+pattern: Facade
+intent: platform.h declares what platform.c offers outside the prim dispatch
+compromise: indexable_new stays in platform.c, not moved to the allocator
+ops:
+  - declare: {func: indexable_new, header: src/platform.h}
+  - declare: {func: platform_app_cad_ms, header: src/platform.h}
