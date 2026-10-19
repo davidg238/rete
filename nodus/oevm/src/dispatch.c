@@ -317,8 +317,6 @@ OEVM_HOT int is_truthy(oop obj) {
     return 0;
 }
 
-/* Declare VM interpreter entry point */
-
 #ifndef OEVM_NO_DEBUG_HOOKS
 /* rete#313: methods replaced at runtime. An image's vtables are read-only (the
    blob is mapped PROT_READ, and on a board it is flash), so a replacement is an

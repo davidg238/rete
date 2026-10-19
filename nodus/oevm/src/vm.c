@@ -50,8 +50,6 @@ static uint64_t default_millis(void) {
 uint64_t (*oevm_millis)(void) = default_millis;
 
 
-
-
 /* Global Stack Memory for Sequential Stack Allocation */
 /* Milestone A Task 7: the exec-context stack is FIXED-capacity. INIT_WORDS is the
    hard ceiling — the stack is allocated once at this size and never grows or moves,
@@ -733,8 +731,6 @@ static int bp_hit(oop method, long off) {
 
 /* Primitive C function signature */
 typedef oop (*PrimitiveFunc)(oop receiver, int argc, oop *args);
-
-/* Forward declarations */
 
 /*
  * Control flow and reflection primitives

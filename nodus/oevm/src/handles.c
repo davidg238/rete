@@ -5,7 +5,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-
 /* tuvm#13: `generation` advances on every free, so a reused slot issues handles that
    never compare equal to the ones outstanding before the reuse. */
 struct HandleSlot { oop value; int live; unsigned generation; };

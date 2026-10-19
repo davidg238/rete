@@ -13,6 +13,7 @@ extern oop oimg_singleton[3];
    sets oimg_blob_base/end + the header refs from an in-memory image; does not
    own `base`. oimg_load(path) is a mmap wrapper over this (desktop only). */
 int oimg_load_blob(const uint8_t *base, size_t size);
+int oimg_load(const char *path);   /* desktop only */
 
 /* The loaded image's root, and the boot of its entry instance (src/oimg_loader.c). */
 oop oimg_root(void);

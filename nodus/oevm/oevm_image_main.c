@@ -10,7 +10,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-int oimg_load(const char *path);
 
 extern void kernel_boot(void);
 extern void (*gc_additional_roots_hook)(void);
