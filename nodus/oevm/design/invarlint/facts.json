@@ -1,5 +1,5 @@
 {
-  "commit": "a9c2a88d",
+  "commit": "8a500522",
   "root": "/home/david/workspace/rete/nodus/oevm",
   "config": "build-esp32c6-B",
   "partial": false,
@@ -31219,15 +31219,6 @@
     },
     {
       "kind": "writes_global",
-      "from": "func:X25519",
-      "to": "global:zephyr/src/ed25519/curve25519.c:X25519.kZeros",
-      "loc": "zephyr/src/ed25519/curve25519.c:1319",
-      "attrs": {
-        "op": "decay"
-      }
-    },
-    {
-      "kind": "writes_global",
       "from": "func:boundclass_is",
       "to": "global:src/dispatch.c:BoundClassVtable",
       "loc": "src/dispatch.c:611",
@@ -31494,24 +31485,6 @@
       "loc": "src/gc.c:830",
       "attrs": {
         "op": "assign"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:gpio_target_level",
-      "to": "global:zephyr/src/main.c:gpio_outputs",
-      "loc": "zephyr/src/main.c:1523",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:gpio_target_set",
-      "to": "global:zephyr/src/main.c:gpio_outputs",
-      "loc": "zephyr/src/main.c:1513",
-      "attrs": {
-        "op": "addr"
       }
     },
     {
@@ -31858,24 +31831,6 @@
     },
     {
       "kind": "writes_global",
-      "from": "func:is_truthy",
-      "to": "global:false_sym_obj",
-      "loc": "src/dispatch.c:309",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:is_truthy",
-      "to": "global:true_sym_obj",
-      "loc": "src/dispatch.c:308",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
       "from": "func:kernel_boot",
       "to": "global:BoxedBindingVtable",
       "loc": "src/kernel_boot.c:128",
@@ -32007,123 +31962,6 @@
       "loc": "src/kernel_boot.c:122",
       "attrs": {
         "op": "assign"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:kernel_boot",
-      "to": "global:Vtable_BoxedBindingVtable",
-      "loc": "src/kernel_boot.c:128",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:kernel_boot",
-      "to": "global:Vtable_BytecodeClosureVtable",
-      "loc": "src/kernel_boot.c:126",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:kernel_boot",
-      "to": "global:Vtable_ContextVtable",
-      "loc": "src/kernel_boot.c:131",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:kernel_boot",
-      "to": "global:Vtable_FloatVtable",
-      "loc": "src/kernel_boot.c:133",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:kernel_boot",
-      "to": "global:Vtable_IntegerVtable",
-      "loc": "src/kernel_boot.c:132",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:kernel_boot",
-      "to": "global:Vtable_LargeIntegerVtable",
-      "loc": "src/kernel_boot.c:134",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:kernel_boot",
-      "to": "global:Vtable_MethodContextVtable",
-      "loc": "src/kernel_boot.c:135",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:kernel_boot",
-      "to": "global:Vtable_PrimitiveClosureVtable",
-      "loc": "src/kernel_boot.c:127",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:kernel_boot",
-      "to": "global:Vtable_RawBytesVtable",
-      "loc": "src/kernel_boot.c:125",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:kernel_boot",
-      "to": "global:Vtable_StackVtable",
-      "loc": "src/kernel_boot.c:130",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:kernel_boot",
-      "to": "global:Vtable_StringVtable",
-      "loc": "src/kernel_boot.c:124",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:kernel_boot",
-      "to": "global:Vtable_SymbolVtable",
-      "loc": "src/kernel_boot.c:123",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:kernel_boot",
-      "to": "global:Vtable_VtableVtable",
-      "loc": "src/kernel_boot.c:122",
-      "attrs": {
-        "op": "addr"
       }
     },
     {
@@ -32318,78 +32156,6 @@
     {
       "kind": "writes_global",
       "from": "func:kernel_boot",
-      "to": "global:src/kernel_boot.c:KSym__eq_eq",
-      "loc": "src/kernel_boot.c:163",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:kernel_boot",
-      "to": "global:src/kernel_boot.c:KSym_debug_",
-      "loc": "src/kernel_boot.c:141",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:kernel_boot",
-      "to": "global:src/kernel_boot.c:KSym_debug_",
-      "loc": "src/kernel_boot.c:167",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:kernel_boot",
-      "to": "global:src/kernel_boot.c:KSym_false",
-      "loc": "src/kernel_boot.c:146",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:kernel_boot",
-      "to": "global:src/kernel_boot.c:KSym_sender",
-      "loc": "src/kernel_boot.c:164",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:kernel_boot",
-      "to": "global:src/kernel_boot.c:KSym_true",
-      "loc": "src/kernel_boot.c:145",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:kernel_boot",
-      "to": "global:src/kernel_boot.c:KSym_value",
-      "loc": "src/kernel_boot.c:140",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:kernel_boot",
-      "to": "global:src/kernel_boot.c:KSym_value",
-      "loc": "src/kernel_boot.c:166",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:kernel_boot",
       "to": "global:src/kernel_boot.c:kernel_boot.booted",
       "loc": "src/kernel_boot.c:116",
       "attrs": {
@@ -32511,15 +32277,6 @@
       "loc": "zephyr/src/main.c:1902",
       "attrs": {
         "op": "assign"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:main",
-      "to": "global:oevm_build_id",
-      "loc": "zephyr/src/main.c:1863",
-      "attrs": {
-        "op": "decay"
       }
     },
     {
@@ -32781,15 +32538,6 @@
       "loc": "zephyr/src/main.c:252",
       "attrs": {
         "op": "assign"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:observer_start",
-      "to": "global:__device_dts_ord_44",
-      "loc": "zephyr/src/observer.c:395",
-      "attrs": {
-        "op": "addr"
       }
     },
     {
@@ -33343,24 +33091,6 @@
     },
     {
       "kind": "writes_global",
-      "from": "func:platform_backend_board_name",
-      "to": "global:oevm_board_name",
-      "loc": "src/backend/zephyr/platform_zephyr.c:435",
-      "attrs": {
-        "op": "decay"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:platform_backend_board_name",
-      "to": "global:oevm_board_name",
-      "loc": "src/backend/zephyr/platform_zephyr.c:437",
-      "attrs": {
-        "op": "decay"
-      }
-    },
-    {
-      "kind": "writes_global",
       "from": "func:platform_backend_boot_id",
       "to": "global:src/backend/zephyr/platform_zephyr.c:boot_id_stored",
       "loc": "src/backend/zephyr/platform_zephyr.c:331",
@@ -33384,15 +33114,6 @@
       "loc": "src/backend/zephyr/platform_zephyr.c:348",
       "attrs": {
         "op": "assign"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:platform_console_arm",
-      "to": "global:__device_dts_ord_40",
-      "loc": "src/backend/zephyr/platform_zephyr.c:181",
-      "attrs": {
-        "op": "addr"
       }
     },
     {
@@ -33433,159 +33154,6 @@
     },
     {
       "kind": "writes_global",
-      "from": "func:platform_debug_readline",
-      "to": "global:__device_dts_ord_40",
-      "loc": "src/backend/zephyr/platform_zephyr.c:238",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:platform_dispatch",
-      "to": "global:false_sym_obj",
-      "loc": "src/platform.c:1248",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:platform_dispatch",
-      "to": "global:false_sym_obj",
-      "loc": "src/platform.c:1249",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:platform_dispatch",
-      "to": "global:false_sym_obj",
-      "loc": "src/platform.c:1250",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:platform_dispatch",
-      "to": "global:false_sym_obj",
-      "loc": "src/platform.c:1251",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:platform_dispatch",
-      "to": "global:false_sym_obj",
-      "loc": "src/platform.c:1252",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:platform_dispatch",
-      "to": "global:false_sym_obj",
-      "loc": "src/platform.c:1253",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:platform_dispatch",
-      "to": "global:false_sym_obj",
-      "loc": "src/platform.c:1427",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:platform_dispatch",
-      "to": "global:false_sym_obj",
-      "loc": "src/platform.c:1450",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:platform_dispatch",
-      "to": "global:false_sym_obj",
-      "loc": "src/platform.c:1455",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:platform_dispatch",
-      "to": "global:false_sym_obj",
-      "loc": "src/platform.c:1534",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:platform_dispatch",
-      "to": "global:false_sym_obj",
-      "loc": "src/platform.c:1542",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:platform_dispatch",
-      "to": "global:false_sym_obj",
-      "loc": "src/platform.c:1567",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:platform_dispatch",
-      "to": "global:false_sym_obj",
-      "loc": "src/platform.c:1578",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:platform_dispatch",
-      "to": "global:false_sym_obj",
-      "loc": "src/platform.c:1857",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:platform_dispatch",
-      "to": "global:false_sym_obj",
-      "loc": "src/platform.c:712",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:platform_dispatch",
-      "to": "global:false_sym_obj",
-      "loc": "src/platform.c:838",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
       "from": "func:platform_dispatch",
       "to": "global:gc_temp_roots_count",
       "loc": "src/platform.c:1028",
@@ -33600,24 +33168,6 @@
       "loc": "src/platform.c:1358",
       "attrs": {
         "op": "assign"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:platform_dispatch",
-      "to": "global:oevm_build_id",
-      "loc": "src/platform.c:1404",
-      "attrs": {
-        "op": "decay"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:platform_dispatch",
-      "to": "global:oevm_manifest_pin",
-      "loc": "src/platform.c:1488",
-      "attrs": {
-        "op": "decay"
       }
     },
     {
@@ -33650,15 +33200,6 @@
     {
       "kind": "writes_global",
       "from": "func:platform_dispatch",
-      "to": "global:src/platform.c:platform_dispatch.m",
-      "loc": "src/platform.c:1415",
-      "attrs": {
-        "op": "decay"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:platform_dispatch",
       "to": "global:src/platform.c:rtc_alarm_pin",
       "loc": "src/platform.c:1798",
       "attrs": {
@@ -33681,96 +33222,6 @@
       "loc": "src/platform.c:1759",
       "attrs": {
         "op": "assign"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:platform_dispatch",
-      "to": "global:true_sym_obj",
-      "loc": "src/platform.c:1254",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:platform_dispatch",
-      "to": "global:true_sym_obj",
-      "loc": "src/platform.c:1427",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:platform_dispatch",
-      "to": "global:true_sym_obj",
-      "loc": "src/platform.c:1455",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:platform_dispatch",
-      "to": "global:true_sym_obj",
-      "loc": "src/platform.c:1533",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:platform_dispatch",
-      "to": "global:true_sym_obj",
-      "loc": "src/platform.c:1542",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:platform_dispatch",
-      "to": "global:true_sym_obj",
-      "loc": "src/platform.c:1578",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:platform_dispatch",
-      "to": "global:true_sym_obj",
-      "loc": "src/platform.c:1848",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:platform_dispatch",
-      "to": "global:true_sym_obj",
-      "loc": "src/platform.c:1857",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:platform_dispatch",
-      "to": "global:true_sym_obj",
-      "loc": "src/platform.c:712",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:platform_dispatch",
-      "to": "global:true_sym_obj",
-      "loc": "src/platform.c:838",
-      "attrs": {
-        "op": "addr"
       }
     },
     {
@@ -33919,33 +33370,6 @@
     },
     {
       "kind": "writes_global",
-      "from": "func:primitive_object_equals",
-      "to": "global:false_sym_obj",
-      "loc": "src/vm.c:740",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:primitive_object_equals",
-      "to": "global:false_sym_obj",
-      "loc": "src/vm.c:742",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:primitive_object_equals",
-      "to": "global:true_sym_obj",
-      "loc": "src/vm.c:742",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
       "from": "func:primitive_register_debugger_hook",
       "to": "global:Symbol_debug_",
       "loc": "src/vm.c:1895",
@@ -33960,15 +33384,6 @@
       "loc": "src/vm.c:1891",
       "attrs": {
         "op": "assign"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:primitive_register_debugger_hook",
-      "to": "global:src/vm.c:primitive_register_debugger_hook.debugName",
-      "loc": "src/vm.c:1894",
-      "attrs": {
-        "op": "decay"
       }
     },
     {
@@ -34253,33 +33668,6 @@
     {
       "kind": "writes_global",
       "from": "func:run_interpreter",
-      "to": "global:false_sym_obj",
-      "loc": "src/vm.c:1301",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:run_interpreter",
-      "to": "global:false_sym_obj",
-      "loc": "src/vm.c:1357",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:run_interpreter",
-      "to": "global:false_sym_obj",
-      "loc": "src/vm.c:1515",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:run_interpreter",
       "to": "global:g_active_stack",
       "loc": "src/vm.c:1034",
       "attrs": {
@@ -34338,42 +33726,6 @@
       "loc": "src/vm.c:1102",
       "attrs": {
         "op": "assign"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:run_interpreter",
-      "to": "global:src/vm.c:run_interpreter.valueName",
-      "loc": "src/vm.c:1041",
-      "attrs": {
-        "op": "decay"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:run_interpreter",
-      "to": "global:true_sym_obj",
-      "loc": "src/vm.c:1301",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:run_interpreter",
-      "to": "global:true_sym_obj",
-      "loc": "src/vm.c:1357",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:run_interpreter",
-      "to": "global:true_sym_obj",
-      "loc": "src/vm.c:1516",
-      "attrs": {
-        "op": "addr"
       }
     },
     {
@@ -34604,348 +33956,6 @@
     {
       "kind": "writes_global",
       "from": "func:send_resolve",
-      "to": "global:false_sym_obj",
-      "loc": "src/dispatch.c:1380",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:send_resolve",
-      "to": "global:false_sym_obj",
-      "loc": "src/dispatch.c:1387",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:send_resolve",
-      "to": "global:false_sym_obj",
-      "loc": "src/dispatch.c:1509",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:send_resolve",
-      "to": "global:false_sym_obj",
-      "loc": "src/dispatch.c:1513",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:send_resolve",
-      "to": "global:false_sym_obj",
-      "loc": "src/dispatch.c:1519",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:send_resolve",
-      "to": "global:false_sym_obj",
-      "loc": "src/dispatch.c:1576",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:send_resolve",
-      "to": "global:false_sym_obj",
-      "loc": "src/dispatch.c:1578",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:send_resolve",
-      "to": "global:false_sym_obj",
-      "loc": "src/dispatch.c:1580",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:send_resolve",
-      "to": "global:false_sym_obj",
-      "loc": "src/dispatch.c:1582",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:send_resolve",
-      "to": "global:false_sym_obj",
-      "loc": "src/dispatch.c:1597",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:send_resolve",
-      "to": "global:false_sym_obj",
-      "loc": "src/dispatch.c:1602",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:send_resolve",
-      "to": "global:false_sym_obj",
-      "loc": "src/dispatch.c:1613",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:send_resolve",
-      "to": "global:false_sym_obj",
-      "loc": "src/dispatch.c:1615",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:send_resolve",
-      "to": "global:false_sym_obj",
-      "loc": "src/dispatch.c:1616",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:send_resolve",
-      "to": "global:false_sym_obj",
-      "loc": "src/dispatch.c:1619",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:send_resolve",
-      "to": "global:false_sym_obj",
-      "loc": "src/dispatch.c:1629",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:send_resolve",
-      "to": "global:false_sym_obj",
-      "loc": "src/dispatch.c:1645",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:send_resolve",
-      "to": "global:false_sym_obj",
-      "loc": "src/dispatch.c:1666",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:send_resolve",
-      "to": "global:false_sym_obj",
-      "loc": "src/dispatch.c:1687",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:send_resolve",
-      "to": "global:false_sym_obj",
-      "loc": "src/dispatch.c:1746",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:send_resolve",
-      "to": "global:false_sym_obj",
-      "loc": "src/dispatch.c:1940",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:send_resolve",
-      "to": "global:false_sym_obj",
-      "loc": "src/dispatch.c:1944",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:send_resolve",
-      "to": "global:false_sym_obj",
-      "loc": "src/dispatch.c:1948",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:send_resolve",
-      "to": "global:false_sym_obj",
-      "loc": "src/dispatch.c:1953",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:send_resolve",
-      "to": "global:false_sym_obj",
-      "loc": "src/dispatch.c:1954",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:send_resolve",
-      "to": "global:false_sym_obj",
-      "loc": "src/dispatch.c:1955",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:send_resolve",
-      "to": "global:false_sym_obj",
-      "loc": "src/dispatch.c:1956",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:send_resolve",
-      "to": "global:false_sym_obj",
-      "loc": "src/dispatch.c:1957",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:send_resolve",
-      "to": "global:false_sym_obj",
-      "loc": "src/dispatch.c:1958",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:send_resolve",
-      "to": "global:false_sym_obj",
-      "loc": "src/dispatch.c:1960",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:send_resolve",
-      "to": "global:false_sym_obj",
-      "loc": "src/dispatch.c:1974",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:send_resolve",
-      "to": "global:false_sym_obj",
-      "loc": "src/dispatch.c:1975",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:send_resolve",
-      "to": "global:false_sym_obj",
-      "loc": "src/dispatch.c:1976",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:send_resolve",
-      "to": "global:false_sym_obj",
-      "loc": "src/dispatch.c:1977",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:send_resolve",
-      "to": "global:false_sym_obj",
-      "loc": "src/dispatch.c:1978",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:send_resolve",
-      "to": "global:false_sym_obj",
-      "loc": "src/dispatch.c:1979",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:send_resolve",
-      "to": "global:false_sym_obj",
-      "loc": "src/dispatch.c:1980",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:send_resolve",
-      "to": "global:false_sym_obj",
-      "loc": "src/dispatch.c:1981",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:send_resolve",
       "to": "global:src/dispatch.c:BoundClassVtable",
       "loc": "src/dispatch.c:1252",
       "attrs": {
@@ -34999,279 +34009,9 @@
     },
     {
       "kind": "writes_global",
-      "from": "func:send_resolve",
-      "to": "global:true_sym_obj",
-      "loc": "src/dispatch.c:1380",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:send_resolve",
-      "to": "global:true_sym_obj",
-      "loc": "src/dispatch.c:1387",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:send_resolve",
-      "to": "global:true_sym_obj",
-      "loc": "src/dispatch.c:1508",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:send_resolve",
-      "to": "global:true_sym_obj",
-      "loc": "src/dispatch.c:1520",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:send_resolve",
-      "to": "global:true_sym_obj",
-      "loc": "src/dispatch.c:1524",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:send_resolve",
-      "to": "global:true_sym_obj",
-      "loc": "src/dispatch.c:1576",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:send_resolve",
-      "to": "global:true_sym_obj",
-      "loc": "src/dispatch.c:1578",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:send_resolve",
-      "to": "global:true_sym_obj",
-      "loc": "src/dispatch.c:1580",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:send_resolve",
-      "to": "global:true_sym_obj",
-      "loc": "src/dispatch.c:1582",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:send_resolve",
-      "to": "global:true_sym_obj",
-      "loc": "src/dispatch.c:1602",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:send_resolve",
-      "to": "global:true_sym_obj",
-      "loc": "src/dispatch.c:1612",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:send_resolve",
-      "to": "global:true_sym_obj",
-      "loc": "src/dispatch.c:1616",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:send_resolve",
-      "to": "global:true_sym_obj",
-      "loc": "src/dispatch.c:1619",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:send_resolve",
-      "to": "global:true_sym_obj",
-      "loc": "src/dispatch.c:1629",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:send_resolve",
-      "to": "global:true_sym_obj",
-      "loc": "src/dispatch.c:1645",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:send_resolve",
-      "to": "global:true_sym_obj",
-      "loc": "src/dispatch.c:1666",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:send_resolve",
-      "to": "global:true_sym_obj",
-      "loc": "src/dispatch.c:1687",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:send_resolve",
-      "to": "global:true_sym_obj",
-      "loc": "src/dispatch.c:1744",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:send_resolve",
-      "to": "global:true_sym_obj",
-      "loc": "src/dispatch.c:1938",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:send_resolve",
-      "to": "global:true_sym_obj",
-      "loc": "src/dispatch.c:1939",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:send_resolve",
-      "to": "global:true_sym_obj",
-      "loc": "src/dispatch.c:1940",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:send_resolve",
-      "to": "global:true_sym_obj",
-      "loc": "src/dispatch.c:1941",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:send_resolve",
-      "to": "global:true_sym_obj",
-      "loc": "src/dispatch.c:1944",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:send_resolve",
-      "to": "global:true_sym_obj",
-      "loc": "src/dispatch.c:1946",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:send_resolve",
-      "to": "global:true_sym_obj",
-      "loc": "src/dispatch.c:1947",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:send_resolve",
-      "to": "global:true_sym_obj",
-      "loc": "src/dispatch.c:1955",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:send_resolve",
-      "to": "global:true_sym_obj",
-      "loc": "src/dispatch.c:1959",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:send_resolve",
-      "to": "global:true_sym_obj",
-      "loc": "src/dispatch.c:1976",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:serial_dispatch",
-      "to": "global:false_sym_obj",
-      "loc": "src/serial.c:39",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
       "from": "func:serial_dispatch",
       "to": "global:src/serial.c:SerialObj",
       "loc": "src/serial.c:36",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:serial_dispatch",
-      "to": "global:true_sym_obj",
-      "loc": "src/serial.c:39",
       "attrs": {
         "op": "addr"
       }
@@ -36061,15 +34801,6 @@
     },
     {
       "kind": "writes_global",
-      "from": "func:src/backend/zephyr/platform_zephyr.c:rl_arm_boot",
-      "to": "global:__device_dts_ord_40",
-      "loc": "src/backend/zephyr/platform_zephyr.c:256",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
       "from": "func:src/backend/zephyr/platform_zephyr.c:rl_getc",
       "to": "global:rl_q",
       "loc": "src/backend/zephyr/platform_zephyr.c:170",
@@ -36467,26 +35198,8 @@
     {
       "kind": "writes_global",
       "from": "func:src/dispatch.c:boundclass_construct",
-      "to": "global:false_sym_obj",
-      "loc": "src/dispatch.c:651",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:src/dispatch.c:boundclass_construct",
       "to": "global:src/dispatch.c:BoundClassVtable",
       "loc": "src/dispatch.c:648",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:src/dispatch.c:boundclass_construct",
-      "to": "global:true_sym_obj",
-      "loc": "src/dispatch.c:651",
       "attrs": {
         "op": "addr"
       }
@@ -37069,15 +35782,6 @@
     },
     {
       "kind": "writes_global",
-      "from": "func:src/vm.c:vm_condition_text",
-      "to": "global:src/vm.c:vm_condition_text.textName",
-      "loc": "src/vm.c:121",
-      "attrs": {
-        "op": "decay"
-      }
-    },
-    {
-      "kind": "writes_global",
       "from": "func:timer_backend_cancel",
       "to": "global:src/backend/zephyr/timer_zephyr.c:target_timers",
       "loc": "src/backend/zephyr/timer_zephyr.c:95",
@@ -37407,96 +36111,6 @@
       "loc": "src/vm.c:134",
       "attrs": {
         "op": "assign"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:wallclock_target_read",
-      "to": "global:__device_dts_ord_66",
-      "loc": "zephyr/src/main.c:357",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:wallclock_target_set",
-      "to": "global:__device_dts_ord_66",
-      "loc": "zephyr/src/main.c:415",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:x25519_ge_frombytes_vartime",
-      "to": "global:zephyr/src/ed25519/curve25519_tables.h:d",
-      "loc": "zephyr/src/ed25519/curve25519.c:434",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:x25519_ge_frombytes_vartime",
-      "to": "global:zephyr/src/ed25519/curve25519_tables.h:sqrtm1",
-      "loc": "zephyr/src/ed25519/curve25519.c:457",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:x25519_ge_p3_to_cached",
-      "to": "global:zephyr/src/ed25519/curve25519_tables.h:d2",
-      "loc": "zephyr/src/ed25519/curve25519.c:488",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:zephyr/src/ed25519/curve25519.c:fe_isnonzero",
-      "to": "global:zephyr/src/ed25519/curve25519.c:fe_isnonzero.zero",
-      "loc": "zephyr/src/ed25519/curve25519.c:331",
-      "attrs": {
-        "op": "decay"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:zephyr/src/ed25519/curve25519.c:ge_double_scalarmult_vartime",
-      "to": "global:zephyr/src/ed25519/curve25519_tables.h:Bi",
-      "loc": "zephyr/src/ed25519/curve25519.c:699",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:zephyr/src/ed25519/curve25519.c:ge_double_scalarmult_vartime",
-      "to": "global:zephyr/src/ed25519/curve25519_tables.h:Bi",
-      "loc": "zephyr/src/ed25519/curve25519.c:702",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:zephyr/src/main.c:wire_gpio_outputs",
-      "to": "global:zephyr/src/main.c:gpio_outputs",
-      "loc": "zephyr/src/main.c:1446",
-      "attrs": {
-        "op": "addr"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:zephyr/src/main.c:wire_gpio_outputs",
-      "to": "global:zephyr/src/main.c:gpio_outputs",
-      "loc": "zephyr/src/main.c:1455",
-      "attrs": {
-        "op": "addr"
       }
     },
     {
