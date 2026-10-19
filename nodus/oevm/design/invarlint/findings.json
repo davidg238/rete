@@ -322,172 +322,172 @@
       },
       {
         "func": "func:src/platform.c:host_gpio_fire",
-        "loc": "src/platform.c:106",
+        "loc": "src/platform.c:107",
         "via": "pulse_post_isr"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1115",
+        "loc": "src/platform.c:1100",
         "via": "timer_backend_after"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1119",
+        "loc": "src/platform.c:1104",
         "via": "timer_backend_every"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1123",
+        "loc": "src/platform.c:1108",
         "via": "timer_backend_cancel"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1132",
+        "loc": "src/platform.c:1117",
         "via": "timer_backend_millis"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1137",
+        "loc": "src/platform.c:1122",
         "via": "timer_backend_advance"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1470",
+        "loc": "src/platform.c:1455",
         "via": "platform_backend_node_id"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1473",
+        "loc": "src/platform.c:1458",
         "via": "platform_console_write"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1484",
+        "loc": "src/platform.c:1469",
         "via": "platform_debug_hold"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1485",
+        "loc": "src/platform.c:1470",
         "via": "platform_debug_held"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1492",
+        "loc": "src/platform.c:1477",
         "via": "platform_console_arm"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1500",
+        "loc": "src/platform.c:1485",
         "via": "platform_console_take_line"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1512",
+        "loc": "src/platform.c:1497",
         "via": "platform_console_tee"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1519",
+        "loc": "src/platform.c:1504",
         "via": "platform_backend_board_name"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1559",
+        "loc": "src/platform.c:1544",
         "via": "platform_backend_boot_id"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1681",
+        "loc": "src/platform.c:1666",
         "via": "pulse_drops"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1682",
+        "loc": "src/platform.c:1667",
         "via": "pulse_coalesced"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1687",
+        "loc": "src/platform.c:1672",
         "via": "pulse_stale"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1699",
+        "loc": "src/platform.c:1684",
         "via": "http_poll"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1700",
+        "loc": "src/platform.c:1685",
         "via": "platform_console_service"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1701",
+        "loc": "src/platform.c:1686",
         "via": "pulse_post_isr_value"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1707",
+        "loc": "src/platform.c:1692",
         "via": "http_is_listening"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1707",
+        "loc": "src/platform.c:1692",
         "via": "pulse_pump"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1707",
+        "loc": "src/platform.c:1692",
         "via": "pulse_pump_nb"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1708",
+        "loc": "src/platform.c:1693",
         "via": "timer_backend_poll"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1717",
+        "loc": "src/platform.c:1702",
         "via": "http_listen"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1783",
+        "loc": "src/platform.c:1768",
         "via": "sensor_frame_read"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1806",
+        "loc": "src/platform.c:1791",
         "via": "sensor_arm_event"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:771",
+        "loc": "src/platform.c:756",
         "via": "platform_console_write"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:775",
+        "loc": "src/platform.c:760",
         "via": "platform_console_write"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:779",
+        "loc": "src/platform.c:764",
         "via": "platform_console_write"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:783",
+        "loc": "src/platform.c:768",
         "via": "platform_console_write"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:784",
+        "loc": "src/platform.c:769",
         "via": "platform_console_flush"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:841",
+        "loc": "src/platform.c:826",
         "via": "platform_debug_readline"
       },
       {
@@ -560,38 +560,58 @@
     "sites": [
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1396",
+        "loc": "src/platform.c:1381",
         "via": "reboot_note_read"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1426",
+        "loc": "src/platform.c:1411",
         "via": "reboot_note_ack"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1840",
+        "loc": "src/platform.c:1825",
         "via": "rtc_alarm_arm"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1905",
+        "loc": "src/platform.c:1890",
         "via": "gpio_target_set"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1913",
+        "loc": "src/platform.c:1898",
         "via": "gpio_target_level"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1922",
+        "loc": "src/platform.c:1907",
         "via": "display_target_available"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1923",
+        "loc": "src/platform.c:1908",
         "via": "display_target_clear"
+      },
+      {
+        "func": "func:platform_dispatch",
+        "loc": "src/platform.c:1919",
+        "via": "display_target_available"
+      },
+      {
+        "func": "func:platform_dispatch",
+        "loc": "src/platform.c:1922",
+        "via": "display_target_put"
+      },
+      {
+        "func": "func:platform_dispatch",
+        "loc": "src/platform.c:1929",
+        "via": "display_target_available"
+      },
+      {
+        "func": "func:platform_dispatch",
+        "loc": "src/platform.c:1930",
+        "via": "display_target_refresh"
       },
       {
         "func": "func:platform_dispatch",
@@ -600,82 +620,62 @@
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1937",
-        "via": "display_target_put"
-      },
-      {
-        "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1944",
-        "via": "display_target_available"
-      },
-      {
-        "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1945",
-        "via": "display_target_refresh"
-      },
-      {
-        "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1949",
-        "via": "display_target_available"
-      },
-      {
-        "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1950",
+        "loc": "src/platform.c:1935",
         "via": "display_target_refresh_row"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1961",
+        "loc": "src/platform.c:1946",
         "via": "bell_target_available"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1962",
+        "loc": "src/platform.c:1947",
         "via": "bell_target_strike"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1973",
+        "loc": "src/platform.c:1958",
         "via": "ntp_target_sync"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1982",
+        "loc": "src/platform.c:1967",
         "via": "ntp_target_date"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1990",
+        "loc": "src/platform.c:1975",
         "via": "rtc_target_valid"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1995",
+        "loc": "src/platform.c:1980",
         "via": "reset_cause_timer_wake"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1999",
+        "loc": "src/platform.c:1984",
         "via": "rtc_target_get"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:2003",
+        "loc": "src/platform.c:1988",
         "via": "rtc_target_put"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:2013",
+        "loc": "src/platform.c:1998",
         "via": "wallclock_target_read"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:2023",
+        "loc": "src/platform.c:2008",
         "via": "wallclock_target_set"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:2030",
+        "loc": "src/platform.c:2015",
         "via": "deep_sleep_target"
       }
     ]
@@ -688,67 +688,67 @@
     "sites": [
       {
         "func": "func:main",
-        "loc": "zephyr/src/main.c:1890",
+        "loc": "zephyr/src/main.c:1891",
         "via": "log_udp_start"
       },
       {
         "func": "func:main",
-        "loc": "zephyr/src/main.c:1921",
+        "loc": "zephyr/src/main.c:1922",
         "via": "runner_select"
       },
       {
         "func": "func:main",
-        "loc": "zephyr/src/main.c:1947",
+        "loc": "zephyr/src/main.c:1948",
         "via": "ota_note_running_hash"
       },
       {
         "func": "func:main",
-        "loc": "zephyr/src/main.c:1948",
+        "loc": "zephyr/src/main.c:1949",
         "via": "ota_env"
       },
       {
         "func": "func:zephyr/src/observer.c:obs_trace_record",
-        "loc": "zephyr/src/observer.c:110",
+        "loc": "zephyr/src/observer.c:107",
         "via": "pulse_pending"
       },
       {
         "func": "func:zephyr/src/observer.c:obs_trace_record",
-        "loc": "zephyr/src/observer.c:111",
+        "loc": "zephyr/src/observer.c:108",
         "via": "pulse_drained"
       },
       {
         "func": "func:zephyr/src/observer.c:observer_verdict",
-        "loc": "zephyr/src/observer.c:149",
+        "loc": "zephyr/src/observer.c:146",
         "via": "timer_target_snapshot"
       },
       {
         "func": "func:zephyr/src/observer.c:observer_verdict",
-        "loc": "zephyr/src/observer.c:151",
+        "loc": "zephyr/src/observer.c:148",
         "via": "pulse_drained"
       },
       {
         "func": "func:zephyr/src/observer.c:observer_verdict",
-        "loc": "zephyr/src/observer.c:153",
+        "loc": "zephyr/src/observer.c:150",
         "via": "platform_debug_held"
       },
       {
         "func": "func:zephyr/src/observer.c:observer_dump",
-        "loc": "zephyr/src/observer.c:325",
+        "loc": "zephyr/src/observer.c:322",
         "via": "pulse_drops"
       },
       {
         "func": "func:zephyr/src/observer.c:observer_dump",
-        "loc": "zephyr/src/observer.c:325",
+        "loc": "zephyr/src/observer.c:322",
         "via": "pulse_pending"
       },
       {
         "func": "func:zephyr/src/observer.c:observer_dump",
-        "loc": "zephyr/src/observer.c:326",
+        "loc": "zephyr/src/observer.c:323",
         "via": "pulse_coalesced"
       },
       {
         "func": "func:zephyr/src/observer.c:observer_dump",
-        "loc": "zephyr/src/observer.c:326",
+        "loc": "zephyr/src/observer.c:323",
         "via": "pulse_stale"
       }
     ]
@@ -761,42 +761,42 @@
     "sites": [
       {
         "func": "func:main",
-        "loc": "zephyr/src/main.c:1914",
+        "loc": "zephyr/src/main.c:1915",
         "via": "kernel_boot"
       },
       {
         "func": "func:main",
-        "loc": "zephyr/src/main.c:1926",
+        "loc": "zephyr/src/main.c:1927",
         "via": "oimg_load_blob"
       },
       {
         "func": "func:main",
-        "loc": "zephyr/src/main.c:1946",
+        "loc": "zephyr/src/main.c:1947",
         "via": "ota_sha256"
       },
       {
         "func": "func:main",
-        "loc": "zephyr/src/main.c:1988",
+        "loc": "zephyr/src/main.c:1989",
         "via": "oimg_bootstrap"
       },
       {
         "func": "func:main",
-        "loc": "zephyr/src/main.c:1988",
+        "loc": "zephyr/src/main.c:1989",
         "via": "oimg_root"
       },
       {
         "func": "func:zephyr/src/observer.c:observer_verdict",
-        "loc": "zephyr/src/observer.c:152",
+        "loc": "zephyr/src/observer.c:149",
         "via": "platform_app_cad_ms"
       },
       {
         "func": "func:zephyr/src/observer.c:observer_verdict",
-        "loc": "zephyr/src/observer.c:154",
+        "loc": "zephyr/src/observer.c:151",
         "via": "observer_core_verdict"
       },
       {
         "func": "func:zephyr/src/observer.c:observer_dump",
-        "loc": "zephyr/src/observer.c:324",
+        "loc": "zephyr/src/observer.c:321",
         "via": "platform_app_cad_ms"
       },
       {
@@ -874,7 +874,7 @@
       },
       {
         "func": "func:src/backend/zephyr/timer_zephyr.c:timer_start",
-        "loc": "src/backend/zephyr/timer_zephyr.c:71",
+        "loc": "src/backend/zephyr/timer_zephyr.c:72",
         "via": "space_intern"
       }
     ]
@@ -944,7 +944,7 @@
       },
       {
         "func": "file:src/platform.c",
-        "loc": "src/platform.c:572",
+        "loc": "src/platform.c:557",
         "via": "struct Object * (struct Object *, unsigned int)"
       },
       {
@@ -967,7 +967,7 @@
   {
     "rule": "extern-redeclared",
     "subject": "func:indexable_new",
-    "loc": "src/platform.c:601",
+    "loc": "src/platform.c:586",
     "message": "indexable_new is declared by hand in 4 .c files, not by a header",
     "count": 4,
     "sites": [
@@ -1014,113 +1014,15 @@
   },
   {
     "rule": "extern-redeclared",
-    "subject": "func:bell_target_available",
-    "loc": "zephyr/src/main.c:857",
-    "message": "bell_target_available is declared by hand in 1 .c files, not by a header",
-    "count": 1,
-    "sites": [
-      {
-        "func": "file:src/platform.c",
-        "loc": "src/platform.c:518",
-        "via": "int (void)"
-      }
-    ]
-  },
-  {
-    "rule": "extern-redeclared",
-    "subject": "func:bell_target_strike",
-    "loc": "zephyr/src/main.c:866",
-    "message": "bell_target_strike is declared by hand in 1 .c files, not by a header",
-    "count": 1,
-    "sites": [
-      {
-        "func": "file:src/platform.c",
-        "loc": "src/platform.c:519",
-        "via": "int (int)"
-      }
-    ]
-  },
-  {
-    "rule": "extern-redeclared",
     "subject": "func:deep_sleep_target",
-    "loc": "zephyr/src/main.c:581",
+    "loc": "zephyr/src/main.c:582",
     "message": "deep_sleep_target is declared by hand in 1 .c files, not by a header",
     "count": 1,
     "sites": [
       {
         "func": "file:src/platform.c",
-        "loc": "src/platform.c:550",
+        "loc": "src/platform.c:537",
         "via": "void (int)"
-      }
-    ]
-  },
-  {
-    "rule": "extern-redeclared",
-    "subject": "func:display_target_available",
-    "loc": "zephyr/src/main.c:1090",
-    "message": "display_target_available is declared by hand in 1 .c files, not by a header",
-    "count": 1,
-    "sites": [
-      {
-        "func": "file:src/platform.c",
-        "loc": "src/platform.c:274",
-        "via": "int (void)"
-      }
-    ]
-  },
-  {
-    "rule": "extern-redeclared",
-    "subject": "func:display_target_clear",
-    "loc": "zephyr/src/main.c:1114",
-    "message": "display_target_clear is declared by hand in 1 .c files, not by a header",
-    "count": 1,
-    "sites": [
-      {
-        "func": "file:src/platform.c",
-        "loc": "src/platform.c:275",
-        "via": "int (void)"
-      }
-    ]
-  },
-  {
-    "rule": "extern-redeclared",
-    "subject": "func:display_target_put",
-    "loc": "zephyr/src/main.c:1124",
-    "message": "display_target_put is declared by hand in 1 .c files, not by a header",
-    "count": 1,
-    "sites": [
-      {
-        "func": "file:src/platform.c",
-        "loc": "src/platform.c:276",
-        "via": "int (int, int, const char *, int)"
-      }
-    ]
-  },
-  {
-    "rule": "extern-redeclared",
-    "subject": "func:display_target_refresh",
-    "loc": "zephyr/src/main.c:1141",
-    "message": "display_target_refresh is declared by hand in 1 .c files, not by a header",
-    "count": 1,
-    "sites": [
-      {
-        "func": "file:src/platform.c",
-        "loc": "src/platform.c:277",
-        "via": "int (void)"
-      }
-    ]
-  },
-  {
-    "rule": "extern-redeclared",
-    "subject": "func:display_target_refresh_row",
-    "loc": "zephyr/src/main.c:1153",
-    "message": "display_target_refresh_row is declared by hand in 1 .c files, not by a header",
-    "count": 1,
-    "sites": [
-      {
-        "func": "file:src/platform.c",
-        "loc": "src/platform.c:278",
-        "via": "int (int)"
       }
     ]
   },
@@ -1149,34 +1051,6 @@
         "func": "file:src/http.c",
         "loc": "src/http.c:18",
         "via": "void (void)"
-      }
-    ]
-  },
-  {
-    "rule": "extern-redeclared",
-    "subject": "func:gpio_target_level",
-    "loc": "zephyr/src/main.c:1518",
-    "message": "gpio_target_level is declared by hand in 1 .c files, not by a header",
-    "count": 1,
-    "sites": [
-      {
-        "func": "file:src/platform.c",
-        "loc": "src/platform.c:171",
-        "via": "int (int)"
-      }
-    ]
-  },
-  {
-    "rule": "extern-redeclared",
-    "subject": "func:gpio_target_set",
-    "loc": "zephyr/src/main.c:1508",
-    "message": "gpio_target_set is declared by hand in 1 .c files, not by a header",
-    "count": 1,
-    "sites": [
-      {
-        "func": "file:src/platform.c",
-        "loc": "src/platform.c:170",
-        "via": "int (int, int)"
       }
     ]
   },
@@ -1238,36 +1112,8 @@
   },
   {
     "rule": "extern-redeclared",
-    "subject": "func:ntp_target_date",
-    "loc": "zephyr/src/main.c:257",
-    "message": "ntp_target_date is declared by hand in 1 .c files, not by a header",
-    "count": 1,
-    "sites": [
-      {
-        "func": "file:src/platform.c",
-        "loc": "src/platform.c:527",
-        "via": "int (void)"
-      }
-    ]
-  },
-  {
-    "rule": "extern-redeclared",
-    "subject": "func:ntp_target_sync",
-    "loc": "zephyr/src/main.c:203",
-    "message": "ntp_target_sync is declared by hand in 1 .c files, not by a header",
-    "count": 1,
-    "sites": [
-      {
-        "func": "file:src/platform.c",
-        "loc": "src/platform.c:523",
-        "via": "int (int)"
-      }
-    ]
-  },
-  {
-    "rule": "extern-redeclared",
     "subject": "func:observer_halt",
-    "loc": "zephyr/src/observer.c:339",
+    "loc": "zephyr/src/observer.c:336",
     "message": "observer_halt is declared by hand in 1 .c files, not by a header",
     "count": 1,
     "sites": [
@@ -1281,7 +1127,7 @@
   {
     "rule": "extern-redeclared",
     "subject": "func:observer_start",
-    "loc": "zephyr/src/observer.c:400",
+    "loc": "zephyr/src/observer.c:397",
     "message": "observer_start is declared by hand in 1 .c files, not by a header",
     "count": 1,
     "sites": [
@@ -1301,7 +1147,7 @@
     "sites": [
       {
         "func": "file:zephyr/src/main.c",
-        "loc": "zephyr/src/main.c:1571",
+        "loc": "zephyr/src/main.c:1572",
         "via": "struct Object * (struct Object *)"
       }
     ]
@@ -1315,7 +1161,7 @@
     "sites": [
       {
         "func": "file:zephyr/src/main.c",
-        "loc": "zephyr/src/main.c:1570",
+        "loc": "zephyr/src/main.c:1571",
         "via": "struct Object * (void)"
       }
     ]
@@ -1323,13 +1169,13 @@
   {
     "rule": "extern-redeclared",
     "subject": "func:platform_app_cad_ms",
-    "loc": "src/platform.c:18",
+    "loc": "src/platform.c:19",
     "message": "platform_app_cad_ms is declared by hand in 1 .c files, not by a header",
     "count": 1,
     "sites": [
       {
         "func": "file:zephyr/src/observer.c",
-        "loc": "zephyr/src/observer.c:61",
+        "loc": "zephyr/src/observer.c:58",
         "via": "unsigned int (void)"
       }
     ]
@@ -1343,7 +1189,7 @@
     "sites": [
       {
         "func": "file:zephyr/src/observer.c",
-        "loc": "zephyr/src/observer.c:65",
+        "loc": "zephyr/src/observer.c:62",
         "via": "int (void)"
       }
     ]
@@ -1357,7 +1203,7 @@
     "sites": [
       {
         "func": "file:src/platform.c",
-        "loc": "src/platform.c:546",
+        "loc": "src/platform.c:533",
         "via": "void (unsigned int)"
       }
     ]
@@ -1371,7 +1217,7 @@
     "sites": [
       {
         "func": "file:src/platform.c",
-        "loc": "src/platform.c:547",
+        "loc": "src/platform.c:534",
         "via": "unsigned int (void)"
       }
     ]
@@ -1385,7 +1231,7 @@
     "sites": [
       {
         "func": "file:src/platform.c",
-        "loc": "src/platform.c:542",
+        "loc": "src/platform.c:529",
         "via": "void (void)"
       }
     ]
@@ -1399,7 +1245,7 @@
     "sites": [
       {
         "func": "file:src/platform.c",
-        "loc": "src/platform.c:543",
+        "loc": "src/platform.c:530",
         "via": "int (struct RebootNote *)"
       }
     ]
@@ -1413,7 +1259,7 @@
     "sites": [
       {
         "func": "file:src/platform.c",
-        "loc": "src/platform.c:544",
+        "loc": "src/platform.c:531",
         "via": "void (unsigned int, unsigned int, unsigned int, unsigned int, unsigned int)"
       }
     ]
@@ -1421,13 +1267,13 @@
   {
     "rule": "extern-redeclared",
     "subject": "func:reset_cause_timer_wake",
-    "loc": "zephyr/src/main.c:305",
+    "loc": "zephyr/src/main.c:306",
     "message": "reset_cause_timer_wake is declared by hand in 1 .c files, not by a header",
     "count": 1,
     "sites": [
       {
         "func": "file:src/platform.c",
-        "loc": "src/platform.c:537",
+        "loc": "src/platform.c:524",
         "via": "int (void)"
       }
     ]
@@ -1435,56 +1281,14 @@
   {
     "rule": "extern-redeclared",
     "subject": "func:rtc_alarm_arm",
-    "loc": "zephyr/src/main.c:554",
+    "loc": "zephyr/src/main.c:555",
     "message": "rtc_alarm_arm is declared by hand in 1 .c files, not by a header",
     "count": 1,
     "sites": [
       {
         "func": "file:src/platform.c",
-        "loc": "src/platform.c:561",
+        "loc": "src/platform.c:546",
         "via": "int (int, int, int)"
-      }
-    ]
-  },
-  {
-    "rule": "extern-redeclared",
-    "subject": "func:rtc_target_get",
-    "loc": "zephyr/src/main.c:293",
-    "message": "rtc_target_get is declared by hand in 1 .c files, not by a header",
-    "count": 1,
-    "sites": [
-      {
-        "func": "file:src/platform.c",
-        "loc": "src/platform.c:532",
-        "via": "int (int)"
-      }
-    ]
-  },
-  {
-    "rule": "extern-redeclared",
-    "subject": "func:rtc_target_put",
-    "loc": "zephyr/src/main.c:294",
-    "message": "rtc_target_put is declared by hand in 1 .c files, not by a header",
-    "count": 1,
-    "sites": [
-      {
-        "func": "file:src/platform.c",
-        "loc": "src/platform.c:533",
-        "via": "void (int, int)"
-      }
-    ]
-  },
-  {
-    "rule": "extern-redeclared",
-    "subject": "func:rtc_target_valid",
-    "loc": "zephyr/src/main.c:292",
-    "message": "rtc_target_valid is declared by hand in 1 .c files, not by a header",
-    "count": 1,
-    "sites": [
-      {
-        "func": "file:src/platform.c",
-        "loc": "src/platform.c:531",
-        "via": "int (void)"
       }
     ]
   },
@@ -1517,48 +1321,6 @@
     ]
   },
   {
-    "rule": "extern-redeclared",
-    "subject": "func:timer_target_snapshot",
-    "loc": "src/backend/zephyr/timer_zephyr.c:125",
-    "message": "timer_target_snapshot is declared by hand in 1 .c files, not by a header",
-    "count": 1,
-    "sites": [
-      {
-        "func": "file:zephyr/src/observer.c",
-        "loc": "zephyr/src/observer.c:58",
-        "via": "int (unsigned int *, unsigned int *, int)"
-      }
-    ]
-  },
-  {
-    "rule": "extern-redeclared",
-    "subject": "func:wallclock_target_read",
-    "loc": "zephyr/src/main.c:354",
-    "message": "wallclock_target_read is declared by hand in 1 .c files, not by a header",
-    "count": 1,
-    "sites": [
-      {
-        "func": "file:src/platform.c",
-        "loc": "src/platform.c:555",
-        "via": "int (void)"
-      }
-    ]
-  },
-  {
-    "rule": "extern-redeclared",
-    "subject": "func:wallclock_target_set",
-    "loc": "zephyr/src/main.c:412",
-    "message": "wallclock_target_set is declared by hand in 1 .c files, not by a header",
-    "count": 1,
-    "sites": [
-      {
-        "func": "file:src/platform.c",
-        "loc": "src/platform.c:556",
-        "via": "int (int, int)"
-      }
-    ]
-  },
-  {
     "rule": "global-flow",
     "subject": "global:_impure_ptr",
     "message": "_impure_ptr: written by 0, read by 44 functions; no writer in the module",
@@ -1586,12 +1348,12 @@
       },
       {
         "func": "func:main",
-        "loc": "zephyr/src/main.c:1839",
+        "loc": "zephyr/src/main.c:1840",
         "via": "reads"
       },
       {
         "func": "func:main",
-        "loc": "zephyr/src/main.c:1848",
+        "loc": "zephyr/src/main.c:1849",
         "via": "reads"
       },
       {
@@ -1671,52 +1433,57 @@
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1014",
+        "loc": "src/platform.c:1037",
         "via": "reads"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1052",
+        "loc": "src/platform.c:1135",
         "via": "reads"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1150",
+        "loc": "src/platform.c:1164",
         "via": "reads"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1179",
+        "loc": "src/platform.c:1712",
         "via": "reads"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1727",
+        "loc": "src/platform.c:1724",
         "via": "reads"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1739",
+        "loc": "src/platform.c:1745",
         "via": "reads"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1760",
+        "loc": "src/platform.c:1784",
         "via": "reads"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1799",
+        "loc": "src/platform.c:1818",
         "via": "reads"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1833",
+        "loc": "src/platform.c:1916",
         "via": "reads"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1931",
+        "loc": "src/platform.c:799",
+        "via": "reads"
+      },
+      {
+        "func": "func:platform_dispatch",
+        "loc": "src/platform.c:809",
         "via": "reads"
       },
       {
@@ -1726,17 +1493,12 @@
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:824",
+        "loc": "src/platform.c:855",
         "via": "reads"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:829",
-        "via": "reads"
-      },
-      {
-        "func": "func:platform_dispatch",
-        "loc": "src/platform.c:870",
+        "loc": "src/platform.c:902",
         "via": "reads"
       },
       {
@@ -1746,27 +1508,27 @@
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:932",
+        "loc": "src/platform.c:934",
         "via": "reads"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:949",
+        "loc": "src/platform.c:955",
         "via": "reads"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:970",
+        "loc": "src/platform.c:969",
         "via": "reads"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:984",
+        "loc": "src/platform.c:982",
         "via": "reads"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:997",
+        "loc": "src/platform.c:999",
         "via": "reads"
       },
       {
@@ -2036,7 +1798,7 @@
       },
       {
         "func": "func:src/platform.c:host_gpio_register",
-        "loc": "src/platform.c:100",
+        "loc": "src/platform.c:101",
         "via": "reads"
       },
       {
@@ -2159,22 +1921,22 @@
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1067",
+        "loc": "src/platform.c:1052",
         "via": "reads"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1081",
+        "loc": "src/platform.c:1066",
         "via": "writes"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1408",
+        "loc": "src/platform.c:1393",
         "via": "reads"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1416",
+        "loc": "src/platform.c:1401",
         "via": "writes"
       },
       {
@@ -2425,17 +2187,17 @@
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:776",
+        "loc": "src/platform.c:761",
         "via": "reads"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:777",
+        "loc": "src/platform.c:762",
         "via": "reads"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:899",
+        "loc": "src/platform.c:884",
         "via": "reads"
       },
       {
@@ -2628,112 +2390,112 @@
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1012",
+        "loc": "src/platform.c:1035",
         "via": "reads"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1013",
+        "loc": "src/platform.c:1036",
         "via": "reads"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1050",
+        "loc": "src/platform.c:1133",
         "via": "reads"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1051",
+        "loc": "src/platform.c:1134",
         "via": "reads"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1148",
+        "loc": "src/platform.c:1491",
         "via": "reads"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1149",
+        "loc": "src/platform.c:1710",
         "via": "reads"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1506",
+        "loc": "src/platform.c:1711",
         "via": "reads"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1725",
+        "loc": "src/platform.c:1722",
         "via": "reads"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1726",
+        "loc": "src/platform.c:1723",
         "via": "reads"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1737",
+        "loc": "src/platform.c:1743",
         "via": "reads"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1738",
+        "loc": "src/platform.c:1744",
         "via": "reads"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1758",
+        "loc": "src/platform.c:1782",
         "via": "reads"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1759",
+        "loc": "src/platform.c:1783",
         "via": "reads"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1797",
+        "loc": "src/platform.c:1816",
         "via": "reads"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1798",
+        "loc": "src/platform.c:1817",
         "via": "reads"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1831",
+        "loc": "src/platform.c:1914",
         "via": "reads"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1832",
+        "loc": "src/platform.c:1915",
         "via": "reads"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1929",
+        "loc": "src/platform.c:804",
         "via": "reads"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1930",
+        "loc": "src/platform.c:828",
         "via": "reads"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:819",
+        "loc": "src/platform.c:883",
         "via": "reads"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:843",
+        "loc": "src/platform.c:900",
         "via": "reads"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:898",
+        "loc": "src/platform.c:901",
         "via": "reads"
       },
       {
@@ -2748,22 +2510,27 @@
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:930",
+        "loc": "src/platform.c:932",
         "via": "reads"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:931",
+        "loc": "src/platform.c:933",
         "via": "reads"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:947",
+        "loc": "src/platform.c:953",
         "via": "reads"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:948",
+        "loc": "src/platform.c:954",
+        "via": "reads"
+      },
+      {
+        "func": "func:platform_dispatch",
+        "loc": "src/platform.c:967",
         "via": "reads"
       },
       {
@@ -2773,27 +2540,22 @@
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:969",
+        "loc": "src/platform.c:980",
         "via": "reads"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:982",
+        "loc": "src/platform.c:981",
         "via": "reads"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:983",
+        "loc": "src/platform.c:997",
         "via": "reads"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:995",
-        "via": "reads"
-      },
-      {
-        "func": "func:platform_dispatch",
-        "loc": "src/platform.c:996",
+        "loc": "src/platform.c:998",
         "via": "reads"
       },
       {
@@ -2928,7 +2690,7 @@
       },
       {
         "func": "func:src/platform.c:ota_leaf_bytes",
-        "loc": "src/platform.c:735",
+        "loc": "src/platform.c:720",
         "via": "reads"
       },
       {
@@ -3671,7 +3433,7 @@
       },
       {
         "func": "func:platform_object",
-        "loc": "src/platform.c:627",
+        "loc": "src/platform.c:612",
         "via": "reads"
       },
       {
@@ -3696,7 +3458,7 @@
       },
       {
         "func": "func:src/platform.c:indexable_init",
-        "loc": "src/platform.c:591",
+        "loc": "src/platform.c:576",
         "via": "reads"
       },
       {
@@ -3832,12 +3594,12 @@
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1287",
+        "loc": "src/platform.c:1272",
         "via": "reads"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:893",
+        "loc": "src/platform.c:878",
         "via": "reads"
       },
       {
@@ -4068,12 +3830,12 @@
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1174",
+        "loc": "src/platform.c:1159",
         "via": "reads"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:892",
+        "loc": "src/platform.c:877",
         "via": "reads"
       },
       {
@@ -4161,47 +3923,47 @@
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1190",
+        "loc": "src/platform.c:1175",
         "via": "reads"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1207",
+        "loc": "src/platform.c:1192",
         "via": "reads"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1544",
+        "loc": "src/platform.c:1529",
         "via": "reads"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1577",
+        "loc": "src/platform.c:1562",
         "via": "reads"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:857",
+        "loc": "src/platform.c:842",
         "via": "reads"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:868",
+        "loc": "src/platform.c:853",
         "via": "reads"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:869",
+        "loc": "src/platform.c:854",
         "via": "reads"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:874",
+        "loc": "src/platform.c:859",
         "via": "reads"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:900",
+        "loc": "src/platform.c:885",
         "via": "reads"
       },
       {
@@ -4266,7 +4028,7 @@
       },
       {
         "func": "func:src/platform.c:ota_leaf_bytes",
-        "loc": "src/platform.c:734",
+        "loc": "src/platform.c:719",
         "via": "reads"
       },
       {
@@ -4780,82 +4542,82 @@
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1305",
+        "loc": "src/platform.c:1290",
         "via": "writes"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1306",
+        "loc": "src/platform.c:1291",
         "via": "writes"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1307",
+        "loc": "src/platform.c:1292",
         "via": "writes"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1308",
+        "loc": "src/platform.c:1293",
         "via": "writes"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1309",
+        "loc": "src/platform.c:1294",
         "via": "writes"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1310",
+        "loc": "src/platform.c:1295",
         "via": "writes"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1485",
+        "loc": "src/platform.c:1470",
         "via": "writes"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1508",
+        "loc": "src/platform.c:1493",
         "via": "writes"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1513",
+        "loc": "src/platform.c:1498",
         "via": "writes"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1592",
+        "loc": "src/platform.c:1577",
         "via": "writes"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1600",
+        "loc": "src/platform.c:1585",
         "via": "writes"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1625",
+        "loc": "src/platform.c:1610",
         "via": "writes"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1636",
+        "loc": "src/platform.c:1621",
         "via": "writes"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1915",
+        "loc": "src/platform.c:1900",
         "via": "writes"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:764",
+        "loc": "src/platform.c:749",
         "via": "writes"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:890",
+        "loc": "src/platform.c:875",
         "via": "writes"
       },
       {
@@ -5461,52 +5223,52 @@
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1311",
+        "loc": "src/platform.c:1296",
         "via": "writes"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1485",
+        "loc": "src/platform.c:1470",
         "via": "writes"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1513",
+        "loc": "src/platform.c:1498",
         "via": "writes"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1591",
+        "loc": "src/platform.c:1576",
         "via": "writes"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1600",
+        "loc": "src/platform.c:1585",
         "via": "writes"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1636",
+        "loc": "src/platform.c:1621",
         "via": "writes"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1906",
+        "loc": "src/platform.c:1891",
         "via": "writes"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1915",
+        "loc": "src/platform.c:1900",
         "via": "writes"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:764",
+        "loc": "src/platform.c:749",
         "via": "writes"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:890",
+        "loc": "src/platform.c:875",
         "via": "writes"
       },
       {
@@ -7216,32 +6978,32 @@
     "sites": [
       {
         "func": "func:gpio_target_level",
-        "loc": "zephyr/src/main.c:1521",
+        "loc": "zephyr/src/main.c:1522",
         "via": "reads"
       },
       {
         "func": "func:gpio_target_level",
-        "loc": "zephyr/src/main.c:1522",
+        "loc": "zephyr/src/main.c:1523",
         "via": "writes"
-      },
-      {
-        "func": "func:gpio_target_set",
-        "loc": "zephyr/src/main.c:1511",
-        "via": "reads"
       },
       {
         "func": "func:gpio_target_set",
         "loc": "zephyr/src/main.c:1512",
+        "via": "reads"
+      },
+      {
+        "func": "func:gpio_target_set",
+        "loc": "zephyr/src/main.c:1513",
         "via": "writes"
       },
       {
         "func": "func:zephyr/src/main.c:wire_gpio_outputs",
-        "loc": "zephyr/src/main.c:1445",
+        "loc": "zephyr/src/main.c:1446",
         "via": "writes"
       },
       {
         "func": "func:zephyr/src/main.c:wire_gpio_outputs",
-        "loc": "zephyr/src/main.c:1454",
+        "loc": "zephyr/src/main.c:1455",
         "via": "writes"
       }
     ]
@@ -8425,17 +8187,17 @@
     "sites": [
       {
         "func": "func:src/backend/zephyr/timer_zephyr.c:timer_start",
-        "loc": "src/backend/zephyr/timer_zephyr.c:68",
+        "loc": "src/backend/zephyr/timer_zephyr.c:69",
         "via": "writes"
       },
       {
         "func": "func:timer_backend_cancel",
-        "loc": "src/backend/zephyr/timer_zephyr.c:94",
+        "loc": "src/backend/zephyr/timer_zephyr.c:95",
         "via": "writes"
       },
       {
         "func": "func:timer_target_snapshot",
-        "loc": "src/backend/zephyr/timer_zephyr.c:129",
+        "loc": "src/backend/zephyr/timer_zephyr.c:130",
         "via": "writes"
       }
     ]
@@ -8670,17 +8432,12 @@
     "sites": [
       {
         "func": "func:src/platform.c:host_gpio_fire",
-        "loc": "src/platform.c:105",
-        "via": "reads"
-      },
-      {
-        "func": "func:src/platform.c:host_gpio_fire",
         "loc": "src/platform.c:106",
         "via": "reads"
       },
       {
-        "func": "func:src/platform.c:host_gpio_register",
-        "loc": "src/platform.c:85",
+        "func": "func:src/platform.c:host_gpio_fire",
+        "loc": "src/platform.c:107",
         "via": "reads"
       },
       {
@@ -8691,17 +8448,17 @@
       {
         "func": "func:src/platform.c:host_gpio_register",
         "loc": "src/platform.c:87",
-        "via": "writes"
-      },
-      {
-        "func": "func:src/platform.c:host_gpio_register",
-        "loc": "src/platform.c:91",
         "via": "reads"
       },
       {
         "func": "func:src/platform.c:host_gpio_register",
-        "loc": "src/platform.c:92",
+        "loc": "src/platform.c:88",
         "via": "writes"
+      },
+      {
+        "func": "func:src/platform.c:host_gpio_register",
+        "loc": "src/platform.c:92",
+        "via": "reads"
       },
       {
         "func": "func:src/platform.c:host_gpio_register",
@@ -8710,12 +8467,17 @@
       },
       {
         "func": "func:src/platform.c:host_gpio_register",
-        "loc": "src/platform.c:97",
+        "loc": "src/platform.c:94",
         "via": "writes"
       },
       {
         "func": "func:src/platform.c:host_gpio_register",
         "loc": "src/platform.c:98",
+        "via": "writes"
+      },
+      {
+        "func": "func:src/platform.c:host_gpio_register",
+        "loc": "src/platform.c:99",
         "via": "writes"
       }
     ]
@@ -8728,22 +8490,22 @@
     "sites": [
       {
         "func": "func:src/platform.c:host_gpio_fire",
-        "loc": "src/platform.c:104",
+        "loc": "src/platform.c:105",
         "via": "reads"
       },
       {
         "func": "func:src/platform.c:host_gpio_register",
-        "loc": "src/platform.c:84",
+        "loc": "src/platform.c:100",
+        "via": "writes"
+      },
+      {
+        "func": "func:src/platform.c:host_gpio_register",
+        "loc": "src/platform.c:85",
         "via": "reads"
       },
       {
         "func": "func:src/platform.c:host_gpio_register",
-        "loc": "src/platform.c:90",
-        "via": "reads"
-      },
-      {
-        "func": "func:src/platform.c:host_gpio_register",
-        "loc": "src/platform.c:96",
+        "loc": "src/platform.c:91",
         "via": "reads"
       },
       {
@@ -8759,7 +8521,7 @@
       {
         "func": "func:src/platform.c:host_gpio_register",
         "loc": "src/platform.c:99",
-        "via": "writes"
+        "via": "reads"
       }
     ]
   },
@@ -8771,17 +8533,17 @@
     "sites": [
       {
         "func": "func:platform_app_cad_ms",
-        "loc": "src/platform.c:18",
+        "loc": "src/platform.c:19",
         "via": "reads"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1532",
+        "loc": "src/platform.c:1517",
         "via": "writes"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1533",
+        "loc": "src/platform.c:1518",
         "via": "reads"
       }
     ]
@@ -8929,17 +8691,17 @@
     "sites": [
       {
         "func": "func:rtc_target_get",
-        "loc": "zephyr/src/main.c:293",
+        "loc": "zephyr/src/main.c:294",
         "via": "reads"
       },
       {
         "func": "func:rtc_target_put",
-        "loc": "zephyr/src/main.c:294",
+        "loc": "zephyr/src/main.c:295",
         "via": "writes"
       },
       {
         "func": "func:rtc_target_valid",
-        "loc": "zephyr/src/main.c:292",
+        "loc": "zephyr/src/main.c:293",
         "via": "reads"
       }
     ]
@@ -8952,17 +8714,17 @@
     "sites": [
       {
         "func": "func:ntp_target_date",
-        "loc": "zephyr/src/main.c:257",
+        "loc": "zephyr/src/main.c:258",
         "via": "reads"
       },
       {
         "func": "func:ntp_target_sync",
-        "loc": "zephyr/src/main.c:251",
+        "loc": "zephyr/src/main.c:252",
         "via": "writes"
       },
       {
         "func": "func:ntp_target_sync",
-        "loc": "zephyr/src/main.c:253",
+        "loc": "zephyr/src/main.c:254",
         "via": "reads"
       }
     ]
@@ -8975,17 +8737,17 @@
     "sites": [
       {
         "func": "func:zephyr/src/observer.c:obs_trace_record",
-        "loc": "zephyr/src/observer.c:112",
+        "loc": "zephyr/src/observer.c:109",
         "via": "reads"
       },
       {
         "func": "func:zephyr/src/observer.c:observer_dump",
-        "loc": "zephyr/src/observer.c:323",
+        "loc": "zephyr/src/observer.c:320",
         "via": "reads"
       },
       {
         "func": "func:zephyr/src/observer.c:observer_verdict",
-        "loc": "zephyr/src/observer.c:154",
+        "loc": "zephyr/src/observer.c:151",
         "via": "writes"
       }
     ]
@@ -8998,32 +8760,32 @@
     "sites": [
       {
         "func": "func:observer_halt",
-        "loc": "zephyr/src/observer.c:340",
+        "loc": "zephyr/src/observer.c:337",
         "via": "reads"
       },
       {
         "func": "func:observer_start",
-        "loc": "zephyr/src/observer.c:402",
+        "loc": "zephyr/src/observer.c:399",
         "via": "writes"
       },
       {
         "func": "func:observer_start",
-        "loc": "zephyr/src/observer.c:403",
+        "loc": "zephyr/src/observer.c:400",
         "via": "reads"
       },
       {
         "func": "func:observer_start",
-        "loc": "zephyr/src/observer.c:403",
+        "loc": "zephyr/src/observer.c:400",
         "via": "writes"
       },
       {
         "func": "func:observer_start",
-        "loc": "zephyr/src/observer.c:407",
+        "loc": "zephyr/src/observer.c:404",
         "via": "reads"
       },
       {
         "func": "func:observer_start",
-        "loc": "zephyr/src/observer.c:421",
+        "loc": "zephyr/src/observer.c:418",
         "via": "reads"
       }
     ]
@@ -9036,22 +8798,22 @@
     "sites": [
       {
         "func": "func:zephyr/src/observer.c:obs_trace_dump",
-        "loc": "zephyr/src/observer.c:117",
+        "loc": "zephyr/src/observer.c:114",
         "via": "reads"
       },
       {
         "func": "func:zephyr/src/observer.c:obs_trace_dump",
-        "loc": "zephyr/src/observer.c:118",
+        "loc": "zephyr/src/observer.c:115",
         "via": "reads"
       },
       {
         "func": "func:zephyr/src/observer.c:obs_trace_record",
-        "loc": "zephyr/src/observer.c:108",
+        "loc": "zephyr/src/observer.c:105",
         "via": "reads"
       },
       {
         "func": "func:zephyr/src/observer.c:obs_trace_record",
-        "loc": "zephyr/src/observer.c:113",
+        "loc": "zephyr/src/observer.c:110",
         "via": "writes"
       }
     ]
@@ -9064,12 +8826,12 @@
     "sites": [
       {
         "func": "func:wallclock_target_read",
-        "loc": "zephyr/src/main.c:356",
+        "loc": "zephyr/src/main.c:357",
         "via": "writes"
       },
       {
         "func": "func:wallclock_target_set",
-        "loc": "zephyr/src/main.c:414",
+        "loc": "zephyr/src/main.c:415",
         "via": "writes"
       }
     ]
@@ -9318,7 +9080,7 @@
       },
       {
         "func": "func:main",
-        "loc": "zephyr/src/main.c:1904",
+        "loc": "zephyr/src/main.c:1905",
         "via": "writes"
       }
     ]
@@ -9349,12 +9111,12 @@
     "sites": [
       {
         "func": "func:main",
-        "loc": "zephyr/src/main.c:1865",
+        "loc": "zephyr/src/main.c:1866",
         "via": "writes"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1462",
+        "loc": "src/platform.c:1447",
         "via": "writes"
       }
     ]
@@ -9367,7 +9129,7 @@
     "sites": [
       {
         "func": "func:main",
-        "loc": "zephyr/src/main.c:1905",
+        "loc": "zephyr/src/main.c:1906",
         "via": "writes"
       },
       {
@@ -10591,37 +10353,37 @@
     "sites": [
       {
         "func": "func:indexable_new",
-        "loc": "src/platform.c:604",
+        "loc": "src/platform.c:589",
         "via": "writes"
       },
       {
         "func": "func:src/platform.c:indexable_init",
-        "loc": "src/platform.c:591",
+        "loc": "src/platform.c:576",
         "via": "writes"
       },
       {
         "func": "func:src/platform.c:indexable_init",
-        "loc": "src/platform.c:592",
+        "loc": "src/platform.c:577",
         "via": "writes"
       },
       {
         "func": "func:src/platform.c:indexable_init",
-        "loc": "src/platform.c:593",
+        "loc": "src/platform.c:578",
         "via": "writes"
       },
       {
         "func": "func:src/platform.c:indexable_init",
-        "loc": "src/platform.c:594",
+        "loc": "src/platform.c:579",
         "via": "writes"
       },
       {
         "func": "func:src/platform.c:indexable_init",
-        "loc": "src/platform.c:595",
+        "loc": "src/platform.c:580",
         "via": "writes"
       },
       {
         "func": "func:src/platform.c:indexable_init",
-        "loc": "src/platform.c:596",
+        "loc": "src/platform.c:581",
         "via": "writes"
       }
     ]
@@ -10634,22 +10396,22 @@
     "sites": [
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1491",
+        "loc": "src/platform.c:1476",
         "via": "writes"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1492",
+        "loc": "src/platform.c:1477",
         "via": "reads"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1700",
+        "loc": "src/platform.c:1685",
         "via": "reads"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1701",
+        "loc": "src/platform.c:1686",
         "via": "reads"
       }
     ]
@@ -10662,12 +10424,12 @@
     "sites": [
       {
         "func": "func:src/platform.c:indexable_init",
-        "loc": "src/platform.c:590",
+        "loc": "src/platform.c:575",
         "via": "reads"
       },
       {
         "func": "func:src/platform.c:indexable_init",
-        "loc": "src/platform.c:597",
+        "loc": "src/platform.c:582",
         "via": "writes"
       }
     ]
@@ -10680,17 +10442,17 @@
     "sites": [
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1490",
+        "loc": "src/platform.c:1475",
         "via": "reads"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1492",
+        "loc": "src/platform.c:1477",
         "via": "writes"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1499",
+        "loc": "src/platform.c:1484",
         "via": "reads"
       }
     ]
@@ -10703,12 +10465,12 @@
     "sites": [
       {
         "func": "func:platform_object",
-        "loc": "src/platform.c:625",
+        "loc": "src/platform.c:610",
         "via": "reads"
       },
       {
         "func": "func:platform_object",
-        "loc": "src/platform.c:634",
+        "loc": "src/platform.c:619",
         "via": "writes"
       }
     ]
@@ -10721,12 +10483,12 @@
     "sites": [
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1855",
+        "loc": "src/platform.c:1840",
         "via": "reads"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1856",
+        "loc": "src/platform.c:1841",
         "via": "writes"
       }
     ]
@@ -10739,12 +10501,12 @@
     "sites": [
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1816",
+        "loc": "src/platform.c:1801",
         "via": "reads"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1817",
+        "loc": "src/platform.c:1802",
         "via": "writes"
       }
     ]
@@ -10880,17 +10642,17 @@
     "sites": [
       {
         "func": "func:reset_cause_timer_wake",
-        "loc": "zephyr/src/main.c:310",
+        "loc": "zephyr/src/main.c:311",
         "via": "writes"
       },
       {
         "func": "func:reset_cause_timer_wake",
-        "loc": "zephyr/src/main.c:311",
+        "loc": "zephyr/src/main.c:312",
         "via": "reads"
       },
       {
         "func": "func:reset_cause_timer_wake",
-        "loc": "zephyr/src/main.c:314",
+        "loc": "zephyr/src/main.c:315",
         "via": "reads"
       }
     ]
@@ -10903,12 +10665,12 @@
     "sites": [
       {
         "func": "func:reset_cause_timer_wake",
-        "loc": "zephyr/src/main.c:307",
+        "loc": "zephyr/src/main.c:308",
         "via": "reads"
       },
       {
         "func": "func:reset_cause_timer_wake",
-        "loc": "zephyr/src/main.c:312",
+        "loc": "zephyr/src/main.c:313",
         "via": "writes"
       }
     ]
@@ -10921,12 +10683,12 @@
     "sites": [
       {
         "func": "func:zephyr/src/observer.c:obs_trace_dump",
-        "loc": "zephyr/src/observer.c:122",
+        "loc": "zephyr/src/observer.c:119",
         "via": "writes"
       },
       {
         "func": "func:zephyr/src/observer.c:obs_trace_record",
-        "loc": "zephyr/src/observer.c:108",
+        "loc": "zephyr/src/observer.c:105",
         "via": "writes"
       }
     ]
@@ -10939,12 +10701,12 @@
     "sites": [
       {
         "func": "func:zephyr/src/observer.c:observer_thread_fn",
-        "loc": "zephyr/src/observer.c:351",
+        "loc": "zephyr/src/observer.c:348",
         "via": "writes"
       },
       {
         "func": "func:zephyr/src/observer.c:observer_thread_fn",
-        "loc": "zephyr/src/observer.c:375",
+        "loc": "zephyr/src/observer.c:372",
         "via": "reads"
       }
     ]
@@ -11144,7 +10906,7 @@
     "sites": [
       {
         "func": "func:observer_start",
-        "loc": "zephyr/src/observer.c:402",
+        "loc": "zephyr/src/observer.c:399",
         "via": "writes"
       }
     ]
@@ -11183,7 +10945,7 @@
     "sites": [
       {
         "func": "func:observer_start",
-        "loc": "zephyr/src/observer.c:422",
+        "loc": "zephyr/src/observer.c:419",
         "via": "writes"
       }
     ]
@@ -11214,7 +10976,7 @@
     "sites": [
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1546",
+        "loc": "src/platform.c:1531",
         "via": "writes"
       }
     ]
@@ -11227,22 +10989,22 @@
     "sites": [
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1543",
+        "loc": "src/platform.c:1528",
         "via": "reads"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1544",
+        "loc": "src/platform.c:1529",
         "via": "reads"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1545",
+        "loc": "src/platform.c:1530",
         "via": "reads"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1546",
+        "loc": "src/platform.c:1531",
         "via": "reads"
       }
     ]
@@ -11562,12 +11324,12 @@
     "sites": [
       {
         "func": "func:platform_object",
-        "loc": "src/platform.c:633",
+        "loc": "src/platform.c:618",
         "via": "writes"
       },
       {
         "func": "func:platform_object",
-        "loc": "src/platform.c:636",
+        "loc": "src/platform.c:621",
         "via": "writes"
       }
     ]
@@ -11580,37 +11342,37 @@
     "sites": [
       {
         "func": "func:platform_object",
-        "loc": "src/platform.c:627",
+        "loc": "src/platform.c:612",
         "via": "writes"
       },
       {
         "func": "func:platform_object",
-        "loc": "src/platform.c:628",
+        "loc": "src/platform.c:613",
         "via": "writes"
       },
       {
         "func": "func:platform_object",
-        "loc": "src/platform.c:629",
+        "loc": "src/platform.c:614",
         "via": "writes"
       },
       {
         "func": "func:platform_object",
-        "loc": "src/platform.c:630",
+        "loc": "src/platform.c:615",
         "via": "writes"
       },
       {
         "func": "func:platform_object",
-        "loc": "src/platform.c:631",
+        "loc": "src/platform.c:616",
         "via": "writes"
       },
       {
         "func": "func:platform_object",
-        "loc": "src/platform.c:632",
+        "loc": "src/platform.c:617",
         "via": "writes"
       },
       {
         "func": "func:platform_object",
-        "loc": "src/platform.c:633",
+        "loc": "src/platform.c:618",
         "via": "writes"
       }
     ]
@@ -11623,7 +11385,7 @@
     "sites": [
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1701",
+        "loc": "src/platform.c:1686",
         "via": "writes"
       }
     ]
@@ -11636,7 +11398,7 @@
     "sites": [
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1473",
+        "loc": "src/platform.c:1458",
         "via": "writes"
       }
     ]
@@ -11863,12 +11625,12 @@
     "sites": [
       {
         "func": "func:wallclock_target_read",
-        "loc": "zephyr/src/main.c:360",
+        "loc": "zephyr/src/main.c:361",
         "via": "reads"
       },
       {
         "func": "func:wallclock_target_read",
-        "loc": "zephyr/src/main.c:361",
+        "loc": "zephyr/src/main.c:362",
         "via": "reads"
       }
     ]
@@ -11881,12 +11643,12 @@
     "sites": [
       {
         "func": "func:wallclock_target_set",
-        "loc": "zephyr/src/main.c:419",
+        "loc": "zephyr/src/main.c:420",
         "via": "reads"
       },
       {
         "func": "func:wallclock_target_set",
-        "loc": "zephyr/src/main.c:429",
+        "loc": "zephyr/src/main.c:430",
         "via": "reads"
       }
     ]
@@ -11899,12 +11661,12 @@
     "sites": [
       {
         "func": "func:observer_start",
-        "loc": "zephyr/src/observer.c:422",
+        "loc": "zephyr/src/observer.c:419",
         "via": "writes"
       },
       {
         "func": "func:observer_start",
-        "loc": "zephyr/src/observer.c:426",
+        "loc": "zephyr/src/observer.c:423",
         "via": "writes"
       }
     ]
@@ -11917,32 +11679,32 @@
     "sites": [
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1001",
-        "via": "writes"
-      },
-      {
-        "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1018",
+        "loc": "src/platform.c:1003",
         "via": "reads"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1154",
+        "loc": "src/platform.c:1139",
         "via": "writes"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1674",
+        "loc": "src/platform.c:1659",
         "via": "reads"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1803",
+        "loc": "src/platform.c:1788",
         "via": "writes"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1838",
+        "loc": "src/platform.c:1823",
+        "via": "writes"
+      },
+      {
+        "func": "func:platform_dispatch",
+        "loc": "src/platform.c:906",
         "via": "writes"
       },
       {
@@ -11952,23 +11714,23 @@
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:936",
+        "loc": "src/platform.c:939",
+        "via": "reads"
+      },
+      {
+        "func": "func:platform_dispatch",
+        "loc": "src/platform.c:959",
+        "via": "reads"
+      },
+      {
+        "func": "func:platform_dispatch",
+        "loc": "src/platform.c:973",
+        "via": "reads"
+      },
+      {
+        "func": "func:platform_dispatch",
+        "loc": "src/platform.c:986",
         "via": "writes"
-      },
-      {
-        "func": "func:platform_dispatch",
-        "loc": "src/platform.c:954",
-        "via": "reads"
-      },
-      {
-        "func": "func:platform_dispatch",
-        "loc": "src/platform.c:974",
-        "via": "reads"
-      },
-      {
-        "func": "func:platform_dispatch",
-        "loc": "src/platform.c:988",
-        "via": "reads"
       },
       {
         "func": "func:space_post",
@@ -12008,7 +11770,7 @@
     "sites": [
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1491",
+        "loc": "src/platform.c:1476",
         "via": "writes"
       }
     ]
@@ -12021,7 +11783,7 @@
     "sites": [
       {
         "func": "func:src/backend/zephyr/timer_zephyr.c:timer_start",
-        "loc": "src/backend/zephyr/timer_zephyr.c:71",
+        "loc": "src/backend/zephyr/timer_zephyr.c:72",
         "via": "writes"
       }
     ]
@@ -12029,18 +11791,18 @@
   {
     "rule": "root-bypassed",
     "subject": "func:platform_app_cad_ms",
-    "loc": "src/platform.c:18",
+    "loc": "src/platform.c:19",
     "message": "platform_app_cad_ms (context src) is called from 2 functions in other contexts without going through a root (roots: Boot, CoreCallbacks, SharedKernel, Space, Targets)",
     "count": 2,
     "sites": [
       {
         "func": "func:zephyr/src/observer.c:observer_verdict",
-        "loc": "zephyr/src/observer.c:152",
+        "loc": "zephyr/src/observer.c:149",
         "via": "zephyr/src"
       },
       {
         "func": "func:zephyr/src/observer.c:observer_dump",
-        "loc": "zephyr/src/observer.c:324",
+        "loc": "zephyr/src/observer.c:321",
         "via": "zephyr/src"
       }
     ]
@@ -12054,7 +11816,7 @@
     "sites": [
       {
         "func": "func:main",
-        "loc": "zephyr/src/main.c:1890",
+        "loc": "zephyr/src/main.c:1891",
         "via": "zephyr/src"
       }
     ]
@@ -12096,7 +11858,7 @@
     "sites": [
       {
         "func": "func:main",
-        "loc": "zephyr/src/main.c:1921",
+        "loc": "zephyr/src/main.c:1922",
         "via": "zephyr/src"
       }
     ]
@@ -12113,67 +11875,67 @@
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1305"
+        "loc": "src/platform.c:1290"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1306"
+        "loc": "src/platform.c:1291"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1307"
+        "loc": "src/platform.c:1292"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1308"
+        "loc": "src/platform.c:1293"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1309"
+        "loc": "src/platform.c:1294"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1310"
+        "loc": "src/platform.c:1295"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1485"
+        "loc": "src/platform.c:1470"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1508"
+        "loc": "src/platform.c:1493"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1513"
+        "loc": "src/platform.c:1498"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1592"
+        "loc": "src/platform.c:1577"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1600"
+        "loc": "src/platform.c:1585"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1625"
+        "loc": "src/platform.c:1610"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1636"
+        "loc": "src/platform.c:1621"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1915"
+        "loc": "src/platform.c:1900"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:764"
+        "loc": "src/platform.c:749"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:890"
+        "loc": "src/platform.c:875"
       },
       {
         "func": "func:primitive_object_equals",
@@ -12369,43 +12131,43 @@
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1311"
+        "loc": "src/platform.c:1296"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1485"
+        "loc": "src/platform.c:1470"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1513"
+        "loc": "src/platform.c:1498"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1591"
+        "loc": "src/platform.c:1576"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1600"
+        "loc": "src/platform.c:1585"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1636"
+        "loc": "src/platform.c:1621"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1906"
+        "loc": "src/platform.c:1891"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1915"
+        "loc": "src/platform.c:1900"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:764"
+        "loc": "src/platform.c:749"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:890"
+        "loc": "src/platform.c:875"
       },
       {
         "func": "func:primitive_object_equals",
@@ -12817,11 +12579,11 @@
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1081"
+        "loc": "src/platform.c:1066"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1416"
+        "loc": "src/platform.c:1401"
       },
       {
         "func": "func:space_dequeue",
@@ -13417,31 +13179,31 @@
     "sites": [
       {
         "func": "func:indexable_new",
-        "loc": "src/platform.c:604"
+        "loc": "src/platform.c:589"
       },
       {
         "func": "func:src/platform.c:indexable_init",
-        "loc": "src/platform.c:591"
+        "loc": "src/platform.c:576"
       },
       {
         "func": "func:src/platform.c:indexable_init",
-        "loc": "src/platform.c:592"
+        "loc": "src/platform.c:577"
       },
       {
         "func": "func:src/platform.c:indexable_init",
-        "loc": "src/platform.c:593"
+        "loc": "src/platform.c:578"
       },
       {
         "func": "func:src/platform.c:indexable_init",
-        "loc": "src/platform.c:594"
+        "loc": "src/platform.c:579"
       },
       {
         "func": "func:src/platform.c:indexable_init",
-        "loc": "src/platform.c:595"
+        "loc": "src/platform.c:580"
       },
       {
         "func": "func:src/platform.c:indexable_init",
-        "loc": "src/platform.c:596"
+        "loc": "src/platform.c:581"
       }
     ]
   },
@@ -13453,31 +13215,31 @@
     "sites": [
       {
         "func": "func:platform_object",
-        "loc": "src/platform.c:627"
+        "loc": "src/platform.c:612"
       },
       {
         "func": "func:platform_object",
-        "loc": "src/platform.c:628"
+        "loc": "src/platform.c:613"
       },
       {
         "func": "func:platform_object",
-        "loc": "src/platform.c:629"
+        "loc": "src/platform.c:614"
       },
       {
         "func": "func:platform_object",
-        "loc": "src/platform.c:630"
+        "loc": "src/platform.c:615"
       },
       {
         "func": "func:platform_object",
-        "loc": "src/platform.c:631"
+        "loc": "src/platform.c:616"
       },
       {
         "func": "func:platform_object",
-        "loc": "src/platform.c:632"
+        "loc": "src/platform.c:617"
       },
       {
         "func": "func:platform_object",
-        "loc": "src/platform.c:633"
+        "loc": "src/platform.c:618"
       }
     ]
   },
@@ -13689,11 +13451,7 @@
     "sites": [
       {
         "func": "func:src/platform.c:host_gpio_register",
-        "loc": "src/platform.c:87"
-      },
-      {
-        "func": "func:src/platform.c:host_gpio_register",
-        "loc": "src/platform.c:92"
+        "loc": "src/platform.c:88"
       },
       {
         "func": "func:src/platform.c:host_gpio_register",
@@ -13701,11 +13459,15 @@
       },
       {
         "func": "func:src/platform.c:host_gpio_register",
-        "loc": "src/platform.c:97"
+        "loc": "src/platform.c:94"
       },
       {
         "func": "func:src/platform.c:host_gpio_register",
         "loc": "src/platform.c:98"
+      },
+      {
+        "func": "func:src/platform.c:host_gpio_register",
+        "loc": "src/platform.c:99"
       }
     ]
   },
@@ -13933,19 +13695,19 @@
     "sites": [
       {
         "func": "func:gpio_target_level",
-        "loc": "zephyr/src/main.c:1522"
+        "loc": "zephyr/src/main.c:1523"
       },
       {
         "func": "func:gpio_target_set",
-        "loc": "zephyr/src/main.c:1512"
+        "loc": "zephyr/src/main.c:1513"
       },
       {
         "func": "func:zephyr/src/main.c:wire_gpio_outputs",
-        "loc": "zephyr/src/main.c:1445"
+        "loc": "zephyr/src/main.c:1446"
       },
       {
         "func": "func:zephyr/src/main.c:wire_gpio_outputs",
-        "loc": "zephyr/src/main.c:1454"
+        "loc": "zephyr/src/main.c:1455"
       }
     ]
   },
@@ -14157,15 +13919,15 @@
     "sites": [
       {
         "func": "func:src/backend/zephyr/timer_zephyr.c:timer_start",
-        "loc": "src/backend/zephyr/timer_zephyr.c:68"
+        "loc": "src/backend/zephyr/timer_zephyr.c:69"
       },
       {
         "func": "func:timer_backend_cancel",
-        "loc": "src/backend/zephyr/timer_zephyr.c:94"
+        "loc": "src/backend/zephyr/timer_zephyr.c:95"
       },
       {
         "func": "func:timer_target_snapshot",
-        "loc": "src/backend/zephyr/timer_zephyr.c:129"
+        "loc": "src/backend/zephyr/timer_zephyr.c:130"
       }
     ]
   },
@@ -14489,11 +14251,11 @@
     "sites": [
       {
         "func": "func:wallclock_target_read",
-        "loc": "zephyr/src/main.c:356"
+        "loc": "zephyr/src/main.c:357"
       },
       {
         "func": "func:wallclock_target_set",
-        "loc": "zephyr/src/main.c:414"
+        "loc": "zephyr/src/main.c:415"
       }
     ]
   },
@@ -14617,11 +14379,11 @@
     "sites": [
       {
         "func": "func:main",
-        "loc": "zephyr/src/main.c:1865"
+        "loc": "zephyr/src/main.c:1866"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1462"
+        "loc": "src/platform.c:1447"
       }
     ]
   },
@@ -15049,11 +14811,11 @@
     "sites": [
       {
         "func": "func:platform_object",
-        "loc": "src/platform.c:633"
+        "loc": "src/platform.c:618"
       },
       {
         "func": "func:platform_object",
-        "loc": "src/platform.c:636"
+        "loc": "src/platform.c:621"
       }
     ]
   },
@@ -15241,11 +15003,11 @@
     "sites": [
       {
         "func": "func:observer_start",
-        "loc": "zephyr/src/observer.c:402"
+        "loc": "zephyr/src/observer.c:399"
       },
       {
         "func": "func:observer_start",
-        "loc": "zephyr/src/observer.c:403"
+        "loc": "zephyr/src/observer.c:400"
       }
     ]
   },
@@ -15257,11 +15019,11 @@
     "sites": [
       {
         "func": "func:zephyr/src/observer.c:obs_trace_dump",
-        "loc": "zephyr/src/observer.c:122"
+        "loc": "zephyr/src/observer.c:119"
       },
       {
         "func": "func:zephyr/src/observer.c:obs_trace_record",
-        "loc": "zephyr/src/observer.c:108"
+        "loc": "zephyr/src/observer.c:105"
       }
     ]
   },
@@ -15273,11 +15035,11 @@
     "sites": [
       {
         "func": "func:observer_start",
-        "loc": "zephyr/src/observer.c:422"
+        "loc": "zephyr/src/observer.c:419"
       },
       {
         "func": "func:observer_start",
-        "loc": "zephyr/src/observer.c:426"
+        "loc": "zephyr/src/observer.c:423"
       }
     ]
   },
@@ -15374,11 +15136,11 @@
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1081"
+        "loc": "src/platform.c:1066"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1416"
+        "loc": "src/platform.c:1401"
       },
       {
         "func": "func:send_resolve",
@@ -16436,67 +16198,67 @@
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1305"
+        "loc": "src/platform.c:1290"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1306"
+        "loc": "src/platform.c:1291"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1307"
+        "loc": "src/platform.c:1292"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1308"
+        "loc": "src/platform.c:1293"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1309"
+        "loc": "src/platform.c:1294"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1310"
+        "loc": "src/platform.c:1295"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1485"
+        "loc": "src/platform.c:1470"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1508"
+        "loc": "src/platform.c:1493"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1513"
+        "loc": "src/platform.c:1498"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1592"
+        "loc": "src/platform.c:1577"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1600"
+        "loc": "src/platform.c:1585"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1625"
+        "loc": "src/platform.c:1610"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1636"
+        "loc": "src/platform.c:1621"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1915"
+        "loc": "src/platform.c:1900"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:764"
+        "loc": "src/platform.c:749"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:890"
+        "loc": "src/platform.c:875"
       },
       {
         "func": "func:primitive_object_equals",
@@ -16892,43 +16654,43 @@
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1311"
+        "loc": "src/platform.c:1296"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1485"
+        "loc": "src/platform.c:1470"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1513"
+        "loc": "src/platform.c:1498"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1591"
+        "loc": "src/platform.c:1576"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1600"
+        "loc": "src/platform.c:1585"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1636"
+        "loc": "src/platform.c:1621"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1906"
+        "loc": "src/platform.c:1891"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1915"
+        "loc": "src/platform.c:1900"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:764"
+        "loc": "src/platform.c:749"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:890"
+        "loc": "src/platform.c:875"
       },
       {
         "func": "func:primitive_object_equals",
@@ -17727,25 +17489,25 @@
     "sites": [
       {
         "func": "func:src/backend/zephyr/timer_zephyr.c:timer_start",
-        "loc": "src/backend/zephyr/timer_zephyr.c:68"
+        "loc": "src/backend/zephyr/timer_zephyr.c:69"
       },
       {
         "func": "func:timer_backend_after",
-        "loc": "src/backend/zephyr/timer_zephyr.c:89",
-        "via": "calls timer_start"
-      },
-      {
-        "func": "func:timer_backend_cancel",
-        "loc": "src/backend/zephyr/timer_zephyr.c:94"
-      },
-      {
-        "func": "func:timer_backend_every",
         "loc": "src/backend/zephyr/timer_zephyr.c:90",
         "via": "calls timer_start"
       },
       {
+        "func": "func:timer_backend_cancel",
+        "loc": "src/backend/zephyr/timer_zephyr.c:95"
+      },
+      {
+        "func": "func:timer_backend_every",
+        "loc": "src/backend/zephyr/timer_zephyr.c:91",
+        "via": "calls timer_start"
+      },
+      {
         "func": "func:timer_target_snapshot",
-        "loc": "src/backend/zephyr/timer_zephyr.c:129"
+        "loc": "src/backend/zephyr/timer_zephyr.c:130"
       }
     ]
   },
@@ -17827,29 +17589,29 @@
     "sites": [
       {
         "func": "func:gpio_target_level",
-        "loc": "zephyr/src/main.c:1522"
+        "loc": "zephyr/src/main.c:1523"
       },
       {
         "func": "func:gpio_target_set",
-        "loc": "zephyr/src/main.c:1512"
+        "loc": "zephyr/src/main.c:1513"
       },
       {
         "func": "func:main",
-        "loc": "zephyr/src/main.c:1958",
+        "loc": "zephyr/src/main.c:1959",
         "via": "calls wire_gpio_outputs"
       },
       {
         "func": "func:zephyr/src/main.c:gpio_outputs_early_init",
-        "loc": "zephyr/src/main.c:1494",
+        "loc": "zephyr/src/main.c:1495",
         "via": "calls wire_gpio_outputs"
       },
       {
         "func": "func:zephyr/src/main.c:wire_gpio_outputs",
-        "loc": "zephyr/src/main.c:1445"
+        "loc": "zephyr/src/main.c:1446"
       },
       {
         "func": "func:zephyr/src/main.c:wire_gpio_outputs",
-        "loc": "zephyr/src/main.c:1454"
+        "loc": "zephyr/src/main.c:1455"
       }
     ]
   },
@@ -18348,25 +18110,25 @@
     "sites": [
       {
         "func": "func:zephyr/src/observer.c:obs_trace_dump",
-        "loc": "zephyr/src/observer.c:122"
+        "loc": "zephyr/src/observer.c:119"
       },
       {
         "func": "func:zephyr/src/observer.c:obs_trace_record",
-        "loc": "zephyr/src/observer.c:108"
+        "loc": "zephyr/src/observer.c:105"
       },
       {
         "func": "func:zephyr/src/observer.c:observer_dump",
-        "loc": "zephyr/src/observer.c:328",
+        "loc": "zephyr/src/observer.c:325",
         "via": "calls obs_trace_dump"
       },
       {
         "func": "func:zephyr/src/observer.c:observer_thread_fn",
-        "loc": "zephyr/src/observer.c:372",
+        "loc": "zephyr/src/observer.c:369",
         "via": "calls obs_trace_record"
       },
       {
         "func": "func:zephyr/src/observer.c:observer_thread_fn",
-        "loc": "zephyr/src/observer.c:377",
+        "loc": "zephyr/src/observer.c:374",
         "via": "calls observer_dump"
       }
     ]
@@ -19046,41 +18808,41 @@
     "sites": [
       {
         "func": "func:indexable_new",
-        "loc": "src/platform.c:602",
+        "loc": "src/platform.c:587",
         "via": "calls indexable_init"
       },
       {
         "func": "func:indexable_new",
-        "loc": "src/platform.c:604"
+        "loc": "src/platform.c:589"
       },
       {
         "func": "func:platform_object",
-        "loc": "src/platform.c:626",
+        "loc": "src/platform.c:611",
         "via": "calls indexable_init"
       },
       {
         "func": "func:src/platform.c:indexable_init",
-        "loc": "src/platform.c:591"
+        "loc": "src/platform.c:576"
       },
       {
         "func": "func:src/platform.c:indexable_init",
-        "loc": "src/platform.c:592"
+        "loc": "src/platform.c:577"
       },
       {
         "func": "func:src/platform.c:indexable_init",
-        "loc": "src/platform.c:593"
+        "loc": "src/platform.c:578"
       },
       {
         "func": "func:src/platform.c:indexable_init",
-        "loc": "src/platform.c:594"
+        "loc": "src/platform.c:579"
       },
       {
         "func": "func:src/platform.c:indexable_init",
-        "loc": "src/platform.c:595"
+        "loc": "src/platform.c:580"
       },
       {
         "func": "func:src/platform.c:indexable_init",
-        "loc": "src/platform.c:596"
+        "loc": "src/platform.c:581"
       }
     ]
   },
@@ -19092,17 +18854,17 @@
     "sites": [
       {
         "func": "func:indexable_new",
-        "loc": "src/platform.c:602",
+        "loc": "src/platform.c:587",
         "via": "calls indexable_init"
       },
       {
         "func": "func:platform_object",
-        "loc": "src/platform.c:626",
+        "loc": "src/platform.c:611",
         "via": "calls indexable_init"
       },
       {
         "func": "func:src/platform.c:indexable_init",
-        "loc": "src/platform.c:597"
+        "loc": "src/platform.c:582"
       }
     ]
   },
@@ -19236,16 +18998,16 @@
     "sites": [
       {
         "func": "func:src/backend/zephyr/timer_zephyr.c:timer_start",
-        "loc": "src/backend/zephyr/timer_zephyr.c:71"
+        "loc": "src/backend/zephyr/timer_zephyr.c:72"
       },
       {
         "func": "func:timer_backend_after",
-        "loc": "src/backend/zephyr/timer_zephyr.c:89",
+        "loc": "src/backend/zephyr/timer_zephyr.c:90",
         "via": "calls timer_start"
       },
       {
         "func": "func:timer_backend_every",
-        "loc": "src/backend/zephyr/timer_zephyr.c:90",
+        "loc": "src/backend/zephyr/timer_zephyr.c:91",
         "via": "calls timer_start"
       }
     ]
@@ -19290,11 +19052,11 @@
     "sites": [
       {
         "func": "func:wallclock_target_read",
-        "loc": "zephyr/src/main.c:356"
+        "loc": "zephyr/src/main.c:357"
       },
       {
         "func": "func:wallclock_target_set",
-        "loc": "zephyr/src/main.c:414"
+        "loc": "zephyr/src/main.c:415"
       }
     ]
   },
@@ -19338,11 +19100,11 @@
     "sites": [
       {
         "func": "func:main",
-        "loc": "zephyr/src/main.c:1865"
+        "loc": "zephyr/src/main.c:1866"
       },
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1462"
+        "loc": "src/platform.c:1447"
       }
     ]
   },
@@ -19702,16 +19464,12 @@
     "sites": [
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1156",
+        "loc": "src/platform.c:1141",
         "via": "calls host_gpio_register"
       },
       {
         "func": "func:src/platform.c:host_gpio_register",
-        "loc": "src/platform.c:87"
-      },
-      {
-        "func": "func:src/platform.c:host_gpio_register",
-        "loc": "src/platform.c:92"
+        "loc": "src/platform.c:88"
       },
       {
         "func": "func:src/platform.c:host_gpio_register",
@@ -19719,11 +19477,15 @@
       },
       {
         "func": "func:src/platform.c:host_gpio_register",
-        "loc": "src/platform.c:97"
+        "loc": "src/platform.c:94"
       },
       {
         "func": "func:src/platform.c:host_gpio_register",
         "loc": "src/platform.c:98"
+      },
+      {
+        "func": "func:src/platform.c:host_gpio_register",
+        "loc": "src/platform.c:99"
       }
     ]
   },
@@ -19735,12 +19497,12 @@
     "sites": [
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1156",
+        "loc": "src/platform.c:1141",
         "via": "calls host_gpio_register"
       },
       {
         "func": "func:src/platform.c:host_gpio_register",
-        "loc": "src/platform.c:99"
+        "loc": "src/platform.c:100"
       }
     ]
   },
@@ -19990,12 +19752,12 @@
     "sites": [
       {
         "func": "func:zephyr/src/observer.c:observer_thread_fn",
-        "loc": "zephyr/src/observer.c:373",
+        "loc": "zephyr/src/observer.c:370",
         "via": "calls observer_verdict"
       },
       {
         "func": "func:zephyr/src/observer.c:observer_verdict",
-        "loc": "zephyr/src/observer.c:154"
+        "loc": "zephyr/src/observer.c:151"
       }
     ]
   },
@@ -20007,11 +19769,11 @@
     "sites": [
       {
         "func": "func:zephyr/src/observer.c:obs_trace_record",
-        "loc": "zephyr/src/observer.c:113"
+        "loc": "zephyr/src/observer.c:110"
       },
       {
         "func": "func:zephyr/src/observer.c:observer_thread_fn",
-        "loc": "zephyr/src/observer.c:372",
+        "loc": "zephyr/src/observer.c:369",
         "via": "calls obs_trace_record"
       }
     ]
@@ -20336,7 +20098,7 @@
     "sites": [
       {
         "func": "func:observer_start",
-        "loc": "zephyr/src/observer.c:402"
+        "loc": "zephyr/src/observer.c:399"
       }
     ]
   },
@@ -20516,7 +20278,7 @@
     "sites": [
       {
         "func": "func:main",
-        "loc": "zephyr/src/main.c:1904"
+        "loc": "zephyr/src/main.c:1905"
       }
     ]
   },
@@ -20540,7 +20302,7 @@
     "sites": [
       {
         "func": "func:observer_start",
-        "loc": "zephyr/src/observer.c:422"
+        "loc": "zephyr/src/observer.c:419"
       }
     ]
   },
@@ -20568,7 +20330,7 @@
     "sites": [
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1546"
+        "loc": "src/platform.c:1531"
       }
     ]
   },
@@ -20580,7 +20342,7 @@
     "sites": [
       {
         "func": "func:main",
-        "loc": "zephyr/src/main.c:1905"
+        "loc": "zephyr/src/main.c:1906"
       }
     ]
   },
@@ -21476,11 +21238,11 @@
     "sites": [
       {
         "func": "func:platform_object",
-        "loc": "src/platform.c:633"
+        "loc": "src/platform.c:618"
       },
       {
         "func": "func:platform_object",
-        "loc": "src/platform.c:636"
+        "loc": "src/platform.c:621"
       }
     ]
   },
@@ -21492,31 +21254,31 @@
     "sites": [
       {
         "func": "func:platform_object",
-        "loc": "src/platform.c:627"
+        "loc": "src/platform.c:612"
       },
       {
         "func": "func:platform_object",
-        "loc": "src/platform.c:628"
+        "loc": "src/platform.c:613"
       },
       {
         "func": "func:platform_object",
-        "loc": "src/platform.c:629"
+        "loc": "src/platform.c:614"
       },
       {
         "func": "func:platform_object",
-        "loc": "src/platform.c:630"
+        "loc": "src/platform.c:615"
       },
       {
         "func": "func:platform_object",
-        "loc": "src/platform.c:631"
+        "loc": "src/platform.c:616"
       },
       {
         "func": "func:platform_object",
-        "loc": "src/platform.c:632"
+        "loc": "src/platform.c:617"
       },
       {
         "func": "func:platform_object",
-        "loc": "src/platform.c:633"
+        "loc": "src/platform.c:618"
       }
     ]
   },
@@ -21528,7 +21290,7 @@
     "sites": [
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1491"
+        "loc": "src/platform.c:1476"
       }
     ]
   },
@@ -21540,7 +21302,7 @@
     "sites": [
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1701"
+        "loc": "src/platform.c:1686"
       }
     ]
   },
@@ -21552,7 +21314,7 @@
     "sites": [
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1492"
+        "loc": "src/platform.c:1477"
       }
     ]
   },
@@ -21564,7 +21326,7 @@
     "sites": [
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1473"
+        "loc": "src/platform.c:1458"
       }
     ]
   },
@@ -21576,7 +21338,7 @@
     "sites": [
       {
         "func": "func:platform_object",
-        "loc": "src/platform.c:634"
+        "loc": "src/platform.c:619"
       }
     ]
   },
@@ -21588,7 +21350,7 @@
     "sites": [
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1856"
+        "loc": "src/platform.c:1841"
       }
     ]
   },
@@ -21600,7 +21362,7 @@
     "sites": [
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1532"
+        "loc": "src/platform.c:1517"
       }
     ]
   },
@@ -21612,7 +21374,7 @@
     "sites": [
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1817"
+        "loc": "src/platform.c:1802"
       }
     ]
   },
@@ -21804,7 +21566,7 @@
     "sites": [
       {
         "func": "func:rtc_target_put",
-        "loc": "zephyr/src/main.c:294"
+        "loc": "zephyr/src/main.c:295"
       }
     ]
   },
@@ -21816,7 +21578,7 @@
     "sites": [
       {
         "func": "func:ntp_target_sync",
-        "loc": "zephyr/src/main.c:251"
+        "loc": "zephyr/src/main.c:252"
       }
     ]
   },
@@ -21828,7 +21590,7 @@
     "sites": [
       {
         "func": "func:reset_cause_timer_wake",
-        "loc": "zephyr/src/main.c:310"
+        "loc": "zephyr/src/main.c:311"
       }
     ]
   },
@@ -21840,7 +21602,7 @@
     "sites": [
       {
         "func": "func:reset_cause_timer_wake",
-        "loc": "zephyr/src/main.c:312"
+        "loc": "zephyr/src/main.c:313"
       }
     ]
   },
@@ -21852,11 +21614,11 @@
     "sites": [
       {
         "func": "func:observer_start",
-        "loc": "zephyr/src/observer.c:402"
+        "loc": "zephyr/src/observer.c:399"
       },
       {
         "func": "func:observer_start",
-        "loc": "zephyr/src/observer.c:403"
+        "loc": "zephyr/src/observer.c:400"
       }
     ]
   },
@@ -21868,7 +21630,7 @@
     "sites": [
       {
         "func": "func:zephyr/src/observer.c:observer_thread_fn",
-        "loc": "zephyr/src/observer.c:351"
+        "loc": "zephyr/src/observer.c:348"
       }
     ]
   },
@@ -21880,11 +21642,11 @@
     "sites": [
       {
         "func": "func:observer_start",
-        "loc": "zephyr/src/observer.c:422"
+        "loc": "zephyr/src/observer.c:419"
       },
       {
         "func": "func:observer_start",
-        "loc": "zephyr/src/observer.c:426"
+        "loc": "zephyr/src/observer.c:423"
       }
     ]
   },
@@ -21908,7 +21670,7 @@
     "sites": [
       {
         "func": "func:platform_dispatch",
-        "loc": "src/platform.c:1491"
+        "loc": "src/platform.c:1476"
       }
     ]
   }

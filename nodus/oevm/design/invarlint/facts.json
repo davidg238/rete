@@ -1,5 +1,5 @@
 {
-  "commit": "1336c164",
+  "commit": "5cebe5ca",
   "root": "/home/david/workspace/rete/nodus/oevm",
   "config": "build-esp32c6-B",
   "partial": false,
@@ -85,7 +85,7 @@
     {
       "id": "func:bell_target_available",
       "kind": "func",
-      "loc": "zephyr/src/main.c:857",
+      "loc": "zephyr/src/main.c:858",
       "attrs": {
         "exported": "true",
         "is_handler": "false",
@@ -97,7 +97,7 @@
     {
       "id": "func:bell_target_strike",
       "kind": "func",
-      "loc": "zephyr/src/main.c:866",
+      "loc": "zephyr/src/main.c:867",
       "attrs": {
         "exported": "true",
         "is_handler": "false",
@@ -135,7 +135,7 @@
     {
       "id": "func:deep_sleep_target",
       "kind": "func",
-      "loc": "zephyr/src/main.c:581",
+      "loc": "zephyr/src/main.c:582",
       "attrs": {
         "exported": "true",
         "is_handler": "false",
@@ -147,7 +147,7 @@
     {
       "id": "func:display_target_available",
       "kind": "func",
-      "loc": "zephyr/src/main.c:1090",
+      "loc": "zephyr/src/main.c:1091",
       "attrs": {
         "exported": "true",
         "is_handler": "false",
@@ -159,7 +159,7 @@
     {
       "id": "func:display_target_clear",
       "kind": "func",
-      "loc": "zephyr/src/main.c:1114",
+      "loc": "zephyr/src/main.c:1115",
       "attrs": {
         "exported": "true",
         "is_handler": "false",
@@ -171,7 +171,7 @@
     {
       "id": "func:display_target_put",
       "kind": "func",
-      "loc": "zephyr/src/main.c:1124",
+      "loc": "zephyr/src/main.c:1125",
       "attrs": {
         "exported": "true",
         "is_handler": "false",
@@ -183,7 +183,7 @@
     {
       "id": "func:display_target_refresh",
       "kind": "func",
-      "loc": "zephyr/src/main.c:1141",
+      "loc": "zephyr/src/main.c:1142",
       "attrs": {
         "exported": "true",
         "is_handler": "false",
@@ -195,7 +195,7 @@
     {
       "id": "func:display_target_refresh_row",
       "kind": "func",
-      "loc": "zephyr/src/main.c:1153",
+      "loc": "zephyr/src/main.c:1154",
       "attrs": {
         "exported": "true",
         "is_handler": "false",
@@ -360,7 +360,7 @@
     {
       "id": "func:gpio_target_fire",
       "kind": "func",
-      "loc": "src/platform.c:570",
+      "loc": "src/platform.c:555",
       "attrs": {
         "exported": "true",
         "is_handler": "false",
@@ -372,7 +372,7 @@
     {
       "id": "func:gpio_target_level",
       "kind": "func",
-      "loc": "zephyr/src/main.c:1518",
+      "loc": "zephyr/src/main.c:1519",
       "attrs": {
         "exported": "true",
         "is_handler": "false",
@@ -384,7 +384,7 @@
     {
       "id": "func:gpio_target_set",
       "kind": "func",
-      "loc": "zephyr/src/main.c:1508",
+      "loc": "zephyr/src/main.c:1509",
       "attrs": {
         "exported": "true",
         "is_handler": "false",
@@ -735,7 +735,7 @@
     {
       "id": "func:indexable_new",
       "kind": "func",
-      "loc": "src/platform.c:601",
+      "loc": "src/platform.c:586",
       "attrs": {
         "exported": "true",
         "is_handler": "false",
@@ -939,7 +939,7 @@
     {
       "id": "func:main",
       "kind": "func",
-      "loc": "zephyr/src/main.c:1835",
+      "loc": "zephyr/src/main.c:1836",
       "attrs": {
         "exported": "true",
         "is_handler": "false",
@@ -1112,7 +1112,7 @@
     {
       "id": "func:ntp_target_date",
       "kind": "func",
-      "loc": "zephyr/src/main.c:257",
+      "loc": "zephyr/src/main.c:258",
       "attrs": {
         "exported": "true",
         "is_handler": "false",
@@ -1124,7 +1124,7 @@
     {
       "id": "func:ntp_target_sync",
       "kind": "func",
-      "loc": "zephyr/src/main.c:203",
+      "loc": "zephyr/src/main.c:204",
       "attrs": {
         "exported": "true",
         "is_handler": "false",
@@ -1136,7 +1136,7 @@
     {
       "id": "func:observer_halt",
       "kind": "func",
-      "loc": "zephyr/src/observer.c:339",
+      "loc": "zephyr/src/observer.c:336",
       "attrs": {
         "exported": "true",
         "is_handler": "false",
@@ -1148,7 +1148,7 @@
     {
       "id": "func:observer_start",
       "kind": "func",
-      "loc": "zephyr/src/observer.c:400",
+      "loc": "zephyr/src/observer.c:397",
       "attrs": {
         "exported": "true",
         "is_handler": "false",
@@ -1677,7 +1677,7 @@
     {
       "id": "func:platform_app_cad_ms",
       "kind": "func",
-      "loc": "src/platform.c:18",
+      "loc": "src/platform.c:19",
       "attrs": {
         "exported": "true",
         "is_handler": "false",
@@ -1875,7 +1875,7 @@
     {
       "id": "func:platform_dispatch",
       "kind": "func",
-      "loc": "src/platform.c:758",
+      "loc": "src/platform.c:743",
       "attrs": {
         "exported": "true",
         "is_handler": "false",
@@ -1888,7 +1888,7 @@
     {
       "id": "func:platform_object",
       "kind": "func",
-      "loc": "src/platform.c:624",
+      "loc": "src/platform.c:609",
       "attrs": {
         "exported": "true",
         "is_handler": "false",
@@ -2429,7 +2429,7 @@
     {
       "id": "func:reset_cause_timer_wake",
       "kind": "func",
-      "loc": "zephyr/src/main.c:305",
+      "loc": "zephyr/src/main.c:306",
       "attrs": {
         "exported": "true",
         "is_handler": "false",
@@ -2441,7 +2441,7 @@
     {
       "id": "func:rtc_alarm_arm",
       "kind": "func",
-      "loc": "zephyr/src/main.c:554",
+      "loc": "zephyr/src/main.c:555",
       "attrs": {
         "exported": "true",
         "is_handler": "false",
@@ -2453,7 +2453,7 @@
     {
       "id": "func:rtc_target_get",
       "kind": "func",
-      "loc": "zephyr/src/main.c:293",
+      "loc": "zephyr/src/main.c:294",
       "attrs": {
         "exported": "true",
         "is_handler": "false",
@@ -2465,7 +2465,7 @@
     {
       "id": "func:rtc_target_put",
       "kind": "func",
-      "loc": "zephyr/src/main.c:294",
+      "loc": "zephyr/src/main.c:295",
       "attrs": {
         "exported": "true",
         "is_handler": "false",
@@ -2477,7 +2477,7 @@
     {
       "id": "func:rtc_target_valid",
       "kind": "func",
-      "loc": "zephyr/src/main.c:292",
+      "loc": "zephyr/src/main.c:293",
       "attrs": {
         "exported": "true",
         "is_handler": "false",
@@ -3604,7 +3604,7 @@
     {
       "id": "func:src/backend/zephyr/timer_zephyr.c:timer_expiry",
       "kind": "func",
-      "loc": "src/backend/zephyr/timer_zephyr.c:58",
+      "loc": "src/backend/zephyr/timer_zephyr.c:59",
       "attrs": {
         "exported": "false",
         "is_handler": "false",
@@ -3616,7 +3616,7 @@
     {
       "id": "func:src/backend/zephyr/timer_zephyr.c:timer_start",
       "kind": "func",
-      "loc": "src/backend/zephyr/timer_zephyr.c:66",
+      "loc": "src/backend/zephyr/timer_zephyr.c:67",
       "attrs": {
         "exported": "false",
         "is_handler": "false",
@@ -4721,7 +4721,7 @@
     {
       "id": "func:src/platform.c:double_to_half",
       "kind": "func",
-      "loc": "src/platform.c:668",
+      "loc": "src/platform.c:653",
       "attrs": {
         "exported": "false",
         "is_handler": "false",
@@ -4734,7 +4734,7 @@
     {
       "id": "func:src/platform.c:half_to_double",
       "kind": "func",
-      "loc": "src/platform.c:647",
+      "loc": "src/platform.c:632",
       "attrs": {
         "exported": "false",
         "is_handler": "false",
@@ -4747,7 +4747,7 @@
     {
       "id": "func:src/platform.c:host_gpio_fire",
       "kind": "func",
-      "loc": "src/platform.c:102",
+      "loc": "src/platform.c:103",
       "attrs": {
         "exported": "false",
         "is_handler": "false",
@@ -4759,7 +4759,7 @@
     {
       "id": "func:src/platform.c:host_gpio_register",
       "kind": "func",
-      "loc": "src/platform.c:82",
+      "loc": "src/platform.c:83",
       "attrs": {
         "exported": "false",
         "is_handler": "false",
@@ -4771,7 +4771,7 @@
     {
       "id": "func:src/platform.c:indexable_init",
       "kind": "func",
-      "loc": "src/platform.c:589",
+      "loc": "src/platform.c:574",
       "attrs": {
         "exported": "false",
         "is_handler": "false",
@@ -4783,7 +4783,7 @@
     {
       "id": "func:src/platform.c:ota_leaf_bytes",
       "kind": "func",
-      "loc": "src/platform.c:731",
+      "loc": "src/platform.c:716",
       "attrs": {
         "exported": "false",
         "is_handler": "false",
@@ -5202,7 +5202,7 @@
     {
       "id": "func:timer_backend_advance",
       "kind": "func",
-      "loc": "src/backend/zephyr/timer_zephyr.c:106",
+      "loc": "src/backend/zephyr/timer_zephyr.c:107",
       "attrs": {
         "exported": "true",
         "is_handler": "false",
@@ -5215,7 +5215,7 @@
     {
       "id": "func:timer_backend_after",
       "kind": "func",
-      "loc": "src/backend/zephyr/timer_zephyr.c:89",
+      "loc": "src/backend/zephyr/timer_zephyr.c:90",
       "attrs": {
         "exported": "true",
         "is_handler": "false",
@@ -5228,7 +5228,7 @@
     {
       "id": "func:timer_backend_cancel",
       "kind": "func",
-      "loc": "src/backend/zephyr/timer_zephyr.c:92",
+      "loc": "src/backend/zephyr/timer_zephyr.c:93",
       "attrs": {
         "exported": "true",
         "is_handler": "false",
@@ -5240,7 +5240,7 @@
     {
       "id": "func:timer_backend_every",
       "kind": "func",
-      "loc": "src/backend/zephyr/timer_zephyr.c:90",
+      "loc": "src/backend/zephyr/timer_zephyr.c:91",
       "attrs": {
         "exported": "true",
         "is_handler": "false",
@@ -5253,7 +5253,7 @@
     {
       "id": "func:timer_backend_millis",
       "kind": "func",
-      "loc": "src/backend/zephyr/timer_zephyr.c:102",
+      "loc": "src/backend/zephyr/timer_zephyr.c:103",
       "attrs": {
         "exported": "true",
         "is_handler": "false",
@@ -5266,7 +5266,7 @@
     {
       "id": "func:timer_backend_poll",
       "kind": "func",
-      "loc": "src/backend/zephyr/timer_zephyr.c:111",
+      "loc": "src/backend/zephyr/timer_zephyr.c:112",
       "attrs": {
         "exported": "true",
         "is_handler": "false",
@@ -5278,7 +5278,7 @@
     {
       "id": "func:timer_target_snapshot",
       "kind": "func",
-      "loc": "src/backend/zephyr/timer_zephyr.c:125",
+      "loc": "src/backend/zephyr/timer_zephyr.c:126",
       "attrs": {
         "exported": "true",
         "is_handler": "false",
@@ -5431,7 +5431,7 @@
     {
       "id": "func:wallclock_target_read",
       "kind": "func",
-      "loc": "zephyr/src/main.c:354",
+      "loc": "zephyr/src/main.c:355",
       "attrs": {
         "exported": "true",
         "is_handler": "false",
@@ -5443,7 +5443,7 @@
     {
       "id": "func:wallclock_target_set",
       "kind": "func",
-      "loc": "zephyr/src/main.c:412",
+      "loc": "zephyr/src/main.c:413",
       "attrs": {
         "exported": "true",
         "is_handler": "false",
@@ -6313,7 +6313,7 @@
     {
       "id": "func:zephyr/src/main.c:gpio_outputs_early_init",
       "kind": "func",
-      "loc": "zephyr/src/main.c:1493",
+      "loc": "zephyr/src/main.c:1494",
       "attrs": {
         "exported": "false",
         "is_handler": "false",
@@ -6325,7 +6325,7 @@
     {
       "id": "func:zephyr/src/main.c:oevm_roots_callback",
       "kind": "func",
-      "loc": "zephyr/src/main.c:1593",
+      "loc": "zephyr/src/main.c:1594",
       "attrs": {
         "exported": "false",
         "is_handler": "false",
@@ -6337,7 +6337,7 @@
     {
       "id": "func:zephyr/src/main.c:wire_gpio_outputs",
       "kind": "func",
-      "loc": "zephyr/src/main.c:1443",
+      "loc": "zephyr/src/main.c:1444",
       "attrs": {
         "exported": "false",
         "is_handler": "false",
@@ -6349,7 +6349,7 @@
     {
       "id": "func:zephyr/src/main.c:wire_pulse_gpio",
       "kind": "func",
-      "loc": "zephyr/src/main.c:1420",
+      "loc": "zephyr/src/main.c:1421",
       "attrs": {
         "exported": "false",
         "is_handler": "false",
@@ -6361,7 +6361,7 @@
     {
       "id": "func:zephyr/src/main.c:zephyr_millis",
       "kind": "func",
-      "loc": "zephyr/src/main.c:1598",
+      "loc": "zephyr/src/main.c:1599",
       "attrs": {
         "exported": "false",
         "is_handler": "false",
@@ -6374,7 +6374,7 @@
     {
       "id": "func:zephyr/src/observer.c:obs_trace_dump",
       "kind": "func",
-      "loc": "zephyr/src/observer.c:116",
+      "loc": "zephyr/src/observer.c:113",
       "attrs": {
         "exported": "false",
         "is_handler": "false",
@@ -6386,7 +6386,7 @@
     {
       "id": "func:zephyr/src/observer.c:obs_trace_record",
       "kind": "func",
-      "loc": "zephyr/src/observer.c:107",
+      "loc": "zephyr/src/observer.c:104",
       "attrs": {
         "exported": "false",
         "is_handler": "false",
@@ -6398,7 +6398,7 @@
     {
       "id": "func:zephyr/src/observer.c:observer_dump",
       "kind": "func",
-      "loc": "zephyr/src/observer.c:319",
+      "loc": "zephyr/src/observer.c:316",
       "attrs": {
         "exported": "false",
         "is_handler": "false",
@@ -6410,7 +6410,7 @@
     {
       "id": "func:zephyr/src/observer.c:observer_forensics",
       "kind": "func",
-      "loc": "zephyr/src/observer.c:308",
+      "loc": "zephyr/src/observer.c:305",
       "attrs": {
         "exported": "false",
         "is_handler": "false",
@@ -6422,7 +6422,7 @@
     {
       "id": "func:zephyr/src/observer.c:observer_thread_fn",
       "kind": "func",
-      "loc": "zephyr/src/observer.c:348",
+      "loc": "zephyr/src/observer.c:345",
       "attrs": {
         "exported": "false",
         "is_handler": "false",
@@ -6434,7 +6434,7 @@
     {
       "id": "func:zephyr/src/observer.c:observer_verdict",
       "kind": "func",
-      "loc": "zephyr/src/observer.c:147",
+      "loc": "zephyr/src/observer.c:144",
       "attrs": {
         "exported": "false",
         "is_handler": "false",
@@ -6918,7 +6918,7 @@
     {
       "id": "global:observer_stack",
       "kind": "global",
-      "loc": "zephyr/src/observer.c:397",
+      "loc": "zephyr/src/observer.c:394",
       "attrs": {
         "type": "struct z_thread_stack_element[2048]",
         "unit": "unit:zephyr/src"
@@ -7548,7 +7548,7 @@
     {
       "id": "global:src/backend/zephyr/timer_zephyr.c:target_timers",
       "kind": "global",
-      "loc": "src/backend/zephyr/timer_zephyr.c:43",
+      "loc": "src/backend/zephyr/timer_zephyr.c:44",
       "attrs": {
         "type": "struct TargetTimer[8]",
         "unit": "unit:src/backend/zephyr"
@@ -8214,7 +8214,7 @@
     {
       "id": "global:src/platform.c:IndexableVtable",
       "kind": "global",
-      "loc": "src/platform.c:585",
+      "loc": "src/platform.c:570",
       "attrs": {
         "type": "struct Vtable",
         "unit": "unit:src"
@@ -8223,7 +8223,7 @@
     {
       "id": "global:src/platform.c:PlatformObj",
       "kind": "global",
-      "loc": "src/platform.c:620",
+      "loc": "src/platform.c:605",
       "attrs": {
         "type": "struct Object",
         "unit": "unit:src"
@@ -8232,7 +8232,7 @@
     {
       "id": "global:src/platform.c:PlatformVtable",
       "kind": "global",
-      "loc": "src/platform.c:621",
+      "loc": "src/platform.c:606",
       "attrs": {
         "type": "struct Vtable",
         "unit": "unit:src"
@@ -8241,7 +8241,7 @@
     {
       "id": "global:src/platform.c:g_console_chan",
       "kind": "global",
-      "loc": "src/platform.c:29",
+      "loc": "src/platform.c:30",
       "attrs": {
         "type": "int",
         "unit": "unit:src"
@@ -8250,7 +8250,7 @@
     {
       "id": "global:src/platform.c:g_console_seq",
       "kind": "global",
-      "loc": "src/platform.c:30",
+      "loc": "src/platform.c:31",
       "attrs": {
         "type": "int",
         "unit": "unit:src"
@@ -8259,7 +8259,7 @@
     {
       "id": "global:src/platform.c:host_gpio",
       "kind": "global",
-      "loc": "src/platform.c:79",
+      "loc": "src/platform.c:80",
       "attrs": {
         "type": "struct HostGpio[16]",
         "unit": "unit:src"
@@ -8268,7 +8268,7 @@
     {
       "id": "global:src/platform.c:host_n_gpio",
       "kind": "global",
-      "loc": "src/platform.c:80",
+      "loc": "src/platform.c:81",
       "attrs": {
         "type": "int",
         "unit": "unit:src"
@@ -8277,7 +8277,7 @@
     {
       "id": "global:src/platform.c:indexable_initialized",
       "kind": "global",
-      "loc": "src/platform.c:588",
+      "loc": "src/platform.c:573",
       "attrs": {
         "type": "int",
         "unit": "unit:src"
@@ -8286,7 +8286,7 @@
     {
       "id": "global:src/platform.c:platform_dispatch.armed",
       "kind": "global",
-      "loc": "src/platform.c:1487",
+      "loc": "src/platform.c:1472",
       "attrs": {
         "type": "int",
         "unit": "unit:src"
@@ -8295,7 +8295,7 @@
     {
       "id": "global:src/platform.c:platform_dispatch.m",
       "kind": "global",
-      "loc": "src/platform.c:1472",
+      "loc": "src/platform.c:1457",
       "attrs": {
         "type": "const char[52]",
         "unit": "unit:src"
@@ -8304,7 +8304,7 @@
     {
       "id": "global:src/platform.c:platform_initialized",
       "kind": "global",
-      "loc": "src/platform.c:622",
+      "loc": "src/platform.c:607",
       "attrs": {
         "type": "int",
         "unit": "unit:src"
@@ -8313,7 +8313,7 @@
     {
       "id": "global:src/platform.c:rtc_alarm_pin",
       "kind": "global",
-      "loc": "src/platform.c:755",
+      "loc": "src/platform.c:740",
       "attrs": {
         "type": "int",
         "unit": "unit:src"
@@ -8322,7 +8322,7 @@
     {
       "id": "global:src/platform.c:s_app_cad_ms",
       "kind": "global",
-      "loc": "src/platform.c:17",
+      "loc": "src/platform.c:18",
       "attrs": {
         "type": "uint32_t",
         "unit": "unit:src"
@@ -8331,7 +8331,7 @@
     {
       "id": "global:src/platform.c:sensor_event_pin",
       "kind": "global",
-      "loc": "src/platform.c:756",
+      "loc": "src/platform.c:741",
       "attrs": {
         "type": "int",
         "unit": "unit:src"
@@ -8736,7 +8736,7 @@
     {
       "id": "global:zephyr/src/main.c:__init_gpio_outputs_early_init",
       "kind": "global",
-      "loc": "zephyr/src/main.c:1497",
+      "loc": "zephyr/src/main.c:1498",
       "attrs": {
         "type": "const struct init_entry",
         "unit": "unit:zephyr/src"
@@ -8745,7 +8745,7 @@
     {
       "id": "global:zephyr/src/main.c:disp_ok",
       "kind": "global",
-      "loc": "zephyr/src/main.c:986",
+      "loc": "zephyr/src/main.c:987",
       "attrs": {
         "type": "bool",
         "unit": "unit:zephyr/src"
@@ -8754,7 +8754,7 @@
     {
       "id": "global:zephyr/src/main.c:g_rtc",
       "kind": "global",
-      "loc": "zephyr/src/main.c:288",
+      "loc": "zephyr/src/main.c:289",
       "attrs": {
         "type": "int32_t[14]",
         "unit": "unit:zephyr/src"
@@ -8763,7 +8763,7 @@
     {
       "id": "global:zephyr/src/main.c:gpio_outputs",
       "kind": "global",
-      "loc": "zephyr/src/main.c:1429",
+      "loc": "zephyr/src/main.c:1430",
       "attrs": {
         "type": "const struct gpio_dt_spec[1]",
         "unit": "unit:zephyr/src"
@@ -8772,7 +8772,7 @@
     {
       "id": "global:zephyr/src/main.c:ntp_last_date",
       "kind": "global",
-      "loc": "zephyr/src/main.c:201",
+      "loc": "zephyr/src/main.c:202",
       "attrs": {
         "type": "int",
         "unit": "unit:zephyr/src"
@@ -8781,7 +8781,7 @@
     {
       "id": "global:zephyr/src/main.c:reset_cause_timer_wake.answer",
       "kind": "global",
-      "loc": "zephyr/src/main.c:306",
+      "loc": "zephyr/src/main.c:307",
       "attrs": {
         "type": "int",
         "unit": "unit:zephyr/src"
@@ -8790,7 +8790,7 @@
     {
       "id": "global:zephyr/src/main.c:reset_cause_timer_wake.known",
       "kind": "global",
-      "loc": "zephyr/src/main.c:306",
+      "loc": "zephyr/src/main.c:307",
       "attrs": {
         "type": "int",
         "unit": "unit:zephyr/src"
@@ -8799,7 +8799,7 @@
     {
       "id": "global:zephyr/src/main.c:wallclock_target_read.rtc_dev",
       "kind": "global",
-      "loc": "zephyr/src/main.c:356",
+      "loc": "zephyr/src/main.c:357",
       "attrs": {
         "type": "const struct device *const",
         "unit": "unit:zephyr/src"
@@ -8808,7 +8808,7 @@
     {
       "id": "global:zephyr/src/main.c:wallclock_target_set.rtc_dev",
       "kind": "global",
-      "loc": "zephyr/src/main.c:414",
+      "loc": "zephyr/src/main.c:415",
       "attrs": {
         "type": "const struct device *const",
         "unit": "unit:zephyr/src"
@@ -8817,7 +8817,7 @@
     {
       "id": "global:zephyr/src/observer.c:g_core",
       "kind": "global",
-      "loc": "zephyr/src/observer.c:92",
+      "loc": "zephyr/src/observer.c:89",
       "attrs": {
         "type": "struct ObsCore",
         "unit": "unit:zephyr/src"
@@ -8826,7 +8826,7 @@
     {
       "id": "global:zephyr/src/observer.c:g_hw_wdt",
       "kind": "global",
-      "loc": "zephyr/src/observer.c:85",
+      "loc": "zephyr/src/observer.c:82",
       "attrs": {
         "type": "const struct device *",
         "unit": "unit:zephyr/src"
@@ -8835,7 +8835,7 @@
     {
       "id": "global:zephyr/src/observer.c:g_trace",
       "kind": "global",
-      "loc": "zephyr/src/observer.c:104",
+      "loc": "zephyr/src/observer.c:101",
       "attrs": {
         "type": "struct ObsTrace[32]",
         "unit": "unit:zephyr/src"
@@ -8844,7 +8844,7 @@
     {
       "id": "global:zephyr/src/observer.c:g_trace_w",
       "kind": "global",
-      "loc": "zephyr/src/observer.c:105",
+      "loc": "zephyr/src/observer.c:102",
       "attrs": {
         "type": "uint32_t",
         "unit": "unit:zephyr/src"
@@ -8853,7 +8853,7 @@
     {
       "id": "global:zephyr/src/observer.c:g_wdt_channel",
       "kind": "global",
-      "loc": "zephyr/src/observer.c:86",
+      "loc": "zephyr/src/observer.c:83",
       "attrs": {
         "type": "int",
         "unit": "unit:zephyr/src"
@@ -8862,7 +8862,7 @@
     {
       "id": "global:zephyr/src/observer.c:observer_thread",
       "kind": "global",
-      "loc": "zephyr/src/observer.c:398",
+      "loc": "zephyr/src/observer.c:395",
       "attrs": {
         "type": "struct k_thread",
         "unit": "unit:zephyr/src"
@@ -9461,19 +9461,19 @@
       "kind": "calls",
       "from": "func:gpio_target_fire",
       "to": "func:src/platform.c:host_gpio_fire",
-      "loc": "src/platform.c:570"
+      "loc": "src/platform.c:555"
     },
     {
       "kind": "calls",
       "from": "func:gpio_target_level",
       "to": "func:gpio_pin_get_dt",
-      "loc": "zephyr/src/main.c:1522"
+      "loc": "zephyr/src/main.c:1523"
     },
     {
       "kind": "calls",
       "from": "func:gpio_target_set",
       "to": "func:gpio_pin_set_dt",
-      "loc": "zephyr/src/main.c:1512"
+      "loc": "zephyr/src/main.c:1513"
     },
     {
       "kind": "calls",
@@ -9989,13 +9989,13 @@
       "kind": "calls",
       "from": "func:indexable_new",
       "to": "func:gc_allocate",
-      "loc": "src/platform.c:604"
+      "loc": "src/platform.c:589"
     },
     {
       "kind": "calls",
       "from": "func:indexable_new",
       "to": "func:src/platform.c:indexable_init",
-      "loc": "src/platform.c:602"
+      "loc": "src/platform.c:587"
     },
     {
       "kind": "calls",
@@ -10289,181 +10289,181 @@
       "kind": "calls",
       "from": "func:main",
       "to": "func:k_cycle_get_32",
-      "loc": "zephyr/src/main.c:1917"
+      "loc": "zephyr/src/main.c:1918"
     },
     {
       "kind": "calls",
       "from": "func:main",
       "to": "func:k_cycle_get_32",
-      "loc": "zephyr/src/main.c:1925"
-    },
-    {
-      "kind": "calls",
-      "from": "func:main",
-      "to": "func:k_cycle_get_32",
-      "loc": "zephyr/src/main.c:1931"
-    },
-    {
-      "kind": "calls",
-      "from": "func:main",
-      "to": "func:k_sleep",
-      "loc": "zephyr/src/main.c:2000"
-    },
-    {
-      "kind": "calls",
-      "from": "func:main",
-      "to": "func:k_uptime_get",
-      "loc": "zephyr/src/main.c:1944"
-    },
-    {
-      "kind": "calls",
-      "from": "func:main",
-      "to": "func:k_uptime_get",
-      "loc": "zephyr/src/main.c:1949"
-    },
-    {
-      "kind": "calls",
-      "from": "func:main",
-      "to": "func:kernel_boot",
-      "loc": "zephyr/src/main.c:1914"
-    },
-    {
-      "kind": "calls",
-      "from": "func:main",
-      "to": "func:log_udp_start",
-      "loc": "zephyr/src/main.c:1890"
-    },
-    {
-      "kind": "calls",
-      "from": "func:main",
-      "to": "func:observer_start",
-      "loc": "zephyr/src/main.c:1911"
-    },
-    {
-      "kind": "calls",
-      "from": "func:main",
-      "to": "func:oevm_thread_bringup",
-      "loc": "zephyr/src/main.c:1981"
-    },
-    {
-      "kind": "calls",
-      "from": "func:main",
-      "to": "func:oimg_bootstrap",
-      "loc": "zephyr/src/main.c:1988"
-    },
-    {
-      "kind": "calls",
-      "from": "func:main",
-      "to": "func:oimg_load_blob",
       "loc": "zephyr/src/main.c:1926"
     },
     {
       "kind": "calls",
       "from": "func:main",
+      "to": "func:k_cycle_get_32",
+      "loc": "zephyr/src/main.c:1932"
+    },
+    {
+      "kind": "calls",
+      "from": "func:main",
+      "to": "func:k_sleep",
+      "loc": "zephyr/src/main.c:2001"
+    },
+    {
+      "kind": "calls",
+      "from": "func:main",
+      "to": "func:k_uptime_get",
+      "loc": "zephyr/src/main.c:1945"
+    },
+    {
+      "kind": "calls",
+      "from": "func:main",
+      "to": "func:k_uptime_get",
+      "loc": "zephyr/src/main.c:1950"
+    },
+    {
+      "kind": "calls",
+      "from": "func:main",
+      "to": "func:kernel_boot",
+      "loc": "zephyr/src/main.c:1915"
+    },
+    {
+      "kind": "calls",
+      "from": "func:main",
+      "to": "func:log_udp_start",
+      "loc": "zephyr/src/main.c:1891"
+    },
+    {
+      "kind": "calls",
+      "from": "func:main",
+      "to": "func:observer_start",
+      "loc": "zephyr/src/main.c:1912"
+    },
+    {
+      "kind": "calls",
+      "from": "func:main",
+      "to": "func:oevm_thread_bringup",
+      "loc": "zephyr/src/main.c:1982"
+    },
+    {
+      "kind": "calls",
+      "from": "func:main",
+      "to": "func:oimg_bootstrap",
+      "loc": "zephyr/src/main.c:1989"
+    },
+    {
+      "kind": "calls",
+      "from": "func:main",
+      "to": "func:oimg_load_blob",
+      "loc": "zephyr/src/main.c:1927"
+    },
+    {
+      "kind": "calls",
+      "from": "func:main",
       "to": "func:oimg_root",
-      "loc": "zephyr/src/main.c:1988"
+      "loc": "zephyr/src/main.c:1989"
     },
     {
       "kind": "calls",
       "from": "func:main",
       "to": "func:ota_env",
-      "loc": "zephyr/src/main.c:1948"
+      "loc": "zephyr/src/main.c:1949"
     },
     {
       "kind": "calls",
       "from": "func:main",
       "to": "func:ota_note_running_hash",
-      "loc": "zephyr/src/main.c:1947"
-    },
-    {
-      "kind": "calls",
-      "from": "func:main",
-      "to": "func:ota_sha256",
-      "loc": "zephyr/src/main.c:1946"
-    },
-    {
-      "kind": "calls",
-      "from": "func:main",
-      "to": "func:printk",
-      "loc": "zephyr/src/main.c:1865"
-    },
-    {
-      "kind": "calls",
-      "from": "func:main",
-      "to": "func:printk",
-      "loc": "zephyr/src/main.c:1876"
-    },
-    {
-      "kind": "calls",
-      "from": "func:main",
-      "to": "func:printk",
-      "loc": "zephyr/src/main.c:1922"
-    },
-    {
-      "kind": "calls",
-      "from": "func:main",
-      "to": "func:printk",
-      "loc": "zephyr/src/main.c:1930"
-    },
-    {
-      "kind": "calls",
-      "from": "func:main",
-      "to": "func:printk",
-      "loc": "zephyr/src/main.c:1935"
-    },
-    {
-      "kind": "calls",
-      "from": "func:main",
-      "to": "func:printk",
       "loc": "zephyr/src/main.c:1948"
     },
     {
       "kind": "calls",
       "from": "func:main",
+      "to": "func:ota_sha256",
+      "loc": "zephyr/src/main.c:1947"
+    },
+    {
+      "kind": "calls",
+      "from": "func:main",
+      "to": "func:printk",
+      "loc": "zephyr/src/main.c:1866"
+    },
+    {
+      "kind": "calls",
+      "from": "func:main",
+      "to": "func:printk",
+      "loc": "zephyr/src/main.c:1877"
+    },
+    {
+      "kind": "calls",
+      "from": "func:main",
+      "to": "func:printk",
+      "loc": "zephyr/src/main.c:1923"
+    },
+    {
+      "kind": "calls",
+      "from": "func:main",
+      "to": "func:printk",
+      "loc": "zephyr/src/main.c:1931"
+    },
+    {
+      "kind": "calls",
+      "from": "func:main",
+      "to": "func:printk",
+      "loc": "zephyr/src/main.c:1936"
+    },
+    {
+      "kind": "calls",
+      "from": "func:main",
+      "to": "func:printk",
+      "loc": "zephyr/src/main.c:1949"
+    },
+    {
+      "kind": "calls",
+      "from": "func:main",
       "to": "func:reboot_note_consecutive",
-      "loc": "zephyr/src/main.c:1873"
+      "loc": "zephyr/src/main.c:1874"
     },
     {
       "kind": "calls",
       "from": "func:main",
       "to": "func:reboot_note_init",
-      "loc": "zephyr/src/main.c:1872"
+      "loc": "zephyr/src/main.c:1873"
     },
     {
       "kind": "calls",
       "from": "func:main",
       "to": "func:reboot_note_read",
-      "loc": "zephyr/src/main.c:1875"
+      "loc": "zephyr/src/main.c:1876"
     },
     {
       "kind": "calls",
       "from": "func:main",
       "to": "func:runner_select",
-      "loc": "zephyr/src/main.c:1921"
+      "loc": "zephyr/src/main.c:1922"
     },
     {
       "kind": "calls",
       "from": "func:main",
       "to": "func:setvbuf",
-      "loc": "zephyr/src/main.c:1839"
+      "loc": "zephyr/src/main.c:1840"
     },
     {
       "kind": "calls",
       "from": "func:main",
       "to": "func:setvbuf",
-      "loc": "zephyr/src/main.c:1848"
+      "loc": "zephyr/src/main.c:1849"
     },
     {
       "kind": "calls",
       "from": "func:main",
       "to": "func:zephyr/src/main.c:wire_gpio_outputs",
-      "loc": "zephyr/src/main.c:1958"
+      "loc": "zephyr/src/main.c:1959"
     },
     {
       "kind": "calls",
       "from": "func:main",
       "to": "func:zephyr/src/main.c:wire_pulse_gpio",
-      "loc": "zephyr/src/main.c:1957"
+      "loc": "zephyr/src/main.c:1958"
     },
     {
       "kind": "calls",
@@ -10847,79 +10847,79 @@
       "kind": "calls",
       "from": "func:ntp_target_sync",
       "to": "func:printk",
-      "loc": "zephyr/src/main.c:224"
+      "loc": "zephyr/src/main.c:225"
     },
     {
       "kind": "calls",
       "from": "func:ntp_target_sync",
       "to": "func:printk",
-      "loc": "zephyr/src/main.c:253"
+      "loc": "zephyr/src/main.c:254"
     },
     {
       "kind": "calls",
       "from": "func:ntp_target_sync",
       "to": "func:sntp_simple",
-      "loc": "zephyr/src/main.c:223"
+      "loc": "zephyr/src/main.c:224"
     },
     {
       "kind": "calls",
       "from": "func:observer_halt",
       "to": "func:arch_irq_lock",
-      "loc": "zephyr/src/observer.c:344"
-    },
-    {
-      "kind": "calls",
-      "from": "func:observer_halt",
-      "to": "func:k_busy_wait",
-      "loc": "zephyr/src/observer.c:343"
-    },
-    {
-      "kind": "calls",
-      "from": "func:observer_halt",
-      "to": "func:printk",
       "loc": "zephyr/src/observer.c:341"
     },
     {
       "kind": "calls",
       "from": "func:observer_halt",
-      "to": "func:wdt_disable",
+      "to": "func:k_busy_wait",
       "loc": "zephyr/src/observer.c:340"
+    },
+    {
+      "kind": "calls",
+      "from": "func:observer_halt",
+      "to": "func:printk",
+      "loc": "zephyr/src/observer.c:338"
+    },
+    {
+      "kind": "calls",
+      "from": "func:observer_halt",
+      "to": "func:wdt_disable",
+      "loc": "zephyr/src/observer.c:337"
     },
     {
       "kind": "calls",
       "from": "func:observer_start",
       "to": "func:device_is_ready",
-      "loc": "zephyr/src/observer.c:403"
+      "loc": "zephyr/src/observer.c:400"
     },
     {
       "kind": "calls",
       "from": "func:observer_start",
       "to": "func:k_thread_create",
-      "loc": "zephyr/src/observer.c:422"
-    },
-    {
-      "kind": "calls",
-      "from": "func:observer_start",
-      "to": "func:k_thread_name_set",
-      "loc": "zephyr/src/observer.c:426"
-    },
-    {
-      "kind": "calls",
-      "from": "func:observer_start",
-      "to": "func:printk",
-      "loc": "zephyr/src/observer.c:411"
-    },
-    {
-      "kind": "calls",
-      "from": "func:observer_start",
-      "to": "func:printk",
       "loc": "zephyr/src/observer.c:419"
     },
     {
       "kind": "calls",
       "from": "func:observer_start",
+      "to": "func:k_thread_name_set",
+      "loc": "zephyr/src/observer.c:423"
+    },
+    {
+      "kind": "calls",
+      "from": "func:observer_start",
+      "to": "func:printk",
+      "loc": "zephyr/src/observer.c:408"
+    },
+    {
+      "kind": "calls",
+      "from": "func:observer_start",
+      "to": "func:printk",
+      "loc": "zephyr/src/observer.c:416"
+    },
+    {
+      "kind": "calls",
+      "from": "func:observer_start",
       "to": "func:task_wdt_init",
-      "loc": "zephyr/src/observer.c:407"
+      "loc": "zephyr/src/observer.c:404"
     },
     {
       "kind": "calls",
@@ -12173,61 +12173,73 @@
       "kind": "calls",
       "from": "func:platform_dispatch",
       "to": "func:abort",
-      "loc": "src/platform.c:1015"
+      "loc": "src/platform.c:1000"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
       "to": "func:abort",
-      "loc": "src/platform.c:1053"
+      "loc": "src/platform.c:1038"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
       "to": "func:abort",
-      "loc": "src/platform.c:1151"
+      "loc": "src/platform.c:1136"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
       "to": "func:abort",
-      "loc": "src/platform.c:1179"
+      "loc": "src/platform.c:1164"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
       "to": "func:abort",
-      "loc": "src/platform.c:1728"
+      "loc": "src/platform.c:1713"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
       "to": "func:abort",
-      "loc": "src/platform.c:1740"
+      "loc": "src/platform.c:1725"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
       "to": "func:abort",
-      "loc": "src/platform.c:1761"
+      "loc": "src/platform.c:1746"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
       "to": "func:abort",
-      "loc": "src/platform.c:1800"
+      "loc": "src/platform.c:1785"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
       "to": "func:abort",
-      "loc": "src/platform.c:1834"
+      "loc": "src/platform.c:1819"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
       "to": "func:abort",
-      "loc": "src/platform.c:1932"
+      "loc": "src/platform.c:1917"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:abort",
+      "loc": "src/platform.c:800"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:abort",
+      "loc": "src/platform.c:810"
     },
     {
       "kind": "calls",
@@ -12239,19 +12251,13 @@
       "kind": "calls",
       "from": "func:platform_dispatch",
       "to": "func:abort",
-      "loc": "src/platform.c:825"
+      "loc": "src/platform.c:856"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
       "to": "func:abort",
-      "loc": "src/platform.c:830"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:abort",
-      "loc": "src/platform.c:871"
+      "loc": "src/platform.c:903"
     },
     {
       "kind": "calls",
@@ -12263,61 +12269,67 @@
       "kind": "calls",
       "from": "func:platform_dispatch",
       "to": "func:abort",
-      "loc": "src/platform.c:933"
+      "loc": "src/platform.c:935"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
       "to": "func:abort",
-      "loc": "src/platform.c:950"
+      "loc": "src/platform.c:956"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
       "to": "func:abort",
-      "loc": "src/platform.c:971"
+      "loc": "src/platform.c:970"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
       "to": "func:abort",
-      "loc": "src/platform.c:985"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:abort",
-      "loc": "src/platform.c:998"
+      "loc": "src/platform.c:983"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
       "to": "func:bell_target_available",
-      "loc": "src/platform.c:1961"
+      "loc": "src/platform.c:1946"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
       "to": "func:bell_target_strike",
-      "loc": "src/platform.c:1962"
+      "loc": "src/platform.c:1947"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
       "to": "func:boundclass_is",
-      "loc": "src/platform.c:794"
+      "loc": "src/platform.c:779"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
       "to": "func:deep_sleep_target",
-      "loc": "src/platform.c:2030"
+      "loc": "src/platform.c:2015"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
       "to": "func:display_target_available",
-      "loc": "src/platform.c:1922"
+      "loc": "src/platform.c:1907"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:display_target_available",
+      "loc": "src/platform.c:1919"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:display_target_available",
+      "loc": "src/platform.c:1929"
     },
     {
       "kind": "calls",
@@ -12328,104 +12340,98 @@
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
-      "to": "func:display_target_available",
-      "loc": "src/platform.c:1944"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:display_target_available",
-      "loc": "src/platform.c:1949"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
       "to": "func:display_target_clear",
-      "loc": "src/platform.c:1923"
+      "loc": "src/platform.c:1908"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
       "to": "func:display_target_put",
-      "loc": "src/platform.c:1937"
+      "loc": "src/platform.c:1922"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
       "to": "func:display_target_refresh",
-      "loc": "src/platform.c:1945"
+      "loc": "src/platform.c:1930"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
       "to": "func:display_target_refresh_row",
-      "loc": "src/platform.c:1950"
+      "loc": "src/platform.c:1935"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
       "to": "func:float_alloc",
-      "loc": "src/platform.c:1287"
+      "loc": "src/platform.c:1272"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
       "to": "func:fprintf",
-      "loc": "src/platform.c:1014"
+      "loc": "src/platform.c:1037"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
       "to": "func:fprintf",
-      "loc": "src/platform.c:1052"
+      "loc": "src/platform.c:1135"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
       "to": "func:fprintf",
-      "loc": "src/platform.c:1150"
+      "loc": "src/platform.c:1164"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
       "to": "func:fprintf",
-      "loc": "src/platform.c:1179"
+      "loc": "src/platform.c:1712"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
       "to": "func:fprintf",
-      "loc": "src/platform.c:1727"
+      "loc": "src/platform.c:1724"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
       "to": "func:fprintf",
-      "loc": "src/platform.c:1739"
+      "loc": "src/platform.c:1745"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
       "to": "func:fprintf",
-      "loc": "src/platform.c:1760"
+      "loc": "src/platform.c:1784"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
       "to": "func:fprintf",
-      "loc": "src/platform.c:1799"
+      "loc": "src/platform.c:1818"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
       "to": "func:fprintf",
-      "loc": "src/platform.c:1833"
+      "loc": "src/platform.c:1916"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
       "to": "func:fprintf",
-      "loc": "src/platform.c:1931"
+      "loc": "src/platform.c:799"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:fprintf",
+      "loc": "src/platform.c:809"
     },
     {
       "kind": "calls",
@@ -12437,19 +12443,13 @@
       "kind": "calls",
       "from": "func:platform_dispatch",
       "to": "func:fprintf",
-      "loc": "src/platform.c:824"
+      "loc": "src/platform.c:855"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
       "to": "func:fprintf",
-      "loc": "src/platform.c:829"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:fprintf",
-      "loc": "src/platform.c:870"
+      "loc": "src/platform.c:902"
     },
     {
       "kind": "calls",
@@ -12461,1195 +12461,1195 @@
       "kind": "calls",
       "from": "func:platform_dispatch",
       "to": "func:fprintf",
-      "loc": "src/platform.c:932"
+      "loc": "src/platform.c:934"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
       "to": "func:fprintf",
-      "loc": "src/platform.c:949"
+      "loc": "src/platform.c:955"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
       "to": "func:fprintf",
-      "loc": "src/platform.c:970"
+      "loc": "src/platform.c:969"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
       "to": "func:fprintf",
-      "loc": "src/platform.c:984"
+      "loc": "src/platform.c:982"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
       "to": "func:fprintf",
-      "loc": "src/platform.c:997"
+      "loc": "src/platform.c:999"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
       "to": "func:gc_allocate",
-      "loc": "src/platform.c:1190"
+      "loc": "src/platform.c:1175"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
       "to": "func:gc_allocate",
-      "loc": "src/platform.c:1207"
+      "loc": "src/platform.c:1192"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
       "to": "func:gc_allocate",
-      "loc": "src/platform.c:1544"
+      "loc": "src/platform.c:1529"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
       "to": "func:gc_allocate",
-      "loc": "src/platform.c:1577"
+      "loc": "src/platform.c:1562"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
       "to": "func:gc_allocate",
-      "loc": "src/platform.c:799"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:gc_allocate",
-      "loc": "src/platform.c:819"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:gc_allocate",
-      "loc": "src/platform.c:843"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:gc_allocate",
-      "loc": "src/platform.c:857"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:gc_allocate",
-      "loc": "src/platform.c:874"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:gc_temp_root_push",
-      "loc": "src/platform.c:1070"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:gc_temp_root_push",
-      "loc": "src/platform.c:1242"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:gc_temp_root_push",
-      "loc": "src/platform.c:1288"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:gc_temp_root_push",
-      "loc": "src/platform.c:1411"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:gc_temp_roots_clear",
-      "loc": "src/platform.c:1247"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:gc_temp_roots_clear",
-      "loc": "src/platform.c:1292"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:gpio_target_level",
-      "loc": "src/platform.c:1913"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:gpio_target_set",
-      "loc": "src/platform.c:1905"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:handle_free",
-      "loc": "src/platform.c:1807"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:handle_free",
-      "loc": "src/platform.c:1816"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:handle_free",
-      "loc": "src/platform.c:1841"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:handle_free",
-      "loc": "src/platform.c:1855"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:handle_high_water",
-      "loc": "src/platform.c:1672"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:handle_live_count",
-      "loc": "src/platform.c:1671"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:handle_new",
-      "loc": "src/platform.c:1155"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:handle_new",
-      "loc": "src/platform.c:1804"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:handle_new",
-      "loc": "src/platform.c:1839"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:http_accept_request",
-      "loc": "src/platform.c:1743"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:http_begin",
-      "loc": "src/platform.c:1751"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:http_chunk",
-      "loc": "src/platform.c:1764"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:http_end",
-      "loc": "src/platform.c:1770"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:http_is_listening",
-      "loc": "src/platform.c:1707"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:http_listen",
-      "loc": "src/platform.c:1717"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:http_poll",
-      "loc": "src/platform.c:1699"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:http_pump",
-      "loc": "src/platform.c:1711"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:http_respond",
-      "loc": "src/platform.c:1731"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:indexable_new",
-      "loc": "src/platform.c:1069"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:indexable_new",
-      "loc": "src/platform.c:1072"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:indexable_new",
-      "loc": "src/platform.c:1243"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:indexable_new",
-      "loc": "src/platform.c:1289"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:indexable_new",
-      "loc": "src/platform.c:1352"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:indexable_new",
-      "loc": "src/platform.c:1373"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:indexable_new",
-      "loc": "src/platform.c:1410"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:indexable_new",
-      "loc": "src/platform.c:1688"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:indexable_new",
-      "loc": "src/platform.c:1784"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:indexable_new",
-      "loc": "src/platform.c:2046"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:indexable_new",
-      "loc": "src/platform.c:762"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:indexable_new",
-      "loc": "src/platform.c:956"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:int_from_uint64",
-      "loc": "src/platform.c:1132"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:int_from_uint64",
-      "loc": "src/platform.c:1137"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:is_truthy",
-      "loc": "src/platform.c:1484"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:is_truthy",
-      "loc": "src/platform.c:1904"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:largeint_alloc",
-      "loc": "src/platform.c:1241"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:largeint_alloc",
-      "loc": "src/platform.c:1261"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:largeint_alloc",
-      "loc": "src/platform.c:1264"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:memcpy",
-      "loc": "src/platform.c:1191"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:memcpy",
-      "loc": "src/platform.c:1203"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:memcpy",
-      "loc": "src/platform.c:1205"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:memcpy",
-      "loc": "src/platform.c:1208"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:memcpy",
-      "loc": "src/platform.c:1278"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:memcpy",
-      "loc": "src/platform.c:1279"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:memcpy",
-      "loc": "src/platform.c:1546"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:memcpy",
-      "loc": "src/platform.c:1579"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:memcpy",
-      "loc": "src/platform.c:1628"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:memcpy",
-      "loc": "src/platform.c:845"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:memcpy",
-      "loc": "src/platform.c:876"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:memset",
-      "loc": "src/platform.c:859"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:mprof_start",
-      "loc": "src/platform.c:1435"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:mprof_stop",
-      "loc": "src/platform.c:1447"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:ntp_target_date",
-      "loc": "src/platform.c:1982"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:ntp_target_sync",
-      "loc": "src/platform.c:1973"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:oevm_cheap_stats",
-      "loc": "src/platform.c:1372"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:oevm_heap_stats",
-      "loc": "src/platform.c:1351"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:oevm_int_demote",
-      "loc": "src/platform.c:1241"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:oevm_int_demote",
-      "loc": "src/platform.c:1261"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:oevm_int_demote",
-      "loc": "src/platform.c:1264"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:ota_activate",
-      "loc": "src/platform.c:1656"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:ota_confirm",
-      "loc": "src/platform.c:1643"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:ota_is_running",
-      "loc": "src/platform.c:1591"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:ota_running_hash",
-      "loc": "src/platform.c:1576"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:ota_stage",
-      "loc": "src/platform.c:1635"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:ota_trial",
-      "loc": "src/platform.c:1600"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:platform_backend_board_name",
-      "loc": "src/platform.c:1519"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:platform_backend_boot_id",
-      "loc": "src/platform.c:1559"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:platform_backend_node_id",
-      "loc": "src/platform.c:1470"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:platform_console_arm",
-      "loc": "src/platform.c:1492"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:platform_console_flush",
       "loc": "src/platform.c:784"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
-      "to": "func:platform_console_service",
-      "loc": "src/platform.c:1700"
+      "to": "func:gc_allocate",
+      "loc": "src/platform.c:804"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
-      "to": "func:platform_console_take_line",
-      "loc": "src/platform.c:1500"
+      "to": "func:gc_allocate",
+      "loc": "src/platform.c:828"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
-      "to": "func:platform_console_tee",
-      "loc": "src/platform.c:1512"
+      "to": "func:gc_allocate",
+      "loc": "src/platform.c:842"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
-      "to": "func:platform_console_write",
-      "loc": "src/platform.c:1473"
+      "to": "func:gc_allocate",
+      "loc": "src/platform.c:859"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
-      "to": "func:platform_console_write",
-      "loc": "src/platform.c:771"
+      "to": "func:gc_temp_root_push",
+      "loc": "src/platform.c:1055"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
-      "to": "func:platform_console_write",
-      "loc": "src/platform.c:775"
+      "to": "func:gc_temp_root_push",
+      "loc": "src/platform.c:1227"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
-      "to": "func:platform_console_write",
-      "loc": "src/platform.c:779"
+      "to": "func:gc_temp_root_push",
+      "loc": "src/platform.c:1273"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
-      "to": "func:platform_console_write",
-      "loc": "src/platform.c:783"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:platform_debug_held",
-      "loc": "src/platform.c:1485"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:platform_debug_hold",
-      "loc": "src/platform.c:1484"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:platform_debug_readline",
-      "loc": "src/platform.c:841"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:platform_object",
-      "loc": "src/platform.c:1103"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:platform_object",
-      "loc": "src/platform.c:1116"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:platform_object",
-      "loc": "src/platform.c:1120"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:platform_object",
-      "loc": "src/platform.c:1124"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:platform_object",
-      "loc": "src/platform.c:1157"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:platform_object",
-      "loc": "src/platform.c:1162"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:platform_object",
-      "loc": "src/platform.c:1427"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:platform_object",
-      "loc": "src/platform.c:1440"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:platform_object",
-      "loc": "src/platform.c:1452"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:platform_object",
-      "loc": "src/platform.c:1644"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:platform_object",
-      "loc": "src/platform.c:1657"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:platform_object",
-      "loc": "src/platform.c:1718"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:platform_object",
-      "loc": "src/platform.c:1732"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:platform_object",
-      "loc": "src/platform.c:1745"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:platform_object",
-      "loc": "src/platform.c:1752"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:platform_object",
-      "loc": "src/platform.c:1765"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:platform_object",
-      "loc": "src/platform.c:1771"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:platform_object",
-      "loc": "src/platform.c:1818"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:platform_object",
-      "loc": "src/platform.c:1857"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:platform_object",
-      "loc": "src/platform.c:1870"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:platform_object",
-      "loc": "src/platform.c:1874"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:platform_object",
-      "loc": "src/platform.c:1881"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:platform_object",
-      "loc": "src/platform.c:1890"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:platform_object",
-      "loc": "src/platform.c:781"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:platform_object",
-      "loc": "src/platform.c:785"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:platform_object",
-      "loc": "src/platform.c:937"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:pulse_coalesced",
-      "loc": "src/platform.c:1682"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:pulse_drops",
-      "loc": "src/platform.c:1681"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:pulse_post_isr_value",
-      "loc": "src/platform.c:1701"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:pulse_pump",
-      "loc": "src/platform.c:1707"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:pulse_pump_nb",
-      "loc": "src/platform.c:1707"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:pulse_stale",
-      "loc": "src/platform.c:1687"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:reboot_note_ack",
-      "loc": "src/platform.c:1426"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:reboot_note_read",
+      "to": "func:gc_temp_root_push",
       "loc": "src/platform.c:1396"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
-      "to": "func:reset_cause_timer_wake",
-      "loc": "src/platform.c:1995"
+      "to": "func:gc_temp_roots_clear",
+      "loc": "src/platform.c:1232"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
-      "to": "func:rtc_alarm_arm",
+      "to": "func:gc_temp_roots_clear",
+      "loc": "src/platform.c:1277"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:gpio_target_level",
+      "loc": "src/platform.c:1898"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:gpio_target_set",
+      "loc": "src/platform.c:1890"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:handle_free",
+      "loc": "src/platform.c:1792"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:handle_free",
+      "loc": "src/platform.c:1801"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:handle_free",
+      "loc": "src/platform.c:1826"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:handle_free",
       "loc": "src/platform.c:1840"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
-      "to": "func:rtc_target_get",
-      "loc": "src/platform.c:1999"
+      "to": "func:handle_high_water",
+      "loc": "src/platform.c:1657"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
-      "to": "func:rtc_target_put",
-      "loc": "src/platform.c:2003"
+      "to": "func:handle_live_count",
+      "loc": "src/platform.c:1656"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
-      "to": "func:rtc_target_valid",
-      "loc": "src/platform.c:1990"
+      "to": "func:handle_new",
+      "loc": "src/platform.c:1140"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
-      "to": "func:sensor_arm_event",
-      "loc": "src/platform.c:1806"
+      "to": "func:handle_new",
+      "loc": "src/platform.c:1789"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
-      "to": "func:sensor_frame_read",
-      "loc": "src/platform.c:1783"
+      "to": "func:handle_new",
+      "loc": "src/platform.c:1824"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
-      "to": "func:snprintf",
-      "loc": "src/platform.c:1399"
+      "to": "func:http_accept_request",
+      "loc": "src/platform.c:1728"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
-      "to": "func:snprintf",
-      "loc": "src/platform.c:774"
+      "to": "func:http_begin",
+      "loc": "src/platform.c:1736"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
-      "to": "func:space_changed_since",
-      "loc": "src/platform.c:1061"
+      "to": "func:http_chunk",
+      "loc": "src/platform.c:1749"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
-      "to": "func:space_dequeue",
-      "loc": "src/platform.c:1089"
+      "to": "func:http_end",
+      "loc": "src/platform.c:1755"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
-      "to": "func:space_drop_reactions_owned_by",
-      "loc": "src/platform.c:1102"
+      "to": "func:http_is_listening",
+      "loc": "src/platform.c:1692"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
-      "to": "func:space_intern",
-      "loc": "src/platform.c:1154"
+      "to": "func:http_listen",
+      "loc": "src/platform.c:1702"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
-      "to": "func:space_intern",
-      "loc": "src/platform.c:1491"
+      "to": "func:http_poll",
+      "loc": "src/platform.c:1684"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
-      "to": "func:space_intern",
-      "loc": "src/platform.c:1803"
+      "to": "func:http_pump",
+      "loc": "src/platform.c:1696"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
-      "to": "func:space_intern",
-      "loc": "src/platform.c:1838"
+      "to": "func:http_respond",
+      "loc": "src/platform.c:1716"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
-      "to": "func:space_kind",
-      "loc": "src/platform.c:974"
+      "to": "func:indexable_new",
+      "loc": "src/platform.c:1054"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
-      "to": "func:space_last_seq_of",
-      "loc": "src/platform.c:1078"
+      "to": "func:indexable_new",
+      "loc": "src/platform.c:1057"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
-      "to": "func:space_make_string_pub",
-      "loc": "src/platform.c:1076"
+      "to": "func:indexable_new",
+      "loc": "src/platform.c:1228"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
-      "to": "func:space_make_string_pub",
-      "loc": "src/platform.c:1415"
+      "to": "func:indexable_new",
+      "loc": "src/platform.c:1274"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
-      "to": "func:space_make_string_pub",
-      "loc": "src/platform.c:1462"
+      "to": "func:indexable_new",
+      "loc": "src/platform.c:1337"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
-      "to": "func:space_make_string_pub",
-      "loc": "src/platform.c:1476"
+      "to": "func:indexable_new",
+      "loc": "src/platform.c:1358"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
-      "to": "func:space_make_string_pub",
-      "loc": "src/platform.c:1501"
+      "to": "func:indexable_new",
+      "loc": "src/platform.c:1395"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
-      "to": "func:space_make_string_pub",
-      "loc": "src/platform.c:1520"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:space_overruns",
-      "loc": "src/platform.c:1018"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:space_overruns",
-      "loc": "src/platform.c:1674"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:space_path_of",
-      "loc": "src/platform.c:1075"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:space_peek",
-      "loc": "src/platform.c:988"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:space_post",
-      "loc": "src/platform.c:921"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:space_put",
-      "loc": "src/platform.c:1001"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:space_queue_high_water",
+      "to": "func:indexable_new",
       "loc": "src/platform.c:1673"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
-      "to": "func:space_register",
-      "loc": "src/platform.c:936"
+      "to": "func:indexable_new",
+      "loc": "src/platform.c:1769"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
-      "to": "func:space_seq",
-      "loc": "src/platform.c:1024"
+      "to": "func:indexable_new",
+      "loc": "src/platform.c:2031"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
-      "to": "func:space_stamp",
-      "loc": "src/platform.c:1031"
+      "to": "func:indexable_new",
+      "loc": "src/platform.c:747"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
-      "to": "func:space_take",
-      "loc": "src/platform.c:954"
+      "to": "func:indexable_new",
+      "loc": "src/platform.c:941"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
-      "to": "func:space_value_of",
-      "loc": "src/platform.c:1079"
+      "to": "func:int_from_uint64",
+      "loc": "src/platform.c:1117"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
-      "to": "func:span_begin",
-      "loc": "src/platform.c:1869"
+      "to": "func:int_from_uint64",
+      "loc": "src/platform.c:1122"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
-      "to": "func:span_end",
-      "loc": "src/platform.c:1873"
+      "to": "func:is_truthy",
+      "loc": "src/platform.c:1469"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
-      "to": "func:span_record",
-      "loc": "src/platform.c:1880"
-    },
-    {
-      "kind": "calls",
-      "from": "func:platform_dispatch",
-      "to": "func:span_reset_all",
+      "to": "func:is_truthy",
       "loc": "src/platform.c:1889"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
-      "to": "func:span_stats",
-      "loc": "src/platform.c:2045"
+      "to": "func:largeint_alloc",
+      "loc": "src/platform.c:1226"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
-      "to": "func:src/oimg.h:instance_slot",
-      "loc": "src/platform.c:813"
+      "to": "func:largeint_alloc",
+      "loc": "src/platform.c:1246"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
-      "to": "func:src/oimg.h:instance_slot",
-      "loc": "src/platform.c:818"
+      "to": "func:largeint_alloc",
+      "loc": "src/platform.c:1249"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
-      "to": "func:src/oimg.h:instance_slot",
-      "loc": "src/platform.c:822"
+      "to": "func:memcpy",
+      "loc": "src/platform.c:1176"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
-      "to": "func:src/oimg.h:obj_vtable",
-      "loc": "src/platform.c:1013"
+      "to": "func:memcpy",
+      "loc": "src/platform.c:1188"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
-      "to": "func:src/oimg.h:obj_vtable",
-      "loc": "src/platform.c:1051"
+      "to": "func:memcpy",
+      "loc": "src/platform.c:1190"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
-      "to": "func:src/oimg.h:obj_vtable",
-      "loc": "src/platform.c:1149"
+      "to": "func:memcpy",
+      "loc": "src/platform.c:1193"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
-      "to": "func:src/oimg.h:obj_vtable",
-      "loc": "src/platform.c:1174"
+      "to": "func:memcpy",
+      "loc": "src/platform.c:1263"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
-      "to": "func:src/oimg.h:obj_vtable",
-      "loc": "src/platform.c:1506"
+      "to": "func:memcpy",
+      "loc": "src/platform.c:1264"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
-      "to": "func:src/oimg.h:obj_vtable",
-      "loc": "src/platform.c:1726"
+      "to": "func:memcpy",
+      "loc": "src/platform.c:1531"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
-      "to": "func:src/oimg.h:obj_vtable",
+      "to": "func:memcpy",
+      "loc": "src/platform.c:1564"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:memcpy",
+      "loc": "src/platform.c:1613"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:memcpy",
+      "loc": "src/platform.c:830"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:memcpy",
+      "loc": "src/platform.c:861"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:memset",
+      "loc": "src/platform.c:844"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:mprof_start",
+      "loc": "src/platform.c:1420"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:mprof_stop",
+      "loc": "src/platform.c:1432"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:ntp_target_date",
+      "loc": "src/platform.c:1967"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:ntp_target_sync",
+      "loc": "src/platform.c:1958"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:oevm_cheap_stats",
+      "loc": "src/platform.c:1357"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:oevm_heap_stats",
+      "loc": "src/platform.c:1336"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:oevm_int_demote",
+      "loc": "src/platform.c:1226"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:oevm_int_demote",
+      "loc": "src/platform.c:1246"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:oevm_int_demote",
+      "loc": "src/platform.c:1249"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:ota_activate",
+      "loc": "src/platform.c:1641"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:ota_confirm",
+      "loc": "src/platform.c:1628"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:ota_is_running",
+      "loc": "src/platform.c:1576"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:ota_running_hash",
+      "loc": "src/platform.c:1561"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:ota_stage",
+      "loc": "src/platform.c:1620"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:ota_trial",
+      "loc": "src/platform.c:1585"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:platform_backend_board_name",
+      "loc": "src/platform.c:1504"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:platform_backend_boot_id",
+      "loc": "src/platform.c:1544"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:platform_backend_node_id",
+      "loc": "src/platform.c:1455"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:platform_console_arm",
+      "loc": "src/platform.c:1477"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:platform_console_flush",
+      "loc": "src/platform.c:769"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:platform_console_service",
+      "loc": "src/platform.c:1685"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:platform_console_take_line",
+      "loc": "src/platform.c:1485"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:platform_console_tee",
+      "loc": "src/platform.c:1497"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:platform_console_write",
+      "loc": "src/platform.c:1458"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:platform_console_write",
+      "loc": "src/platform.c:756"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:platform_console_write",
+      "loc": "src/platform.c:760"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:platform_console_write",
+      "loc": "src/platform.c:764"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:platform_console_write",
+      "loc": "src/platform.c:768"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:platform_debug_held",
+      "loc": "src/platform.c:1470"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:platform_debug_hold",
+      "loc": "src/platform.c:1469"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:platform_debug_readline",
+      "loc": "src/platform.c:826"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:platform_object",
+      "loc": "src/platform.c:1088"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:platform_object",
+      "loc": "src/platform.c:1101"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:platform_object",
+      "loc": "src/platform.c:1105"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:platform_object",
+      "loc": "src/platform.c:1109"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:platform_object",
+      "loc": "src/platform.c:1142"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:platform_object",
+      "loc": "src/platform.c:1147"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:platform_object",
+      "loc": "src/platform.c:1412"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:platform_object",
+      "loc": "src/platform.c:1425"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:platform_object",
+      "loc": "src/platform.c:1437"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:platform_object",
+      "loc": "src/platform.c:1629"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:platform_object",
+      "loc": "src/platform.c:1642"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:platform_object",
+      "loc": "src/platform.c:1703"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:platform_object",
+      "loc": "src/platform.c:1717"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:platform_object",
+      "loc": "src/platform.c:1730"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:platform_object",
       "loc": "src/platform.c:1737"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
-      "to": "func:src/oimg.h:obj_vtable",
-      "loc": "src/platform.c:1738"
+      "to": "func:platform_object",
+      "loc": "src/platform.c:1750"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:platform_object",
+      "loc": "src/platform.c:1756"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:platform_object",
+      "loc": "src/platform.c:1803"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:platform_object",
+      "loc": "src/platform.c:1842"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:platform_object",
+      "loc": "src/platform.c:1855"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:platform_object",
+      "loc": "src/platform.c:1859"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:platform_object",
+      "loc": "src/platform.c:1866"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:platform_object",
+      "loc": "src/platform.c:1875"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:platform_object",
+      "loc": "src/platform.c:766"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:platform_object",
+      "loc": "src/platform.c:770"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:platform_object",
+      "loc": "src/platform.c:922"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:pulse_coalesced",
+      "loc": "src/platform.c:1667"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:pulse_drops",
+      "loc": "src/platform.c:1666"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:pulse_post_isr_value",
+      "loc": "src/platform.c:1686"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:pulse_pump",
+      "loc": "src/platform.c:1692"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:pulse_pump_nb",
+      "loc": "src/platform.c:1692"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:pulse_stale",
+      "loc": "src/platform.c:1672"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:reboot_note_ack",
+      "loc": "src/platform.c:1411"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:reboot_note_read",
+      "loc": "src/platform.c:1381"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:reset_cause_timer_wake",
+      "loc": "src/platform.c:1980"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:rtc_alarm_arm",
+      "loc": "src/platform.c:1825"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:rtc_target_get",
+      "loc": "src/platform.c:1984"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:rtc_target_put",
+      "loc": "src/platform.c:1988"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:rtc_target_valid",
+      "loc": "src/platform.c:1975"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:sensor_arm_event",
+      "loc": "src/platform.c:1791"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:sensor_frame_read",
+      "loc": "src/platform.c:1768"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:snprintf",
+      "loc": "src/platform.c:1384"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:snprintf",
+      "loc": "src/platform.c:759"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:space_changed_since",
+      "loc": "src/platform.c:1046"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:space_dequeue",
+      "loc": "src/platform.c:1074"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:space_drop_reactions_owned_by",
+      "loc": "src/platform.c:1087"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:space_intern",
+      "loc": "src/platform.c:1139"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:space_intern",
+      "loc": "src/platform.c:1476"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:space_intern",
+      "loc": "src/platform.c:1788"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:space_intern",
+      "loc": "src/platform.c:1823"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:space_kind",
+      "loc": "src/platform.c:959"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:space_last_seq_of",
+      "loc": "src/platform.c:1063"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:space_make_string_pub",
+      "loc": "src/platform.c:1061"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:space_make_string_pub",
+      "loc": "src/platform.c:1400"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:space_make_string_pub",
+      "loc": "src/platform.c:1447"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:space_make_string_pub",
+      "loc": "src/platform.c:1461"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:space_make_string_pub",
+      "loc": "src/platform.c:1486"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:space_make_string_pub",
+      "loc": "src/platform.c:1505"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:space_overruns",
+      "loc": "src/platform.c:1003"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:space_overruns",
+      "loc": "src/platform.c:1659"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:space_path_of",
+      "loc": "src/platform.c:1060"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:space_peek",
+      "loc": "src/platform.c:973"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:space_post",
+      "loc": "src/platform.c:906"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:space_put",
+      "loc": "src/platform.c:986"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:space_queue_high_water",
+      "loc": "src/platform.c:1658"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:space_register",
+      "loc": "src/platform.c:921"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:space_seq",
+      "loc": "src/platform.c:1009"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:space_stamp",
+      "loc": "src/platform.c:1016"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:space_take",
+      "loc": "src/platform.c:939"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:space_value_of",
+      "loc": "src/platform.c:1064"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:span_begin",
+      "loc": "src/platform.c:1854"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:span_end",
+      "loc": "src/platform.c:1858"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:span_record",
+      "loc": "src/platform.c:1865"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:span_reset_all",
+      "loc": "src/platform.c:1874"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:span_stats",
+      "loc": "src/platform.c:2030"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:src/oimg.h:instance_slot",
+      "loc": "src/platform.c:798"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:src/oimg.h:instance_slot",
+      "loc": "src/platform.c:803"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:src/oimg.h:instance_slot",
+      "loc": "src/platform.c:807"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
       "to": "func:src/oimg.h:obj_vtable",
-      "loc": "src/platform.c:1759"
+      "loc": "src/platform.c:1036"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
       "to": "func:src/oimg.h:obj_vtable",
-      "loc": "src/platform.c:1798"
+      "loc": "src/platform.c:1134"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
       "to": "func:src/oimg.h:obj_vtable",
-      "loc": "src/platform.c:1832"
+      "loc": "src/platform.c:1159"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
       "to": "func:src/oimg.h:obj_vtable",
-      "loc": "src/platform.c:1930"
+      "loc": "src/platform.c:1491"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
       "to": "func:src/oimg.h:obj_vtable",
-      "loc": "src/platform.c:777"
+      "loc": "src/platform.c:1711"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
       "to": "func:src/oimg.h:obj_vtable",
-      "loc": "src/platform.c:869"
+      "loc": "src/platform.c:1722"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
       "to": "func:src/oimg.h:obj_vtable",
-      "loc": "src/platform.c:892"
+      "loc": "src/platform.c:1723"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
       "to": "func:src/oimg.h:obj_vtable",
-      "loc": "src/platform.c:893"
+      "loc": "src/platform.c:1744"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
       "to": "func:src/oimg.h:obj_vtable",
-      "loc": "src/platform.c:898"
+      "loc": "src/platform.c:1783"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
       "to": "func:src/oimg.h:obj_vtable",
-      "loc": "src/platform.c:899"
+      "loc": "src/platform.c:1817"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
       "to": "func:src/oimg.h:obj_vtable",
-      "loc": "src/platform.c:900"
+      "loc": "src/platform.c:1915"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:src/oimg.h:obj_vtable",
+      "loc": "src/platform.c:762"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:src/oimg.h:obj_vtable",
+      "loc": "src/platform.c:854"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:src/oimg.h:obj_vtable",
+      "loc": "src/platform.c:877"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:src/oimg.h:obj_vtable",
+      "loc": "src/platform.c:878"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:src/oimg.h:obj_vtable",
+      "loc": "src/platform.c:883"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:src/oimg.h:obj_vtable",
+      "loc": "src/platform.c:884"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:src/oimg.h:obj_vtable",
+      "loc": "src/platform.c:885"
+    },
+    {
+      "kind": "calls",
+      "from": "func:platform_dispatch",
+      "to": "func:src/oimg.h:obj_vtable",
+      "loc": "src/platform.c:901"
     },
     {
       "kind": "calls",
@@ -13661,181 +13661,181 @@
       "kind": "calls",
       "from": "func:platform_dispatch",
       "to": "func:src/oimg.h:obj_vtable",
-      "loc": "src/platform.c:931"
+      "loc": "src/platform.c:933"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
       "to": "func:src/oimg.h:obj_vtable",
-      "loc": "src/platform.c:948"
+      "loc": "src/platform.c:954"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
       "to": "func:src/oimg.h:obj_vtable",
-      "loc": "src/platform.c:969"
+      "loc": "src/platform.c:968"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
       "to": "func:src/oimg.h:obj_vtable",
-      "loc": "src/platform.c:983"
+      "loc": "src/platform.c:981"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
       "to": "func:src/oimg.h:obj_vtable",
-      "loc": "src/platform.c:996"
+      "loc": "src/platform.c:998"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
       "to": "func:src/oimg.h:symbol_name",
-      "loc": "src/platform.c:778"
+      "loc": "src/platform.c:763"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
       "to": "func:src/platform.c:double_to_half",
-      "loc": "src/platform.c:1201"
+      "loc": "src/platform.c:1186"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
       "to": "func:src/platform.c:half_to_double",
-      "loc": "src/platform.c:1201"
+      "loc": "src/platform.c:1186"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
       "to": "func:src/platform.c:half_to_double",
-      "loc": "src/platform.c:1277"
+      "loc": "src/platform.c:1262"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
       "to": "func:src/platform.c:host_gpio_fire",
-      "loc": "src/platform.c:1161"
+      "loc": "src/platform.c:1146"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
       "to": "func:src/platform.c:host_gpio_register",
-      "loc": "src/platform.c:1156"
+      "loc": "src/platform.c:1141"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
       "to": "func:src/platform.c:ota_leaf_bytes",
-      "loc": "src/platform.c:1590"
+      "loc": "src/platform.c:1575"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
       "to": "func:src/platform.c:ota_leaf_bytes",
-      "loc": "src/platform.c:1619"
+      "loc": "src/platform.c:1604"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
       "to": "func:src/platform.c:ota_leaf_bytes",
-      "loc": "src/platform.c:1620"
+      "loc": "src/platform.c:1605"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
       "to": "func:src/platform.c:ota_leaf_bytes",
-      "loc": "src/platform.c:1621"
+      "loc": "src/platform.c:1606"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
       "to": "func:src/platform.c:ota_leaf_bytes",
-      "loc": "src/platform.c:1654"
+      "loc": "src/platform.c:1639"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
       "to": "func:src/platform.c:ota_leaf_bytes",
-      "loc": "src/platform.c:1655"
+      "loc": "src/platform.c:1640"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
       "to": "func:strlen",
-      "loc": "src/platform.c:1462"
+      "loc": "src/platform.c:1447"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
       "to": "func:strlen",
-      "loc": "src/platform.c:779"
+      "loc": "src/platform.c:764"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
       "to": "func:symbol_new",
-      "loc": "src/platform.c:1336"
+      "loc": "src/platform.c:1321"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
       "to": "func:timer_backend_advance",
-      "loc": "src/platform.c:1137"
+      "loc": "src/platform.c:1122"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
       "to": "func:timer_backend_after",
-      "loc": "src/platform.c:1115"
+      "loc": "src/platform.c:1100"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
       "to": "func:timer_backend_cancel",
-      "loc": "src/platform.c:1123"
+      "loc": "src/platform.c:1108"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
       "to": "func:timer_backend_every",
-      "loc": "src/platform.c:1119"
+      "loc": "src/platform.c:1104"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
       "to": "func:timer_backend_millis",
-      "loc": "src/platform.c:1132"
+      "loc": "src/platform.c:1117"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
       "to": "func:timer_backend_poll",
-      "loc": "src/platform.c:1708"
+      "loc": "src/platform.c:1693"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
       "to": "func:vm_protected_fire",
-      "loc": "src/platform.c:1094"
+      "loc": "src/platform.c:1079"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
       "to": "func:wallclock_target_read",
-      "loc": "src/platform.c:2013"
+      "loc": "src/platform.c:1998"
     },
     {
       "kind": "calls",
       "from": "func:platform_dispatch",
       "to": "func:wallclock_target_set",
-      "loc": "src/platform.c:2023"
+      "loc": "src/platform.c:2008"
     },
     {
       "kind": "calls",
       "from": "func:platform_object",
       "to": "func:src/platform.c:indexable_init",
-      "loc": "src/platform.c:626"
+      "loc": "src/platform.c:611"
     },
     {
       "kind": "calls",
@@ -14645,13 +14645,13 @@
       "kind": "calls",
       "from": "func:reset_cause_timer_wake",
       "to": "func:hwinfo_get_reset_cause",
-      "loc": "zephyr/src/main.c:309"
+      "loc": "zephyr/src/main.c:310"
     },
     {
       "kind": "calls",
       "from": "func:reset_cause_timer_wake",
       "to": "func:printk",
-      "loc": "zephyr/src/main.c:311"
+      "loc": "zephyr/src/main.c:312"
     },
     {
       "kind": "calls",
@@ -17789,49 +17789,49 @@
       "kind": "calls",
       "from": "func:src/backend/zephyr/timer_zephyr.c:timer_expiry",
       "to": "func:k_uptime_get_32",
-      "loc": "src/backend/zephyr/timer_zephyr.c:61"
+      "loc": "src/backend/zephyr/timer_zephyr.c:62"
     },
     {
       "kind": "calls",
       "from": "func:src/backend/zephyr/timer_zephyr.c:timer_expiry",
       "to": "func:pulse_post_isr_value",
-      "loc": "src/backend/zephyr/timer_zephyr.c:62"
+      "loc": "src/backend/zephyr/timer_zephyr.c:63"
     },
     {
       "kind": "calls",
       "from": "func:src/backend/zephyr/timer_zephyr.c:timer_start",
       "to": "func:arch_syscall_invoke1",
-      "loc": "src/backend/zephyr/timer_zephyr.c:86"
+      "loc": "src/backend/zephyr/timer_zephyr.c:87"
     },
     {
       "kind": "calls",
       "from": "func:src/backend/zephyr/timer_zephyr.c:timer_start",
       "to": "func:k_timer_init",
-      "loc": "src/backend/zephyr/timer_zephyr.c:80"
-    },
-    {
-      "kind": "calls",
-      "from": "func:src/backend/zephyr/timer_zephyr.c:timer_start",
-      "to": "func:k_timer_start",
       "loc": "src/backend/zephyr/timer_zephyr.c:81"
     },
     {
       "kind": "calls",
       "from": "func:src/backend/zephyr/timer_zephyr.c:timer_start",
+      "to": "func:k_timer_start",
+      "loc": "src/backend/zephyr/timer_zephyr.c:82"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/timer_zephyr.c:timer_start",
       "to": "func:k_uptime_get_32",
-      "loc": "src/backend/zephyr/timer_zephyr.c:75"
+      "loc": "src/backend/zephyr/timer_zephyr.c:76"
     },
     {
       "kind": "calls",
       "from": "func:src/backend/zephyr/timer_zephyr.c:timer_start",
       "to": "func:printk",
-      "loc": "src/backend/zephyr/timer_zephyr.c:85"
+      "loc": "src/backend/zephyr/timer_zephyr.c:86"
     },
     {
       "kind": "calls",
       "from": "func:src/backend/zephyr/timer_zephyr.c:timer_start",
       "to": "func:space_intern",
-      "loc": "src/backend/zephyr/timer_zephyr.c:71"
+      "loc": "src/backend/zephyr/timer_zephyr.c:72"
     },
     {
       "kind": "calls",
@@ -19283,67 +19283,67 @@
       "kind": "calls",
       "from": "func:src/platform.c:double_to_half",
       "to": "func:memcpy",
-      "loc": "src/platform.c:669"
+      "loc": "src/platform.c:654"
     },
     {
       "kind": "calls",
       "from": "func:src/platform.c:half_to_double",
       "to": "func:__builtin_inff",
-      "loc": "src/platform.c:655"
+      "loc": "src/platform.c:640"
     },
     {
       "kind": "calls",
       "from": "func:src/platform.c:half_to_double",
       "to": "func:__builtin_nanf",
-      "loc": "src/platform.c:655"
+      "loc": "src/platform.c:640"
     },
     {
       "kind": "calls",
       "from": "func:src/platform.c:half_to_double",
       "to": "func:ldexp",
-      "loc": "src/platform.c:653"
+      "loc": "src/platform.c:638"
     },
     {
       "kind": "calls",
       "from": "func:src/platform.c:half_to_double",
       "to": "func:ldexp",
-      "loc": "src/platform.c:657"
+      "loc": "src/platform.c:642"
     },
     {
       "kind": "calls",
       "from": "func:src/platform.c:host_gpio_fire",
       "to": "func:pulse_post_isr",
-      "loc": "src/platform.c:106"
+      "loc": "src/platform.c:107"
     },
     {
       "kind": "calls",
       "from": "func:src/platform.c:host_gpio_register",
       "to": "func:abort",
-      "loc": "src/platform.c:100"
+      "loc": "src/platform.c:101"
     },
     {
       "kind": "calls",
       "from": "func:src/platform.c:host_gpio_register",
       "to": "func:fprintf",
-      "loc": "src/platform.c:100"
+      "loc": "src/platform.c:101"
     },
     {
       "kind": "calls",
       "from": "func:src/platform.c:host_gpio_register",
       "to": "func:handle_free",
-      "loc": "src/platform.c:86"
+      "loc": "src/platform.c:87"
     },
     {
       "kind": "calls",
       "from": "func:src/platform.c:ota_leaf_bytes",
       "to": "func:src/oimg.h:obj_vtable",
-      "loc": "src/platform.c:734"
+      "loc": "src/platform.c:719"
     },
     {
       "kind": "calls",
       "from": "func:src/platform.c:ota_leaf_bytes",
       "to": "func:src/oimg.h:obj_vtable",
-      "loc": "src/platform.c:735"
+      "loc": "src/platform.c:720"
     },
     {
       "kind": "calls",
@@ -19841,31 +19841,31 @@
       "kind": "calls",
       "from": "func:timer_backend_after",
       "to": "func:src/backend/zephyr/timer_zephyr.c:timer_start",
-      "loc": "src/backend/zephyr/timer_zephyr.c:89"
+      "loc": "src/backend/zephyr/timer_zephyr.c:90"
     },
     {
       "kind": "calls",
       "from": "func:timer_backend_cancel",
       "to": "func:k_timer_stop",
-      "loc": "src/backend/zephyr/timer_zephyr.c:96"
+      "loc": "src/backend/zephyr/timer_zephyr.c:97"
     },
     {
       "kind": "calls",
       "from": "func:timer_backend_every",
       "to": "func:src/backend/zephyr/timer_zephyr.c:timer_start",
-      "loc": "src/backend/zephyr/timer_zephyr.c:90"
+      "loc": "src/backend/zephyr/timer_zephyr.c:91"
     },
     {
       "kind": "calls",
       "from": "func:timer_backend_millis",
       "to": "func:k_uptime_get",
-      "loc": "src/backend/zephyr/timer_zephyr.c:102"
+      "loc": "src/backend/zephyr/timer_zephyr.c:103"
     },
     {
       "kind": "calls",
       "from": "func:timer_target_snapshot",
       "to": "func:k_uptime_get_32",
-      "loc": "src/backend/zephyr/timer_zephyr.c:126"
+      "loc": "src/backend/zephyr/timer_zephyr.c:127"
     },
     {
       "kind": "calls",
@@ -20309,55 +20309,49 @@
       "kind": "calls",
       "from": "func:wallclock_target_read",
       "to": "func:device_is_ready",
-      "loc": "zephyr/src/main.c:360"
+      "loc": "zephyr/src/main.c:361"
     },
     {
       "kind": "calls",
       "from": "func:wallclock_target_read",
       "to": "func:printk",
-      "loc": "zephyr/src/main.c:360"
+      "loc": "zephyr/src/main.c:361"
     },
     {
       "kind": "calls",
       "from": "func:wallclock_target_read",
       "to": "func:printk",
-      "loc": "zephyr/src/main.c:362"
+      "loc": "zephyr/src/main.c:363"
     },
     {
       "kind": "calls",
       "from": "func:wallclock_target_read",
       "to": "func:printk",
-      "loc": "zephyr/src/main.c:386"
+      "loc": "zephyr/src/main.c:387"
     },
     {
       "kind": "calls",
       "from": "func:wallclock_target_read",
       "to": "func:rtc_get_time",
-      "loc": "zephyr/src/main.c:361"
+      "loc": "zephyr/src/main.c:362"
     },
     {
       "kind": "calls",
       "from": "func:wallclock_target_set",
       "to": "func:device_is_ready",
-      "loc": "zephyr/src/main.c:419"
+      "loc": "zephyr/src/main.c:420"
     },
     {
       "kind": "calls",
       "from": "func:wallclock_target_set",
       "to": "func:memset",
-      "loc": "zephyr/src/main.c:421"
+      "loc": "zephyr/src/main.c:422"
     },
     {
       "kind": "calls",
       "from": "func:wallclock_target_set",
       "to": "func:printk",
-      "loc": "zephyr/src/main.c:419"
-    },
-    {
-      "kind": "calls",
-      "from": "func:wallclock_target_set",
-      "to": "func:printk",
-      "loc": "zephyr/src/main.c:430"
+      "loc": "zephyr/src/main.c:420"
     },
     {
       "kind": "calls",
@@ -20368,8 +20362,14 @@
     {
       "kind": "calls",
       "from": "func:wallclock_target_set",
+      "to": "func:printk",
+      "loc": "zephyr/src/main.c:432"
+    },
+    {
+      "kind": "calls",
+      "from": "func:wallclock_target_set",
       "to": "func:rtc_set_time",
-      "loc": "zephyr/src/main.c:429"
+      "loc": "zephyr/src/main.c:430"
     },
     {
       "kind": "calls",
@@ -22571,229 +22571,229 @@
       "kind": "calls",
       "from": "func:zephyr/src/main.c:gpio_outputs_early_init",
       "to": "func:zephyr/src/main.c:wire_gpio_outputs",
-      "loc": "zephyr/src/main.c:1494"
+      "loc": "zephyr/src/main.c:1495"
     },
     {
       "kind": "calls",
       "from": "func:zephyr/src/main.c:wire_gpio_outputs",
       "to": "func:gpio_is_ready_dt",
-      "loc": "zephyr/src/main.c:1445"
+      "loc": "zephyr/src/main.c:1446"
     },
     {
       "kind": "calls",
       "from": "func:zephyr/src/main.c:wire_gpio_outputs",
       "to": "func:gpio_pin_configure_dt",
-      "loc": "zephyr/src/main.c:1454"
+      "loc": "zephyr/src/main.c:1455"
     },
     {
       "kind": "calls",
       "from": "func:zephyr/src/main.c:wire_gpio_outputs",
       "to": "func:printk",
-      "loc": "zephyr/src/main.c:1446"
+      "loc": "zephyr/src/main.c:1447"
     },
     {
       "kind": "calls",
       "from": "func:zephyr/src/main.c:zephyr_millis",
       "to": "func:k_uptime_get",
-      "loc": "zephyr/src/main.c:1598"
+      "loc": "zephyr/src/main.c:1599"
     },
     {
       "kind": "calls",
       "from": "func:zephyr/src/observer.c:obs_trace_dump",
       "to": "func:k_busy_wait",
-      "loc": "zephyr/src/observer.c:126"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/observer.c:obs_trace_dump",
-      "to": "func:printk",
-      "loc": "zephyr/src/observer.c:119"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/observer.c:obs_trace_dump",
-      "to": "func:printk",
       "loc": "zephyr/src/observer.c:123"
+    },
+    {
+      "kind": "calls",
+      "from": "func:zephyr/src/observer.c:obs_trace_dump",
+      "to": "func:printk",
+      "loc": "zephyr/src/observer.c:116"
+    },
+    {
+      "kind": "calls",
+      "from": "func:zephyr/src/observer.c:obs_trace_dump",
+      "to": "func:printk",
+      "loc": "zephyr/src/observer.c:120"
     },
     {
       "kind": "calls",
       "from": "func:zephyr/src/observer.c:obs_trace_record",
       "to": "func:k_uptime_get_32",
-      "loc": "zephyr/src/observer.c:109"
+      "loc": "zephyr/src/observer.c:106"
     },
     {
       "kind": "calls",
       "from": "func:zephyr/src/observer.c:obs_trace_record",
       "to": "func:pulse_drained",
-      "loc": "zephyr/src/observer.c:111"
+      "loc": "zephyr/src/observer.c:108"
     },
     {
       "kind": "calls",
       "from": "func:zephyr/src/observer.c:obs_trace_record",
       "to": "func:pulse_pending",
-      "loc": "zephyr/src/observer.c:110"
+      "loc": "zephyr/src/observer.c:107"
     },
     {
       "kind": "calls",
       "from": "func:zephyr/src/observer.c:observer_dump",
       "to": "func:k_uptime_get_32",
-      "loc": "zephyr/src/observer.c:324"
+      "loc": "zephyr/src/observer.c:321"
     },
     {
       "kind": "calls",
       "from": "func:zephyr/src/observer.c:observer_dump",
       "to": "func:platform_app_cad_ms",
-      "loc": "zephyr/src/observer.c:324"
+      "loc": "zephyr/src/observer.c:321"
     },
     {
       "kind": "calls",
       "from": "func:zephyr/src/observer.c:observer_dump",
       "to": "func:printk",
-      "loc": "zephyr/src/observer.c:320"
+      "loc": "zephyr/src/observer.c:317"
     },
     {
       "kind": "calls",
       "from": "func:zephyr/src/observer.c:observer_dump",
       "to": "func:pulse_coalesced",
-      "loc": "zephyr/src/observer.c:326"
+      "loc": "zephyr/src/observer.c:323"
     },
     {
       "kind": "calls",
       "from": "func:zephyr/src/observer.c:observer_dump",
       "to": "func:pulse_drops",
-      "loc": "zephyr/src/observer.c:325"
+      "loc": "zephyr/src/observer.c:322"
     },
     {
       "kind": "calls",
       "from": "func:zephyr/src/observer.c:observer_dump",
       "to": "func:pulse_pending",
-      "loc": "zephyr/src/observer.c:325"
+      "loc": "zephyr/src/observer.c:322"
     },
     {
       "kind": "calls",
       "from": "func:zephyr/src/observer.c:observer_dump",
       "to": "func:pulse_stale",
-      "loc": "zephyr/src/observer.c:326"
+      "loc": "zephyr/src/observer.c:323"
     },
     {
       "kind": "calls",
       "from": "func:zephyr/src/observer.c:observer_dump",
       "to": "func:reboot_note_consecutive",
-      "loc": "zephyr/src/observer.c:327"
+      "loc": "zephyr/src/observer.c:324"
     },
     {
       "kind": "calls",
       "from": "func:zephyr/src/observer.c:observer_dump",
       "to": "func:zephyr/src/observer.c:obs_trace_dump",
-      "loc": "zephyr/src/observer.c:328"
+      "loc": "zephyr/src/observer.c:325"
     },
     {
       "kind": "calls",
       "from": "func:zephyr/src/observer.c:observer_thread_fn",
       "to": "func:k_sleep",
-      "loc": "zephyr/src/observer.c:383"
+      "loc": "zephyr/src/observer.c:380"
     },
     {
       "kind": "calls",
       "from": "func:zephyr/src/observer.c:observer_thread_fn",
       "to": "func:k_uptime_get_32",
-      "loc": "zephyr/src/observer.c:379"
+      "loc": "zephyr/src/observer.c:376"
     },
     {
       "kind": "calls",
       "from": "func:zephyr/src/observer.c:observer_thread_fn",
       "to": "func:observer_halt",
-      "loc": "zephyr/src/observer.c:380"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/observer.c:observer_thread_fn",
-      "to": "func:reboot_note_consecutive",
-      "loc": "zephyr/src/observer.c:380"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/observer.c:observer_thread_fn",
-      "to": "func:reboot_note_write",
-      "loc": "zephyr/src/observer.c:379"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/observer.c:observer_thread_fn",
-      "to": "func:sys_reboot",
-      "loc": "zephyr/src/observer.c:381"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/observer.c:observer_thread_fn",
-      "to": "func:task_wdt_add",
-      "loc": "zephyr/src/observer.c:351"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/observer.c:observer_thread_fn",
-      "to": "func:task_wdt_feed",
-      "loc": "zephyr/src/observer.c:375"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/observer.c:observer_thread_fn",
-      "to": "func:zephyr/src/observer.c:obs_trace_record",
-      "loc": "zephyr/src/observer.c:372"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/observer.c:observer_thread_fn",
-      "to": "func:zephyr/src/observer.c:observer_dump",
       "loc": "zephyr/src/observer.c:377"
     },
     {
       "kind": "calls",
       "from": "func:zephyr/src/observer.c:observer_thread_fn",
-      "to": "func:zephyr/src/observer.c:observer_forensics",
+      "to": "func:reboot_note_consecutive",
+      "loc": "zephyr/src/observer.c:377"
+    },
+    {
+      "kind": "calls",
+      "from": "func:zephyr/src/observer.c:observer_thread_fn",
+      "to": "func:reboot_note_write",
+      "loc": "zephyr/src/observer.c:376"
+    },
+    {
+      "kind": "calls",
+      "from": "func:zephyr/src/observer.c:observer_thread_fn",
+      "to": "func:sys_reboot",
       "loc": "zephyr/src/observer.c:378"
     },
     {
       "kind": "calls",
       "from": "func:zephyr/src/observer.c:observer_thread_fn",
+      "to": "func:task_wdt_add",
+      "loc": "zephyr/src/observer.c:348"
+    },
+    {
+      "kind": "calls",
+      "from": "func:zephyr/src/observer.c:observer_thread_fn",
+      "to": "func:task_wdt_feed",
+      "loc": "zephyr/src/observer.c:372"
+    },
+    {
+      "kind": "calls",
+      "from": "func:zephyr/src/observer.c:observer_thread_fn",
+      "to": "func:zephyr/src/observer.c:obs_trace_record",
+      "loc": "zephyr/src/observer.c:369"
+    },
+    {
+      "kind": "calls",
+      "from": "func:zephyr/src/observer.c:observer_thread_fn",
+      "to": "func:zephyr/src/observer.c:observer_dump",
+      "loc": "zephyr/src/observer.c:374"
+    },
+    {
+      "kind": "calls",
+      "from": "func:zephyr/src/observer.c:observer_thread_fn",
+      "to": "func:zephyr/src/observer.c:observer_forensics",
+      "loc": "zephyr/src/observer.c:375"
+    },
+    {
+      "kind": "calls",
+      "from": "func:zephyr/src/observer.c:observer_thread_fn",
       "to": "func:zephyr/src/observer.c:observer_verdict",
-      "loc": "zephyr/src/observer.c:373"
+      "loc": "zephyr/src/observer.c:370"
     },
     {
       "kind": "calls",
       "from": "func:zephyr/src/observer.c:observer_verdict",
       "to": "func:k_uptime_get_32",
-      "loc": "zephyr/src/observer.c:150"
+      "loc": "zephyr/src/observer.c:147"
     },
     {
       "kind": "calls",
       "from": "func:zephyr/src/observer.c:observer_verdict",
       "to": "func:platform_app_cad_ms",
-      "loc": "zephyr/src/observer.c:152"
+      "loc": "zephyr/src/observer.c:149"
     },
     {
       "kind": "calls",
       "from": "func:zephyr/src/observer.c:observer_verdict",
       "to": "func:platform_debug_held",
-      "loc": "zephyr/src/observer.c:153"
+      "loc": "zephyr/src/observer.c:150"
     },
     {
       "kind": "calls",
       "from": "func:zephyr/src/observer.c:observer_verdict",
       "to": "func:pulse_drained",
-      "loc": "zephyr/src/observer.c:151"
+      "loc": "zephyr/src/observer.c:148"
     },
     {
       "kind": "calls",
       "from": "func:zephyr/src/observer.c:observer_verdict",
       "to": "func:src/observer_core.h:observer_core_verdict",
-      "loc": "zephyr/src/observer.c:154"
+      "loc": "zephyr/src/observer.c:151"
     },
     {
       "kind": "calls",
       "from": "func:zephyr/src/observer.c:observer_verdict",
       "to": "func:timer_target_snapshot",
-      "loc": "zephyr/src/observer.c:149"
+      "loc": "zephyr/src/observer.c:146"
     },
     {
       "kind": "calls_indirect",
@@ -22871,7 +22871,7 @@
       "kind": "declares",
       "from": "unit:src",
       "to": "func:bell_target_available",
-      "loc": "src/platform.c:518",
+      "loc": "src/target_backend.h:24",
       "attrs": {
         "sig": "int (void)"
       }
@@ -22880,7 +22880,7 @@
       "kind": "declares",
       "from": "unit:src",
       "to": "func:bell_target_strike",
-      "loc": "src/platform.c:519",
+      "loc": "src/target_backend.h:25",
       "attrs": {
         "sig": "int (int)"
       }
@@ -22909,7 +22909,7 @@
       "kind": "declares",
       "from": "unit:src",
       "to": "func:deep_sleep_target",
-      "loc": "src/platform.c:550",
+      "loc": "src/platform.c:537",
       "attrs": {
         "sig": "void (int)"
       }
@@ -22918,7 +22918,7 @@
       "kind": "declares",
       "from": "unit:src",
       "to": "func:display_target_available",
-      "loc": "src/platform.c:274",
+      "loc": "src/target_backend.h:17",
       "attrs": {
         "sig": "int (void)"
       }
@@ -22927,7 +22927,7 @@
       "kind": "declares",
       "from": "unit:src",
       "to": "func:display_target_clear",
-      "loc": "src/platform.c:275",
+      "loc": "src/target_backend.h:18",
       "attrs": {
         "sig": "int (void)"
       }
@@ -22936,7 +22936,7 @@
       "kind": "declares",
       "from": "unit:src",
       "to": "func:display_target_put",
-      "loc": "src/platform.c:276",
+      "loc": "src/target_backend.h:19",
       "attrs": {
         "sig": "int (int, int, const char *, int)"
       }
@@ -22945,7 +22945,7 @@
       "kind": "declares",
       "from": "unit:src",
       "to": "func:display_target_refresh",
-      "loc": "src/platform.c:277",
+      "loc": "src/target_backend.h:20",
       "attrs": {
         "sig": "int (void)"
       }
@@ -22954,7 +22954,7 @@
       "kind": "declares",
       "from": "unit:src",
       "to": "func:display_target_refresh_row",
-      "loc": "src/platform.c:278",
+      "loc": "src/target_backend.h:21",
       "attrs": {
         "sig": "int (int)"
       }
@@ -22993,7 +22993,7 @@
       "kind": "declares",
       "from": "unit:src",
       "to": "func:gc_allocate",
-      "loc": "src/platform.c:572",
+      "loc": "src/platform.c:557",
       "attrs": {
         "sig": "oop (oop, size_t)",
         "type": "struct Object * (struct Object *, unsigned int)"
@@ -23061,7 +23061,7 @@
       "kind": "declares",
       "from": "unit:src",
       "to": "func:gpio_target_level",
-      "loc": "src/platform.c:171",
+      "loc": "src/target_backend.h:14",
       "attrs": {
         "sig": "int (int)"
       }
@@ -23070,7 +23070,7 @@
       "kind": "declares",
       "from": "unit:src",
       "to": "func:gpio_target_set",
-      "loc": "src/platform.c:170",
+      "loc": "src/target_backend.h:13",
       "attrs": {
         "sig": "int (int, int)"
       }
@@ -23550,7 +23550,7 @@
       "kind": "declares",
       "from": "unit:src",
       "to": "func:ntp_target_date",
-      "loc": "src/platform.c:527",
+      "loc": "src/target_backend.h:29",
       "attrs": {
         "sig": "int (void)"
       }
@@ -23559,7 +23559,7 @@
       "kind": "declares",
       "from": "unit:src",
       "to": "func:ntp_target_sync",
-      "loc": "src/platform.c:523",
+      "loc": "src/target_backend.h:28",
       "attrs": {
         "sig": "int (int)"
       }
@@ -24442,7 +24442,7 @@
       "kind": "declares",
       "from": "unit:src",
       "to": "func:reboot_note_ack",
-      "loc": "src/platform.c:546",
+      "loc": "src/platform.c:533",
       "attrs": {
         "sig": "void (uint32_t)",
         "type": "void (unsigned int)"
@@ -24462,7 +24462,7 @@
       "kind": "declares",
       "from": "unit:src",
       "to": "func:reboot_note_consecutive",
-      "loc": "src/platform.c:547",
+      "loc": "src/platform.c:534",
       "attrs": {
         "sig": "uint32_t (void)",
         "type": "unsigned int (void)"
@@ -24482,7 +24482,7 @@
       "kind": "declares",
       "from": "unit:src",
       "to": "func:reboot_note_init",
-      "loc": "src/platform.c:542",
+      "loc": "src/platform.c:529",
       "attrs": {
         "sig": "void (void)"
       }
@@ -24500,7 +24500,7 @@
       "kind": "declares",
       "from": "unit:src",
       "to": "func:reboot_note_read",
-      "loc": "src/platform.c:543",
+      "loc": "src/platform.c:530",
       "attrs": {
         "sig": "int (struct RebootNote *)"
       }
@@ -24518,7 +24518,7 @@
       "kind": "declares",
       "from": "unit:src",
       "to": "func:reboot_note_write",
-      "loc": "src/platform.c:544",
+      "loc": "src/platform.c:531",
       "attrs": {
         "sig": "void (uint32_t, uint32_t, uint32_t, uint32_t, uint32_t)",
         "type": "void (unsigned int, unsigned int, unsigned int, unsigned int, unsigned int)"
@@ -24538,7 +24538,7 @@
       "kind": "declares",
       "from": "unit:src",
       "to": "func:reset_cause_timer_wake",
-      "loc": "src/platform.c:537",
+      "loc": "src/platform.c:524",
       "attrs": {
         "sig": "int (void)"
       }
@@ -24547,7 +24547,7 @@
       "kind": "declares",
       "from": "unit:src",
       "to": "func:rtc_alarm_arm",
-      "loc": "src/platform.c:561",
+      "loc": "src/platform.c:546",
       "attrs": {
         "sig": "int (int, int, int)"
       }
@@ -24556,7 +24556,7 @@
       "kind": "declares",
       "from": "unit:src",
       "to": "func:rtc_target_get",
-      "loc": "src/platform.c:532",
+      "loc": "src/target_backend.h:33",
       "attrs": {
         "sig": "int (int)"
       }
@@ -24565,7 +24565,7 @@
       "kind": "declares",
       "from": "unit:src",
       "to": "func:rtc_target_put",
-      "loc": "src/platform.c:533",
+      "loc": "src/target_backend.h:34",
       "attrs": {
         "sig": "void (int, int)"
       }
@@ -24574,7 +24574,7 @@
       "kind": "declares",
       "from": "unit:src",
       "to": "func:rtc_target_valid",
-      "loc": "src/platform.c:531",
+      "loc": "src/target_backend.h:32",
       "attrs": {
         "sig": "int (void)"
       }
@@ -25130,6 +25130,16 @@
     {
       "kind": "declares",
       "from": "unit:src",
+      "to": "func:timer_target_snapshot",
+      "loc": "src/target_backend.h:41",
+      "attrs": {
+        "sig": "int (uint32_t *, uint32_t *, int)",
+        "type": "int (unsigned int *, unsigned int *, int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
       "to": "func:udp_close",
       "loc": "src/udp_backend.h:16",
       "attrs": {
@@ -25238,7 +25248,7 @@
       "kind": "declares",
       "from": "unit:src",
       "to": "func:wallclock_target_read",
-      "loc": "src/platform.c:555",
+      "loc": "src/target_backend.h:37",
       "attrs": {
         "sig": "int (void)"
       }
@@ -25247,7 +25257,7 @@
       "kind": "declares",
       "from": "unit:src",
       "to": "func:wallclock_target_set",
-      "loc": "src/platform.c:556",
+      "loc": "src/target_backend.h:38",
       "attrs": {
         "sig": "int (int, int)"
       }
@@ -25388,7 +25398,7 @@
       "kind": "declares",
       "from": "unit:zephyr/src",
       "to": "func:oimg_bootstrap",
-      "loc": "zephyr/src/main.c:1571",
+      "loc": "zephyr/src/main.c:1572",
       "attrs": {
         "sig": "oop (oop)",
         "type": "struct Object * (struct Object *)"
@@ -25398,7 +25408,7 @@
       "kind": "declares",
       "from": "unit:zephyr/src",
       "to": "func:oimg_root",
-      "loc": "zephyr/src/main.c:1570",
+      "loc": "zephyr/src/main.c:1571",
       "attrs": {
         "sig": "oop (void)",
         "type": "struct Object * (void)"
@@ -25408,7 +25418,7 @@
       "kind": "declares",
       "from": "unit:zephyr/src",
       "to": "func:platform_app_cad_ms",
-      "loc": "zephyr/src/observer.c:61",
+      "loc": "zephyr/src/observer.c:58",
       "attrs": {
         "sig": "uint32_t (void)",
         "type": "unsigned int (void)"
@@ -25418,7 +25428,7 @@
       "kind": "declares",
       "from": "unit:zephyr/src",
       "to": "func:platform_debug_held",
-      "loc": "zephyr/src/observer.c:65",
+      "loc": "zephyr/src/observer.c:62",
       "attrs": {
         "sig": "int (void)"
       }
@@ -25478,16 +25488,6 @@
       "loc": "zephyr/src/runner.h:23",
       "attrs": {
         "sig": "int (void)"
-      }
-    },
-    {
-      "kind": "declares",
-      "from": "unit:zephyr/src",
-      "to": "func:timer_target_snapshot",
-      "loc": "zephyr/src/observer.c:58",
-      "attrs": {
-        "sig": "int (uint32_t *, uint32_t *, int)",
-        "type": "int (unsigned int *, unsigned int *, int)"
       }
     },
     {
@@ -25982,13 +25982,13 @@
       "kind": "reads_global",
       "from": "func:gpio_target_level",
       "to": "global:zephyr/src/main.c:gpio_outputs",
-      "loc": "zephyr/src/main.c:1521"
+      "loc": "zephyr/src/main.c:1522"
     },
     {
       "kind": "reads_global",
       "from": "func:gpio_target_set",
       "to": "global:zephyr/src/main.c:gpio_outputs",
-      "loc": "zephyr/src/main.c:1511"
+      "loc": "zephyr/src/main.c:1512"
     },
     {
       "kind": "reads_global",
@@ -26510,13 +26510,13 @@
       "kind": "reads_global",
       "from": "func:main",
       "to": "global:_impure_ptr",
-      "loc": "zephyr/src/main.c:1839"
+      "loc": "zephyr/src/main.c:1840"
     },
     {
       "kind": "reads_global",
       "from": "func:main",
       "to": "global:_impure_ptr",
-      "loc": "zephyr/src/main.c:1848"
+      "loc": "zephyr/src/main.c:1849"
     },
     {
       "kind": "reads_global",
@@ -26612,37 +26612,37 @@
       "kind": "reads_global",
       "from": "func:ntp_target_date",
       "to": "global:zephyr/src/main.c:ntp_last_date",
-      "loc": "zephyr/src/main.c:257"
+      "loc": "zephyr/src/main.c:258"
     },
     {
       "kind": "reads_global",
       "from": "func:ntp_target_sync",
       "to": "global:zephyr/src/main.c:ntp_last_date",
-      "loc": "zephyr/src/main.c:253"
+      "loc": "zephyr/src/main.c:254"
     },
     {
       "kind": "reads_global",
       "from": "func:observer_halt",
       "to": "global:zephyr/src/observer.c:g_hw_wdt",
-      "loc": "zephyr/src/observer.c:340"
+      "loc": "zephyr/src/observer.c:337"
     },
     {
       "kind": "reads_global",
       "from": "func:observer_start",
       "to": "global:zephyr/src/observer.c:g_hw_wdt",
-      "loc": "zephyr/src/observer.c:403"
+      "loc": "zephyr/src/observer.c:400"
     },
     {
       "kind": "reads_global",
       "from": "func:observer_start",
       "to": "global:zephyr/src/observer.c:g_hw_wdt",
-      "loc": "zephyr/src/observer.c:407"
+      "loc": "zephyr/src/observer.c:404"
     },
     {
       "kind": "reads_global",
       "from": "func:observer_start",
       "to": "global:zephyr/src/observer.c:g_hw_wdt",
-      "loc": "zephyr/src/observer.c:421"
+      "loc": "zephyr/src/observer.c:418"
     },
     {
       "kind": "reads_global",
@@ -27086,7 +27086,7 @@
       "kind": "reads_global",
       "from": "func:platform_app_cad_ms",
       "to": "global:src/platform.c:s_app_cad_ms",
-      "loc": "src/platform.c:18"
+      "loc": "src/platform.c:19"
     },
     {
       "kind": "reads_global",
@@ -27134,211 +27134,211 @@
       "kind": "reads_global",
       "from": "func:platform_dispatch",
       "to": "global:FloatVtable",
-      "loc": "src/platform.c:1287"
+      "loc": "src/platform.c:1272"
     },
     {
       "kind": "reads_global",
       "from": "func:platform_dispatch",
       "to": "global:FloatVtable",
-      "loc": "src/platform.c:893"
+      "loc": "src/platform.c:878"
     },
     {
       "kind": "reads_global",
       "from": "func:platform_dispatch",
       "to": "global:LargeIntegerVtable",
-      "loc": "src/platform.c:1174"
+      "loc": "src/platform.c:1159"
     },
     {
       "kind": "reads_global",
       "from": "func:platform_dispatch",
       "to": "global:LargeIntegerVtable",
-      "loc": "src/platform.c:892"
+      "loc": "src/platform.c:877"
     },
     {
       "kind": "reads_global",
       "from": "func:platform_dispatch",
       "to": "global:RawBytesVtable",
-      "loc": "src/platform.c:1190"
+      "loc": "src/platform.c:1175"
     },
     {
       "kind": "reads_global",
       "from": "func:platform_dispatch",
       "to": "global:RawBytesVtable",
-      "loc": "src/platform.c:1207"
+      "loc": "src/platform.c:1192"
     },
     {
       "kind": "reads_global",
       "from": "func:platform_dispatch",
       "to": "global:RawBytesVtable",
-      "loc": "src/platform.c:1544"
+      "loc": "src/platform.c:1529"
     },
     {
       "kind": "reads_global",
       "from": "func:platform_dispatch",
       "to": "global:RawBytesVtable",
-      "loc": "src/platform.c:1577"
+      "loc": "src/platform.c:1562"
     },
     {
       "kind": "reads_global",
       "from": "func:platform_dispatch",
       "to": "global:RawBytesVtable",
-      "loc": "src/platform.c:857"
+      "loc": "src/platform.c:842"
     },
     {
       "kind": "reads_global",
       "from": "func:platform_dispatch",
       "to": "global:RawBytesVtable",
-      "loc": "src/platform.c:868"
+      "loc": "src/platform.c:853"
     },
     {
       "kind": "reads_global",
       "from": "func:platform_dispatch",
       "to": "global:RawBytesVtable",
-      "loc": "src/platform.c:869"
+      "loc": "src/platform.c:854"
     },
     {
       "kind": "reads_global",
       "from": "func:platform_dispatch",
       "to": "global:RawBytesVtable",
-      "loc": "src/platform.c:874"
+      "loc": "src/platform.c:859"
     },
     {
       "kind": "reads_global",
       "from": "func:platform_dispatch",
       "to": "global:RawBytesVtable",
+      "loc": "src/platform.c:885"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:platform_dispatch",
+      "to": "global:StringVtable",
+      "loc": "src/platform.c:1035"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:platform_dispatch",
+      "to": "global:StringVtable",
+      "loc": "src/platform.c:1036"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:platform_dispatch",
+      "to": "global:StringVtable",
+      "loc": "src/platform.c:1133"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:platform_dispatch",
+      "to": "global:StringVtable",
+      "loc": "src/platform.c:1134"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:platform_dispatch",
+      "to": "global:StringVtable",
+      "loc": "src/platform.c:1491"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:platform_dispatch",
+      "to": "global:StringVtable",
+      "loc": "src/platform.c:1710"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:platform_dispatch",
+      "to": "global:StringVtable",
+      "loc": "src/platform.c:1711"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:platform_dispatch",
+      "to": "global:StringVtable",
+      "loc": "src/platform.c:1722"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:platform_dispatch",
+      "to": "global:StringVtable",
+      "loc": "src/platform.c:1723"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:platform_dispatch",
+      "to": "global:StringVtable",
+      "loc": "src/platform.c:1743"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:platform_dispatch",
+      "to": "global:StringVtable",
+      "loc": "src/platform.c:1744"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:platform_dispatch",
+      "to": "global:StringVtable",
+      "loc": "src/platform.c:1782"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:platform_dispatch",
+      "to": "global:StringVtable",
+      "loc": "src/platform.c:1783"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:platform_dispatch",
+      "to": "global:StringVtable",
+      "loc": "src/platform.c:1816"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:platform_dispatch",
+      "to": "global:StringVtable",
+      "loc": "src/platform.c:1817"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:platform_dispatch",
+      "to": "global:StringVtable",
+      "loc": "src/platform.c:1914"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:platform_dispatch",
+      "to": "global:StringVtable",
+      "loc": "src/platform.c:1915"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:platform_dispatch",
+      "to": "global:StringVtable",
+      "loc": "src/platform.c:804"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:platform_dispatch",
+      "to": "global:StringVtable",
+      "loc": "src/platform.c:828"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:platform_dispatch",
+      "to": "global:StringVtable",
+      "loc": "src/platform.c:883"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:platform_dispatch",
+      "to": "global:StringVtable",
       "loc": "src/platform.c:900"
     },
     {
       "kind": "reads_global",
       "from": "func:platform_dispatch",
       "to": "global:StringVtable",
-      "loc": "src/platform.c:1012"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:platform_dispatch",
-      "to": "global:StringVtable",
-      "loc": "src/platform.c:1013"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:platform_dispatch",
-      "to": "global:StringVtable",
-      "loc": "src/platform.c:1050"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:platform_dispatch",
-      "to": "global:StringVtable",
-      "loc": "src/platform.c:1051"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:platform_dispatch",
-      "to": "global:StringVtable",
-      "loc": "src/platform.c:1148"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:platform_dispatch",
-      "to": "global:StringVtable",
-      "loc": "src/platform.c:1149"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:platform_dispatch",
-      "to": "global:StringVtable",
-      "loc": "src/platform.c:1506"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:platform_dispatch",
-      "to": "global:StringVtable",
-      "loc": "src/platform.c:1725"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:platform_dispatch",
-      "to": "global:StringVtable",
-      "loc": "src/platform.c:1726"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:platform_dispatch",
-      "to": "global:StringVtable",
-      "loc": "src/platform.c:1737"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:platform_dispatch",
-      "to": "global:StringVtable",
-      "loc": "src/platform.c:1738"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:platform_dispatch",
-      "to": "global:StringVtable",
-      "loc": "src/platform.c:1758"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:platform_dispatch",
-      "to": "global:StringVtable",
-      "loc": "src/platform.c:1759"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:platform_dispatch",
-      "to": "global:StringVtable",
-      "loc": "src/platform.c:1797"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:platform_dispatch",
-      "to": "global:StringVtable",
-      "loc": "src/platform.c:1798"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:platform_dispatch",
-      "to": "global:StringVtable",
-      "loc": "src/platform.c:1831"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:platform_dispatch",
-      "to": "global:StringVtable",
-      "loc": "src/platform.c:1832"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:platform_dispatch",
-      "to": "global:StringVtable",
-      "loc": "src/platform.c:1929"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:platform_dispatch",
-      "to": "global:StringVtable",
-      "loc": "src/platform.c:1930"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:platform_dispatch",
-      "to": "global:StringVtable",
-      "loc": "src/platform.c:819"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:platform_dispatch",
-      "to": "global:StringVtable",
-      "loc": "src/platform.c:843"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:platform_dispatch",
-      "to": "global:StringVtable",
-      "loc": "src/platform.c:898"
+      "loc": "src/platform.c:901"
     },
     {
       "kind": "reads_global",
@@ -27356,25 +27356,31 @@
       "kind": "reads_global",
       "from": "func:platform_dispatch",
       "to": "global:StringVtable",
-      "loc": "src/platform.c:930"
+      "loc": "src/platform.c:932"
     },
     {
       "kind": "reads_global",
       "from": "func:platform_dispatch",
       "to": "global:StringVtable",
-      "loc": "src/platform.c:931"
+      "loc": "src/platform.c:933"
     },
     {
       "kind": "reads_global",
       "from": "func:platform_dispatch",
       "to": "global:StringVtable",
-      "loc": "src/platform.c:947"
+      "loc": "src/platform.c:953"
     },
     {
       "kind": "reads_global",
       "from": "func:platform_dispatch",
       "to": "global:StringVtable",
-      "loc": "src/platform.c:948"
+      "loc": "src/platform.c:954"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:platform_dispatch",
+      "to": "global:StringVtable",
+      "loc": "src/platform.c:967"
     },
     {
       "kind": "reads_global",
@@ -27386,109 +27392,109 @@
       "kind": "reads_global",
       "from": "func:platform_dispatch",
       "to": "global:StringVtable",
-      "loc": "src/platform.c:969"
+      "loc": "src/platform.c:980"
     },
     {
       "kind": "reads_global",
       "from": "func:platform_dispatch",
       "to": "global:StringVtable",
-      "loc": "src/platform.c:982"
+      "loc": "src/platform.c:981"
     },
     {
       "kind": "reads_global",
       "from": "func:platform_dispatch",
       "to": "global:StringVtable",
-      "loc": "src/platform.c:983"
+      "loc": "src/platform.c:997"
     },
     {
       "kind": "reads_global",
       "from": "func:platform_dispatch",
       "to": "global:StringVtable",
-      "loc": "src/platform.c:995"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:platform_dispatch",
-      "to": "global:StringVtable",
-      "loc": "src/platform.c:996"
+      "loc": "src/platform.c:998"
     },
     {
       "kind": "reads_global",
       "from": "func:platform_dispatch",
       "to": "global:SymbolVtable",
-      "loc": "src/platform.c:776"
+      "loc": "src/platform.c:761"
     },
     {
       "kind": "reads_global",
       "from": "func:platform_dispatch",
       "to": "global:SymbolVtable",
-      "loc": "src/platform.c:777"
+      "loc": "src/platform.c:762"
     },
     {
       "kind": "reads_global",
       "from": "func:platform_dispatch",
       "to": "global:SymbolVtable",
-      "loc": "src/platform.c:899"
+      "loc": "src/platform.c:884"
     },
     {
       "kind": "reads_global",
       "from": "func:platform_dispatch",
       "to": "global:_impure_ptr",
-      "loc": "src/platform.c:1014"
+      "loc": "src/platform.c:1037"
     },
     {
       "kind": "reads_global",
       "from": "func:platform_dispatch",
       "to": "global:_impure_ptr",
-      "loc": "src/platform.c:1052"
+      "loc": "src/platform.c:1135"
     },
     {
       "kind": "reads_global",
       "from": "func:platform_dispatch",
       "to": "global:_impure_ptr",
-      "loc": "src/platform.c:1150"
+      "loc": "src/platform.c:1164"
     },
     {
       "kind": "reads_global",
       "from": "func:platform_dispatch",
       "to": "global:_impure_ptr",
-      "loc": "src/platform.c:1179"
+      "loc": "src/platform.c:1712"
     },
     {
       "kind": "reads_global",
       "from": "func:platform_dispatch",
       "to": "global:_impure_ptr",
-      "loc": "src/platform.c:1727"
+      "loc": "src/platform.c:1724"
     },
     {
       "kind": "reads_global",
       "from": "func:platform_dispatch",
       "to": "global:_impure_ptr",
-      "loc": "src/platform.c:1739"
+      "loc": "src/platform.c:1745"
     },
     {
       "kind": "reads_global",
       "from": "func:platform_dispatch",
       "to": "global:_impure_ptr",
-      "loc": "src/platform.c:1760"
+      "loc": "src/platform.c:1784"
     },
     {
       "kind": "reads_global",
       "from": "func:platform_dispatch",
       "to": "global:_impure_ptr",
-      "loc": "src/platform.c:1799"
+      "loc": "src/platform.c:1818"
     },
     {
       "kind": "reads_global",
       "from": "func:platform_dispatch",
       "to": "global:_impure_ptr",
-      "loc": "src/platform.c:1833"
+      "loc": "src/platform.c:1916"
     },
     {
       "kind": "reads_global",
       "from": "func:platform_dispatch",
       "to": "global:_impure_ptr",
-      "loc": "src/platform.c:1931"
+      "loc": "src/platform.c:799"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:platform_dispatch",
+      "to": "global:_impure_ptr",
+      "loc": "src/platform.c:809"
     },
     {
       "kind": "reads_global",
@@ -27500,19 +27506,13 @@
       "kind": "reads_global",
       "from": "func:platform_dispatch",
       "to": "global:_impure_ptr",
-      "loc": "src/platform.c:824"
+      "loc": "src/platform.c:855"
     },
     {
       "kind": "reads_global",
       "from": "func:platform_dispatch",
       "to": "global:_impure_ptr",
-      "loc": "src/platform.c:829"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:platform_dispatch",
-      "to": "global:_impure_ptr",
-      "loc": "src/platform.c:870"
+      "loc": "src/platform.c:902"
     },
     {
       "kind": "reads_global",
@@ -27524,127 +27524,127 @@
       "kind": "reads_global",
       "from": "func:platform_dispatch",
       "to": "global:_impure_ptr",
-      "loc": "src/platform.c:932"
+      "loc": "src/platform.c:934"
     },
     {
       "kind": "reads_global",
       "from": "func:platform_dispatch",
       "to": "global:_impure_ptr",
-      "loc": "src/platform.c:949"
+      "loc": "src/platform.c:955"
     },
     {
       "kind": "reads_global",
       "from": "func:platform_dispatch",
       "to": "global:_impure_ptr",
-      "loc": "src/platform.c:970"
+      "loc": "src/platform.c:969"
     },
     {
       "kind": "reads_global",
       "from": "func:platform_dispatch",
       "to": "global:_impure_ptr",
-      "loc": "src/platform.c:984"
+      "loc": "src/platform.c:982"
     },
     {
       "kind": "reads_global",
       "from": "func:platform_dispatch",
       "to": "global:_impure_ptr",
-      "loc": "src/platform.c:997"
+      "loc": "src/platform.c:999"
     },
     {
       "kind": "reads_global",
       "from": "func:platform_dispatch",
       "to": "global:gc_temp_roots_count",
-      "loc": "src/platform.c:1067"
+      "loc": "src/platform.c:1052"
     },
     {
       "kind": "reads_global",
       "from": "func:platform_dispatch",
       "to": "global:gc_temp_roots_count",
-      "loc": "src/platform.c:1408"
+      "loc": "src/platform.c:1393"
     },
     {
       "kind": "reads_global",
       "from": "func:platform_dispatch",
       "to": "global:oevm_manifest_pin_len",
-      "loc": "src/platform.c:1543"
+      "loc": "src/platform.c:1528"
     },
     {
       "kind": "reads_global",
       "from": "func:platform_dispatch",
       "to": "global:oevm_manifest_pin_len",
-      "loc": "src/platform.c:1544"
+      "loc": "src/platform.c:1529"
     },
     {
       "kind": "reads_global",
       "from": "func:platform_dispatch",
       "to": "global:oevm_manifest_pin_len",
-      "loc": "src/platform.c:1545"
+      "loc": "src/platform.c:1530"
     },
     {
       "kind": "reads_global",
       "from": "func:platform_dispatch",
       "to": "global:oevm_manifest_pin_len",
-      "loc": "src/platform.c:1546"
+      "loc": "src/platform.c:1531"
     },
     {
       "kind": "reads_global",
       "from": "func:platform_dispatch",
       "to": "global:src/platform.c:g_console_chan",
-      "loc": "src/platform.c:1492"
+      "loc": "src/platform.c:1477"
     },
     {
       "kind": "reads_global",
       "from": "func:platform_dispatch",
       "to": "global:src/platform.c:g_console_chan",
-      "loc": "src/platform.c:1700"
+      "loc": "src/platform.c:1685"
     },
     {
       "kind": "reads_global",
       "from": "func:platform_dispatch",
       "to": "global:src/platform.c:g_console_chan",
-      "loc": "src/platform.c:1701"
+      "loc": "src/platform.c:1686"
     },
     {
       "kind": "reads_global",
       "from": "func:platform_dispatch",
       "to": "global:src/platform.c:platform_dispatch.armed",
-      "loc": "src/platform.c:1490"
+      "loc": "src/platform.c:1475"
     },
     {
       "kind": "reads_global",
       "from": "func:platform_dispatch",
       "to": "global:src/platform.c:platform_dispatch.armed",
-      "loc": "src/platform.c:1499"
+      "loc": "src/platform.c:1484"
     },
     {
       "kind": "reads_global",
       "from": "func:platform_dispatch",
       "to": "global:src/platform.c:rtc_alarm_pin",
-      "loc": "src/platform.c:1855"
+      "loc": "src/platform.c:1840"
     },
     {
       "kind": "reads_global",
       "from": "func:platform_dispatch",
       "to": "global:src/platform.c:s_app_cad_ms",
-      "loc": "src/platform.c:1533"
+      "loc": "src/platform.c:1518"
     },
     {
       "kind": "reads_global",
       "from": "func:platform_dispatch",
       "to": "global:src/platform.c:sensor_event_pin",
-      "loc": "src/platform.c:1816"
+      "loc": "src/platform.c:1801"
     },
     {
       "kind": "reads_global",
       "from": "func:platform_object",
       "to": "global:VtableVtable",
-      "loc": "src/platform.c:627"
+      "loc": "src/platform.c:612"
     },
     {
       "kind": "reads_global",
       "from": "func:platform_object",
       "to": "global:src/platform.c:platform_initialized",
-      "loc": "src/platform.c:625"
+      "loc": "src/platform.c:610"
     },
     {
       "kind": "reads_global",
@@ -27998,31 +27998,31 @@
       "kind": "reads_global",
       "from": "func:reset_cause_timer_wake",
       "to": "global:zephyr/src/main.c:reset_cause_timer_wake.answer",
-      "loc": "zephyr/src/main.c:311"
+      "loc": "zephyr/src/main.c:312"
     },
     {
       "kind": "reads_global",
       "from": "func:reset_cause_timer_wake",
       "to": "global:zephyr/src/main.c:reset_cause_timer_wake.answer",
-      "loc": "zephyr/src/main.c:314"
+      "loc": "zephyr/src/main.c:315"
     },
     {
       "kind": "reads_global",
       "from": "func:reset_cause_timer_wake",
       "to": "global:zephyr/src/main.c:reset_cause_timer_wake.known",
-      "loc": "zephyr/src/main.c:307"
+      "loc": "zephyr/src/main.c:308"
     },
     {
       "kind": "reads_global",
       "from": "func:rtc_target_get",
       "to": "global:zephyr/src/main.c:g_rtc",
-      "loc": "zephyr/src/main.c:293"
+      "loc": "zephyr/src/main.c:294"
     },
     {
       "kind": "reads_global",
       "from": "func:rtc_target_valid",
       "to": "global:zephyr/src/main.c:g_rtc",
-      "loc": "zephyr/src/main.c:292"
+      "loc": "zephyr/src/main.c:293"
     },
     {
       "kind": "reads_global",
@@ -30284,31 +30284,25 @@
       "kind": "reads_global",
       "from": "func:src/platform.c:host_gpio_fire",
       "to": "global:src/platform.c:host_gpio",
-      "loc": "src/platform.c:105"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:src/platform.c:host_gpio_fire",
-      "to": "global:src/platform.c:host_gpio",
       "loc": "src/platform.c:106"
     },
     {
       "kind": "reads_global",
       "from": "func:src/platform.c:host_gpio_fire",
+      "to": "global:src/platform.c:host_gpio",
+      "loc": "src/platform.c:107"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:src/platform.c:host_gpio_fire",
       "to": "global:src/platform.c:host_n_gpio",
-      "loc": "src/platform.c:104"
+      "loc": "src/platform.c:105"
     },
     {
       "kind": "reads_global",
       "from": "func:src/platform.c:host_gpio_register",
       "to": "global:_impure_ptr",
-      "loc": "src/platform.c:100"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:src/platform.c:host_gpio_register",
-      "to": "global:src/platform.c:host_gpio",
-      "loc": "src/platform.c:85"
+      "loc": "src/platform.c:101"
     },
     {
       "kind": "reads_global",
@@ -30320,25 +30314,25 @@
       "kind": "reads_global",
       "from": "func:src/platform.c:host_gpio_register",
       "to": "global:src/platform.c:host_gpio",
+      "loc": "src/platform.c:87"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:src/platform.c:host_gpio_register",
+      "to": "global:src/platform.c:host_gpio",
+      "loc": "src/platform.c:92"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:src/platform.c:host_gpio_register",
+      "to": "global:src/platform.c:host_n_gpio",
+      "loc": "src/platform.c:85"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:src/platform.c:host_gpio_register",
+      "to": "global:src/platform.c:host_n_gpio",
       "loc": "src/platform.c:91"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:src/platform.c:host_gpio_register",
-      "to": "global:src/platform.c:host_n_gpio",
-      "loc": "src/platform.c:84"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:src/platform.c:host_gpio_register",
-      "to": "global:src/platform.c:host_n_gpio",
-      "loc": "src/platform.c:90"
-    },
-    {
-      "kind": "reads_global",
-      "from": "func:src/platform.c:host_gpio_register",
-      "to": "global:src/platform.c:host_n_gpio",
-      "loc": "src/platform.c:96"
     },
     {
       "kind": "reads_global",
@@ -30354,27 +30348,33 @@
     },
     {
       "kind": "reads_global",
+      "from": "func:src/platform.c:host_gpio_register",
+      "to": "global:src/platform.c:host_n_gpio",
+      "loc": "src/platform.c:99"
+    },
+    {
+      "kind": "reads_global",
       "from": "func:src/platform.c:indexable_init",
       "to": "global:VtableVtable",
-      "loc": "src/platform.c:591"
+      "loc": "src/platform.c:576"
     },
     {
       "kind": "reads_global",
       "from": "func:src/platform.c:indexable_init",
       "to": "global:src/platform.c:indexable_initialized",
-      "loc": "src/platform.c:590"
+      "loc": "src/platform.c:575"
     },
     {
       "kind": "reads_global",
       "from": "func:src/platform.c:ota_leaf_bytes",
       "to": "global:RawBytesVtable",
-      "loc": "src/platform.c:734"
+      "loc": "src/platform.c:719"
     },
     {
       "kind": "reads_global",
       "from": "func:src/platform.c:ota_leaf_bytes",
       "to": "global:StringVtable",
-      "loc": "src/platform.c:735"
+      "loc": "src/platform.c:720"
     },
     {
       "kind": "reads_global",
@@ -31142,25 +31142,25 @@
       "kind": "reads_global",
       "from": "func:wallclock_target_read",
       "to": "global:zephyr/src/main.c:wallclock_target_read.rtc_dev",
-      "loc": "zephyr/src/main.c:360"
+      "loc": "zephyr/src/main.c:361"
     },
     {
       "kind": "reads_global",
       "from": "func:wallclock_target_read",
       "to": "global:zephyr/src/main.c:wallclock_target_read.rtc_dev",
-      "loc": "zephyr/src/main.c:361"
+      "loc": "zephyr/src/main.c:362"
     },
     {
       "kind": "reads_global",
       "from": "func:wallclock_target_set",
       "to": "global:zephyr/src/main.c:wallclock_target_set.rtc_dev",
-      "loc": "zephyr/src/main.c:419"
+      "loc": "zephyr/src/main.c:420"
     },
     {
       "kind": "reads_global",
       "from": "func:wallclock_target_set",
       "to": "global:zephyr/src/main.c:wallclock_target_set.rtc_dev",
-      "loc": "zephyr/src/main.c:429"
+      "loc": "zephyr/src/main.c:430"
     },
     {
       "kind": "reads_global",
@@ -31178,43 +31178,43 @@
       "kind": "reads_global",
       "from": "func:zephyr/src/observer.c:obs_trace_dump",
       "to": "global:zephyr/src/observer.c:g_trace_w",
-      "loc": "zephyr/src/observer.c:117"
+      "loc": "zephyr/src/observer.c:114"
     },
     {
       "kind": "reads_global",
       "from": "func:zephyr/src/observer.c:obs_trace_dump",
       "to": "global:zephyr/src/observer.c:g_trace_w",
-      "loc": "zephyr/src/observer.c:118"
+      "loc": "zephyr/src/observer.c:115"
     },
     {
       "kind": "reads_global",
       "from": "func:zephyr/src/observer.c:obs_trace_record",
       "to": "global:zephyr/src/observer.c:g_core",
-      "loc": "zephyr/src/observer.c:112"
+      "loc": "zephyr/src/observer.c:109"
     },
     {
       "kind": "reads_global",
       "from": "func:zephyr/src/observer.c:obs_trace_record",
       "to": "global:zephyr/src/observer.c:g_trace_w",
-      "loc": "zephyr/src/observer.c:108"
+      "loc": "zephyr/src/observer.c:105"
     },
     {
       "kind": "reads_global",
       "from": "func:zephyr/src/observer.c:observer_dump",
       "to": "global:zephyr/src/observer.c:g_core",
-      "loc": "zephyr/src/observer.c:323"
+      "loc": "zephyr/src/observer.c:320"
     },
     {
       "kind": "reads_global",
       "from": "func:zephyr/src/observer.c:observer_thread_fn",
       "to": "global:zephyr/src/observer.c:g_wdt_channel",
-      "loc": "zephyr/src/observer.c:375"
+      "loc": "zephyr/src/observer.c:372"
     },
     {
       "kind": "reads_path",
       "from": "func:platform_dispatch",
       "to": "path:*",
-      "loc": "src/platform.c:1018",
+      "loc": "src/platform.c:1003",
       "attrs": {
         "op": "space_overruns",
         "primitive": "SpaceOverruns"
@@ -31224,7 +31224,7 @@
       "kind": "reads_path",
       "from": "func:platform_dispatch",
       "to": "path:*",
-      "loc": "src/platform.c:1674",
+      "loc": "src/platform.c:1659",
       "attrs": {
         "op": "space_overruns",
         "primitive": "SpaceOverruns"
@@ -31234,7 +31234,7 @@
       "kind": "reads_path",
       "from": "func:platform_dispatch",
       "to": "path:*",
-      "loc": "src/platform.c:954",
+      "loc": "src/platform.c:939",
       "attrs": {
         "op": "space_take",
         "primitive": "SpaceTake"
@@ -31244,7 +31244,7 @@
       "kind": "reads_path",
       "from": "func:platform_dispatch",
       "to": "path:*",
-      "loc": "src/platform.c:974",
+      "loc": "src/platform.c:959",
       "attrs": {
         "op": "space_kind",
         "primitive": "SpaceKind"
@@ -31254,7 +31254,7 @@
       "kind": "reads_path",
       "from": "func:platform_dispatch",
       "to": "path:*",
-      "loc": "src/platform.c:988",
+      "loc": "src/platform.c:973",
       "attrs": {
         "op": "space_peek",
         "primitive": "SpacePeek"
@@ -31264,7 +31264,7 @@
       "kind": "stores_fn",
       "from": "func:main",
       "to": "func:zephyr/src/main.c:oevm_roots_callback",
-      "loc": "zephyr/src/main.c:1904",
+      "loc": "zephyr/src/main.c:1905",
       "attrs": {
         "into": ""
       }
@@ -31273,7 +31273,7 @@
       "kind": "stores_fn",
       "from": "func:main",
       "to": "func:zephyr/src/main.c:zephyr_millis",
-      "loc": "zephyr/src/main.c:1905",
+      "loc": "zephyr/src/main.c:1906",
       "attrs": {
         "into": ""
       }
@@ -31282,7 +31282,7 @@
       "kind": "stores_fn",
       "from": "func:observer_start",
       "to": "func:zephyr/src/observer.c:observer_thread_fn",
-      "loc": "zephyr/src/observer.c:424",
+      "loc": "zephyr/src/observer.c:421",
       "attrs": {
         "into": ""
       }
@@ -31327,7 +31327,7 @@
       "kind": "stores_fn",
       "from": "func:src/backend/zephyr/timer_zephyr.c:timer_start",
       "to": "func:src/backend/zephyr/timer_zephyr.c:timer_expiry",
-      "loc": "src/backend/zephyr/timer_zephyr.c:80",
+      "loc": "src/backend/zephyr/timer_zephyr.c:81",
       "attrs": {
         "into": ""
       }
@@ -31399,7 +31399,7 @@
       "kind": "stores_fn",
       "from": "global:zephyr/src/main.c:__init_gpio_outputs_early_init",
       "to": "func:zephyr/src/main.c:gpio_outputs_early_init",
-      "loc": "zephyr/src/main.c:1497",
+      "loc": "zephyr/src/main.c:1498",
       "attrs": {
         "into": "global:zephyr/src/main.c:__init_gpio_outputs_early_init"
       }
@@ -31687,7 +31687,7 @@
       "kind": "writes_global",
       "from": "func:gpio_target_level",
       "to": "global:zephyr/src/main.c:gpio_outputs",
-      "loc": "zephyr/src/main.c:1522",
+      "loc": "zephyr/src/main.c:1523",
       "attrs": {
         "op": "addr"
       }
@@ -31696,7 +31696,7 @@
       "kind": "writes_global",
       "from": "func:gpio_target_set",
       "to": "global:zephyr/src/main.c:gpio_outputs",
-      "loc": "zephyr/src/main.c:1512",
+      "loc": "zephyr/src/main.c:1513",
       "attrs": {
         "op": "addr"
       }
@@ -32038,7 +32038,7 @@
       "kind": "writes_global",
       "from": "func:indexable_new",
       "to": "global:src/platform.c:IndexableVtable",
-      "loc": "src/platform.c:604",
+      "loc": "src/platform.c:589",
       "attrs": {
         "op": "addr"
       }
@@ -32695,7 +32695,7 @@
       "kind": "writes_global",
       "from": "func:main",
       "to": "global:gc_additional_roots_hook",
-      "loc": "zephyr/src/main.c:1904",
+      "loc": "zephyr/src/main.c:1905",
       "attrs": {
         "op": "assign"
       }
@@ -32704,7 +32704,7 @@
       "kind": "writes_global",
       "from": "func:main",
       "to": "global:oevm_build_id",
-      "loc": "zephyr/src/main.c:1865",
+      "loc": "zephyr/src/main.c:1866",
       "attrs": {
         "op": "decay"
       }
@@ -32713,7 +32713,7 @@
       "kind": "writes_global",
       "from": "func:main",
       "to": "global:oevm_millis",
-      "loc": "zephyr/src/main.c:1905",
+      "loc": "zephyr/src/main.c:1906",
       "attrs": {
         "op": "assign"
       }
@@ -32965,7 +32965,7 @@
       "kind": "writes_global",
       "from": "func:ntp_target_sync",
       "to": "global:zephyr/src/main.c:ntp_last_date",
-      "loc": "zephyr/src/main.c:251",
+      "loc": "zephyr/src/main.c:252",
       "attrs": {
         "op": "assign"
       }
@@ -32974,7 +32974,7 @@
       "kind": "writes_global",
       "from": "func:observer_start",
       "to": "global:__device_dts_ord_44",
-      "loc": "zephyr/src/observer.c:402",
+      "loc": "zephyr/src/observer.c:399",
       "attrs": {
         "op": "addr"
       }
@@ -32983,7 +32983,7 @@
       "kind": "writes_global",
       "from": "func:observer_start",
       "to": "global:observer_stack",
-      "loc": "zephyr/src/observer.c:422",
+      "loc": "zephyr/src/observer.c:419",
       "attrs": {
         "op": "decay"
       }
@@ -32992,7 +32992,7 @@
       "kind": "writes_global",
       "from": "func:observer_start",
       "to": "global:zephyr/src/observer.c:g_hw_wdt",
-      "loc": "zephyr/src/observer.c:402",
+      "loc": "zephyr/src/observer.c:399",
       "attrs": {
         "op": "assign"
       }
@@ -33001,7 +33001,7 @@
       "kind": "writes_global",
       "from": "func:observer_start",
       "to": "global:zephyr/src/observer.c:g_hw_wdt",
-      "loc": "zephyr/src/observer.c:403",
+      "loc": "zephyr/src/observer.c:400",
       "attrs": {
         "op": "assign"
       }
@@ -33010,7 +33010,7 @@
       "kind": "writes_global",
       "from": "func:observer_start",
       "to": "global:zephyr/src/observer.c:observer_thread",
-      "loc": "zephyr/src/observer.c:422",
+      "loc": "zephyr/src/observer.c:419",
       "attrs": {
         "op": "addr"
       }
@@ -33019,7 +33019,7 @@
       "kind": "writes_global",
       "from": "func:observer_start",
       "to": "global:zephyr/src/observer.c:observer_thread",
-      "loc": "zephyr/src/observer.c:426",
+      "loc": "zephyr/src/observer.c:423",
       "attrs": {
         "op": "addr"
       }
@@ -33631,7 +33631,7 @@
       "kind": "writes_global",
       "from": "func:platform_dispatch",
       "to": "global:false_sym_obj",
-      "loc": "src/platform.c:1305",
+      "loc": "src/platform.c:1290",
       "attrs": {
         "op": "addr"
       }
@@ -33640,7 +33640,7 @@
       "kind": "writes_global",
       "from": "func:platform_dispatch",
       "to": "global:false_sym_obj",
-      "loc": "src/platform.c:1306",
+      "loc": "src/platform.c:1291",
       "attrs": {
         "op": "addr"
       }
@@ -33649,7 +33649,7 @@
       "kind": "writes_global",
       "from": "func:platform_dispatch",
       "to": "global:false_sym_obj",
-      "loc": "src/platform.c:1307",
+      "loc": "src/platform.c:1292",
       "attrs": {
         "op": "addr"
       }
@@ -33658,7 +33658,7 @@
       "kind": "writes_global",
       "from": "func:platform_dispatch",
       "to": "global:false_sym_obj",
-      "loc": "src/platform.c:1308",
+      "loc": "src/platform.c:1293",
       "attrs": {
         "op": "addr"
       }
@@ -33667,7 +33667,7 @@
       "kind": "writes_global",
       "from": "func:platform_dispatch",
       "to": "global:false_sym_obj",
-      "loc": "src/platform.c:1309",
+      "loc": "src/platform.c:1294",
       "attrs": {
         "op": "addr"
       }
@@ -33676,7 +33676,7 @@
       "kind": "writes_global",
       "from": "func:platform_dispatch",
       "to": "global:false_sym_obj",
-      "loc": "src/platform.c:1310",
+      "loc": "src/platform.c:1295",
       "attrs": {
         "op": "addr"
       }
@@ -33685,7 +33685,7 @@
       "kind": "writes_global",
       "from": "func:platform_dispatch",
       "to": "global:false_sym_obj",
-      "loc": "src/platform.c:1485",
+      "loc": "src/platform.c:1470",
       "attrs": {
         "op": "addr"
       }
@@ -33694,7 +33694,7 @@
       "kind": "writes_global",
       "from": "func:platform_dispatch",
       "to": "global:false_sym_obj",
-      "loc": "src/platform.c:1508",
+      "loc": "src/platform.c:1493",
       "attrs": {
         "op": "addr"
       }
@@ -33703,7 +33703,7 @@
       "kind": "writes_global",
       "from": "func:platform_dispatch",
       "to": "global:false_sym_obj",
-      "loc": "src/platform.c:1513",
+      "loc": "src/platform.c:1498",
       "attrs": {
         "op": "addr"
       }
@@ -33712,7 +33712,7 @@
       "kind": "writes_global",
       "from": "func:platform_dispatch",
       "to": "global:false_sym_obj",
-      "loc": "src/platform.c:1592",
+      "loc": "src/platform.c:1577",
       "attrs": {
         "op": "addr"
       }
@@ -33721,7 +33721,7 @@
       "kind": "writes_global",
       "from": "func:platform_dispatch",
       "to": "global:false_sym_obj",
-      "loc": "src/platform.c:1600",
+      "loc": "src/platform.c:1585",
       "attrs": {
         "op": "addr"
       }
@@ -33730,7 +33730,7 @@
       "kind": "writes_global",
       "from": "func:platform_dispatch",
       "to": "global:false_sym_obj",
-      "loc": "src/platform.c:1625",
+      "loc": "src/platform.c:1610",
       "attrs": {
         "op": "addr"
       }
@@ -33739,7 +33739,7 @@
       "kind": "writes_global",
       "from": "func:platform_dispatch",
       "to": "global:false_sym_obj",
-      "loc": "src/platform.c:1636",
+      "loc": "src/platform.c:1621",
       "attrs": {
         "op": "addr"
       }
@@ -33748,7 +33748,7 @@
       "kind": "writes_global",
       "from": "func:platform_dispatch",
       "to": "global:false_sym_obj",
-      "loc": "src/platform.c:1915",
+      "loc": "src/platform.c:1900",
       "attrs": {
         "op": "addr"
       }
@@ -33757,7 +33757,7 @@
       "kind": "writes_global",
       "from": "func:platform_dispatch",
       "to": "global:false_sym_obj",
-      "loc": "src/platform.c:764",
+      "loc": "src/platform.c:749",
       "attrs": {
         "op": "addr"
       }
@@ -33766,7 +33766,7 @@
       "kind": "writes_global",
       "from": "func:platform_dispatch",
       "to": "global:false_sym_obj",
-      "loc": "src/platform.c:890",
+      "loc": "src/platform.c:875",
       "attrs": {
         "op": "addr"
       }
@@ -33775,7 +33775,7 @@
       "kind": "writes_global",
       "from": "func:platform_dispatch",
       "to": "global:gc_temp_roots_count",
-      "loc": "src/platform.c:1081",
+      "loc": "src/platform.c:1066",
       "attrs": {
         "op": "assign"
       }
@@ -33784,7 +33784,7 @@
       "kind": "writes_global",
       "from": "func:platform_dispatch",
       "to": "global:gc_temp_roots_count",
-      "loc": "src/platform.c:1416",
+      "loc": "src/platform.c:1401",
       "attrs": {
         "op": "assign"
       }
@@ -33793,7 +33793,7 @@
       "kind": "writes_global",
       "from": "func:platform_dispatch",
       "to": "global:oevm_build_id",
-      "loc": "src/platform.c:1462",
+      "loc": "src/platform.c:1447",
       "attrs": {
         "op": "decay"
       }
@@ -33802,7 +33802,7 @@
       "kind": "writes_global",
       "from": "func:platform_dispatch",
       "to": "global:oevm_manifest_pin",
-      "loc": "src/platform.c:1546",
+      "loc": "src/platform.c:1531",
       "attrs": {
         "op": "decay"
       }
@@ -33811,7 +33811,7 @@
       "kind": "writes_global",
       "from": "func:platform_dispatch",
       "to": "global:src/platform.c:g_console_chan",
-      "loc": "src/platform.c:1491",
+      "loc": "src/platform.c:1476",
       "attrs": {
         "op": "assign"
       }
@@ -33820,7 +33820,7 @@
       "kind": "writes_global",
       "from": "func:platform_dispatch",
       "to": "global:src/platform.c:g_console_seq",
-      "loc": "src/platform.c:1701",
+      "loc": "src/platform.c:1686",
       "attrs": {
         "op": "incdec"
       }
@@ -33829,7 +33829,7 @@
       "kind": "writes_global",
       "from": "func:platform_dispatch",
       "to": "global:src/platform.c:platform_dispatch.armed",
-      "loc": "src/platform.c:1492",
+      "loc": "src/platform.c:1477",
       "attrs": {
         "op": "assign"
       }
@@ -33838,7 +33838,7 @@
       "kind": "writes_global",
       "from": "func:platform_dispatch",
       "to": "global:src/platform.c:platform_dispatch.m",
-      "loc": "src/platform.c:1473",
+      "loc": "src/platform.c:1458",
       "attrs": {
         "op": "decay"
       }
@@ -33847,7 +33847,7 @@
       "kind": "writes_global",
       "from": "func:platform_dispatch",
       "to": "global:src/platform.c:rtc_alarm_pin",
-      "loc": "src/platform.c:1856",
+      "loc": "src/platform.c:1841",
       "attrs": {
         "op": "assign"
       }
@@ -33856,7 +33856,7 @@
       "kind": "writes_global",
       "from": "func:platform_dispatch",
       "to": "global:src/platform.c:s_app_cad_ms",
-      "loc": "src/platform.c:1532",
+      "loc": "src/platform.c:1517",
       "attrs": {
         "op": "assign"
       }
@@ -33865,7 +33865,7 @@
       "kind": "writes_global",
       "from": "func:platform_dispatch",
       "to": "global:src/platform.c:sensor_event_pin",
-      "loc": "src/platform.c:1817",
+      "loc": "src/platform.c:1802",
       "attrs": {
         "op": "assign"
       }
@@ -33874,7 +33874,7 @@
       "kind": "writes_global",
       "from": "func:platform_dispatch",
       "to": "global:true_sym_obj",
-      "loc": "src/platform.c:1311",
+      "loc": "src/platform.c:1296",
       "attrs": {
         "op": "addr"
       }
@@ -33883,7 +33883,7 @@
       "kind": "writes_global",
       "from": "func:platform_dispatch",
       "to": "global:true_sym_obj",
-      "loc": "src/platform.c:1485",
+      "loc": "src/platform.c:1470",
       "attrs": {
         "op": "addr"
       }
@@ -33892,7 +33892,7 @@
       "kind": "writes_global",
       "from": "func:platform_dispatch",
       "to": "global:true_sym_obj",
-      "loc": "src/platform.c:1513",
+      "loc": "src/platform.c:1498",
       "attrs": {
         "op": "addr"
       }
@@ -33901,7 +33901,7 @@
       "kind": "writes_global",
       "from": "func:platform_dispatch",
       "to": "global:true_sym_obj",
-      "loc": "src/platform.c:1591",
+      "loc": "src/platform.c:1576",
       "attrs": {
         "op": "addr"
       }
@@ -33910,7 +33910,7 @@
       "kind": "writes_global",
       "from": "func:platform_dispatch",
       "to": "global:true_sym_obj",
-      "loc": "src/platform.c:1600",
+      "loc": "src/platform.c:1585",
       "attrs": {
         "op": "addr"
       }
@@ -33919,7 +33919,7 @@
       "kind": "writes_global",
       "from": "func:platform_dispatch",
       "to": "global:true_sym_obj",
-      "loc": "src/platform.c:1636",
+      "loc": "src/platform.c:1621",
       "attrs": {
         "op": "addr"
       }
@@ -33928,7 +33928,7 @@
       "kind": "writes_global",
       "from": "func:platform_dispatch",
       "to": "global:true_sym_obj",
-      "loc": "src/platform.c:1906",
+      "loc": "src/platform.c:1891",
       "attrs": {
         "op": "addr"
       }
@@ -33937,7 +33937,7 @@
       "kind": "writes_global",
       "from": "func:platform_dispatch",
       "to": "global:true_sym_obj",
-      "loc": "src/platform.c:1915",
+      "loc": "src/platform.c:1900",
       "attrs": {
         "op": "addr"
       }
@@ -33946,7 +33946,7 @@
       "kind": "writes_global",
       "from": "func:platform_dispatch",
       "to": "global:true_sym_obj",
-      "loc": "src/platform.c:764",
+      "loc": "src/platform.c:749",
       "attrs": {
         "op": "addr"
       }
@@ -33955,7 +33955,7 @@
       "kind": "writes_global",
       "from": "func:platform_dispatch",
       "to": "global:true_sym_obj",
-      "loc": "src/platform.c:890",
+      "loc": "src/platform.c:875",
       "attrs": {
         "op": "addr"
       }
@@ -33964,7 +33964,7 @@
       "kind": "writes_global",
       "from": "func:platform_object",
       "to": "global:src/platform.c:PlatformObj",
-      "loc": "src/platform.c:633",
+      "loc": "src/platform.c:618",
       "attrs": {
         "op": "assign"
       }
@@ -33973,7 +33973,7 @@
       "kind": "writes_global",
       "from": "func:platform_object",
       "to": "global:src/platform.c:PlatformObj",
-      "loc": "src/platform.c:636",
+      "loc": "src/platform.c:621",
       "attrs": {
         "op": "addr"
       }
@@ -33982,7 +33982,7 @@
       "kind": "writes_global",
       "from": "func:platform_object",
       "to": "global:src/platform.c:PlatformVtable",
-      "loc": "src/platform.c:627",
+      "loc": "src/platform.c:612",
       "attrs": {
         "op": "assign"
       }
@@ -33991,7 +33991,7 @@
       "kind": "writes_global",
       "from": "func:platform_object",
       "to": "global:src/platform.c:PlatformVtable",
-      "loc": "src/platform.c:628",
+      "loc": "src/platform.c:613",
       "attrs": {
         "op": "assign"
       }
@@ -34000,7 +34000,7 @@
       "kind": "writes_global",
       "from": "func:platform_object",
       "to": "global:src/platform.c:PlatformVtable",
-      "loc": "src/platform.c:629",
+      "loc": "src/platform.c:614",
       "attrs": {
         "op": "assign"
       }
@@ -34009,7 +34009,7 @@
       "kind": "writes_global",
       "from": "func:platform_object",
       "to": "global:src/platform.c:PlatformVtable",
-      "loc": "src/platform.c:630",
+      "loc": "src/platform.c:615",
       "attrs": {
         "op": "assign"
       }
@@ -34018,7 +34018,7 @@
       "kind": "writes_global",
       "from": "func:platform_object",
       "to": "global:src/platform.c:PlatformVtable",
-      "loc": "src/platform.c:631",
+      "loc": "src/platform.c:616",
       "attrs": {
         "op": "assign"
       }
@@ -34027,7 +34027,7 @@
       "kind": "writes_global",
       "from": "func:platform_object",
       "to": "global:src/platform.c:PlatformVtable",
-      "loc": "src/platform.c:632",
+      "loc": "src/platform.c:617",
       "attrs": {
         "op": "assign"
       }
@@ -34036,7 +34036,7 @@
       "kind": "writes_global",
       "from": "func:platform_object",
       "to": "global:src/platform.c:PlatformVtable",
-      "loc": "src/platform.c:633",
+      "loc": "src/platform.c:618",
       "attrs": {
         "op": "addr"
       }
@@ -34045,7 +34045,7 @@
       "kind": "writes_global",
       "from": "func:platform_object",
       "to": "global:src/platform.c:platform_initialized",
-      "loc": "src/platform.c:634",
+      "loc": "src/platform.c:619",
       "attrs": {
         "op": "assign"
       }
@@ -34369,7 +34369,7 @@
       "kind": "writes_global",
       "from": "func:reset_cause_timer_wake",
       "to": "global:zephyr/src/main.c:reset_cause_timer_wake.answer",
-      "loc": "zephyr/src/main.c:310",
+      "loc": "zephyr/src/main.c:311",
       "attrs": {
         "op": "assign"
       }
@@ -34378,7 +34378,7 @@
       "kind": "writes_global",
       "from": "func:reset_cause_timer_wake",
       "to": "global:zephyr/src/main.c:reset_cause_timer_wake.known",
-      "loc": "zephyr/src/main.c:312",
+      "loc": "zephyr/src/main.c:313",
       "attrs": {
         "op": "assign"
       }
@@ -34387,7 +34387,7 @@
       "kind": "writes_global",
       "from": "func:rtc_target_put",
       "to": "global:zephyr/src/main.c:g_rtc",
-      "loc": "zephyr/src/main.c:294",
+      "loc": "zephyr/src/main.c:295",
       "attrs": {
         "op": "assign"
       }
@@ -36646,7 +36646,7 @@
       "kind": "writes_global",
       "from": "func:src/backend/zephyr/timer_zephyr.c:timer_start",
       "to": "global:src/backend/zephyr/timer_zephyr.c:target_timers",
-      "loc": "src/backend/zephyr/timer_zephyr.c:68",
+      "loc": "src/backend/zephyr/timer_zephyr.c:69",
       "attrs": {
         "op": "addr"
       }
@@ -36997,16 +36997,7 @@
       "kind": "writes_global",
       "from": "func:src/platform.c:host_gpio_register",
       "to": "global:src/platform.c:host_gpio",
-      "loc": "src/platform.c:87",
-      "attrs": {
-        "op": "assign"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:src/platform.c:host_gpio_register",
-      "to": "global:src/platform.c:host_gpio",
-      "loc": "src/platform.c:92",
+      "loc": "src/platform.c:88",
       "attrs": {
         "op": "assign"
       }
@@ -37024,7 +37015,7 @@
       "kind": "writes_global",
       "from": "func:src/platform.c:host_gpio_register",
       "to": "global:src/platform.c:host_gpio",
-      "loc": "src/platform.c:97",
+      "loc": "src/platform.c:94",
       "attrs": {
         "op": "assign"
       }
@@ -37041,8 +37032,17 @@
     {
       "kind": "writes_global",
       "from": "func:src/platform.c:host_gpio_register",
-      "to": "global:src/platform.c:host_n_gpio",
+      "to": "global:src/platform.c:host_gpio",
       "loc": "src/platform.c:99",
+      "attrs": {
+        "op": "assign"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:src/platform.c:host_gpio_register",
+      "to": "global:src/platform.c:host_n_gpio",
+      "loc": "src/platform.c:100",
       "attrs": {
         "op": "incdec"
       }
@@ -37051,7 +37051,7 @@
       "kind": "writes_global",
       "from": "func:src/platform.c:indexable_init",
       "to": "global:src/platform.c:IndexableVtable",
-      "loc": "src/platform.c:591",
+      "loc": "src/platform.c:576",
       "attrs": {
         "op": "assign"
       }
@@ -37060,7 +37060,7 @@
       "kind": "writes_global",
       "from": "func:src/platform.c:indexable_init",
       "to": "global:src/platform.c:IndexableVtable",
-      "loc": "src/platform.c:592",
+      "loc": "src/platform.c:577",
       "attrs": {
         "op": "assign"
       }
@@ -37069,7 +37069,7 @@
       "kind": "writes_global",
       "from": "func:src/platform.c:indexable_init",
       "to": "global:src/platform.c:IndexableVtable",
-      "loc": "src/platform.c:593",
+      "loc": "src/platform.c:578",
       "attrs": {
         "op": "assign"
       }
@@ -37078,7 +37078,7 @@
       "kind": "writes_global",
       "from": "func:src/platform.c:indexable_init",
       "to": "global:src/platform.c:IndexableVtable",
-      "loc": "src/platform.c:594",
+      "loc": "src/platform.c:579",
       "attrs": {
         "op": "assign"
       }
@@ -37087,7 +37087,7 @@
       "kind": "writes_global",
       "from": "func:src/platform.c:indexable_init",
       "to": "global:src/platform.c:IndexableVtable",
-      "loc": "src/platform.c:595",
+      "loc": "src/platform.c:580",
       "attrs": {
         "op": "assign"
       }
@@ -37096,7 +37096,7 @@
       "kind": "writes_global",
       "from": "func:src/platform.c:indexable_init",
       "to": "global:src/platform.c:IndexableVtable",
-      "loc": "src/platform.c:596",
+      "loc": "src/platform.c:581",
       "attrs": {
         "op": "assign"
       }
@@ -37105,7 +37105,7 @@
       "kind": "writes_global",
       "from": "func:src/platform.c:indexable_init",
       "to": "global:src/platform.c:indexable_initialized",
-      "loc": "src/platform.c:597",
+      "loc": "src/platform.c:582",
       "attrs": {
         "op": "assign"
       }
@@ -37267,7 +37267,7 @@
       "kind": "writes_global",
       "from": "func:timer_backend_cancel",
       "to": "global:src/backend/zephyr/timer_zephyr.c:target_timers",
-      "loc": "src/backend/zephyr/timer_zephyr.c:94",
+      "loc": "src/backend/zephyr/timer_zephyr.c:95",
       "attrs": {
         "op": "addr"
       }
@@ -37276,7 +37276,7 @@
       "kind": "writes_global",
       "from": "func:timer_target_snapshot",
       "to": "global:src/backend/zephyr/timer_zephyr.c:target_timers",
-      "loc": "src/backend/zephyr/timer_zephyr.c:129",
+      "loc": "src/backend/zephyr/timer_zephyr.c:130",
       "attrs": {
         "op": "addr"
       }
@@ -37600,7 +37600,7 @@
       "kind": "writes_global",
       "from": "func:wallclock_target_read",
       "to": "global:__device_dts_ord_66",
-      "loc": "zephyr/src/main.c:356",
+      "loc": "zephyr/src/main.c:357",
       "attrs": {
         "op": "addr"
       }
@@ -37609,7 +37609,7 @@
       "kind": "writes_global",
       "from": "func:wallclock_target_set",
       "to": "global:__device_dts_ord_66",
-      "loc": "zephyr/src/main.c:414",
+      "loc": "zephyr/src/main.c:415",
       "attrs": {
         "op": "addr"
       }
@@ -37672,7 +37672,7 @@
       "kind": "writes_global",
       "from": "func:zephyr/src/main.c:wire_gpio_outputs",
       "to": "global:zephyr/src/main.c:gpio_outputs",
-      "loc": "zephyr/src/main.c:1445",
+      "loc": "zephyr/src/main.c:1446",
       "attrs": {
         "op": "addr"
       }
@@ -37681,7 +37681,7 @@
       "kind": "writes_global",
       "from": "func:zephyr/src/main.c:wire_gpio_outputs",
       "to": "global:zephyr/src/main.c:gpio_outputs",
-      "loc": "zephyr/src/main.c:1454",
+      "loc": "zephyr/src/main.c:1455",
       "attrs": {
         "op": "addr"
       }
@@ -37690,7 +37690,7 @@
       "kind": "writes_global",
       "from": "func:zephyr/src/observer.c:obs_trace_dump",
       "to": "global:zephyr/src/observer.c:g_trace",
-      "loc": "zephyr/src/observer.c:122",
+      "loc": "zephyr/src/observer.c:119",
       "attrs": {
         "op": "addr"
       }
@@ -37699,7 +37699,7 @@
       "kind": "writes_global",
       "from": "func:zephyr/src/observer.c:obs_trace_record",
       "to": "global:zephyr/src/observer.c:g_trace",
-      "loc": "zephyr/src/observer.c:108",
+      "loc": "zephyr/src/observer.c:105",
       "attrs": {
         "op": "addr"
       }
@@ -37708,7 +37708,7 @@
       "kind": "writes_global",
       "from": "func:zephyr/src/observer.c:obs_trace_record",
       "to": "global:zephyr/src/observer.c:g_trace_w",
-      "loc": "zephyr/src/observer.c:113",
+      "loc": "zephyr/src/observer.c:110",
       "attrs": {
         "op": "incdec"
       }
@@ -37717,7 +37717,7 @@
       "kind": "writes_global",
       "from": "func:zephyr/src/observer.c:observer_thread_fn",
       "to": "global:zephyr/src/observer.c:g_wdt_channel",
-      "loc": "zephyr/src/observer.c:351",
+      "loc": "zephyr/src/observer.c:348",
       "attrs": {
         "op": "assign"
       }
@@ -37726,7 +37726,7 @@
       "kind": "writes_global",
       "from": "func:zephyr/src/observer.c:observer_verdict",
       "to": "global:zephyr/src/observer.c:g_core",
-      "loc": "zephyr/src/observer.c:154",
+      "loc": "zephyr/src/observer.c:151",
       "attrs": {
         "op": "addr"
       }
@@ -37745,17 +37745,7 @@
       "kind": "writes_path",
       "from": "func:platform_dispatch",
       "to": "path:*",
-      "loc": "src/platform.c:1001",
-      "attrs": {
-        "op": "space_put",
-        "primitive": "SpacePut"
-      }
-    },
-    {
-      "kind": "writes_path",
-      "from": "func:platform_dispatch",
-      "to": "path:*",
-      "loc": "src/platform.c:1154",
+      "loc": "src/platform.c:1139",
       "attrs": {
         "op": "space_intern",
         "primitive": "SpaceIntern"
@@ -37765,7 +37755,7 @@
       "kind": "writes_path",
       "from": "func:platform_dispatch",
       "to": "path:*",
-      "loc": "src/platform.c:1803",
+      "loc": "src/platform.c:1788",
       "attrs": {
         "op": "space_intern",
         "primitive": "SpaceIntern"
@@ -37775,7 +37765,7 @@
       "kind": "writes_path",
       "from": "func:platform_dispatch",
       "to": "path:*",
-      "loc": "src/platform.c:1838",
+      "loc": "src/platform.c:1823",
       "attrs": {
         "op": "space_intern",
         "primitive": "SpaceIntern"
@@ -37785,7 +37775,7 @@
       "kind": "writes_path",
       "from": "func:platform_dispatch",
       "to": "path:*",
-      "loc": "src/platform.c:921",
+      "loc": "src/platform.c:906",
       "attrs": {
         "op": "space_post",
         "primitive": "SpacePost"
@@ -37795,7 +37785,7 @@
       "kind": "writes_path",
       "from": "func:platform_dispatch",
       "to": "path:*",
-      "loc": "src/platform.c:936",
+      "loc": "src/platform.c:921",
       "attrs": {
         "op": "space_register",
         "primitive": "SpaceRegister"
@@ -37804,8 +37794,18 @@
     {
       "kind": "writes_path",
       "from": "func:platform_dispatch",
+      "to": "path:*",
+      "loc": "src/platform.c:986",
+      "attrs": {
+        "op": "space_put",
+        "primitive": "SpacePut"
+      }
+    },
+    {
+      "kind": "writes_path",
+      "from": "func:platform_dispatch",
       "to": "path:sys/console",
-      "loc": "src/platform.c:1491",
+      "loc": "src/platform.c:1476",
       "attrs": {
         "op": "space_intern",
         "primitive": "SpaceIntern"
@@ -37845,7 +37845,7 @@
       "kind": "writes_path",
       "from": "func:src/backend/zephyr/timer_zephyr.c:timer_start",
       "to": "path:sys/timer",
-      "loc": "src/backend/zephyr/timer_zephyr.c:71",
+      "loc": "src/backend/zephyr/timer_zephyr.c:72",
       "attrs": {
         "op": "space_intern",
         "primitive": "SpaceIntern"
