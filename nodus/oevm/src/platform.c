@@ -522,16 +522,9 @@ void deep_sleep_target(int seconds) {
    RTC retention block. Same rule: links on every board; a board whose hwinfo has no
    reset cause answers 1 from the body. */
 extern int reset_cause_timer_wake(void);
-/* rete#215: the panic note's leaves live in zephyr/src/reboot_note.c, beside the RTC
-   retention block they share a section with. Same rule as bell/ntp/rtc above — the
-   symbols must link on EVERY Zephyr board, so that file guards bodies, never
-   definitions. */
-extern void     reboot_note_init(void);
-extern int      reboot_note_read(struct RebootNote *out);
-extern void     reboot_note_write(uint32_t reason, uint32_t mcause,
-                                  uint32_t mepc, uint32_t ra, uint32_t mono_ms);
-extern void     reboot_note_ack(uint32_t boot_id);
-extern uint32_t reboot_note_consecutive(void);
+/* rete#215: the panic note's leaves live in zephyr/src/reboot_note.c (declared in
+   reboot_note.h), beside the RTC retention block they share a section with. Same rule
+   as bell/ntp/rtc above — that file guards bodies, never definitions. */
 /* tuvm#94 stage 5: deepSleep: device leaf deferred to a later task (zephyr/src/main.c
    not yet touched); the extern must exist now so this shared translation unit links. */
 extern void deep_sleep_target(int seconds);
