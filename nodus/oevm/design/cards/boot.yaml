@@ -10,3 +10,12 @@ implemented_by:
   - c: oimg_load_blob
   - c: oimg_root
   - c: ota_sha256
+# owns: accepted by David, 2026-10-18 (invarlint#48, proposal row 5).
+owns:
+  - global:Symbol_value
+  - global:Symbol_debug_
+  - global:builtin_registry
+  - global:oimg_singleton
+  - global:g_kernel_instance
+  - global:oimg_blob_base
+  - global:oimg_blob_end

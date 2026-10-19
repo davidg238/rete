@@ -1,18 +1,18 @@
-# invarlint findings — 65f4fa7d
+# invarlint findings — 31257aab
 
-## unowned-writer (10)
+## owns-violated (2)
 
 | subject | count | sites |
 |---|---|---|
-| global:builtin_registry | 18 | `kernel_boot` (src/kernel_boot.c:149)<br>`kernel_boot` (src/kernel_boot.c:150)<br>`kernel_boot` (src/kernel_boot.c:151)<br>`kernel_boot` (src/kernel_boot.c:153)<br>`kernel_boot` (src/kernel_boot.c:154)<br>`kernel_boot` (src/kernel_boot.c:155)<br>`kernel_boot` (src/kernel_boot.c:156)<br>`kernel_boot` (src/kernel_boot.c:157)<br>`kernel_boot` (src/kernel_boot.c:158)<br>`kernel_boot` (src/kernel_boot.c:159)<br>`kernel_boot` (src/kernel_boot.c:160)<br>`kernel_boot` (src/kernel_boot.c:163)<br>+6 more |
+| global:Symbol_debug_ | 1 | `primitive_register_debugger_hook` (src/vm.c:1893) |
+| global:Symbol_value | 1 | `run_interpreter` (src/vm.c:1039) |
+
+## unowned-writer (3)
+
+| subject | count | sites |
+|---|---|---|
 | global:pulse_q | 5 | `pulse_pending` (src/backend/zephyr/pulse_zephyr.c:94)<br>`pulse_pump` (src/backend/zephyr/pulse_zephyr.c:100)<br>`pulse_pump` (src/backend/zephyr/pulse_zephyr.c:104)<br>`pulse_pump_nb` (src/backend/zephyr/pulse_zephyr.c:122)<br>`pulse_zephyr.c:pulse_enqueue` (src/backend/zephyr/pulse_zephyr.c:52) |
-| global:oimg_singleton | 3 | `kernel_boot` (src/kernel_boot.c:144)<br>`kernel_boot` (src/kernel_boot.c:145)<br>`kernel_boot` (src/kernel_boot.c:146) |
 | global:rl_q | 3 | `platform_console_take_line` (src/backend/zephyr/platform_zephyr.c:191)<br>`platform_zephyr.c:rl_getc` (src/backend/zephyr/platform_zephyr.c:170)<br>`platform_zephyr.c:rl_isr` (src/backend/zephyr/platform_zephyr.c:146) |
-| global:Symbol_debug_ | 2 | `kernel_boot` (src/kernel_boot.c:141)<br>`primitive_register_debugger_hook` (src/vm.c:1893) |
-| global:Symbol_value | 2 | `kernel_boot` (src/kernel_boot.c:140)<br>`run_interpreter` (src/vm.c:1039) |
-| global:g_kernel_instance | 2 | `oimg_bootstrap` (src/oimg_loader.c:338)<br>`oimg_bootstrap` (src/oimg_loader.c:345) |
-| global:oimg_blob_base | 2 | `oimg_load_blob` (src/oimg_loader.c:204)<br>`oimg_load_blob` (src/oimg_loader.c:235) |
-| global:oimg_blob_end | 2 | `oimg_load_blob` (src/oimg_loader.c:205)<br>`oimg_load_blob` (src/oimg_loader.c:235) |
 | global:platform_debug_pending | 2 | `platform_zephyr.c:rl_isr` (src/backend/zephyr/platform_zephyr.c:149)<br>`platform_zephyr.c:rl_line_taken` (src/backend/zephyr/platform_zephyr.c:164) |
 
 ## context-coupling (6)
@@ -136,11 +136,43 @@
 | global:src/vm.c:g_mprof_n | 6 | `mprof_start` (src/vm.c:597; writes)<br>`primitive_calls_reset` (src/vm.c:2404; writes)<br>`primitive_calls_stats` (src/vm.c:2387; reads)<br>`vm.c:mprof_bump` (src/vm.c:486; writes)<br>`vm.c:mprof_count` (src/vm.c:645; reads)<br>`vm.c:mprof_report` (src/vm.c:544; reads)<br>`vm.c:mprof_report` (src/vm.c:552; reads)<br>`vm.c:mprof_report` (src/vm.c:554; reads) |
 | … 190 more global-flow rows; see findings.json | | |
 
-## owns-exceeded (4)
+## owns-exceeded (36)
 
 | subject | count | sites |
 |---|---|---|
 | Interpreter/global:src/vm.c:g_protect_top | 3 | `vm_ensure` (src/vm.c:271)<br>`vm_ensure` (src/vm.c:277)<br>`vm_ensure` (src/vm.c:294)<br>`vm_on_do` (src/vm.c:211)<br>`vm_on_do` (src/vm.c:214)<br>`vm_on_do` (src/vm.c:224)<br>`vm_protected_fire` (src/vm.c:170)<br>`vm_protected_fire` (src/vm.c:181) |
+| Boot/global:BoxedBindingVtable | 1 | `kernel_boot` (src/kernel_boot.c:128) |
+| Boot/global:BytecodeClosureVtable | 1 | `kernel_boot` (src/kernel_boot.c:126) |
+| Boot/global:ContextVtable | 1 | `kernel_boot` (src/kernel_boot.c:131) |
+| Boot/global:FloatVtable | 1 | `kernel_boot` (src/kernel_boot.c:133) |
+| Boot/global:IntegerVtable | 1 | `kernel_boot` (src/kernel_boot.c:132) |
+| Boot/global:LargeIntegerVtable | 1 | `kernel_boot` (src/kernel_boot.c:134) |
+| Boot/global:MethodContextVtable | 1 | `kernel_boot` (src/kernel_boot.c:135) |
+| Boot/global:PrimitiveClosureVtable | 1 | `kernel_boot` (src/kernel_boot.c:127) |
+| Boot/global:RawBytesVtable | 1 | `kernel_boot` (src/kernel_boot.c:125) |
+| Boot/global:StackVtable | 1 | `kernel_boot` (src/kernel_boot.c:130) |
+| Boot/global:StringVtable | 1 | `kernel_boot` (src/kernel_boot.c:124) |
+| Boot/global:SymbolVtable | 1 | `kernel_boot` (src/kernel_boot.c:123) |
+| Boot/global:VtableVtable | 1 | `kernel_boot` (src/kernel_boot.c:122) |
+| Boot/global:src/kernel_boot.c:kernel_boot.booted | 1 | `kernel_boot` (src/kernel_boot.c:116) |
+| Boot/global:src/oimg_loader.c:img_classnames_count | 1 | `oimg_load_blob` (src/oimg_loader.c:190) |
+| Boot/global:src/oimg_loader.c:img_classnames_ref | 1 | `oimg_load_blob` (src/oimg_loader.c:189) |
+| Boot/global:src/oimg_loader.c:img_entry_nslots | 1 | `oimg_load_blob` (src/oimg_loader.c:177) |
+| Boot/global:src/oimg_loader.c:img_init_argc | 1 | `oimg_load_blob` (src/oimg_loader.c:176) |
+| Boot/global:src/oimg_loader.c:img_init_sel_ref | 1 | `oimg_load_blob` (src/oimg_loader.c:174) |
+| Boot/global:src/oimg_loader.c:img_kernel_init_sel_ref | 1 | `oimg_load_blob` (src/oimg_loader.c:181) |
+| Boot/global:src/oimg_loader.c:img_kernel_nslots | 1 | `oimg_load_blob` (src/oimg_loader.c:182) |
+| Boot/global:src/oimg_loader.c:img_kernel_vtable_ref | 1 | `oimg_load_blob` (src/oimg_loader.c:180) |
+| Boot/global:src/oimg_loader.c:img_main_sel_ref | 1 | `oimg_load_blob` (src/oimg_loader.c:175) |
+| Boot/global:src/oimg_loader.c:img_methods_count | 1 | `oimg_load_blob` (src/oimg_loader.c:192) |
+| Boot/global:src/oimg_loader.c:img_methods_ref | 1 | `oimg_load_blob` (src/oimg_loader.c:191) |
+| Boot/global:src/oimg_loader.c:img_net_on_sel_ref | 1 | `oimg_load_blob` (src/oimg_loader.c:188) |
+| Boot/global:src/oimg_loader.c:img_root_ref | 1 | `oimg_load_blob` (src/oimg_loader.c:173) |
+| Boot/global:src/oimg_loader.c:img_serial_on_sel_ref | 1 | `oimg_load_blob` (src/oimg_loader.c:183) |
+| Boot/global:src/oimg_loader.c:img_supervisor_init_sel_ref | 1 | `oimg_load_blob` (src/oimg_loader.c:185) |
+| Boot/global:src/oimg_loader.c:img_supervisor_nslots | 1 | `oimg_load_blob` (src/oimg_loader.c:187) |
+| Boot/global:src/oimg_loader.c:img_supervisor_run_sel_ref | 1 | `oimg_load_blob` (src/oimg_loader.c:186) |
+| Boot/global:src/oimg_loader.c:img_supervisor_vtable_ref | 1 | `oimg_load_blob` (src/oimg_loader.c:184) |
 | Interpreter/global:Symbol_value | 1 | `run_interpreter` (src/vm.c:1039) |
 | Interpreter/global:g_active_stack | 1 | `run_interpreter` (src/vm.c:1032) |
 | Interpreter/global:vm_stack | 1 | `run_interpreter` (src/vm.c:1033) |

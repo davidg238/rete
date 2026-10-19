@@ -10119,6 +10119,390 @@
   },
   {
     "rule": "owns-exceeded",
+    "subject": "card:Boot/global:BoxedBindingVtable",
+    "message": "Boot does not own global:BoxedBindingVtable, and 1 of its implementers write it",
+    "count": 1,
+    "sites": [
+      {
+        "func": "func:kernel_boot",
+        "loc": "src/kernel_boot.c:128"
+      }
+    ]
+  },
+  {
+    "rule": "owns-exceeded",
+    "subject": "card:Boot/global:BytecodeClosureVtable",
+    "message": "Boot does not own global:BytecodeClosureVtable, and 1 of its implementers write it",
+    "count": 1,
+    "sites": [
+      {
+        "func": "func:kernel_boot",
+        "loc": "src/kernel_boot.c:126"
+      }
+    ]
+  },
+  {
+    "rule": "owns-exceeded",
+    "subject": "card:Boot/global:ContextVtable",
+    "message": "Boot does not own global:ContextVtable, and 1 of its implementers write it",
+    "count": 1,
+    "sites": [
+      {
+        "func": "func:kernel_boot",
+        "loc": "src/kernel_boot.c:131"
+      }
+    ]
+  },
+  {
+    "rule": "owns-exceeded",
+    "subject": "card:Boot/global:FloatVtable",
+    "message": "Boot does not own global:FloatVtable, and 1 of its implementers write it",
+    "count": 1,
+    "sites": [
+      {
+        "func": "func:kernel_boot",
+        "loc": "src/kernel_boot.c:133"
+      }
+    ]
+  },
+  {
+    "rule": "owns-exceeded",
+    "subject": "card:Boot/global:IntegerVtable",
+    "message": "Boot does not own global:IntegerVtable, and 1 of its implementers write it",
+    "count": 1,
+    "sites": [
+      {
+        "func": "func:kernel_boot",
+        "loc": "src/kernel_boot.c:132"
+      }
+    ]
+  },
+  {
+    "rule": "owns-exceeded",
+    "subject": "card:Boot/global:LargeIntegerVtable",
+    "message": "Boot does not own global:LargeIntegerVtable, and 1 of its implementers write it",
+    "count": 1,
+    "sites": [
+      {
+        "func": "func:kernel_boot",
+        "loc": "src/kernel_boot.c:134"
+      }
+    ]
+  },
+  {
+    "rule": "owns-exceeded",
+    "subject": "card:Boot/global:MethodContextVtable",
+    "message": "Boot does not own global:MethodContextVtable, and 1 of its implementers write it",
+    "count": 1,
+    "sites": [
+      {
+        "func": "func:kernel_boot",
+        "loc": "src/kernel_boot.c:135"
+      }
+    ]
+  },
+  {
+    "rule": "owns-exceeded",
+    "subject": "card:Boot/global:PrimitiveClosureVtable",
+    "message": "Boot does not own global:PrimitiveClosureVtable, and 1 of its implementers write it",
+    "count": 1,
+    "sites": [
+      {
+        "func": "func:kernel_boot",
+        "loc": "src/kernel_boot.c:127"
+      }
+    ]
+  },
+  {
+    "rule": "owns-exceeded",
+    "subject": "card:Boot/global:RawBytesVtable",
+    "message": "Boot does not own global:RawBytesVtable, and 1 of its implementers write it",
+    "count": 1,
+    "sites": [
+      {
+        "func": "func:kernel_boot",
+        "loc": "src/kernel_boot.c:125"
+      }
+    ]
+  },
+  {
+    "rule": "owns-exceeded",
+    "subject": "card:Boot/global:StackVtable",
+    "message": "Boot does not own global:StackVtable, and 1 of its implementers write it",
+    "count": 1,
+    "sites": [
+      {
+        "func": "func:kernel_boot",
+        "loc": "src/kernel_boot.c:130"
+      }
+    ]
+  },
+  {
+    "rule": "owns-exceeded",
+    "subject": "card:Boot/global:StringVtable",
+    "message": "Boot does not own global:StringVtable, and 1 of its implementers write it",
+    "count": 1,
+    "sites": [
+      {
+        "func": "func:kernel_boot",
+        "loc": "src/kernel_boot.c:124"
+      }
+    ]
+  },
+  {
+    "rule": "owns-exceeded",
+    "subject": "card:Boot/global:SymbolVtable",
+    "message": "Boot does not own global:SymbolVtable, and 1 of its implementers write it",
+    "count": 1,
+    "sites": [
+      {
+        "func": "func:kernel_boot",
+        "loc": "src/kernel_boot.c:123"
+      }
+    ]
+  },
+  {
+    "rule": "owns-exceeded",
+    "subject": "card:Boot/global:VtableVtable",
+    "message": "Boot does not own global:VtableVtable, and 1 of its implementers write it",
+    "count": 1,
+    "sites": [
+      {
+        "func": "func:kernel_boot",
+        "loc": "src/kernel_boot.c:122"
+      }
+    ]
+  },
+  {
+    "rule": "owns-exceeded",
+    "subject": "card:Boot/global:src/kernel_boot.c:kernel_boot.booted",
+    "message": "Boot does not own global:src/kernel_boot.c:kernel_boot.booted, and 1 of its implementers write it",
+    "count": 1,
+    "sites": [
+      {
+        "func": "func:kernel_boot",
+        "loc": "src/kernel_boot.c:116"
+      }
+    ]
+  },
+  {
+    "rule": "owns-exceeded",
+    "subject": "card:Boot/global:src/oimg_loader.c:img_classnames_count",
+    "message": "Boot does not own global:src/oimg_loader.c:img_classnames_count, and 1 of its implementers write it",
+    "count": 1,
+    "sites": [
+      {
+        "func": "func:oimg_load_blob",
+        "loc": "src/oimg_loader.c:190"
+      }
+    ]
+  },
+  {
+    "rule": "owns-exceeded",
+    "subject": "card:Boot/global:src/oimg_loader.c:img_classnames_ref",
+    "message": "Boot does not own global:src/oimg_loader.c:img_classnames_ref, and 1 of its implementers write it",
+    "count": 1,
+    "sites": [
+      {
+        "func": "func:oimg_load_blob",
+        "loc": "src/oimg_loader.c:189"
+      }
+    ]
+  },
+  {
+    "rule": "owns-exceeded",
+    "subject": "card:Boot/global:src/oimg_loader.c:img_entry_nslots",
+    "message": "Boot does not own global:src/oimg_loader.c:img_entry_nslots, and 1 of its implementers write it",
+    "count": 1,
+    "sites": [
+      {
+        "func": "func:oimg_load_blob",
+        "loc": "src/oimg_loader.c:177"
+      }
+    ]
+  },
+  {
+    "rule": "owns-exceeded",
+    "subject": "card:Boot/global:src/oimg_loader.c:img_init_argc",
+    "message": "Boot does not own global:src/oimg_loader.c:img_init_argc, and 1 of its implementers write it",
+    "count": 1,
+    "sites": [
+      {
+        "func": "func:oimg_load_blob",
+        "loc": "src/oimg_loader.c:176"
+      }
+    ]
+  },
+  {
+    "rule": "owns-exceeded",
+    "subject": "card:Boot/global:src/oimg_loader.c:img_init_sel_ref",
+    "message": "Boot does not own global:src/oimg_loader.c:img_init_sel_ref, and 1 of its implementers write it",
+    "count": 1,
+    "sites": [
+      {
+        "func": "func:oimg_load_blob",
+        "loc": "src/oimg_loader.c:174"
+      }
+    ]
+  },
+  {
+    "rule": "owns-exceeded",
+    "subject": "card:Boot/global:src/oimg_loader.c:img_kernel_init_sel_ref",
+    "message": "Boot does not own global:src/oimg_loader.c:img_kernel_init_sel_ref, and 1 of its implementers write it",
+    "count": 1,
+    "sites": [
+      {
+        "func": "func:oimg_load_blob",
+        "loc": "src/oimg_loader.c:181"
+      }
+    ]
+  },
+  {
+    "rule": "owns-exceeded",
+    "subject": "card:Boot/global:src/oimg_loader.c:img_kernel_nslots",
+    "message": "Boot does not own global:src/oimg_loader.c:img_kernel_nslots, and 1 of its implementers write it",
+    "count": 1,
+    "sites": [
+      {
+        "func": "func:oimg_load_blob",
+        "loc": "src/oimg_loader.c:182"
+      }
+    ]
+  },
+  {
+    "rule": "owns-exceeded",
+    "subject": "card:Boot/global:src/oimg_loader.c:img_kernel_vtable_ref",
+    "message": "Boot does not own global:src/oimg_loader.c:img_kernel_vtable_ref, and 1 of its implementers write it",
+    "count": 1,
+    "sites": [
+      {
+        "func": "func:oimg_load_blob",
+        "loc": "src/oimg_loader.c:180"
+      }
+    ]
+  },
+  {
+    "rule": "owns-exceeded",
+    "subject": "card:Boot/global:src/oimg_loader.c:img_main_sel_ref",
+    "message": "Boot does not own global:src/oimg_loader.c:img_main_sel_ref, and 1 of its implementers write it",
+    "count": 1,
+    "sites": [
+      {
+        "func": "func:oimg_load_blob",
+        "loc": "src/oimg_loader.c:175"
+      }
+    ]
+  },
+  {
+    "rule": "owns-exceeded",
+    "subject": "card:Boot/global:src/oimg_loader.c:img_methods_count",
+    "message": "Boot does not own global:src/oimg_loader.c:img_methods_count, and 1 of its implementers write it",
+    "count": 1,
+    "sites": [
+      {
+        "func": "func:oimg_load_blob",
+        "loc": "src/oimg_loader.c:192"
+      }
+    ]
+  },
+  {
+    "rule": "owns-exceeded",
+    "subject": "card:Boot/global:src/oimg_loader.c:img_methods_ref",
+    "message": "Boot does not own global:src/oimg_loader.c:img_methods_ref, and 1 of its implementers write it",
+    "count": 1,
+    "sites": [
+      {
+        "func": "func:oimg_load_blob",
+        "loc": "src/oimg_loader.c:191"
+      }
+    ]
+  },
+  {
+    "rule": "owns-exceeded",
+    "subject": "card:Boot/global:src/oimg_loader.c:img_net_on_sel_ref",
+    "message": "Boot does not own global:src/oimg_loader.c:img_net_on_sel_ref, and 1 of its implementers write it",
+    "count": 1,
+    "sites": [
+      {
+        "func": "func:oimg_load_blob",
+        "loc": "src/oimg_loader.c:188"
+      }
+    ]
+  },
+  {
+    "rule": "owns-exceeded",
+    "subject": "card:Boot/global:src/oimg_loader.c:img_root_ref",
+    "message": "Boot does not own global:src/oimg_loader.c:img_root_ref, and 1 of its implementers write it",
+    "count": 1,
+    "sites": [
+      {
+        "func": "func:oimg_load_blob",
+        "loc": "src/oimg_loader.c:173"
+      }
+    ]
+  },
+  {
+    "rule": "owns-exceeded",
+    "subject": "card:Boot/global:src/oimg_loader.c:img_serial_on_sel_ref",
+    "message": "Boot does not own global:src/oimg_loader.c:img_serial_on_sel_ref, and 1 of its implementers write it",
+    "count": 1,
+    "sites": [
+      {
+        "func": "func:oimg_load_blob",
+        "loc": "src/oimg_loader.c:183"
+      }
+    ]
+  },
+  {
+    "rule": "owns-exceeded",
+    "subject": "card:Boot/global:src/oimg_loader.c:img_supervisor_init_sel_ref",
+    "message": "Boot does not own global:src/oimg_loader.c:img_supervisor_init_sel_ref, and 1 of its implementers write it",
+    "count": 1,
+    "sites": [
+      {
+        "func": "func:oimg_load_blob",
+        "loc": "src/oimg_loader.c:185"
+      }
+    ]
+  },
+  {
+    "rule": "owns-exceeded",
+    "subject": "card:Boot/global:src/oimg_loader.c:img_supervisor_nslots",
+    "message": "Boot does not own global:src/oimg_loader.c:img_supervisor_nslots, and 1 of its implementers write it",
+    "count": 1,
+    "sites": [
+      {
+        "func": "func:oimg_load_blob",
+        "loc": "src/oimg_loader.c:187"
+      }
+    ]
+  },
+  {
+    "rule": "owns-exceeded",
+    "subject": "card:Boot/global:src/oimg_loader.c:img_supervisor_run_sel_ref",
+    "message": "Boot does not own global:src/oimg_loader.c:img_supervisor_run_sel_ref, and 1 of its implementers write it",
+    "count": 1,
+    "sites": [
+      {
+        "func": "func:oimg_load_blob",
+        "loc": "src/oimg_loader.c:186"
+      }
+    ]
+  },
+  {
+    "rule": "owns-exceeded",
+    "subject": "card:Boot/global:src/oimg_loader.c:img_supervisor_vtable_ref",
+    "message": "Boot does not own global:src/oimg_loader.c:img_supervisor_vtable_ref, and 1 of its implementers write it",
+    "count": 1,
+    "sites": [
+      {
+        "func": "func:oimg_load_blob",
+        "loc": "src/oimg_loader.c:184"
+      }
+    ]
+  },
+  {
+    "rule": "owns-exceeded",
     "subject": "card:Interpreter/global:Symbol_value",
     "message": "Interpreter does not own global:Symbol_value, and 1 of its implementers write it",
     "count": 1,
@@ -10150,6 +10534,30 @@
       {
         "func": "func:run_interpreter",
         "loc": "src/vm.c:1033"
+      }
+    ]
+  },
+  {
+    "rule": "owns-violated",
+    "subject": "global:Symbol_debug_",
+    "message": "global:Symbol_debug_ is owned by Boot but written from 1 other functions",
+    "count": 1,
+    "sites": [
+      {
+        "func": "func:primitive_register_debugger_hook",
+        "loc": "src/vm.c:1893"
+      }
+    ]
+  },
+  {
+    "rule": "owns-violated",
+    "subject": "global:Symbol_value",
+    "message": "global:Symbol_value is owned by Boot but written from 1 other functions",
+    "count": 1,
+    "sites": [
+      {
+        "func": "func:run_interpreter",
+        "loc": "src/vm.c:1039"
       }
     ]
   },
@@ -10272,86 +10680,6 @@
   },
   {
     "rule": "unowned-writer",
-    "subject": "global:builtin_registry",
-    "message": "global:builtin_registry has 18 write statements in 1 functions and no card owns it",
-    "count": 18,
-    "sites": [
-      {
-        "func": "func:kernel_boot",
-        "loc": "src/kernel_boot.c:149"
-      },
-      {
-        "func": "func:kernel_boot",
-        "loc": "src/kernel_boot.c:150"
-      },
-      {
-        "func": "func:kernel_boot",
-        "loc": "src/kernel_boot.c:151"
-      },
-      {
-        "func": "func:kernel_boot",
-        "loc": "src/kernel_boot.c:153"
-      },
-      {
-        "func": "func:kernel_boot",
-        "loc": "src/kernel_boot.c:154"
-      },
-      {
-        "func": "func:kernel_boot",
-        "loc": "src/kernel_boot.c:155"
-      },
-      {
-        "func": "func:kernel_boot",
-        "loc": "src/kernel_boot.c:156"
-      },
-      {
-        "func": "func:kernel_boot",
-        "loc": "src/kernel_boot.c:157"
-      },
-      {
-        "func": "func:kernel_boot",
-        "loc": "src/kernel_boot.c:158"
-      },
-      {
-        "func": "func:kernel_boot",
-        "loc": "src/kernel_boot.c:159"
-      },
-      {
-        "func": "func:kernel_boot",
-        "loc": "src/kernel_boot.c:160"
-      },
-      {
-        "func": "func:kernel_boot",
-        "loc": "src/kernel_boot.c:163"
-      },
-      {
-        "func": "func:kernel_boot",
-        "loc": "src/kernel_boot.c:164"
-      },
-      {
-        "func": "func:kernel_boot",
-        "loc": "src/kernel_boot.c:166"
-      },
-      {
-        "func": "func:kernel_boot",
-        "loc": "src/kernel_boot.c:167"
-      },
-      {
-        "func": "func:kernel_boot",
-        "loc": "src/kernel_boot.c:169"
-      },
-      {
-        "func": "func:kernel_boot",
-        "loc": "src/kernel_boot.c:170"
-      },
-      {
-        "func": "func:kernel_boot",
-        "loc": "src/kernel_boot.c:171"
-      }
-    ]
-  },
-  {
-    "rule": "unowned-writer",
     "subject": "global:pulse_q",
     "message": "global:pulse_q has 5 write statements in 4 functions and no card owns it",
     "count": 5,
@@ -10380,26 +10708,6 @@
   },
   {
     "rule": "unowned-writer",
-    "subject": "global:oimg_singleton",
-    "message": "global:oimg_singleton has 3 write statements in 1 functions and no card owns it",
-    "count": 3,
-    "sites": [
-      {
-        "func": "func:kernel_boot",
-        "loc": "src/kernel_boot.c:144"
-      },
-      {
-        "func": "func:kernel_boot",
-        "loc": "src/kernel_boot.c:145"
-      },
-      {
-        "func": "func:kernel_boot",
-        "loc": "src/kernel_boot.c:146"
-      }
-    ]
-  },
-  {
-    "rule": "unowned-writer",
     "subject": "global:rl_q",
     "message": "global:rl_q has 3 write statements in 3 functions and no card owns it",
     "count": 3,
@@ -10415,86 +10723,6 @@
       {
         "func": "func:src/backend/zephyr/platform_zephyr.c:rl_isr",
         "loc": "src/backend/zephyr/platform_zephyr.c:146"
-      }
-    ]
-  },
-  {
-    "rule": "unowned-writer",
-    "subject": "global:Symbol_debug_",
-    "message": "global:Symbol_debug_ has 2 write statements in 2 functions and no card owns it",
-    "count": 2,
-    "sites": [
-      {
-        "func": "func:kernel_boot",
-        "loc": "src/kernel_boot.c:141"
-      },
-      {
-        "func": "func:primitive_register_debugger_hook",
-        "loc": "src/vm.c:1893"
-      }
-    ]
-  },
-  {
-    "rule": "unowned-writer",
-    "subject": "global:Symbol_value",
-    "message": "global:Symbol_value has 2 write statements in 2 functions and no card owns it",
-    "count": 2,
-    "sites": [
-      {
-        "func": "func:kernel_boot",
-        "loc": "src/kernel_boot.c:140"
-      },
-      {
-        "func": "func:run_interpreter",
-        "loc": "src/vm.c:1039"
-      }
-    ]
-  },
-  {
-    "rule": "unowned-writer",
-    "subject": "global:g_kernel_instance",
-    "message": "global:g_kernel_instance has 2 write statements in 1 functions and no card owns it",
-    "count": 2,
-    "sites": [
-      {
-        "func": "func:oimg_bootstrap",
-        "loc": "src/oimg_loader.c:338"
-      },
-      {
-        "func": "func:oimg_bootstrap",
-        "loc": "src/oimg_loader.c:345"
-      }
-    ]
-  },
-  {
-    "rule": "unowned-writer",
-    "subject": "global:oimg_blob_base",
-    "message": "global:oimg_blob_base has 2 write statements in 1 functions and no card owns it",
-    "count": 2,
-    "sites": [
-      {
-        "func": "func:oimg_load_blob",
-        "loc": "src/oimg_loader.c:204"
-      },
-      {
-        "func": "func:oimg_load_blob",
-        "loc": "src/oimg_loader.c:235"
-      }
-    ]
-  },
-  {
-    "rule": "unowned-writer",
-    "subject": "global:oimg_blob_end",
-    "message": "global:oimg_blob_end has 2 write statements in 1 functions and no card owns it",
-    "count": 2,
-    "sites": [
-      {
-        "func": "func:oimg_load_blob",
-        "loc": "src/oimg_loader.c:205"
-      },
-      {
-        "func": "func:oimg_load_blob",
-        "loc": "src/oimg_loader.c:235"
       }
     ]
   },
