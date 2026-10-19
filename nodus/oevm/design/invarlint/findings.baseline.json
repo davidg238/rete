@@ -1,9 +1,5 @@
 [
   "extern-redeclared|func:handle_gc_trace|file:src/gc.c",
-  "extern-redeclared|func:log_udp_drain|file:src/backend/zephyr/platform_zephyr.c",
-  "extern-redeclared|func:log_udp_set_target|file:src/backend/zephyr/platform_zephyr.c",
-  "extern-redeclared|func:log_udp_tee_paced|file:src/backend/zephyr/platform_zephyr.c",
-  "extern-redeclared|func:log_udp_tee|file:src/backend/zephyr/platform_zephyr.c",
   "extern-redeclared|func:mirror_object|file:src/oimg_loader.c",
   "extern-redeclared|func:observer_halt|file:zephyr/src/reboot_note.c",
   "extern-redeclared|func:observer_start|file:zephyr/src/main.c",

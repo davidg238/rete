@@ -844,7 +844,7 @@
       },
       {
         "func": "func:platform_backend_node_id",
-        "loc": "src/backend/zephyr/platform_zephyr.c:431",
+        "loc": "src/backend/zephyr/platform_zephyr.c:428",
         "via": "link_addr_hex"
       },
       {
@@ -946,62 +946,6 @@
   },
   {
     "rule": "extern-redeclared",
-    "subject": "func:log_udp_drain",
-    "loc": "src/backend/zephyr/log_udp.c:405",
-    "message": "log_udp_drain is declared by hand 1 times in .c files, not by a header",
-    "count": 1,
-    "sites": [
-      {
-        "func": "file:src/backend/zephyr/platform_zephyr.c",
-        "loc": "src/backend/zephyr/platform_zephyr.c:38",
-        "via": "void (int)"
-      }
-    ]
-  },
-  {
-    "rule": "extern-redeclared",
-    "subject": "func:log_udp_set_target",
-    "loc": "src/backend/zephyr/log_udp.c:352",
-    "message": "log_udp_set_target is declared by hand 1 times in .c files, not by a header",
-    "count": 1,
-    "sites": [
-      {
-        "func": "file:src/backend/zephyr/platform_zephyr.c",
-        "loc": "src/backend/zephyr/platform_zephyr.c:37",
-        "via": "int (const char *, unsigned int, int)"
-      }
-    ]
-  },
-  {
-    "rule": "extern-redeclared",
-    "subject": "func:log_udp_tee",
-    "loc": "src/backend/zephyr/log_udp.c:152",
-    "message": "log_udp_tee is declared by hand 1 times in .c files, not by a header",
-    "count": 1,
-    "sites": [
-      {
-        "func": "file:src/backend/zephyr/platform_zephyr.c",
-        "loc": "src/backend/zephyr/platform_zephyr.c:33",
-        "via": "void (const char *, unsigned int)"
-      }
-    ]
-  },
-  {
-    "rule": "extern-redeclared",
-    "subject": "func:log_udp_tee_paced",
-    "loc": "src/backend/zephyr/log_udp.c:165",
-    "message": "log_udp_tee_paced is declared by hand 1 times in .c files, not by a header",
-    "count": 1,
-    "sites": [
-      {
-        "func": "file:src/backend/zephyr/platform_zephyr.c",
-        "loc": "src/backend/zephyr/platform_zephyr.c:36",
-        "via": "void (const char *, unsigned int)"
-      }
-    ]
-  },
-  {
-    "rule": "extern-redeclared",
     "subject": "func:mirror_object",
     "loc": "src/mirror.c:30",
     "message": "mirror_object is declared by hand 1 times in .c files, not by a header",
@@ -1073,7 +1017,7 @@
   {
     "rule": "extern-redeclared",
     "subject": "func:platform_debug_held",
-    "loc": "src/backend/zephyr/platform_zephyr.c:257",
+    "loc": "src/backend/zephyr/platform_zephyr.c:254",
     "message": "platform_debug_held is declared by hand 1 times in .c files, not by a header",
     "count": 1,
     "sites": [
@@ -1229,12 +1173,12 @@
       },
       {
         "func": "func:platform_console_err",
-        "loc": "src/backend/zephyr/platform_zephyr.c:57",
+        "loc": "src/backend/zephyr/platform_zephyr.c:54",
         "via": "reads"
       },
       {
         "func": "func:platform_console_write",
-        "loc": "src/backend/zephyr/platform_zephyr.c:49",
+        "loc": "src/backend/zephyr/platform_zephyr.c:46",
         "via": "reads"
       },
       {
@@ -7565,17 +7509,17 @@
     "sites": [
       {
         "func": "func:platform_console_arm",
-        "loc": "src/backend/zephyr/platform_zephyr.c:184",
+        "loc": "src/backend/zephyr/platform_zephyr.c:181",
         "via": "writes"
       },
       {
         "func": "func:platform_debug_readline",
-        "loc": "src/backend/zephyr/platform_zephyr.c:241",
+        "loc": "src/backend/zephyr/platform_zephyr.c:238",
         "via": "writes"
       },
       {
         "func": "func:src/backend/zephyr/platform_zephyr.c:rl_arm_boot",
-        "loc": "src/backend/zephyr/platform_zephyr.c:259",
+        "loc": "src/backend/zephyr/platform_zephyr.c:256",
         "via": "writes"
       }
     ]
@@ -7687,17 +7631,17 @@
     "sites": [
       {
         "func": "func:platform_console_take_line",
-        "loc": "src/backend/zephyr/platform_zephyr.c:194",
+        "loc": "src/backend/zephyr/platform_zephyr.c:191",
         "via": "writes"
       },
       {
         "func": "func:src/backend/zephyr/platform_zephyr.c:rl_getc",
-        "loc": "src/backend/zephyr/platform_zephyr.c:173",
+        "loc": "src/backend/zephyr/platform_zephyr.c:170",
         "via": "writes"
       },
       {
         "func": "func:src/backend/zephyr/platform_zephyr.c:rl_isr",
-        "loc": "src/backend/zephyr/platform_zephyr.c:149",
+        "loc": "src/backend/zephyr/platform_zephyr.c:146",
         "via": "writes"
       }
     ]
@@ -7817,17 +7761,17 @@
     "sites": [
       {
         "func": "func:platform_backend_boot_id",
-        "loc": "src/backend/zephyr/platform_zephyr.c:334",
+        "loc": "src/backend/zephyr/platform_zephyr.c:331",
         "via": "writes"
       },
       {
         "func": "func:platform_backend_boot_id",
-        "loc": "src/backend/zephyr/platform_zephyr.c:336",
+        "loc": "src/backend/zephyr/platform_zephyr.c:333",
         "via": "reads"
       },
       {
         "func": "func:src/backend/zephyr/platform_zephyr.c:boot_id_set",
-        "loc": "src/backend/zephyr/platform_zephyr.c:320",
+        "loc": "src/backend/zephyr/platform_zephyr.c:317",
         "via": "writes"
       }
     ]
@@ -7840,17 +7784,17 @@
     "sites": [
       {
         "func": "func:platform_debug_held",
-        "loc": "src/backend/zephyr/platform_zephyr.c:257",
+        "loc": "src/backend/zephyr/platform_zephyr.c:254",
         "via": "reads"
       },
       {
         "func": "func:platform_debug_hold",
-        "loc": "src/backend/zephyr/platform_zephyr.c:256",
+        "loc": "src/backend/zephyr/platform_zephyr.c:253",
         "via": "writes"
       },
       {
         "func": "func:src/backend/zephyr/platform_zephyr.c:rl_isr",
-        "loc": "src/backend/zephyr/platform_zephyr.c:151",
+        "loc": "src/backend/zephyr/platform_zephyr.c:148",
         "via": "reads"
       }
     ]
@@ -7863,17 +7807,17 @@
     "sites": [
       {
         "func": "func:platform_console_take_line",
-        "loc": "src/backend/zephyr/platform_zephyr.c:193",
+        "loc": "src/backend/zephyr/platform_zephyr.c:190",
         "via": "writes"
       },
       {
         "func": "func:src/backend/zephyr/platform_zephyr.c:rl_isr",
-        "loc": "src/backend/zephyr/platform_zephyr.c:150",
+        "loc": "src/backend/zephyr/platform_zephyr.c:147",
         "via": "writes"
       },
       {
         "func": "func:src/backend/zephyr/platform_zephyr.c:rl_line_taken",
-        "loc": "src/backend/zephyr/platform_zephyr.c:168",
+        "loc": "src/backend/zephyr/platform_zephyr.c:165",
         "via": "writes"
       }
     ]
@@ -8953,12 +8897,12 @@
     "sites": [
       {
         "func": "func:src/backend/zephyr/platform_zephyr.c:rl_isr",
-        "loc": "src/backend/zephyr/platform_zephyr.c:152",
+        "loc": "src/backend/zephyr/platform_zephyr.c:149",
         "via": "writes"
       },
       {
         "func": "func:src/backend/zephyr/platform_zephyr.c:rl_line_taken",
-        "loc": "src/backend/zephyr/platform_zephyr.c:167",
+        "loc": "src/backend/zephyr/platform_zephyr.c:164",
         "via": "writes"
       }
     ]
@@ -9291,17 +9235,17 @@
     "sites": [
       {
         "func": "func:platform_console_arm",
-        "loc": "src/backend/zephyr/platform_zephyr.c:186",
+        "loc": "src/backend/zephyr/platform_zephyr.c:183",
         "via": "writes"
       },
       {
         "func": "func:src/backend/zephyr/platform_zephyr.c:rl_isr",
-        "loc": "src/backend/zephyr/platform_zephyr.c:153",
+        "loc": "src/backend/zephyr/platform_zephyr.c:150",
         "via": "reads"
       },
       {
         "func": "func:src/backend/zephyr/platform_zephyr.c:rl_isr",
-        "loc": "src/backend/zephyr/platform_zephyr.c:154",
+        "loc": "src/backend/zephyr/platform_zephyr.c:151",
         "via": "reads"
       }
     ]
@@ -9314,27 +9258,27 @@
     "sites": [
       {
         "func": "func:platform_backend_boot_id",
-        "loc": "src/backend/zephyr/platform_zephyr.c:328",
+        "loc": "src/backend/zephyr/platform_zephyr.c:325",
         "via": "reads"
       },
       {
         "func": "func:platform_backend_boot_id",
-        "loc": "src/backend/zephyr/platform_zephyr.c:340",
+        "loc": "src/backend/zephyr/platform_zephyr.c:337",
         "via": "writes"
       },
       {
         "func": "func:platform_backend_boot_id",
-        "loc": "src/backend/zephyr/platform_zephyr.c:341",
+        "loc": "src/backend/zephyr/platform_zephyr.c:338",
         "via": "reads"
       },
       {
         "func": "func:platform_backend_boot_id",
-        "loc": "src/backend/zephyr/platform_zephyr.c:351",
+        "loc": "src/backend/zephyr/platform_zephyr.c:348",
         "via": "writes"
       },
       {
         "func": "func:platform_backend_boot_id",
-        "loc": "src/backend/zephyr/platform_zephyr.c:352",
+        "loc": "src/backend/zephyr/platform_zephyr.c:349",
         "via": "reads"
       }
     ]
@@ -9347,12 +9291,12 @@
     "sites": [
       {
         "func": "func:src/backend/zephyr/platform_zephyr.c:rl_arm",
-        "loc": "src/backend/zephyr/platform_zephyr.c:160",
+        "loc": "src/backend/zephyr/platform_zephyr.c:157",
         "via": "reads"
       },
       {
         "func": "func:src/backend/zephyr/platform_zephyr.c:rl_arm",
-        "loc": "src/backend/zephyr/platform_zephyr.c:163",
+        "loc": "src/backend/zephyr/platform_zephyr.c:160",
         "via": "writes"
       }
     ]
@@ -9365,12 +9309,12 @@
     "sites": [
       {
         "func": "func:src/backend/zephyr/platform_zephyr.c:rl_isr",
-        "loc": "src/backend/zephyr/platform_zephyr.c:148",
+        "loc": "src/backend/zephyr/platform_zephyr.c:145",
         "via": "writes"
       },
       {
         "func": "func:src/backend/zephyr/platform_zephyr.c:rl_nobody",
-        "loc": "src/backend/zephyr/platform_zephyr.c:181",
+        "loc": "src/backend/zephyr/platform_zephyr.c:178",
         "via": "reads"
       }
     ]
@@ -10764,12 +10708,12 @@
     "sites": [
       {
         "func": "func:platform_backend_board_name",
-        "loc": "src/backend/zephyr/platform_zephyr.c:438",
+        "loc": "src/backend/zephyr/platform_zephyr.c:435",
         "via": "writes"
       },
       {
         "func": "func:platform_backend_board_name",
-        "loc": "src/backend/zephyr/platform_zephyr.c:440",
+        "loc": "src/backend/zephyr/platform_zephyr.c:437",
         "via": "writes"
       }
     ]
@@ -10890,7 +10834,7 @@
     "sites": [
       {
         "func": "func:src/backend/zephyr/platform_zephyr.c:rl_isr",
-        "loc": "src/backend/zephyr/platform_zephyr.c:154",
+        "loc": "src/backend/zephyr/platform_zephyr.c:151",
         "via": "writes"
       }
     ]
@@ -13525,15 +13469,15 @@
     "sites": [
       {
         "func": "func:platform_console_arm",
-        "loc": "src/backend/zephyr/platform_zephyr.c:184"
+        "loc": "src/backend/zephyr/platform_zephyr.c:181"
       },
       {
         "func": "func:platform_debug_readline",
-        "loc": "src/backend/zephyr/platform_zephyr.c:241"
+        "loc": "src/backend/zephyr/platform_zephyr.c:238"
       },
       {
         "func": "func:src/backend/zephyr/platform_zephyr.c:rl_arm_boot",
-        "loc": "src/backend/zephyr/platform_zephyr.c:259"
+        "loc": "src/backend/zephyr/platform_zephyr.c:256"
       }
     ]
   },
@@ -13565,15 +13509,15 @@
     "sites": [
       {
         "func": "func:platform_console_take_line",
-        "loc": "src/backend/zephyr/platform_zephyr.c:194"
+        "loc": "src/backend/zephyr/platform_zephyr.c:191"
       },
       {
         "func": "func:src/backend/zephyr/platform_zephyr.c:rl_getc",
-        "loc": "src/backend/zephyr/platform_zephyr.c:173"
+        "loc": "src/backend/zephyr/platform_zephyr.c:170"
       },
       {
         "func": "func:src/backend/zephyr/platform_zephyr.c:rl_isr",
-        "loc": "src/backend/zephyr/platform_zephyr.c:149"
+        "loc": "src/backend/zephyr/platform_zephyr.c:146"
       }
     ]
   },
@@ -13665,15 +13609,15 @@
     "sites": [
       {
         "func": "func:platform_console_take_line",
-        "loc": "src/backend/zephyr/platform_zephyr.c:193"
+        "loc": "src/backend/zephyr/platform_zephyr.c:190"
       },
       {
         "func": "func:src/backend/zephyr/platform_zephyr.c:rl_isr",
-        "loc": "src/backend/zephyr/platform_zephyr.c:150"
+        "loc": "src/backend/zephyr/platform_zephyr.c:147"
       },
       {
         "func": "func:src/backend/zephyr/platform_zephyr.c:rl_line_taken",
-        "loc": "src/backend/zephyr/platform_zephyr.c:168"
+        "loc": "src/backend/zephyr/platform_zephyr.c:165"
       }
     ]
   },
@@ -14169,11 +14113,11 @@
     "sites": [
       {
         "func": "func:platform_backend_board_name",
-        "loc": "src/backend/zephyr/platform_zephyr.c:438"
+        "loc": "src/backend/zephyr/platform_zephyr.c:435"
       },
       {
         "func": "func:platform_backend_board_name",
-        "loc": "src/backend/zephyr/platform_zephyr.c:440"
+        "loc": "src/backend/zephyr/platform_zephyr.c:437"
       }
     ]
   },
@@ -14233,11 +14177,11 @@
     "sites": [
       {
         "func": "func:src/backend/zephyr/platform_zephyr.c:rl_isr",
-        "loc": "src/backend/zephyr/platform_zephyr.c:152"
+        "loc": "src/backend/zephyr/platform_zephyr.c:149"
       },
       {
         "func": "func:src/backend/zephyr/platform_zephyr.c:rl_line_taken",
-        "loc": "src/backend/zephyr/platform_zephyr.c:167"
+        "loc": "src/backend/zephyr/platform_zephyr.c:164"
       }
     ]
   },
@@ -14345,11 +14289,11 @@
     "sites": [
       {
         "func": "func:platform_backend_boot_id",
-        "loc": "src/backend/zephyr/platform_zephyr.c:334"
+        "loc": "src/backend/zephyr/platform_zephyr.c:331"
       },
       {
         "func": "func:src/backend/zephyr/platform_zephyr.c:boot_id_set",
-        "loc": "src/backend/zephyr/platform_zephyr.c:320"
+        "loc": "src/backend/zephyr/platform_zephyr.c:317"
       }
     ]
   },
@@ -14361,11 +14305,11 @@
     "sites": [
       {
         "func": "func:platform_backend_boot_id",
-        "loc": "src/backend/zephyr/platform_zephyr.c:340"
+        "loc": "src/backend/zephyr/platform_zephyr.c:337"
       },
       {
         "func": "func:platform_backend_boot_id",
-        "loc": "src/backend/zephyr/platform_zephyr.c:351"
+        "loc": "src/backend/zephyr/platform_zephyr.c:348"
       }
     ]
   },
@@ -16687,36 +16631,36 @@
     "sites": [
       {
         "func": "func:platform_console_arm",
-        "loc": "src/backend/zephyr/platform_zephyr.c:187",
+        "loc": "src/backend/zephyr/platform_zephyr.c:184",
         "via": "calls rl_arm"
       },
       {
         "func": "func:platform_debug_readline",
-        "loc": "src/backend/zephyr/platform_zephyr.c:244",
+        "loc": "src/backend/zephyr/platform_zephyr.c:241",
         "via": "calls rl_nobody"
       },
       {
         "func": "func:platform_debug_readline",
-        "loc": "src/backend/zephyr/platform_zephyr.c:246",
+        "loc": "src/backend/zephyr/platform_zephyr.c:243",
         "via": "calls rl_getc"
       },
       {
         "func": "func:src/backend/zephyr/platform_zephyr.c:rl_arm",
-        "loc": "src/backend/zephyr/platform_zephyr.c:163"
+        "loc": "src/backend/zephyr/platform_zephyr.c:160"
       },
       {
         "func": "func:src/backend/zephyr/platform_zephyr.c:rl_arm_boot",
-        "loc": "src/backend/zephyr/platform_zephyr.c:260",
+        "loc": "src/backend/zephyr/platform_zephyr.c:257",
         "via": "calls rl_arm"
       },
       {
         "func": "func:src/backend/zephyr/platform_zephyr.c:rl_getc",
-        "loc": "src/backend/zephyr/platform_zephyr.c:172",
+        "loc": "src/backend/zephyr/platform_zephyr.c:169",
         "via": "calls rl_arm"
       },
       {
         "func": "func:src/backend/zephyr/platform_zephyr.c:rl_nobody",
-        "loc": "src/backend/zephyr/platform_zephyr.c:180",
+        "loc": "src/backend/zephyr/platform_zephyr.c:177",
         "via": "calls rl_arm"
       }
     ]
@@ -17165,26 +17109,26 @@
     "sites": [
       {
         "func": "func:platform_console_take_line",
-        "loc": "src/backend/zephyr/platform_zephyr.c:195",
+        "loc": "src/backend/zephyr/platform_zephyr.c:192",
         "via": "calls rl_line_taken"
       },
       {
         "func": "func:platform_debug_readline",
-        "loc": "src/backend/zephyr/platform_zephyr.c:246",
+        "loc": "src/backend/zephyr/platform_zephyr.c:243",
         "via": "calls rl_getc"
       },
       {
         "func": "func:src/backend/zephyr/platform_zephyr.c:rl_getc",
-        "loc": "src/backend/zephyr/platform_zephyr.c:174",
+        "loc": "src/backend/zephyr/platform_zephyr.c:171",
         "via": "calls rl_line_taken"
       },
       {
         "func": "func:src/backend/zephyr/platform_zephyr.c:rl_isr",
-        "loc": "src/backend/zephyr/platform_zephyr.c:152"
+        "loc": "src/backend/zephyr/platform_zephyr.c:149"
       },
       {
         "func": "func:src/backend/zephyr/platform_zephyr.c:rl_line_taken",
-        "loc": "src/backend/zephyr/platform_zephyr.c:167"
+        "loc": "src/backend/zephyr/platform_zephyr.c:164"
       }
     ]
   },
@@ -17260,30 +17204,30 @@
     "sites": [
       {
         "func": "func:platform_console_take_line",
-        "loc": "src/backend/zephyr/platform_zephyr.c:193"
+        "loc": "src/backend/zephyr/platform_zephyr.c:190"
       },
       {
         "func": "func:platform_console_take_line",
-        "loc": "src/backend/zephyr/platform_zephyr.c:195",
+        "loc": "src/backend/zephyr/platform_zephyr.c:192",
         "via": "calls rl_line_taken"
       },
       {
         "func": "func:platform_debug_readline",
-        "loc": "src/backend/zephyr/platform_zephyr.c:246",
+        "loc": "src/backend/zephyr/platform_zephyr.c:243",
         "via": "calls rl_getc"
       },
       {
         "func": "func:src/backend/zephyr/platform_zephyr.c:rl_getc",
-        "loc": "src/backend/zephyr/platform_zephyr.c:174",
+        "loc": "src/backend/zephyr/platform_zephyr.c:171",
         "via": "calls rl_line_taken"
       },
       {
         "func": "func:src/backend/zephyr/platform_zephyr.c:rl_isr",
-        "loc": "src/backend/zephyr/platform_zephyr.c:150"
+        "loc": "src/backend/zephyr/platform_zephyr.c:147"
       },
       {
         "func": "func:src/backend/zephyr/platform_zephyr.c:rl_line_taken",
-        "loc": "src/backend/zephyr/platform_zephyr.c:168"
+        "loc": "src/backend/zephyr/platform_zephyr.c:165"
       }
     ]
   },
@@ -17509,20 +17453,20 @@
     "sites": [
       {
         "func": "func:platform_console_take_line",
-        "loc": "src/backend/zephyr/platform_zephyr.c:194"
+        "loc": "src/backend/zephyr/platform_zephyr.c:191"
       },
       {
         "func": "func:platform_debug_readline",
-        "loc": "src/backend/zephyr/platform_zephyr.c:246",
+        "loc": "src/backend/zephyr/platform_zephyr.c:243",
         "via": "calls rl_getc"
       },
       {
         "func": "func:src/backend/zephyr/platform_zephyr.c:rl_getc",
-        "loc": "src/backend/zephyr/platform_zephyr.c:173"
+        "loc": "src/backend/zephyr/platform_zephyr.c:170"
       },
       {
         "func": "func:src/backend/zephyr/platform_zephyr.c:rl_isr",
-        "loc": "src/backend/zephyr/platform_zephyr.c:149"
+        "loc": "src/backend/zephyr/platform_zephyr.c:146"
       }
     ]
   },
@@ -17947,15 +17891,15 @@
     "sites": [
       {
         "func": "func:platform_console_arm",
-        "loc": "src/backend/zephyr/platform_zephyr.c:184"
+        "loc": "src/backend/zephyr/platform_zephyr.c:181"
       },
       {
         "func": "func:platform_debug_readline",
-        "loc": "src/backend/zephyr/platform_zephyr.c:241"
+        "loc": "src/backend/zephyr/platform_zephyr.c:238"
       },
       {
         "func": "func:src/backend/zephyr/platform_zephyr.c:rl_arm_boot",
-        "loc": "src/backend/zephyr/platform_zephyr.c:259"
+        "loc": "src/backend/zephyr/platform_zephyr.c:256"
       }
     ]
   },
@@ -18984,11 +18928,11 @@
     "sites": [
       {
         "func": "func:platform_backend_boot_id",
-        "loc": "src/backend/zephyr/platform_zephyr.c:334"
+        "loc": "src/backend/zephyr/platform_zephyr.c:331"
       },
       {
         "func": "func:src/backend/zephyr/platform_zephyr.c:boot_id_set",
-        "loc": "src/backend/zephyr/platform_zephyr.c:320"
+        "loc": "src/backend/zephyr/platform_zephyr.c:317"
       }
     ]
   },
@@ -20120,11 +20064,11 @@
     "sites": [
       {
         "func": "func:platform_backend_board_name",
-        "loc": "src/backend/zephyr/platform_zephyr.c:438"
+        "loc": "src/backend/zephyr/platform_zephyr.c:435"
       },
       {
         "func": "func:platform_backend_board_name",
-        "loc": "src/backend/zephyr/platform_zephyr.c:440"
+        "loc": "src/backend/zephyr/platform_zephyr.c:437"
       }
     ]
   },
@@ -20412,7 +20356,7 @@
     "sites": [
       {
         "func": "func:platform_console_arm",
-        "loc": "src/backend/zephyr/platform_zephyr.c:186"
+        "loc": "src/backend/zephyr/platform_zephyr.c:183"
       }
     ]
   },
@@ -20424,7 +20368,7 @@
     "sites": [
       {
         "func": "func:src/backend/zephyr/platform_zephyr.c:rl_isr",
-        "loc": "src/backend/zephyr/platform_zephyr.c:154"
+        "loc": "src/backend/zephyr/platform_zephyr.c:151"
       }
     ]
   },
@@ -20436,7 +20380,7 @@
     "sites": [
       {
         "func": "func:platform_debug_hold",
-        "loc": "src/backend/zephyr/platform_zephyr.c:256"
+        "loc": "src/backend/zephyr/platform_zephyr.c:253"
       }
     ]
   },
@@ -20448,11 +20392,11 @@
     "sites": [
       {
         "func": "func:platform_backend_boot_id",
-        "loc": "src/backend/zephyr/platform_zephyr.c:340"
+        "loc": "src/backend/zephyr/platform_zephyr.c:337"
       },
       {
         "func": "func:platform_backend_boot_id",
-        "loc": "src/backend/zephyr/platform_zephyr.c:351"
+        "loc": "src/backend/zephyr/platform_zephyr.c:348"
       }
     ]
   },
@@ -20464,7 +20408,7 @@
     "sites": [
       {
         "func": "func:src/backend/zephyr/platform_zephyr.c:rl_isr",
-        "loc": "src/backend/zephyr/platform_zephyr.c:148"
+        "loc": "src/backend/zephyr/platform_zephyr.c:145"
       }
     ]
   },
