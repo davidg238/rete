@@ -10078,6 +10078,82 @@
     ]
   },
   {
+    "rule": "owns-exceeded",
+    "subject": "card:Interpreter/global:src/vm.c:g_protect_top",
+    "message": "Interpreter does not own global:src/vm.c:g_protect_top, and 3 of its implementers write it",
+    "count": 3,
+    "sites": [
+      {
+        "func": "func:vm_ensure",
+        "loc": "src/vm.c:271"
+      },
+      {
+        "func": "func:vm_ensure",
+        "loc": "src/vm.c:277"
+      },
+      {
+        "func": "func:vm_ensure",
+        "loc": "src/vm.c:294"
+      },
+      {
+        "func": "func:vm_on_do",
+        "loc": "src/vm.c:211"
+      },
+      {
+        "func": "func:vm_on_do",
+        "loc": "src/vm.c:214"
+      },
+      {
+        "func": "func:vm_on_do",
+        "loc": "src/vm.c:224"
+      },
+      {
+        "func": "func:vm_protected_fire",
+        "loc": "src/vm.c:170"
+      },
+      {
+        "func": "func:vm_protected_fire",
+        "loc": "src/vm.c:181"
+      }
+    ]
+  },
+  {
+    "rule": "owns-exceeded",
+    "subject": "card:Interpreter/global:Symbol_value",
+    "message": "Interpreter does not own global:Symbol_value, and 1 of its implementers write it",
+    "count": 1,
+    "sites": [
+      {
+        "func": "func:run_interpreter",
+        "loc": "src/vm.c:1039"
+      }
+    ]
+  },
+  {
+    "rule": "owns-exceeded",
+    "subject": "card:Interpreter/global:g_active_stack",
+    "message": "Interpreter does not own global:g_active_stack, and 1 of its implementers write it",
+    "count": 1,
+    "sites": [
+      {
+        "func": "func:run_interpreter",
+        "loc": "src/vm.c:1032"
+      }
+    ]
+  },
+  {
+    "rule": "owns-exceeded",
+    "subject": "card:Interpreter/global:vm_stack",
+    "message": "Interpreter does not own global:vm_stack, and 1 of its implementers write it",
+    "count": 1,
+    "sites": [
+      {
+        "func": "func:run_interpreter",
+        "loc": "src/vm.c:1033"
+      }
+    ]
+  },
+  {
     "rule": "path-flow",
     "subject": "path:*",
     "message": "*: written by 4, read by 1 functions",
@@ -10276,86 +10352,6 @@
   },
   {
     "rule": "unowned-writer",
-    "subject": "global:current_frame",
-    "message": "global:current_frame has 8 write statements in 5 functions and no card owns it",
-    "count": 8,
-    "sites": [
-      {
-        "func": "func:run_interpreter",
-        "loc": "src/vm.c:1035"
-      },
-      {
-        "func": "func:run_interpreter",
-        "loc": "src/vm.c:1086"
-      },
-      {
-        "func": "func:run_interpreter",
-        "loc": "src/vm.c:1708"
-      },
-      {
-        "func": "func:run_interpreter",
-        "loc": "src/vm.c:1767"
-      },
-      {
-        "func": "func:src/vm.c:push_frame",
-        "loc": "src/vm.c:943"
-      },
-      {
-        "func": "func:vm_ensure",
-        "loc": "src/vm.c:289"
-      },
-      {
-        "func": "func:vm_on_do",
-        "loc": "src/vm.c:219"
-      },
-      {
-        "func": "func:vm_protected_fire",
-        "loc": "src/vm.c:176"
-      }
-    ]
-  },
-  {
-    "rule": "unowned-writer",
-    "subject": "global:vm_stack_ptr",
-    "message": "global:vm_stack_ptr has 8 write statements in 5 functions and no card owns it",
-    "count": 8,
-    "sites": [
-      {
-        "func": "func:run_interpreter",
-        "loc": "src/vm.c:1034"
-      },
-      {
-        "func": "func:run_interpreter",
-        "loc": "src/vm.c:1062"
-      },
-      {
-        "func": "func:run_interpreter",
-        "loc": "src/vm.c:1704"
-      },
-      {
-        "func": "func:run_interpreter",
-        "loc": "src/vm.c:1766"
-      },
-      {
-        "func": "func:src/vm.c:push_frame",
-        "loc": "src/vm.c:929"
-      },
-      {
-        "func": "func:vm_ensure",
-        "loc": "src/vm.c:288"
-      },
-      {
-        "func": "func:vm_on_do",
-        "loc": "src/vm.c:218"
-      },
-      {
-        "func": "func:vm_protected_fire",
-        "loc": "src/vm.c:175"
-      }
-    ]
-  },
-  {
-    "rule": "unowned-writer",
     "subject": "global:pulse_q",
     "message": "global:pulse_q has 5 write statements in 4 functions and no card owns it",
     "count": 5,
@@ -10379,30 +10375,6 @@
       {
         "func": "func:src/backend/zephyr/pulse_zephyr.c:pulse_enqueue",
         "loc": "src/backend/zephyr/pulse_zephyr.c:52"
-      }
-    ]
-  },
-  {
-    "rule": "unowned-writer",
-    "subject": "global:g_raised_condition",
-    "message": "global:g_raised_condition has 4 write statements in 4 functions and no card owns it",
-    "count": 4,
-    "sites": [
-      {
-        "func": "func:vm_ensure",
-        "loc": "src/vm.c:296"
-      },
-      {
-        "func": "func:vm_on_do",
-        "loc": "src/vm.c:226"
-      },
-      {
-        "func": "func:vm_protected_fire",
-        "loc": "src/vm.c:179"
-      },
-      {
-        "func": "func:vm_raise",
-        "loc": "src/vm.c:132"
       }
     ]
   },
@@ -10475,54 +10447,6 @@
       {
         "func": "func:run_interpreter",
         "loc": "src/vm.c:1039"
-      }
-    ]
-  },
-  {
-    "rule": "unowned-writer",
-    "subject": "global:g_boot_inflight_argc",
-    "message": "global:g_boot_inflight_argc has 2 write statements in 1 functions and no card owns it",
-    "count": 2,
-    "sites": [
-      {
-        "func": "func:run_interpreter",
-        "loc": "src/vm.c:1026"
-      },
-      {
-        "func": "func:run_interpreter",
-        "loc": "src/vm.c:1102"
-      }
-    ]
-  },
-  {
-    "rule": "unowned-writer",
-    "subject": "global:g_boot_inflight_args",
-    "message": "global:g_boot_inflight_args has 2 write statements in 1 functions and no card owns it",
-    "count": 2,
-    "sites": [
-      {
-        "func": "func:run_interpreter",
-        "loc": "src/vm.c:1025"
-      },
-      {
-        "func": "func:run_interpreter",
-        "loc": "src/vm.c:1101"
-      }
-    ]
-  },
-  {
-    "rule": "unowned-writer",
-    "subject": "global:g_boot_inflight_receiver",
-    "message": "global:g_boot_inflight_receiver has 2 write statements in 1 functions and no card owns it",
-    "count": 2,
-    "sites": [
-      {
-        "func": "func:run_interpreter",
-        "loc": "src/vm.c:1024"
-      },
-      {
-        "func": "func:run_interpreter",
-        "loc": "src/vm.c:1100"
       }
     ]
   },

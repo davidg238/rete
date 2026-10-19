@@ -1,21 +1,15 @@
-# invarlint findings — 822793d1
+# invarlint findings — 65f4fa7d
 
-## unowned-writer (16)
+## unowned-writer (10)
 
 | subject | count | sites |
 |---|---|---|
 | global:builtin_registry | 18 | `kernel_boot` (src/kernel_boot.c:149)<br>`kernel_boot` (src/kernel_boot.c:150)<br>`kernel_boot` (src/kernel_boot.c:151)<br>`kernel_boot` (src/kernel_boot.c:153)<br>`kernel_boot` (src/kernel_boot.c:154)<br>`kernel_boot` (src/kernel_boot.c:155)<br>`kernel_boot` (src/kernel_boot.c:156)<br>`kernel_boot` (src/kernel_boot.c:157)<br>`kernel_boot` (src/kernel_boot.c:158)<br>`kernel_boot` (src/kernel_boot.c:159)<br>`kernel_boot` (src/kernel_boot.c:160)<br>`kernel_boot` (src/kernel_boot.c:163)<br>+6 more |
-| global:current_frame | 8 | `run_interpreter` (src/vm.c:1035)<br>`run_interpreter` (src/vm.c:1086)<br>`run_interpreter` (src/vm.c:1708)<br>`run_interpreter` (src/vm.c:1767)<br>`vm.c:push_frame` (src/vm.c:943)<br>`vm_ensure` (src/vm.c:289)<br>`vm_on_do` (src/vm.c:219)<br>`vm_protected_fire` (src/vm.c:176) |
-| global:vm_stack_ptr | 8 | `run_interpreter` (src/vm.c:1034)<br>`run_interpreter` (src/vm.c:1062)<br>`run_interpreter` (src/vm.c:1704)<br>`run_interpreter` (src/vm.c:1766)<br>`vm.c:push_frame` (src/vm.c:929)<br>`vm_ensure` (src/vm.c:288)<br>`vm_on_do` (src/vm.c:218)<br>`vm_protected_fire` (src/vm.c:175) |
 | global:pulse_q | 5 | `pulse_pending` (src/backend/zephyr/pulse_zephyr.c:94)<br>`pulse_pump` (src/backend/zephyr/pulse_zephyr.c:100)<br>`pulse_pump` (src/backend/zephyr/pulse_zephyr.c:104)<br>`pulse_pump_nb` (src/backend/zephyr/pulse_zephyr.c:122)<br>`pulse_zephyr.c:pulse_enqueue` (src/backend/zephyr/pulse_zephyr.c:52) |
-| global:g_raised_condition | 4 | `vm_ensure` (src/vm.c:296)<br>`vm_on_do` (src/vm.c:226)<br>`vm_protected_fire` (src/vm.c:179)<br>`vm_raise` (src/vm.c:132) |
 | global:oimg_singleton | 3 | `kernel_boot` (src/kernel_boot.c:144)<br>`kernel_boot` (src/kernel_boot.c:145)<br>`kernel_boot` (src/kernel_boot.c:146) |
 | global:rl_q | 3 | `platform_console_take_line` (src/backend/zephyr/platform_zephyr.c:191)<br>`platform_zephyr.c:rl_getc` (src/backend/zephyr/platform_zephyr.c:170)<br>`platform_zephyr.c:rl_isr` (src/backend/zephyr/platform_zephyr.c:146) |
 | global:Symbol_debug_ | 2 | `kernel_boot` (src/kernel_boot.c:141)<br>`primitive_register_debugger_hook` (src/vm.c:1893) |
 | global:Symbol_value | 2 | `kernel_boot` (src/kernel_boot.c:140)<br>`run_interpreter` (src/vm.c:1039) |
-| global:g_boot_inflight_argc | 2 | `run_interpreter` (src/vm.c:1026)<br>`run_interpreter` (src/vm.c:1102) |
-| global:g_boot_inflight_args | 2 | `run_interpreter` (src/vm.c:1025)<br>`run_interpreter` (src/vm.c:1101) |
-| global:g_boot_inflight_receiver | 2 | `run_interpreter` (src/vm.c:1024)<br>`run_interpreter` (src/vm.c:1100) |
 | global:g_kernel_instance | 2 | `oimg_bootstrap` (src/oimg_loader.c:338)<br>`oimg_bootstrap` (src/oimg_loader.c:345) |
 | global:oimg_blob_base | 2 | `oimg_load_blob` (src/oimg_loader.c:204)<br>`oimg_load_blob` (src/oimg_loader.c:235) |
 | global:oimg_blob_end | 2 | `oimg_load_blob` (src/oimg_loader.c:205)<br>`oimg_load_blob` (src/oimg_loader.c:235) |
@@ -141,5 +135,14 @@
 | global:src/vm.c:g_mprof_key | 6 | `mprof_start` (src/vm.c:597; writes)<br>`primitive_calls_reset` (src/vm.c:2404; writes)<br>`vm.c:mprof_count` (src/vm.c:645; reads)<br>`vm.c:mprof_count` (src/vm.c:646; reads)<br>`vm.c:mprof_report` (src/vm.c:548; reads)<br>`vm.c:mprof_report` (src/vm.c:549; reads)<br>`vm.c:mprof_report` (src/vm.c:551; reads)<br>`vm.c:mprof_report` (src/vm.c:554; reads)<br>`vm.c:mprof_report` (src/vm.c:568; reads)<br>`vm.c:mprof_report` (src/vm.c:575; reads)<br>`vm.c:mprof_report` (src/vm.c:577; reads)<br>`vm.c:mprof_report` (src/vm.c:581; reads)<br>+3 more |
 | global:src/vm.c:g_mprof_n | 6 | `mprof_start` (src/vm.c:597; writes)<br>`primitive_calls_reset` (src/vm.c:2404; writes)<br>`primitive_calls_stats` (src/vm.c:2387; reads)<br>`vm.c:mprof_bump` (src/vm.c:486; writes)<br>`vm.c:mprof_count` (src/vm.c:645; reads)<br>`vm.c:mprof_report` (src/vm.c:544; reads)<br>`vm.c:mprof_report` (src/vm.c:552; reads)<br>`vm.c:mprof_report` (src/vm.c:554; reads) |
 | … 190 more global-flow rows; see findings.json | | |
+
+## owns-exceeded (4)
+
+| subject | count | sites |
+|---|---|---|
+| Interpreter/global:src/vm.c:g_protect_top | 3 | `vm_ensure` (src/vm.c:271)<br>`vm_ensure` (src/vm.c:277)<br>`vm_ensure` (src/vm.c:294)<br>`vm_on_do` (src/vm.c:211)<br>`vm_on_do` (src/vm.c:214)<br>`vm_on_do` (src/vm.c:224)<br>`vm_protected_fire` (src/vm.c:170)<br>`vm_protected_fire` (src/vm.c:181) |
+| Interpreter/global:Symbol_value | 1 | `run_interpreter` (src/vm.c:1039) |
+| Interpreter/global:g_active_stack | 1 | `run_interpreter` (src/vm.c:1032) |
+| Interpreter/global:vm_stack | 1 | `run_interpreter` (src/vm.c:1033) |
 
 … 364 more rows; see findings.json

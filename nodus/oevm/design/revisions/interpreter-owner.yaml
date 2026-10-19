@@ -1,0 +1,6 @@
+name: interpreter-owner
+pattern: Facade
+intent: the interpreter's running state has one owner, the vm.c functions that enter and leave a frame
+compromise: a card accepts the writers, it does not reduce them; the globals stay extern (gc.c and dispatch.c read them)
+ops:
+  - card: {file: interpreter.yaml}
