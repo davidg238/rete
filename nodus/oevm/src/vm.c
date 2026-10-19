@@ -82,7 +82,6 @@ oop g_raised_condition = NULL;          /* rooted by gc_collect; see gc.c */
    app, after the kernel's and the entry's init (rete#37 L5: it was a per-send test). */
 oop g_kernel_instance = NULL;
 
-extern int gc_temp_roots_count;         /* gc.c:645 — save/restore across a fire */
 
 /* Milestone E Task 1 diagnostic helper: if `condition` is a crash Record (built
    by Object>>error:tag: as `Record tag: aTag with: #text -> aText`), pull its
@@ -114,15 +113,14 @@ static oop vm_condition_text(oop condition) {
     }
     if (atIfAbsentSel == NULL) return NULL;
     /* Fresh interned #text tag to probe the fields Map (rooted across the send). */
-    extern int gc_temp_roots_count;
-    int saved_roots = gc_temp_roots_count;
+    int saved_roots = gc_temp_roots_mark();
     gc_temp_root_push(condition);
     static const char textName[] = "text";
     oop textSym = symbol_new(textName, sizeof textName - 1);   /* rete#226 */
     gc_temp_root_push(textSym);
     oop probe_args[2] = { textSym, NULL };   /* ifAbsent nil: key is always present */
     oop v = send(condition, atIfAbsentSel, 2, probe_args);
-    gc_temp_roots_count = saved_roots;
+    gc_temp_roots_reset(saved_roots);
     if (v != NULL && StringVtable && obj_vtable(v) == StringVtable) return v;
     return NULL;
 }
@@ -167,7 +165,7 @@ oop vm_protected_fire(oop block, oop value) {
     jmp_buf *saved_top          = g_protect_top;
     size_t saved_sp             = vm_stack_ptr;
     struct MethodContext *saved_frame = current_frame;
-    int saved_temp_roots        = gc_temp_roots_count;
+    int saved_temp_roots        = gc_temp_roots_mark();
     oop result;
     g_protect_top = &env;
     if (setjmp(env) == 0) {
@@ -176,7 +174,7 @@ oop vm_protected_fire(oop block, oop value) {
     } else {
         vm_stack_ptr        = saved_sp;
         current_frame       = saved_frame;
-        gc_temp_roots_count = saved_temp_roots;
+        gc_temp_roots_reset(saved_temp_roots);
         result              = g_raised_condition;
         g_raised_condition  = NULL;
     }
@@ -198,7 +196,7 @@ oop vm_protected_fire(oop block, oop value) {
    `predBlock` and `handlerBlock` are all live across the run_interpreter(pred) and
    run_interpreter(handler) RE-ENTRIES (each can allocate and collect), and with no
    C-stack scan they have no other root during those calls — so all three are pushed
-   as temp roots via the gc_temp_roots_count SAVE/RESTORE idiom (build_and_raise /
+   as temp roots via the gc_temp_roots_mark/reset SAVE/RESTORE idiom (build_and_raise /
    context_alloc precedent) before the first re-entry and popped after the last.
    (The protBlock and its arg on the clean path are rooted for the duration by being
    stored into the GC-scanned frame run_interpreter builds, exactly as in
@@ -208,7 +206,7 @@ oop vm_on_do(oop protBlock, oop predBlock, oop handlerBlock) {
     jmp_buf *saved_top          = g_protect_top;
     size_t saved_sp             = vm_stack_ptr;
     struct MethodContext *saved_frame = current_frame;
-    int saved_temp_roots        = gc_temp_roots_count;
+    int saved_temp_roots        = gc_temp_roots_mark();
     oop arg = NULL;                        /* protected block is zero-arg; ignored */
     g_protect_top = &env;
     if (setjmp(env) == 0) {
@@ -219,7 +217,7 @@ oop vm_on_do(oop protBlock, oop predBlock, oop handlerBlock) {
     /* Caught a fault: unwind to this frame (mirror vm_protected_fire). */
     vm_stack_ptr        = saved_sp;
     current_frame       = saved_frame;
-    gc_temp_roots_count = saved_temp_roots;
+    gc_temp_roots_reset(saved_temp_roots);
     /* Restore the OUTER protection level BEFORE evaluating pred/handler or
        re-raising, so a fault inside them (or a non-match re-raise) cascades to the
        next outer handler frame-by-frame. */
@@ -227,17 +225,17 @@ oop vm_on_do(oop protBlock, oop predBlock, oop handlerBlock) {
     oop cond            = g_raised_condition;
     g_raised_condition  = NULL;
     /* Root cond, predBlock, handlerBlock across the two re-entries. */
-    int roots_here = gc_temp_roots_count;
+    int roots_here = gc_temp_roots_mark();
     gc_temp_root_push(cond);
     gc_temp_root_push(predBlock);
     gc_temp_root_push(handlerBlock);
     oop verdict = run_interpreter(predBlock, predBlock, 1, &cond);
     if (is_truthy(verdict)) {
         oop hres = run_interpreter(handlerBlock, handlerBlock, 1, &cond);
-        gc_temp_roots_count = roots_here;
+        gc_temp_roots_reset(roots_here);
         return hres;                       /* matched: the handler's value */
     }
-    gc_temp_roots_count = roots_here;
+    gc_temp_roots_reset(roots_here);
     vm_raise(cond);                        /* no match: cascade; never returns */
     return NULL;                           /* unreachable */
 }
@@ -268,7 +266,7 @@ oop vm_ensure(oop protBlock, oop cleanupBlock) {
     jmp_buf *saved_top          = g_protect_top;
     size_t saved_sp             = vm_stack_ptr;
     struct MethodContext *saved_frame = current_frame;
-    int saved_temp_roots        = gc_temp_roots_count;
+    int saved_temp_roots        = gc_temp_roots_mark();
     oop arg = NULL;                        /* prot + cleanup are zero-arg; ignored */
     g_protect_top = &env;
     if (setjmp(env) == 0) {
@@ -279,17 +277,17 @@ oop vm_ensure(oop protBlock, oop cleanupBlock) {
         g_protect_top = saved_top;
         /* result + cleanupBlock are live across the cleanup re-entry (it can
            allocate -> GC); root them (no conservative C-stack scan). */
-        int roots_here = gc_temp_roots_count;
+        int roots_here = gc_temp_roots_mark();
         gc_temp_root_push(result);
         gc_temp_root_push(cleanupBlock);
         (void)run_interpreter(cleanupBlock, cleanupBlock, 1, &arg);
-        gc_temp_roots_count = roots_here;
+        gc_temp_roots_reset(roots_here);
         return result;                     /* clean: the protected block's value */
     }
     /* Caught a fault: unwind to this frame (mirror vm_on_do). */
     vm_stack_ptr        = saved_sp;
     current_frame       = saved_frame;
-    gc_temp_roots_count = saved_temp_roots;
+    gc_temp_roots_reset(saved_temp_roots);
     /* Restore the OUTER protection level BEFORE running cleanup / re-raising, so a
        fault inside cleanup (or the re-raise itself) cascades to the next outer
        frame rather than the spent local setjmp. */
@@ -297,11 +295,11 @@ oop vm_ensure(oop protBlock, oop cleanupBlock) {
     oop cond            = g_raised_condition;
     g_raised_condition  = NULL;
     /* Root cond + cleanupBlock across the cleanup re-entry. */
-    int roots_here = gc_temp_roots_count;
+    int roots_here = gc_temp_roots_mark();
     gc_temp_root_push(cond);
     gc_temp_root_push(cleanupBlock);
     (void)run_interpreter(cleanupBlock, cleanupBlock, 1, &arg);
-    gc_temp_roots_count = roots_here;
+    gc_temp_roots_reset(roots_here);
     vm_raise(cond);                        /* re-raise AFTER cleanup; never returns */
     return NULL;                           /* unreachable */
 }
@@ -310,8 +308,8 @@ oop vm_ensure(oop protBlock, oop cleanupBlock) {
    Fiber to file-scope globals — this is debugger state, not scheduling state).
    g_single_step: 1 while stepping. g_hook_step_request: -1 = none, else the
    post-hook step arm that survives the break-hook save/restore. */
-int g_single_step = 0;
-int g_hook_step_request = -1;
+static int g_single_step = 0;
+static int g_hook_step_request = -1;
 
 /* Precise GC roots for the boot/first-send window (oevm#21). While
    run_interpreter lazily bootstraps the main fiber + Stack + boot symbols, the

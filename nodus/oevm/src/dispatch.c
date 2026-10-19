@@ -68,12 +68,11 @@ oop stack_alloc(uint32_t capacity) {
    across the allocation (a GC during gc_allocate would otherwise sweep it
    before it's linked into the new Context). */
 OEVM_HOT oop context_alloc(uint32_t num_slots, oop outer) {
-    extern int gc_temp_roots_count;
     /* Hardened (Task 2 review carry-forward): context_alloc is now reachable
        from the LIVE interpreter (OP_MK_CONTEXT), where the caller may already
        hold other temp roots. A flat gc_temp_roots_clear() would wipe them;
        save/restore the count instead so we only pop what we pushed here. */
-    int saved = gc_temp_roots_count;
+    int saved = gc_temp_roots_mark();
     int pinned = (outer != NULL && !IS_SMI(outer));
     if (pinned) gc_temp_root_push(outer);
     oop c = gc_allocate(ContextVtable, sizeof(struct Context) + (size_t)num_slots * sizeof(oop));
@@ -81,7 +80,7 @@ OEVM_HOT oop context_alloc(uint32_t num_slots, oop outer) {
     ctx->num_slots = num_slots;
     ctx->outer = outer;
     for (uint32_t i = 0; i < num_slots; i++) ctx->slots[i] = NULL;
-    gc_temp_roots_count = saved;
+    gc_temp_roots_reset(saved);
     return c;
 }
 
@@ -1140,7 +1139,6 @@ static oop make_string(const char *bytes, size_t len) {
    the binding by identity. Fallbacks (pre-capture / helper missing — neither should
    occur) raise the bare text, preserving a sane terminate. */
 static oop build_and_raise(oop tag, oop text) {
-    extern int gc_temp_roots_count;
     if (g_kernel_instance == NULL) {
         vm_raise(text);   /* pre-entry: impossible in practice, but keep terminate */
         return NULL;
@@ -1167,12 +1165,12 @@ static oop build_and_raise(oop tag, oop text) {
         vm_raise(text);   /* kernel helper missing: keep terminate */
         return NULL;
     }
-    int saved_roots = gc_temp_roots_count;
+    int saved_roots = gc_temp_roots_mark();
     gc_temp_root_push(tag);
     gc_temp_root_push(text);
     oop args2[2] = { tag, text };   /* crashRecordTag: aTag text: aText */
     oop rec = send(g_kernel_instance, sel, 2, args2);
-    gc_temp_roots_count = saved_roots;
+    gc_temp_roots_reset(saved_roots);
     vm_raise(rec);   /* longjmps when protected; never returns */
     return NULL;
 }
@@ -1190,7 +1188,6 @@ static oop build_and_raise(oop tag, oop text) {
    the g_raised_condition GC root). Fallbacks (pre-capture / helper missing — neither
    should occur) raise the bare text, preserving a sane terminate. */
 static oop build_and_raise_default(oop text) {
-    extern int gc_temp_roots_count;
     if (g_kernel_instance == NULL) {
         vm_raise(text);   /* pre-entry: impossible in practice, but keep terminate */
         return NULL;
@@ -1217,11 +1214,11 @@ static oop build_and_raise_default(oop text) {
         vm_raise(text);   /* kernel helper missing: keep terminate */
         return NULL;
     }
-    int saved_roots = gc_temp_roots_count;
+    int saved_roots = gc_temp_roots_mark();
     gc_temp_root_push(text);
     oop args1[1] = { text };   /* crashRecordText: aText */
     oop rec = send(g_kernel_instance, sel, 1, args1);
-    gc_temp_roots_count = saved_roots;
+    gc_temp_roots_reset(saved_roots);
     vm_raise(rec);   /* longjmps when protected; never returns */
     return NULL;
 }

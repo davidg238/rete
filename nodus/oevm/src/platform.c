@@ -1010,8 +1010,7 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
                                     (const char *)p->bytes, p->length,
                                     ids, (int)want);
 
-        extern int gc_temp_roots_count;
-        int saved = gc_temp_roots_count;
+        int saved = gc_temp_roots_mark();
 
         oop rows = indexable_new(n);
         gc_temp_root_push(rows);
@@ -1025,7 +1024,7 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
                 TAG_SMI((intptr_t)space_last_seq_of(ids[i]));
             ((struct ObjectInstance *)row)->slots[3] = space_value_of(ids[i]);
         }
-        gc_temp_roots_count = saved;
+        gc_temp_roots_reset(saved);
         *out = rows;
         return 1;
     }
@@ -1346,8 +1345,7 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
         if (dn < 0) dn = 0;
         if (dn > (int)sizeof detail - 1) dn = (int)sizeof detail - 1;
 
-        extern int gc_temp_roots_count;
-        int saved = gc_temp_roots_count;
+        int saved = gc_temp_roots_mark();
 
         oop r = indexable_new(4);
         gc_temp_root_push(r);
@@ -1355,7 +1353,7 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
         ((struct ObjectInstance *)r)->slots[2] = TAG_SMI((intptr_t)rn.boot_id);
         ((struct ObjectInstance *)r)->slots[3] = TAG_SMI((intptr_t)rn.mono_ms);
         ((struct ObjectInstance *)r)->slots[4] = space_make_string_pub(detail, (size_t)dn);
-        gc_temp_roots_count = saved;
+        gc_temp_roots_reset(saved);
         *out = r; return 1;
     }
     case PRIM_pf_panicNoteAck: {

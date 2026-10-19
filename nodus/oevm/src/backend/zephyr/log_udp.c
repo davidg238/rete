@@ -55,7 +55,7 @@ static struct sockaddr_in6 tee_dst;       /* written under ring_lock */
 static char tee_addr[INET6_ADDRSTRLEN];   /* for the boot and target lines */
 static int tee_port;
 static volatile int sender_pending;       /* a refused line is held for retry */
-K_SEM_DEFINE(tee_wake, 0, 1);
+static K_SEM_DEFINE(tee_wake, 0, 1);
 
 /* rete#415: the target survives deep sleep and a restart, so a waking node tees from
    its first line rather than holding the boot until its first check-in replays

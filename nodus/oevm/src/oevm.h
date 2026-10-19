@@ -253,12 +253,14 @@ oop  gc_allocate(oop vtable, size_t size);
 void mark_object(oop ptr);
 void gc_temp_root_push(oop o);
 void gc_temp_roots_clear(void);
+int  gc_temp_roots_mark(void);          /* save ... */
+void gc_temp_roots_reset(int mark);    /* ... restore on every exit */
 
 /* struct Fiber (the cooperative execution-context wrapper) was removed in
    Milestone A Task 6. The running execution state is now exactly g_active_stack
    (a Stack heap object, a GC root) + vm_stack/vm_stack_ptr + current_frame; the
    debugger single-step fields moved to the g_single_step/g_hook_step_request
-   file-scope globals in vm.c. */
+   statics in vm.c. */
 
 /*
  * Stack: a first-class heap object holding a contiguous region of
@@ -444,7 +446,7 @@ oop primitive_object_outer(oop receiver, int argc, oop *args);
 
 oop primitive_register_debugger_hook(oop receiver, int argc, oop *args);
 /* Confined requestStep: prim (Task 3 — reachable ONLY via mirror_dispatch).
-   Sets the global g_single_step + g_hook_step_request from inside a break hook. */
+   Sets vm.c's static g_single_step + g_hook_step_request from inside a break hook. */
 oop primitive_request_step(oop receiver, int argc, oop *args);
 /* Confined read-only mirror prims (Task 2 — reachable ONLY via mirror_dispatch). */
 oop primitive_method_offset(oop receiver, int argc, oop *args);

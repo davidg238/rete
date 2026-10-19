@@ -812,8 +812,8 @@ void mark_object(oop ptr) {
    then clears the set. Empty
    (zero overhead) once boot completes. */
 #define GC_TEMP_ROOTS_MAX 16
-oop gc_temp_roots[GC_TEMP_ROOTS_MAX];
-int gc_temp_roots_count = 0;
+static oop gc_temp_roots[GC_TEMP_ROOTS_MAX];
+static int gc_temp_roots_count = 0;
 
 void gc_temp_root_push(oop o) {
     if (gc_temp_roots_count < GC_TEMP_ROOTS_MAX) {
@@ -828,6 +828,16 @@ void gc_temp_root_push(oop o) {
 
 void gc_temp_roots_clear(void) {
     gc_temp_roots_count = 0;
+}
+
+/* The save/restore idiom: a caller marks the set, pushes its roots, and resets to
+   the mark on every exit, so a nested push never outlives its frame. */
+int gc_temp_roots_mark(void) {
+    return gc_temp_roots_count;
+}
+
+void gc_temp_roots_reset(int mark) {
+    gc_temp_roots_count = mark;
 }
 
 /* Trigger a Mark-and-Sweep Garbage Collection cycle */
@@ -940,8 +950,6 @@ OEVM_HOT void gc_collect(void) {
     }
 
     /* oevm#21: boot-driver temp roots (instances held across the boot send sequence). */
-    extern oop gc_temp_roots[];
-    extern int gc_temp_roots_count;
     for (int i = 0; i < gc_temp_roots_count; i++) {
         mark(gc_temp_roots[i]);
     }

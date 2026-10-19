@@ -71,7 +71,6 @@ extern void heap_init(void);
 extern int  gc_is_live(oop);
 extern void mark_object(oop);
 extern void gc_temp_root_push(oop o);
-extern int  gc_temp_roots_count;
 extern void (*gc_additional_roots_hook)(void);
 extern void init_solidified_vtables(void);   /* src/solidified_image.c — sets SymbolVtable */
 
@@ -124,11 +123,11 @@ int main(void) {
         /* A C local is not a GC root (no conservative C-stack scan), and the
            prim allocates. Root the receiver across the call — same idiom as
            tests/test_cbor.c's test_cbor_as_symbol. */
-        int saved_roots = gc_temp_roots_count;
+        int saved_roots = gc_temp_roots_mark();
         gc_temp_root_push(s);
         oop out = NULL;
         int ok = platform_dispatch(PRIM_pf_asSymbol, 1, &s, &out);
-        gc_temp_roots_count = saved_roots;
+        gc_temp_roots_reset(saved_roots);
 
         assert(ok && "PRIM_pf_asSymbol must service the dispatch");
         assert(out != NULL && "asSymbol: must not answer nil");

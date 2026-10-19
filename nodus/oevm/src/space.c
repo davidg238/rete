@@ -368,8 +368,7 @@ oop space_dequeue(void) {
              so restore the count rather than clearing the whole set. (The
              reaction blocks copied into the snapshot need no extra pinning —
              the channel table itself keeps them rooted via space_gc_trace.) */
-    extern int gc_temp_roots_count;
-    int saved = gc_temp_roots_count;
+    int saved = gc_temp_roots_mark();
 
     /* Snapshot the channel's CURRENT reaction list, taken now (at dequeue),
        not at post time — D-C5: registrations made after this event was
@@ -391,7 +390,7 @@ oop space_dequeue(void) {
     gc_temp_root_push(path_string);
 
     oop result = indexable_new(3);
-    gc_temp_roots_count = saved;
+    gc_temp_roots_reset(saved);
 
     struct ObjectInstance *ri = (struct ObjectInstance *)result;
     ri->slots[1] = value;
