@@ -6,12 +6,11 @@
  */
 #include "src/oevm.h"
 #include "src/ota.h"
+#include "src/oimg.h"
 #include <stdio.h>
 #include <stdlib.h>
 
 int oimg_load(const char *path);
-oop oimg_root(void);
-oop oimg_bootstrap(oop entry_vtable);
 
 extern void kernel_boot(void);
 extern void (*gc_additional_roots_hook)(void);

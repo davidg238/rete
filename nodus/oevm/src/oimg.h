@@ -14,6 +14,10 @@ extern oop oimg_singleton[3];
    own `base`. oimg_load(path) is a mmap wrapper over this (desktop only). */
 int oimg_load_blob(const uint8_t *base, size_t size);
 
+/* The loaded image's root, and the boot of its entry instance (src/oimg_loader.c). */
+oop oimg_root(void);
+oop oimg_bootstrap(oop entry_vtable);
+
 /* rete#247: the name of a blob (app-class) vtable from the image's v10
    classnames section, or NULL. Used by the DNU abort path. */
 const char *oimg_vtable_name(oop vt);

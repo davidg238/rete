@@ -688,22 +688,22 @@
     "sites": [
       {
         "func": "func:main",
-        "loc": "zephyr/src/main.c:1891",
+        "loc": "zephyr/src/main.c:1888",
         "via": "log_udp_start"
       },
       {
         "func": "func:main",
-        "loc": "zephyr/src/main.c:1922",
+        "loc": "zephyr/src/main.c:1919",
         "via": "runner_select"
       },
       {
         "func": "func:main",
-        "loc": "zephyr/src/main.c:1948",
+        "loc": "zephyr/src/main.c:1945",
         "via": "ota_note_running_hash"
       },
       {
         "func": "func:main",
-        "loc": "zephyr/src/main.c:1949",
+        "loc": "zephyr/src/main.c:1946",
         "via": "ota_env"
       },
       {
@@ -761,27 +761,27 @@
     "sites": [
       {
         "func": "func:main",
-        "loc": "zephyr/src/main.c:1915",
+        "loc": "zephyr/src/main.c:1912",
         "via": "kernel_boot"
       },
       {
         "func": "func:main",
-        "loc": "zephyr/src/main.c:1927",
+        "loc": "zephyr/src/main.c:1924",
         "via": "oimg_load_blob"
       },
       {
         "func": "func:main",
-        "loc": "zephyr/src/main.c:1947",
+        "loc": "zephyr/src/main.c:1944",
         "via": "ota_sha256"
       },
       {
         "func": "func:main",
-        "loc": "zephyr/src/main.c:1989",
+        "loc": "zephyr/src/main.c:1986",
         "via": "oimg_bootstrap"
       },
       {
         "func": "func:main",
-        "loc": "zephyr/src/main.c:1989",
+        "loc": "zephyr/src/main.c:1986",
         "via": "oimg_root"
       },
       {
@@ -960,34 +960,6 @@
   },
   {
     "rule": "extern-redeclared",
-    "subject": "func:oimg_bootstrap",
-    "loc": "src/oimg_loader.c:281",
-    "message": "oimg_bootstrap is declared by hand 1 times in .c files, not by a header",
-    "count": 1,
-    "sites": [
-      {
-        "func": "file:zephyr/src/main.c",
-        "loc": "zephyr/src/main.c:1572",
-        "via": "struct Object * (struct Object *)"
-      }
-    ]
-  },
-  {
-    "rule": "extern-redeclared",
-    "subject": "func:oimg_root",
-    "loc": "src/oimg_loader.c:271",
-    "message": "oimg_root is declared by hand 1 times in .c files, not by a header",
-    "count": 1,
-    "sites": [
-      {
-        "func": "file:zephyr/src/main.c",
-        "loc": "zephyr/src/main.c:1571",
-        "via": "struct Object * (void)"
-      }
-    ]
-  },
-  {
-    "rule": "extern-redeclared",
     "subject": "func:platform_debug_held",
     "loc": "src/backend/zephyr/platform_zephyr.c:254",
     "message": "platform_debug_held is declared by hand 1 times in .c files, not by a header",
@@ -1070,12 +1042,12 @@
       },
       {
         "func": "func:main",
-        "loc": "zephyr/src/main.c:1840",
+        "loc": "zephyr/src/main.c:1837",
         "via": "reads"
       },
       {
         "func": "func:main",
-        "loc": "zephyr/src/main.c:1849",
+        "loc": "zephyr/src/main.c:1846",
         "via": "reads"
       },
       {
@@ -3004,32 +2976,32 @@
       },
       {
         "func": "func:src/oimg.h:closure_entry",
-        "loc": "src/oimg.h:98",
+        "loc": "src/oimg.h:102",
         "via": "reads"
       },
       {
         "func": "func:src/oimg.h:cm_const_at",
-        "loc": "src/oimg.h:94",
+        "loc": "src/oimg.h:98",
         "via": "reads"
       },
       {
         "func": "func:src/oimg.h:cm_instructions",
-        "loc": "src/oimg.h:89",
+        "loc": "src/oimg.h:93",
         "via": "reads"
       },
       {
         "func": "func:src/oimg.h:is_in_blob",
-        "loc": "src/oimg.h:36",
+        "loc": "src/oimg.h:40",
         "via": "reads"
       },
       {
         "func": "func:src/oimg.h:oimg_resolve",
-        "loc": "src/oimg.h:50",
+        "loc": "src/oimg.h:54",
         "via": "reads"
       },
       {
         "func": "func:src/oimg.h:vtable_bindings",
-        "loc": "src/oimg.h:79",
+        "loc": "src/oimg.h:83",
         "via": "reads"
       },
       {
@@ -6923,7 +6895,7 @@
       },
       {
         "func": "func:src/oimg.h:is_in_blob",
-        "loc": "src/oimg.h:36",
+        "loc": "src/oimg.h:40",
         "via": "reads"
       },
       {
@@ -7590,7 +7562,7 @@
       },
       {
         "func": "func:src/oimg.h:oimg_resolve",
-        "loc": "src/oimg.h:53",
+        "loc": "src/oimg.h:57",
         "via": "reads"
       }
     ]
@@ -8656,7 +8628,7 @@
       },
       {
         "func": "func:src/oimg.h:oimg_resolve",
-        "loc": "src/oimg.h:51",
+        "loc": "src/oimg.h:55",
         "via": "reads"
       }
     ]
@@ -8802,7 +8774,7 @@
       },
       {
         "func": "func:main",
-        "loc": "zephyr/src/main.c:1905",
+        "loc": "zephyr/src/main.c:1902",
         "via": "writes"
       }
     ]
@@ -8833,7 +8805,7 @@
     "sites": [
       {
         "func": "func:main",
-        "loc": "zephyr/src/main.c:1866",
+        "loc": "zephyr/src/main.c:1863",
         "via": "writes"
       },
       {
@@ -8851,7 +8823,7 @@
     "sites": [
       {
         "func": "func:main",
-        "loc": "zephyr/src/main.c:1906",
+        "loc": "zephyr/src/main.c:1903",
         "via": "writes"
       },
       {
@@ -11538,7 +11510,7 @@
     "sites": [
       {
         "func": "func:main",
-        "loc": "zephyr/src/main.c:1891",
+        "loc": "zephyr/src/main.c:1888",
         "via": "zephyr/src"
       }
     ]
@@ -11580,7 +11552,7 @@
     "sites": [
       {
         "func": "func:main",
-        "loc": "zephyr/src/main.c:1922",
+        "loc": "zephyr/src/main.c:1919",
         "via": "zephyr/src"
       }
     ]
@@ -14101,7 +14073,7 @@
     "sites": [
       {
         "func": "func:main",
-        "loc": "zephyr/src/main.c:1866"
+        "loc": "zephyr/src/main.c:1863"
       },
       {
         "func": "func:platform_dispatch",
@@ -17319,7 +17291,7 @@
       },
       {
         "func": "func:main",
-        "loc": "zephyr/src/main.c:1959",
+        "loc": "zephyr/src/main.c:1956",
         "via": "calls wire_gpio_outputs"
       },
       {
@@ -18822,7 +18794,7 @@
     "sites": [
       {
         "func": "func:main",
-        "loc": "zephyr/src/main.c:1866"
+        "loc": "zephyr/src/main.c:1863"
       },
       {
         "func": "func:platform_dispatch",
@@ -20000,7 +19972,7 @@
     "sites": [
       {
         "func": "func:main",
-        "loc": "zephyr/src/main.c:1905"
+        "loc": "zephyr/src/main.c:1902"
       }
     ]
   },
@@ -20064,7 +20036,7 @@
     "sites": [
       {
         "func": "func:main",
-        "loc": "zephyr/src/main.c:1906"
+        "loc": "zephyr/src/main.c:1903"
       }
     ]
   },

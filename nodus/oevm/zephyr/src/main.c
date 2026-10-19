@@ -1565,11 +1565,8 @@ extern void init_reflection_symbols(void);
 extern oop  run_solidified_entry_point(void);
 #else
 /* Model B: the program is a .oimg blob in flash, not baked C.
-   kernel_boot() comes from oevm.h and oimg_load_blob() from oimg.h, but
-   oimg_root()/oimg_bootstrap() are declared in NO header (defined in
-   src/oimg_loader.c, used by src/oevm_image_main.c), so they are externed here. */
-extern oop  oimg_root(void);
-extern oop  oimg_bootstrap(oop entry_vtable);
+   kernel_boot() comes from oevm.h; oimg_load_blob(), oimg_root() and
+   oimg_bootstrap() from oimg.h. */
 #include <zephyr/storage/flash_map.h>
 #if FIXED_PARTITION_EXISTS(program_a)
 /* rete#310 / rete#233: the program lives in one of two flash slots, chosen and mapped by

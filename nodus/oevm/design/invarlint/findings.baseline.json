@@ -1,8 +1,6 @@
 [
   "extern-redeclared|func:handle_gc_trace|file:src/gc.c",
   "extern-redeclared|func:mirror_object|file:src/oimg_loader.c",
-  "extern-redeclared|func:oimg_bootstrap|file:zephyr/src/main.c",
-  "extern-redeclared|func:oimg_root|file:zephyr/src/main.c",
   "extern-redeclared|func:platform_debug_held|file:zephyr/src/observer.c",
   "extern-redeclared|func:serial_object|file:src/oimg_loader.c",
   "extern-redeclared|func:space_gc_trace|file:src/gc.c",

@@ -1,5 +1,5 @@
 {
-  "commit": "f34a9b09",
+  "commit": "4673a9c6",
   "root": "/home/david/workspace/rete/nodus/oevm",
   "config": "build-esp32c6-B",
   "partial": false,
@@ -939,7 +939,7 @@
     {
       "id": "func:main",
       "kind": "func",
-      "loc": "zephyr/src/main.c:1836",
+      "loc": "zephyr/src/main.c:1833",
       "attrs": {
         "exported": "true",
         "is_handler": "false",
@@ -4392,7 +4392,7 @@
     {
       "id": "func:src/oimg.h:binding_method",
       "kind": "func",
-      "loc": "src/oimg.h:85",
+      "loc": "src/oimg.h:89",
       "attrs": {
         "exported": "false",
         "is_handler": "false",
@@ -4405,7 +4405,7 @@
     {
       "id": "func:src/oimg.h:binding_symbol",
       "kind": "func",
-      "loc": "src/oimg.h:82",
+      "loc": "src/oimg.h:86",
       "attrs": {
         "exported": "false",
         "is_handler": "false",
@@ -4418,7 +4418,7 @@
     {
       "id": "func:src/oimg.h:closure_entry",
       "kind": "func",
-      "loc": "src/oimg.h:97",
+      "loc": "src/oimg.h:101",
       "attrs": {
         "exported": "false",
         "is_handler": "false",
@@ -4430,7 +4430,7 @@
     {
       "id": "func:src/oimg.h:cm_const_at",
       "kind": "func",
-      "loc": "src/oimg.h:92",
+      "loc": "src/oimg.h:96",
       "attrs": {
         "exported": "false",
         "is_handler": "false",
@@ -4443,7 +4443,7 @@
     {
       "id": "func:src/oimg.h:cm_instructions",
       "kind": "func",
-      "loc": "src/oimg.h:88",
+      "loc": "src/oimg.h:92",
       "attrs": {
         "exported": "false",
         "is_handler": "false",
@@ -4456,7 +4456,7 @@
     {
       "id": "func:src/oimg.h:instance_slot",
       "kind": "func",
-      "loc": "src/oimg.h:101",
+      "loc": "src/oimg.h:105",
       "attrs": {
         "exported": "false",
         "is_handler": "false",
@@ -4469,7 +4469,7 @@
     {
       "id": "func:src/oimg.h:is_in_blob",
       "kind": "func",
-      "loc": "src/oimg.h:35",
+      "loc": "src/oimg.h:39",
       "attrs": {
         "exported": "false",
         "is_handler": "false",
@@ -4481,7 +4481,7 @@
     {
       "id": "func:src/oimg.h:obj_vtable",
       "kind": "func",
-      "loc": "src/oimg.h:58",
+      "loc": "src/oimg.h:62",
       "attrs": {
         "exported": "false",
         "is_handler": "false",
@@ -4494,7 +4494,7 @@
     {
       "id": "func:src/oimg.h:oimg_resolve",
       "kind": "func",
-      "loc": "src/oimg.h:46",
+      "loc": "src/oimg.h:50",
       "attrs": {
         "exported": "false",
         "is_handler": "false",
@@ -4507,7 +4507,7 @@
     {
       "id": "func:src/oimg.h:symbol_name",
       "kind": "func",
-      "loc": "src/oimg.h:70",
+      "loc": "src/oimg.h:74",
       "attrs": {
         "exported": "false",
         "is_handler": "false",
@@ -4519,7 +4519,7 @@
     {
       "id": "func:src/oimg.h:vtable_bindings",
       "kind": "func",
-      "loc": "src/oimg.h:77",
+      "loc": "src/oimg.h:81",
       "attrs": {
         "exported": "false",
         "is_handler": "false",
@@ -4532,7 +4532,7 @@
     {
       "id": "func:src/oimg.h:vtable_delegate",
       "kind": "func",
-      "loc": "src/oimg.h:73",
+      "loc": "src/oimg.h:77",
       "attrs": {
         "exported": "false",
         "is_handler": "false",
@@ -6325,7 +6325,7 @@
     {
       "id": "func:zephyr/src/main.c:oevm_roots_callback",
       "kind": "func",
-      "loc": "zephyr/src/main.c:1594",
+      "loc": "zephyr/src/main.c:1591",
       "attrs": {
         "exported": "false",
         "is_handler": "false",
@@ -6361,7 +6361,7 @@
     {
       "id": "func:zephyr/src/main.c:zephyr_millis",
       "kind": "func",
-      "loc": "zephyr/src/main.c:1599",
+      "loc": "zephyr/src/main.c:1596",
       "attrs": {
         "exported": "false",
         "is_handler": "false",
@@ -10289,181 +10289,181 @@
       "kind": "calls",
       "from": "func:main",
       "to": "func:k_cycle_get_32",
-      "loc": "zephyr/src/main.c:1918"
-    },
-    {
-      "kind": "calls",
-      "from": "func:main",
-      "to": "func:k_cycle_get_32",
-      "loc": "zephyr/src/main.c:1926"
-    },
-    {
-      "kind": "calls",
-      "from": "func:main",
-      "to": "func:k_cycle_get_32",
-      "loc": "zephyr/src/main.c:1932"
-    },
-    {
-      "kind": "calls",
-      "from": "func:main",
-      "to": "func:k_sleep",
-      "loc": "zephyr/src/main.c:2001"
-    },
-    {
-      "kind": "calls",
-      "from": "func:main",
-      "to": "func:k_uptime_get",
-      "loc": "zephyr/src/main.c:1945"
-    },
-    {
-      "kind": "calls",
-      "from": "func:main",
-      "to": "func:k_uptime_get",
-      "loc": "zephyr/src/main.c:1950"
-    },
-    {
-      "kind": "calls",
-      "from": "func:main",
-      "to": "func:kernel_boot",
       "loc": "zephyr/src/main.c:1915"
     },
     {
       "kind": "calls",
       "from": "func:main",
-      "to": "func:log_udp_start",
-      "loc": "zephyr/src/main.c:1891"
-    },
-    {
-      "kind": "calls",
-      "from": "func:main",
-      "to": "func:observer_start",
-      "loc": "zephyr/src/main.c:1912"
-    },
-    {
-      "kind": "calls",
-      "from": "func:main",
-      "to": "func:oevm_thread_bringup",
-      "loc": "zephyr/src/main.c:1982"
-    },
-    {
-      "kind": "calls",
-      "from": "func:main",
-      "to": "func:oimg_bootstrap",
-      "loc": "zephyr/src/main.c:1989"
-    },
-    {
-      "kind": "calls",
-      "from": "func:main",
-      "to": "func:oimg_load_blob",
-      "loc": "zephyr/src/main.c:1927"
-    },
-    {
-      "kind": "calls",
-      "from": "func:main",
-      "to": "func:oimg_root",
-      "loc": "zephyr/src/main.c:1989"
-    },
-    {
-      "kind": "calls",
-      "from": "func:main",
-      "to": "func:ota_env",
-      "loc": "zephyr/src/main.c:1949"
-    },
-    {
-      "kind": "calls",
-      "from": "func:main",
-      "to": "func:ota_note_running_hash",
-      "loc": "zephyr/src/main.c:1948"
-    },
-    {
-      "kind": "calls",
-      "from": "func:main",
-      "to": "func:ota_sha256",
-      "loc": "zephyr/src/main.c:1947"
-    },
-    {
-      "kind": "calls",
-      "from": "func:main",
-      "to": "func:printk",
-      "loc": "zephyr/src/main.c:1866"
-    },
-    {
-      "kind": "calls",
-      "from": "func:main",
-      "to": "func:printk",
-      "loc": "zephyr/src/main.c:1877"
-    },
-    {
-      "kind": "calls",
-      "from": "func:main",
-      "to": "func:printk",
+      "to": "func:k_cycle_get_32",
       "loc": "zephyr/src/main.c:1923"
     },
     {
       "kind": "calls",
       "from": "func:main",
-      "to": "func:printk",
-      "loc": "zephyr/src/main.c:1931"
+      "to": "func:k_cycle_get_32",
+      "loc": "zephyr/src/main.c:1929"
+    },
+    {
+      "kind": "calls",
+      "from": "func:main",
+      "to": "func:k_sleep",
+      "loc": "zephyr/src/main.c:1998"
+    },
+    {
+      "kind": "calls",
+      "from": "func:main",
+      "to": "func:k_uptime_get",
+      "loc": "zephyr/src/main.c:1942"
+    },
+    {
+      "kind": "calls",
+      "from": "func:main",
+      "to": "func:k_uptime_get",
+      "loc": "zephyr/src/main.c:1947"
+    },
+    {
+      "kind": "calls",
+      "from": "func:main",
+      "to": "func:kernel_boot",
+      "loc": "zephyr/src/main.c:1912"
+    },
+    {
+      "kind": "calls",
+      "from": "func:main",
+      "to": "func:log_udp_start",
+      "loc": "zephyr/src/main.c:1888"
+    },
+    {
+      "kind": "calls",
+      "from": "func:main",
+      "to": "func:observer_start",
+      "loc": "zephyr/src/main.c:1909"
+    },
+    {
+      "kind": "calls",
+      "from": "func:main",
+      "to": "func:oevm_thread_bringup",
+      "loc": "zephyr/src/main.c:1979"
+    },
+    {
+      "kind": "calls",
+      "from": "func:main",
+      "to": "func:oimg_bootstrap",
+      "loc": "zephyr/src/main.c:1986"
+    },
+    {
+      "kind": "calls",
+      "from": "func:main",
+      "to": "func:oimg_load_blob",
+      "loc": "zephyr/src/main.c:1924"
+    },
+    {
+      "kind": "calls",
+      "from": "func:main",
+      "to": "func:oimg_root",
+      "loc": "zephyr/src/main.c:1986"
+    },
+    {
+      "kind": "calls",
+      "from": "func:main",
+      "to": "func:ota_env",
+      "loc": "zephyr/src/main.c:1946"
+    },
+    {
+      "kind": "calls",
+      "from": "func:main",
+      "to": "func:ota_note_running_hash",
+      "loc": "zephyr/src/main.c:1945"
+    },
+    {
+      "kind": "calls",
+      "from": "func:main",
+      "to": "func:ota_sha256",
+      "loc": "zephyr/src/main.c:1944"
     },
     {
       "kind": "calls",
       "from": "func:main",
       "to": "func:printk",
-      "loc": "zephyr/src/main.c:1936"
+      "loc": "zephyr/src/main.c:1863"
     },
     {
       "kind": "calls",
       "from": "func:main",
       "to": "func:printk",
-      "loc": "zephyr/src/main.c:1949"
-    },
-    {
-      "kind": "calls",
-      "from": "func:main",
-      "to": "func:reboot_note_consecutive",
       "loc": "zephyr/src/main.c:1874"
     },
     {
       "kind": "calls",
       "from": "func:main",
+      "to": "func:printk",
+      "loc": "zephyr/src/main.c:1920"
+    },
+    {
+      "kind": "calls",
+      "from": "func:main",
+      "to": "func:printk",
+      "loc": "zephyr/src/main.c:1928"
+    },
+    {
+      "kind": "calls",
+      "from": "func:main",
+      "to": "func:printk",
+      "loc": "zephyr/src/main.c:1933"
+    },
+    {
+      "kind": "calls",
+      "from": "func:main",
+      "to": "func:printk",
+      "loc": "zephyr/src/main.c:1946"
+    },
+    {
+      "kind": "calls",
+      "from": "func:main",
+      "to": "func:reboot_note_consecutive",
+      "loc": "zephyr/src/main.c:1871"
+    },
+    {
+      "kind": "calls",
+      "from": "func:main",
       "to": "func:reboot_note_init",
-      "loc": "zephyr/src/main.c:1873"
+      "loc": "zephyr/src/main.c:1870"
     },
     {
       "kind": "calls",
       "from": "func:main",
       "to": "func:reboot_note_read",
-      "loc": "zephyr/src/main.c:1876"
+      "loc": "zephyr/src/main.c:1873"
     },
     {
       "kind": "calls",
       "from": "func:main",
       "to": "func:runner_select",
-      "loc": "zephyr/src/main.c:1922"
+      "loc": "zephyr/src/main.c:1919"
     },
     {
       "kind": "calls",
       "from": "func:main",
       "to": "func:setvbuf",
-      "loc": "zephyr/src/main.c:1840"
+      "loc": "zephyr/src/main.c:1837"
     },
     {
       "kind": "calls",
       "from": "func:main",
       "to": "func:setvbuf",
-      "loc": "zephyr/src/main.c:1849"
+      "loc": "zephyr/src/main.c:1846"
     },
     {
       "kind": "calls",
       "from": "func:main",
       "to": "func:zephyr/src/main.c:wire_gpio_outputs",
-      "loc": "zephyr/src/main.c:1959"
+      "loc": "zephyr/src/main.c:1956"
     },
     {
       "kind": "calls",
       "from": "func:main",
       "to": "func:zephyr/src/main.c:wire_pulse_gpio",
-      "loc": "zephyr/src/main.c:1958"
+      "loc": "zephyr/src/main.c:1955"
     },
     {
       "kind": "calls",
@@ -18899,91 +18899,91 @@
       "kind": "calls",
       "from": "func:src/oimg.h:binding_method",
       "to": "func:src/oimg.h:is_in_blob",
-      "loc": "src/oimg.h:86"
+      "loc": "src/oimg.h:90"
     },
     {
       "kind": "calls",
       "from": "func:src/oimg.h:binding_method",
       "to": "func:src/oimg.h:oimg_resolve",
-      "loc": "src/oimg.h:86"
+      "loc": "src/oimg.h:90"
     },
     {
       "kind": "calls",
       "from": "func:src/oimg.h:binding_symbol",
       "to": "func:src/oimg.h:is_in_blob",
-      "loc": "src/oimg.h:83"
+      "loc": "src/oimg.h:87"
     },
     {
       "kind": "calls",
       "from": "func:src/oimg.h:binding_symbol",
       "to": "func:src/oimg.h:oimg_resolve",
-      "loc": "src/oimg.h:83"
+      "loc": "src/oimg.h:87"
     },
     {
       "kind": "calls",
       "from": "func:src/oimg.h:closure_entry",
       "to": "func:src/oimg.h:is_in_blob",
-      "loc": "src/oimg.h:98"
+      "loc": "src/oimg.h:102"
     },
     {
       "kind": "calls",
       "from": "func:src/oimg.h:cm_const_at",
       "to": "func:src/oimg.h:is_in_blob",
-      "loc": "src/oimg.h:93"
+      "loc": "src/oimg.h:97"
     },
     {
       "kind": "calls",
       "from": "func:src/oimg.h:cm_const_at",
       "to": "func:src/oimg.h:oimg_resolve",
-      "loc": "src/oimg.h:95"
+      "loc": "src/oimg.h:99"
     },
     {
       "kind": "calls",
       "from": "func:src/oimg.h:cm_instructions",
       "to": "func:src/oimg.h:is_in_blob",
-      "loc": "src/oimg.h:89"
+      "loc": "src/oimg.h:93"
     },
     {
       "kind": "calls",
       "from": "func:src/oimg.h:instance_slot",
       "to": "func:src/oimg.h:is_in_blob",
-      "loc": "src/oimg.h:102"
+      "loc": "src/oimg.h:106"
     },
     {
       "kind": "calls",
       "from": "func:src/oimg.h:instance_slot",
       "to": "func:src/oimg.h:oimg_resolve",
-      "loc": "src/oimg.h:102"
+      "loc": "src/oimg.h:106"
     },
     {
       "kind": "calls",
       "from": "func:src/oimg.h:obj_vtable",
       "to": "func:src/oimg.h:is_in_blob",
-      "loc": "src/oimg.h:61"
+      "loc": "src/oimg.h:65"
     },
     {
       "kind": "calls",
       "from": "func:src/oimg.h:obj_vtable",
       "to": "func:src/oimg.h:oimg_resolve",
-      "loc": "src/oimg.h:61"
+      "loc": "src/oimg.h:65"
     },
     {
       "kind": "calls",
       "from": "func:src/oimg.h:vtable_bindings",
+      "to": "func:src/oimg.h:is_in_blob",
+      "loc": "src/oimg.h:83"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/oimg.h:vtable_delegate",
       "to": "func:src/oimg.h:is_in_blob",
       "loc": "src/oimg.h:79"
     },
     {
       "kind": "calls",
       "from": "func:src/oimg.h:vtable_delegate",
-      "to": "func:src/oimg.h:is_in_blob",
-      "loc": "src/oimg.h:75"
-    },
-    {
-      "kind": "calls",
-      "from": "func:src/oimg.h:vtable_delegate",
       "to": "func:src/oimg.h:oimg_resolve",
-      "loc": "src/oimg.h:75"
+      "loc": "src/oimg.h:79"
     },
     {
       "kind": "calls",
@@ -22595,7 +22595,7 @@
       "kind": "calls",
       "from": "func:zephyr/src/main.c:zephyr_millis",
       "to": "func:k_uptime_get",
-      "loc": "zephyr/src/main.c:1599"
+      "loc": "zephyr/src/main.c:1596"
     },
     {
       "kind": "calls",
@@ -23534,7 +23534,7 @@
       "kind": "declares",
       "from": "unit:src",
       "to": "func:oevm_inst_check",
-      "loc": "src/oimg.h:24",
+      "loc": "src/oimg.h:28",
       "attrs": {
         "sig": "const char *(const struct CompiledMethod *, size_t, uint32_t)",
         "type": "const char *(const struct CompiledMethod *, unsigned int, unsigned int)"
@@ -23634,7 +23634,7 @@
       "kind": "declares",
       "from": "unit:src",
       "to": "func:oevm_method_check",
-      "loc": "src/oimg.h:23",
+      "loc": "src/oimg.h:27",
       "attrs": {
         "sig": "const char *(struct CompiledMethod *)"
       }
@@ -23652,6 +23652,16 @@
     {
       "kind": "declares",
       "from": "unit:src",
+      "to": "func:oimg_bootstrap",
+      "loc": "src/oimg.h:19",
+      "attrs": {
+        "sig": "oop (oop)",
+        "type": "struct Object * (struct Object *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
       "to": "func:oimg_load_blob",
       "loc": "src/oimg.h:15",
       "attrs": {
@@ -23662,8 +23672,18 @@
     {
       "kind": "declares",
       "from": "unit:src",
+      "to": "func:oimg_root",
+      "loc": "src/oimg.h:18",
+      "attrs": {
+        "sig": "oop (void)",
+        "type": "struct Object * (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
       "to": "func:oimg_vtable_name",
-      "loc": "src/oimg.h:19",
+      "loc": "src/oimg.h:23",
       "attrs": {
         "sig": "const char *(oop)",
         "type": "const char *(struct Object *)"
@@ -25268,26 +25288,6 @@
     {
       "kind": "declares",
       "from": "unit:zephyr/src",
-      "to": "func:oimg_bootstrap",
-      "loc": "zephyr/src/main.c:1572",
-      "attrs": {
-        "sig": "oop (oop)",
-        "type": "struct Object * (struct Object *)"
-      }
-    },
-    {
-      "kind": "declares",
-      "from": "unit:zephyr/src",
-      "to": "func:oimg_root",
-      "loc": "zephyr/src/main.c:1571",
-      "attrs": {
-        "sig": "oop (void)",
-        "type": "struct Object * (void)"
-      }
-    },
-    {
-      "kind": "declares",
-      "from": "unit:zephyr/src",
       "to": "func:platform_debug_held",
       "loc": "zephyr/src/observer.c:61",
       "attrs": {
@@ -26371,13 +26371,13 @@
       "kind": "reads_global",
       "from": "func:main",
       "to": "global:_impure_ptr",
-      "loc": "zephyr/src/main.c:1840"
+      "loc": "zephyr/src/main.c:1837"
     },
     {
       "kind": "reads_global",
       "from": "func:main",
       "to": "global:_impure_ptr",
-      "loc": "zephyr/src/main.c:1849"
+      "loc": "zephyr/src/main.c:1846"
     },
     {
       "kind": "reads_global",
@@ -30079,55 +30079,55 @@
       "kind": "reads_global",
       "from": "func:src/oimg.h:closure_entry",
       "to": "global:oimg_blob_base",
-      "loc": "src/oimg.h:98"
+      "loc": "src/oimg.h:102"
     },
     {
       "kind": "reads_global",
       "from": "func:src/oimg.h:cm_const_at",
       "to": "global:oimg_blob_base",
-      "loc": "src/oimg.h:94"
+      "loc": "src/oimg.h:98"
     },
     {
       "kind": "reads_global",
       "from": "func:src/oimg.h:cm_instructions",
       "to": "global:oimg_blob_base",
-      "loc": "src/oimg.h:89"
+      "loc": "src/oimg.h:93"
     },
     {
       "kind": "reads_global",
       "from": "func:src/oimg.h:is_in_blob",
       "to": "global:oimg_blob_base",
-      "loc": "src/oimg.h:36"
+      "loc": "src/oimg.h:40"
     },
     {
       "kind": "reads_global",
       "from": "func:src/oimg.h:is_in_blob",
       "to": "global:oimg_blob_end",
-      "loc": "src/oimg.h:36"
+      "loc": "src/oimg.h:40"
     },
     {
       "kind": "reads_global",
       "from": "func:src/oimg.h:oimg_resolve",
       "to": "global:builtin_registry",
-      "loc": "src/oimg.h:51"
+      "loc": "src/oimg.h:55"
     },
     {
       "kind": "reads_global",
       "from": "func:src/oimg.h:oimg_resolve",
       "to": "global:oimg_blob_base",
-      "loc": "src/oimg.h:50"
+      "loc": "src/oimg.h:54"
     },
     {
       "kind": "reads_global",
       "from": "func:src/oimg.h:oimg_resolve",
       "to": "global:oimg_singleton",
-      "loc": "src/oimg.h:53"
+      "loc": "src/oimg.h:57"
     },
     {
       "kind": "reads_global",
       "from": "func:src/oimg.h:vtable_bindings",
       "to": "global:oimg_blob_base",
-      "loc": "src/oimg.h:79"
+      "loc": "src/oimg.h:83"
     },
     {
       "kind": "reads_global",
@@ -31125,7 +31125,7 @@
       "kind": "stores_fn",
       "from": "func:main",
       "to": "func:zephyr/src/main.c:oevm_roots_callback",
-      "loc": "zephyr/src/main.c:1905",
+      "loc": "zephyr/src/main.c:1902",
       "attrs": {
         "into": ""
       }
@@ -31134,7 +31134,7 @@
       "kind": "stores_fn",
       "from": "func:main",
       "to": "func:zephyr/src/main.c:zephyr_millis",
-      "loc": "zephyr/src/main.c:1906",
+      "loc": "zephyr/src/main.c:1903",
       "attrs": {
         "into": ""
       }
@@ -32556,7 +32556,7 @@
       "kind": "writes_global",
       "from": "func:main",
       "to": "global:gc_additional_roots_hook",
-      "loc": "zephyr/src/main.c:1905",
+      "loc": "zephyr/src/main.c:1902",
       "attrs": {
         "op": "assign"
       }
@@ -32565,7 +32565,7 @@
       "kind": "writes_global",
       "from": "func:main",
       "to": "global:oevm_build_id",
-      "loc": "zephyr/src/main.c:1866",
+      "loc": "zephyr/src/main.c:1863",
       "attrs": {
         "op": "decay"
       }
@@ -32574,7 +32574,7 @@
       "kind": "writes_global",
       "from": "func:main",
       "to": "global:oevm_millis",
-      "loc": "zephyr/src/main.c:1906",
+      "loc": "zephyr/src/main.c:1903",
       "attrs": {
         "op": "assign"
       }
