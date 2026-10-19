@@ -1,5 +1,5 @@
 {
-  "commit": "31257aab",
+  "commit": "e9a1fc8f",
   "root": "/home/david/workspace/rete/nodus/oevm",
   "config": "build-esp32c6-B",
   "partial": false,
@@ -25586,6 +25586,564 @@
         "sig": "int (TCSha512State_t, const uint8_t *, size_t)",
         "type": "int (struct tc_sha512_state_struct *, const unsigned char *, unsigned int)"
       }
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:BoxedBindingVtable",
+      "loc": "src/oevm.h:430"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:BytecodeClosureVtable",
+      "loc": "src/gc.c:876"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:BytecodeClosureVtable",
+      "loc": "src/oevm.h:429"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:ContextVtable",
+      "loc": "src/gc.c:644"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:ContextVtable",
+      "loc": "src/gc.c:906"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:ContextVtable",
+      "loc": "src/oevm.h:285"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:FloatVtable",
+      "loc": "src/gc.c:639"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:FloatVtable",
+      "loc": "src/gc.c:869"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:FloatVtable",
+      "loc": "src/oevm.h:419"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:FloatVtable",
+      "loc": "src/platform.c:523"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:IntegerVtable",
+      "loc": "src/gc.c:868"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:IntegerVtable",
+      "loc": "src/oevm.h:418"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:LargeIntegerVtable",
+      "loc": "src/oevm.h:227"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:LargeIntegerVtable",
+      "loc": "src/platform.c:523"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:MethodContextVtable",
+      "loc": "src/gc.c:870"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:MethodContextVtable",
+      "loc": "src/oevm.h:420"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:PrimitiveClosureVtable",
+      "loc": "src/gc.c:875"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:PrimitiveClosureVtable",
+      "loc": "src/oevm.h:428"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:RawBytesVtable",
+      "loc": "src/gc.c:641"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:RawBytesVtable",
+      "loc": "src/gc.c:873"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:RawBytesVtable",
+      "loc": "src/oevm.h:426"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:RawBytesVtable",
+      "loc": "src/platform.c:522"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:RawBytesVtable",
+      "loc": "src/udp.c:35"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:StackVtable",
+      "loc": "src/gc.c:643"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:StackVtable",
+      "loc": "src/gc.c:905"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:StackVtable",
+      "loc": "src/oevm.h:279"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:StringVtable",
+      "loc": "src/gc.c:640"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:StringVtable",
+      "loc": "src/gc.c:872"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:StringVtable",
+      "loc": "src/http.c:15"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:StringVtable",
+      "loc": "src/oevm.h:422"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:StringVtable",
+      "loc": "src/platform.c:521"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:StringVtable",
+      "loc": "src/space.c:41"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:StringVtable",
+      "loc": "src/udp.c:21"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:SymbolVtable",
+      "loc": "src/gc.c:642"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:SymbolVtable",
+      "loc": "src/gc.c:871"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:SymbolVtable",
+      "loc": "src/oevm.h:421"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:SymbolVtable",
+      "loc": "src/platform.c:521"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:SymbolVtable",
+      "loc": "src/vm.c:1881"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:Symbol_debug_",
+      "loc": "src/gc.c:916"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:Symbol_debug_",
+      "loc": "src/kernel_boot.c:119"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:Symbol_debug_",
+      "loc": "src/vm.c:1880"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:Symbol_value",
+      "loc": "src/gc.c:877"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:Symbol_value",
+      "loc": "src/kernel_boot.c:118"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:VtableVtable",
+      "loc": "src/gc.c:638"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:VtableVtable",
+      "loc": "src/gc.c:874"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:VtableVtable",
+      "loc": "src/oevm.h:427"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:VtableVtable",
+      "loc": "src/platform.c:521"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:VtableVtable",
+      "loc": "src/serial.c:8"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:VtableVtable",
+      "loc": "src/udp.c:20"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:Vtable_SymbolVtable",
+      "loc": "src/dispatch.c:290"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:Vtable_VtableVtable",
+      "loc": "src/dispatch.c:18"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:builtin_registry",
+      "loc": "src/oimg.h:9"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:current_frame",
+      "loc": "src/dispatch.c:1094"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:current_frame",
+      "loc": "src/gc.c:222"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:debugger_hook",
+      "loc": "src/gc.c:915"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:debugger_hook",
+      "loc": "src/vm.c:1879"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:debugger_hook",
+      "loc": "src/vm.c:336"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:false_sym_obj",
+      "loc": "src/oevm.h:433"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:false_sym_obj",
+      "loc": "src/platform.c:524"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:false_sym_obj",
+      "loc": "src/serial.c:9"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:flash_rom_end",
+      "loc": "src/vm.c:2282"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:flash_rom_start",
+      "loc": "src/vm.c:2281"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:g_active_stack",
+      "loc": "src/gc.c:645"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:g_active_stack",
+      "loc": "src/gc.c:907"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:g_boot_inflight_argc",
+      "loc": "src/gc.c:946"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:g_boot_inflight_args",
+      "loc": "src/gc.c:945"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:g_boot_inflight_receiver",
+      "loc": "src/gc.c:944"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:g_kernel_instance",
+      "loc": "src/gc.c:936"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:g_kernel_instance",
+      "loc": "src/oevm.h:551"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:g_raised_condition",
+      "loc": "src/gc.c:929"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:g_raised_condition",
+      "loc": "src/oevm.h:550"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:method_override_count",
+      "loc": "src/oevm.h:574"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:method_overrides",
+      "loc": "src/oevm.h:573"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:method_patch_count",
+      "loc": "src/oevm.h:581"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:method_patches",
+      "loc": "src/oevm.h:580"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:oevm_build_id",
+      "loc": "src/platform.c:44"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:oevm_manifest_pin",
+      "loc": "src/platform.c:57"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:oevm_manifest_pin_len",
+      "loc": "src/platform.c:58"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:oevm_millis",
+      "loc": "src/oevm.h:537"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:oimg_blob_base",
+      "loc": "src/oimg.h:7"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:oimg_blob_end",
+      "loc": "src/oimg.h:8"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:oimg_singleton",
+      "loc": "src/oimg.h:10"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:platform_debug_pending",
+      "loc": "src/platform_backend.h:62"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:true_sym_obj",
+      "loc": "src/oevm.h:432"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:true_sym_obj",
+      "loc": "src/platform.c:524"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:true_sym_obj",
+      "loc": "src/serial.c:9"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:vm_stack",
+      "loc": "src/dispatch.c:1095"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:vm_stack",
+      "loc": "src/gc.c:220"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src",
+      "to": "global:vm_stack_ptr",
+      "loc": "src/gc.c:221"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:src/backend/zephyr",
+      "to": "global:oevm_board_name",
+      "loc": "src/backend/zephyr/platform_zephyr.c:433"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:zephyr/src",
+      "to": "global:gc_additional_roots_hook",
+      "loc": "zephyr/src/main.c:1583"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:zephyr/src",
+      "to": "global:oevm_build_id",
+      "loc": "zephyr/src/main.c:1589"
+    },
+    {
+      "kind": "declares_global",
+      "from": "unit:zephyr/src",
+      "to": "global:oevm_millis",
+      "loc": "zephyr/src/main.c:1584"
     },
     {
       "kind": "reads_global",

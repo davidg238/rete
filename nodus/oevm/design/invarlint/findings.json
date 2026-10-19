@@ -10680,54 +10680,6 @@
   },
   {
     "rule": "unowned-writer",
-    "subject": "global:pulse_q",
-    "message": "global:pulse_q has 5 write statements in 4 functions and no card owns it",
-    "count": 5,
-    "sites": [
-      {
-        "func": "func:pulse_pending",
-        "loc": "src/backend/zephyr/pulse_zephyr.c:94"
-      },
-      {
-        "func": "func:pulse_pump",
-        "loc": "src/backend/zephyr/pulse_zephyr.c:100"
-      },
-      {
-        "func": "func:pulse_pump",
-        "loc": "src/backend/zephyr/pulse_zephyr.c:104"
-      },
-      {
-        "func": "func:pulse_pump_nb",
-        "loc": "src/backend/zephyr/pulse_zephyr.c:122"
-      },
-      {
-        "func": "func:src/backend/zephyr/pulse_zephyr.c:pulse_enqueue",
-        "loc": "src/backend/zephyr/pulse_zephyr.c:52"
-      }
-    ]
-  },
-  {
-    "rule": "unowned-writer",
-    "subject": "global:rl_q",
-    "message": "global:rl_q has 3 write statements in 3 functions and no card owns it",
-    "count": 3,
-    "sites": [
-      {
-        "func": "func:platform_console_take_line",
-        "loc": "src/backend/zephyr/platform_zephyr.c:191"
-      },
-      {
-        "func": "func:src/backend/zephyr/platform_zephyr.c:rl_getc",
-        "loc": "src/backend/zephyr/platform_zephyr.c:170"
-      },
-      {
-        "func": "func:src/backend/zephyr/platform_zephyr.c:rl_isr",
-        "loc": "src/backend/zephyr/platform_zephyr.c:146"
-      }
-    ]
-  },
-  {
-    "rule": "unowned-writer",
     "subject": "global:platform_debug_pending",
     "message": "global:platform_debug_pending has 2 write statements in 2 functions and no card owns it",
     "count": 2,

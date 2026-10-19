@@ -1,4 +1,4 @@
-# invarlint findings — 31257aab
+# invarlint findings — e9a1fc8f
 
 ## owns-violated (2)
 
@@ -7,12 +7,10 @@
 | global:Symbol_debug_ | 1 | `primitive_register_debugger_hook` (src/vm.c:1893) |
 | global:Symbol_value | 1 | `run_interpreter` (src/vm.c:1039) |
 
-## unowned-writer (3)
+## unowned-writer (1)
 
 | subject | count | sites |
 |---|---|---|
-| global:pulse_q | 5 | `pulse_pending` (src/backend/zephyr/pulse_zephyr.c:94)<br>`pulse_pump` (src/backend/zephyr/pulse_zephyr.c:100)<br>`pulse_pump` (src/backend/zephyr/pulse_zephyr.c:104)<br>`pulse_pump_nb` (src/backend/zephyr/pulse_zephyr.c:122)<br>`pulse_zephyr.c:pulse_enqueue` (src/backend/zephyr/pulse_zephyr.c:52) |
-| global:rl_q | 3 | `platform_console_take_line` (src/backend/zephyr/platform_zephyr.c:191)<br>`platform_zephyr.c:rl_getc` (src/backend/zephyr/platform_zephyr.c:170)<br>`platform_zephyr.c:rl_isr` (src/backend/zephyr/platform_zephyr.c:146) |
 | global:platform_debug_pending | 2 | `platform_zephyr.c:rl_isr` (src/backend/zephyr/platform_zephyr.c:149)<br>`platform_zephyr.c:rl_line_taken` (src/backend/zephyr/platform_zephyr.c:164) |
 
 ## context-coupling (6)

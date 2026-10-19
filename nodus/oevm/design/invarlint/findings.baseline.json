@@ -2,12 +2,5 @@
   "owns-violated|global:Symbol_debug_|func:primitive_register_debugger_hook",
   "owns-violated|global:Symbol_value|func:run_interpreter",
   "unowned-writer|global:platform_debug_pending|func:src/backend/zephyr/platform_zephyr.c:rl_isr",
-  "unowned-writer|global:platform_debug_pending|func:src/backend/zephyr/platform_zephyr.c:rl_line_taken",
-  "unowned-writer|global:pulse_q|func:pulse_pending",
-  "unowned-writer|global:pulse_q|func:pulse_pump",
-  "unowned-writer|global:pulse_q|func:pulse_pump_nb",
-  "unowned-writer|global:pulse_q|func:src/backend/zephyr/pulse_zephyr.c:pulse_enqueue",
-  "unowned-writer|global:rl_q|func:platform_console_take_line",
-  "unowned-writer|global:rl_q|func:src/backend/zephyr/platform_zephyr.c:rl_getc",
-  "unowned-writer|global:rl_q|func:src/backend/zephyr/platform_zephyr.c:rl_isr"
+  "unowned-writer|global:platform_debug_pending|func:src/backend/zephyr/platform_zephyr.c:rl_line_taken"
 ]
