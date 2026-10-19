@@ -504,39 +504,10 @@ void deep_sleep_target(int seconds) {
     exit(0);
 }
 #else
-/* On target these live in zephyr/src/main.c, beside the legacy cosine-generator
-   calls and the devicetree nodes they read — same split, same reason as the
-   display five above (tuvm#63). Like those, both symbols must exist and link on
-   EVERY Zephyr board, including the ones with no speaker: the guard goes inside
-   the function bodies, never around the definitions. */
-/* tuvm#94 stage 4. Same rule as the bell pair above: the symbol must link on EVERY
-   Zephyr board, so main.c guards the BODY (a board without CONFIG_WIFI answers -1),
-   never the definition. */
-/* tuvm#100 (2026-08-01): the date half of the NTP seam. Same linkage rule; it
-   answers -1 until a sync has succeeded, so a board with no network is already
-   handled without a second guard. */
-/* tuvm#94 stage 5: RTC-retention leaves live in zephyr/src/main.c (the .rtc.data
-   struct is beside the wifi/ntp leaves). Same rule as bell/ntp — the symbols link on
-   every Zephyr board; main.c guards bodies, never definitions. */
-/* rete#233 T10: the reset-cause leaf (hwinfo) lives in zephyr/src/main.c beside the
-   RTC retention block. Same rule: links on every board; a board whose hwinfo has no
-   reset cause answers 1 from the body. */
-extern int reset_cause_timer_wake(void);
-/* rete#215: the panic note's leaves live in zephyr/src/reboot_note.c (declared in
-   reboot_note.h), beside the RTC retention block they share a section with. Same rule
-   as bell/ntp/rtc above — that file guards bodies, never definitions. */
-/* tuvm#94 stage 5: deepSleep: device leaf deferred to a later task (zephyr/src/main.c
-   not yet touched); the extern must exist now so this shared translation unit links. */
-extern void deep_sleep_target(int seconds);
-/* tuvm#100: the wall-clock leaf lives in zephyr/src/main.c beside the other
-   devicetree-reading leaves. Same rule as bell/ntp/rtc — the symbol must link on
-   EVERY Zephyr board, so main.c guards the BODY (a board with no RTC node in its
-   devicetree answers -1), never the definition. */
-/* shipsBellsV3 (#102): the RTC alarm leaf, same rule as the wall-clock one above
-   — zephyr/src/main.c guards the BODY (a board with no RTC alias, or an image
-   built without CONFIG_RTC_ALARM, answers -1), never the definition, so the
-   symbol links on every Zephyr board. */
-extern int rtc_alarm_arm(int seconds_of_day, int chan_id, int handle_idx);
+/* On target the leaves live in zephyr/src/main.c (the panic note's in
+   zephyr/src/reboot_note.c), declared once in target_backend.h and reboot_note.h
+   (invarlint#53, #48). Every symbol links on EVERY Zephyr board: a board without the
+   hardware guards the BODY, never the definition. */
 #endif
 
 /* Target GPIO-ISR entry (Zephyr rung-2 Task 8): a real on-target GPIO edge

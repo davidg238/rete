@@ -40,4 +40,13 @@ int wallclock_target_set(int yyyymmdd, int seconds_of_day);
 /* rete#215: the app's timers, for the observer's cadence. */
 int timer_target_snapshot(uint32_t *period_ms, uint32_t *since_ms, int max);
 
+/* tuvm#94 stage 5: deep sleep for `seconds` (host: exits). */
+void deep_sleep_target(int seconds);
+/* rete#233 T10: 1 when this boot was a timer wake; a board whose hwinfo has no reset
+   cause answers 1. */
+int reset_cause_timer_wake(void);
+/* shipsBellsV3 (#102): arm the RTC alarm; -1 on a board with no RTC alias or an image
+   built without CONFIG_RTC_ALARM. */
+int rtc_alarm_arm(int seconds_of_day, int chan_id, int handle_idx);
+
 #endif
