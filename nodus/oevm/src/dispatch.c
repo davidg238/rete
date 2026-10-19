@@ -39,7 +39,6 @@ oop Symbol_debug_ = NULL;
    capped at 2^64-1; results are demoted back to an SMI when they fit. Portable
    to -m32 (no __int128). */
 oop largeint_alloc(int sign, uint64_t mag) {
-    extern oop gc_allocate(oop vtable, size_t size);
     struct LargeInteger *li = (struct LargeInteger *)gc_allocate(
         LargeIntegerVtable, sizeof(struct LargeInteger));
     li->sign = (sign < 0) ? -1 : 1;
@@ -53,7 +52,6 @@ oop largeint_alloc(int sign, uint64_t mag) {
    shape, but as a single GC-managed heap object instead of a malloc'd C
    array. */
 oop stack_alloc(uint32_t capacity) {
-    extern oop gc_allocate(oop vtable, size_t size);
     size_t bytes = sizeof(struct Stack) + (size_t)capacity * sizeof(oop);
     oop s = gc_allocate(StackVtable, bytes);
     struct Stack *st = (struct Stack *)s;
@@ -70,8 +68,6 @@ oop stack_alloc(uint32_t capacity) {
    across the allocation (a GC during gc_allocate would otherwise sweep it
    before it's linked into the new Context). */
 OEVM_HOT oop context_alloc(uint32_t num_slots, oop outer) {
-    extern oop gc_allocate(oop vtable, size_t size);
-    extern void gc_temp_root_push(oop o);
     extern int gc_temp_roots_count;
     /* Hardened (Task 2 review carry-forward): context_alloc is now reachable
        from the LIVE interpreter (OP_MK_CONTEXT), where the caller may already
@@ -322,7 +318,6 @@ OEVM_HOT int is_truthy(oop obj) {
 }
 
 /* Declare VM interpreter entry point */
-extern oop run_interpreter(oop closure, oop receiver, int argc, oop *args);
 
 #ifndef OEVM_NO_DEBUG_HOOKS
 /* rete#313: methods replaced at runtime. An image's vtables are read-only (the
@@ -453,7 +448,6 @@ static struct Vtable MessageMockVtable;
 static int message_mock_initialized = 0;
 
 static oop make_message(oop selector) {
-    extern oop gc_allocate(oop vtable, size_t size);
     if (!message_mock_initialized) {
         MessageMockVtable.base.vtable = VtableVtable;
         MessageMockVtable.size = 0;
@@ -636,7 +630,6 @@ static oop run_method_on(oop method, oop self, int argc, oop *args) {
 }
 
 static oop boundclass_construct(oop bc, oop selector, int argc, oop *args, int rule) {
-    extern oop gc_allocate(oop vtable, size_t size);
     struct ObjectInstance *bci = (struct ObjectInstance *)bc;
     oop nested_vtable = bci->slots[0];
     oop outer = bci->slots[1];
@@ -1078,7 +1071,6 @@ static int classify_selector_name(const char *name) {
    allocate/copy/terminate sequence; making it one function is what makes "a Symbol knows
    its prim id" an invariant rather than six things to remember. */
 oop symbol_new(const char *bytes, size_t len) {
-    extern oop gc_allocate(oop vtable, size_t size);
     oop s = gc_allocate(SymbolVtable, sizeof(struct Symbol) + len + 1);
     if (s == NULL) return NULL;
     struct Symbol *sy = (struct Symbol *)s;
@@ -1104,7 +1096,6 @@ int selector_prim_id(struct Symbol *sym) {
 OEVM_HOT oop make_closure(oop method) {
     extern struct MethodContext *current_frame;
     extern oop *vm_stack;
-    extern oop gc_allocate(oop vtable, size_t size);
     oop cl = gc_allocate(BytecodeClosureVtable, sizeof(struct Closure));
     /* Capture the enclosing frame as a relative home_ctx (growth-ready). NULL when
        there is no current frame, preserving the old (oop)NULL no-home result. */
@@ -1130,7 +1121,6 @@ OEVM_HOT oop make_closure(oop method) {
 
 /* Allocate an immutable String with inline UTF-8 bytes (std-lib 3c-1). */
 static oop make_string(const char *bytes, size_t len) {
-    extern oop gc_allocate(oop vtable, size_t size);
     oop s = gc_allocate(StringVtable, sizeof(struct String) + len);
     ((struct String *)s)->length = len;
     if (len > 0) memcpy(((struct String *)s)->bytes, bytes, len);
@@ -1152,7 +1142,6 @@ static oop make_string(const char *bytes, size_t len) {
    the binding by identity. Fallbacks (pre-capture / helper missing — neither should
    occur) raise the bare text, preserving a sane terminate. */
 static oop build_and_raise(oop tag, oop text) {
-    extern void gc_temp_root_push(oop o);
     extern int gc_temp_roots_count;
     if (g_kernel_instance == NULL) {
         vm_raise(text);   /* pre-entry: impossible in practice, but keep terminate */
@@ -1203,7 +1192,6 @@ static oop build_and_raise(oop tag, oop text) {
    the g_raised_condition GC root). Fallbacks (pre-capture / helper missing — neither
    should occur) raise the bare text, preserving a sane terminate. */
 static oop build_and_raise_default(oop text) {
-    extern void gc_temp_root_push(oop o);
     extern int gc_temp_roots_count;
     if (g_kernel_instance == NULL) {
         vm_raise(text);   /* pre-entry: impossible in practice, but keep terminate */
@@ -1458,7 +1446,6 @@ OEVM_HOT oop send_resolve(oop receiver, oop selector, int argc, oop *args,
             break;
             case PRIM_asFloat: {
                 // Integer -> boxed Float; Float -> itself (still boxed fresh).
-                extern oop gc_allocate(oop vtable, size_t size);
                 double v = IS_SMI(receiver) ? (double)UNTAG_SMI(receiver)
                     : ((receiver != NULL && obj_vtable(receiver) == FloatVtable) ? ((struct Float *)receiver)->value : 0.0);
                 struct Float *f = (struct Float *)float_alloc(FloatVtable);
@@ -1469,7 +1456,6 @@ OEVM_HOT oop send_resolve(oop receiver, oop selector, int argc, oop *args,
             case PRIM_sqrt: {
                 // __builtin_sqrt emits the hardware sqrt inline, so we avoid a
                 // libm (-lm) link dependency the test runner does not pass.
-                extern oop gc_allocate(oop vtable, size_t size);
                 double v = IS_SMI(receiver) ? (double)UNTAG_SMI(receiver)
                     : ((receiver != NULL && obj_vtable(receiver) == FloatVtable) ? ((struct Float *)receiver)->value : 0.0);
                 struct Float *f = (struct Float *)float_alloc(FloatVtable);
@@ -1487,7 +1473,6 @@ OEVM_HOT oop send_resolve(oop receiver, oop selector, int argc, oop *args,
                 // Build a BoundClass {nested_vtable=receiver, outer=args[0],
                 // slot_count=args[1]}. Emitted by synthetic nested-class
                 // accessors; consumed by the BoundClass intercept in send().
-                extern oop gc_allocate(oop vtable, size_t size);
                 oop bcvt = ensure_boundclass_vtable();
                 oop bc = gc_allocate(bcvt, sizeof(struct ObjectInstance) + 3 * sizeof(oop));
                 struct ObjectInstance *bci = (struct ObjectInstance *)bc;
@@ -1802,7 +1787,6 @@ OEVM_HOT oop send_resolve(oop receiver, oop selector, int argc, oop *args,
                     // by Object.nsl — fall through to vtable method lookup.
                     break;
                 }
-                extern oop gc_allocate(oop vtable, size_t size);
                 size_t blen = strlen(buf);
                 /* rete#190 stage 2: the bytes are inline, so the separate
                    oevm_malloc for `name` (and its NULL check) is gone — one
@@ -1848,7 +1832,6 @@ OEVM_HOT oop send_resolve(oop receiver, oop selector, int argc, oop *args,
                 if (receiver != NULL && !IS_SMI(receiver) && StringVtable != NULL &&
                     obj_vtable(receiver) == StringVtable &&
                     args[0] != NULL && !IS_SMI(args[0]) && obj_vtable(args[0]) == StringVtable) {
-                    extern oop gc_allocate(oop vtable, size_t size);
                     struct String *a = (struct String *)receiver;
                     struct String *b = (struct String *)args[0];
                     size_t n = a->length + b->length;

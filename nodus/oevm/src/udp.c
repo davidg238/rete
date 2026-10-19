@@ -18,7 +18,6 @@
 
 extern oop VtableVtable;
 extern oop StringVtable;
-extern oop gc_allocate(oop vtable, size_t size);
 extern oop indexable_new(intptr_t n);   /* platform.c: alloc n-slot indexable */
 
 static struct Object UdpObj;
@@ -86,8 +85,6 @@ oop udp_dispatch(oop selector, int argc, oop *args) {
            C-stack scan used to keep these bare-local oops live; with it gone,
            dataS is live across two later allocations and hostS across one, so
            each must be pinned as a temp root before those allocations run. */
-        extern void gc_temp_root_push(oop o);
-        extern void gc_temp_roots_clear(void);
         oop dataS = udp_make_bytes(buf, (size_t)n);
         gc_temp_root_push(dataS);
         oop hostS = udp_make_string((const uint8_t *)host, strlen(host));

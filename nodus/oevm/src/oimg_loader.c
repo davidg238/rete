@@ -279,14 +279,10 @@ oop oimg_kernel_vtable(void) {
 }
 
 oop oimg_bootstrap(oop entry_vtable) {
-    extern oop send(oop receiver, oop selector, int argc, oop *args);
-    extern oop gc_allocate(oop vtable, size_t size);
     /* oevm#21: pin boot instances as PRECISE GC roots — they are held in C locals
        across the send sequence below, and the conservative C-stack scan that would
        otherwise root them is defeated by ASan's fake-stack, so a GC_STRESS collection
        mid-boot can sweep them and corrupt dispatch. Cleared before every return. */
-    extern void gc_temp_root_push(oop o);
-    extern void gc_temp_roots_clear(void);
 
     /* std-lib step 3b: (1) native platform; (2) construct Kernel usingPlatform:
        <native>; (3) hand the Kernel INSTANCE to the app as its `platform`. The

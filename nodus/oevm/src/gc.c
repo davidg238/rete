@@ -837,7 +837,6 @@ OEVM_HOT void gc_collect(void) {
        GC roots; after a non-moving sweep + slot reuse a stale entry could alias a
        reused address and produce a spurious cache hit dispatching the wrong method.
        GC is rare (exhaustion-triggered), so flushing here is cheap. */
-    extern void method_cache_flush(void);
     method_cache_flush();
     mark_sp = 0;
     mark_overflowed = 0;

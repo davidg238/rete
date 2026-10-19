@@ -554,7 +554,6 @@ extern int rtc_alarm_arm(int seconds_of_day, int chan_id, int handle_idx);
    builds (host_gpio_fire serves the sim there), harmless when never called. */
 void gpio_target_fire(int pin) { host_gpio_fire(pin); }
 
-extern oop gc_allocate(oop vtable, size_t size);
 extern oop StringVtable, SymbolVtable, VtableVtable;
 extern oop RawBytesVtable;   /* Milestone B Task 3: RawBytes leaf storage */
 extern oop LargeIntegerVtable, FloatVtable;   /* Milestone B Task 4: valueRank: */
@@ -1047,7 +1046,6 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
                                     (const char *)p->bytes, p->length,
                                     ids, (int)want);
 
-        extern void gc_temp_root_push(oop o);
         extern int gc_temp_roots_count;
         int saved = gc_temp_roots_count;
 
@@ -1220,8 +1218,6 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
            (mirrors src/udp.c). `argv` is a heap LargeInteger on the large-arg
            branch (arg > INTPTR_MAX>>1) and is held live across indexable_new(3);
            pin it before that allocation. TAG_SMI pushes are harmless. */
-        extern void gc_temp_root_push(oop o);
-        extern void gc_temp_roots_clear(void);
         oop argv = (arg <= (uint64_t)(INTPTR_MAX>>1)) ? TAG_SMI((intptr_t)arg)
                                                       : oevm_int_demote(largeint_alloc(+1, arg));
         gc_temp_root_push(argv);
@@ -1267,8 +1263,6 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
            heap Float held live across indexable_new(2); the non-stack-scanning
            mark-sweep GC would sweep it, so pin it as a temp root first (mirrors
            src/udp.c). This fires on EVERY call, not just an edge case. */
-        extern void gc_temp_root_push(oop o);
-        extern void gc_temp_roots_clear(void);
         oop f = float_alloc(FloatVtable); ((struct Float*)f)->value = d;
         gc_temp_root_push(f);
         oop r = indexable_new(2);
@@ -1388,7 +1382,6 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
         if (dn < 0) dn = 0;
         if (dn > (int)sizeof detail - 1) dn = (int)sizeof detail - 1;
 
-        extern void gc_temp_root_push(oop o);
         extern int gc_temp_roots_count;
         int saved = gc_temp_roots_count;
 

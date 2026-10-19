@@ -12,10 +12,7 @@
 #include <string.h>
 
 extern oop StringVtable;
-extern oop gc_allocate(oop vtable, size_t size);
 extern oop indexable_new(intptr_t n);
-extern void gc_temp_root_push(oop o);
-extern void gc_temp_roots_clear(void);
 
 static oop http_make_string(const char *bytes, size_t len) {
     oop s = gc_allocate(StringVtable, sizeof(struct String) + len);

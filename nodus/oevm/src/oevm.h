@@ -248,6 +248,12 @@ double oevm_int_to_double(oop x);
  */
 oop float_alloc(oop vtable);
 
+/* The collector's entry points (src/gc.c), declared once here (invarlint#48). */
+oop  gc_allocate(oop vtable, size_t size);
+void mark_object(oop ptr);
+void gc_temp_root_push(oop o);
+void gc_temp_roots_clear(void);
+
 /* struct Fiber (the cooperative execution-context wrapper) was removed in
    Milestone A Task 6. The running execution state is now exactly g_active_stack
    (a Stack heap object, a GC root) + vm_stack/vm_stack_ptr + current_frame; the
@@ -545,6 +551,7 @@ extern oop g_kernel_instance;   /* Milestone E Task 1: Kernel module instance, s
 int boundclass_is(oop o);
 oop make_closure(oop method);
 oop send(oop receiver, oop selector, int argc, oop *args);
+oop run_interpreter(oop closure, oop receiver, int argc, oop *args);   /* src/vm.c */
 /* Resolve a send without invoking a bytecode target (de-recursify Phase 2). On a
    bytecode/value-family target, sets the out-params (method, recv, argc) and
    returns NULL; otherwise services the send inline and returns the value (out

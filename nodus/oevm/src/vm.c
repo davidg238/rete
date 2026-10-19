@@ -48,7 +48,6 @@ static uint64_t default_millis(void) {
 }
 uint64_t (*oevm_millis)(void) = default_millis;
 
-extern oop gc_allocate(oop vtable, size_t size);
 
 
 
@@ -116,7 +115,6 @@ static oop vm_condition_text(oop condition) {
     }
     if (atIfAbsentSel == NULL) return NULL;
     /* Fresh interned #text tag to probe the fields Map (rooted across the send). */
-    extern void gc_temp_root_push(oop o);
     extern int gc_temp_roots_count;
     int saved_roots = gc_temp_roots_count;
     gc_temp_root_push(condition);
@@ -165,7 +163,6 @@ void vm_raise(oop condition) {
    define live execution state (mirrors exit_frame, vm.c:887-888) + the temp-root
    count. The half-built object graph of the crashed block becomes unreachable and
    is swept normally (non-moving GC; nothing to fix up). */
-extern oop run_interpreter(oop closure, oop receiver, int argc, oop *args); /* defined below in this file */
 oop vm_protected_fire(oop block, oop value) {
     jmp_buf env;
     jmp_buf *saved_top          = g_protect_top;
@@ -208,7 +205,6 @@ oop vm_protected_fire(oop block, oop value) {
    stored into the GC-scanned frame run_interpreter builds, exactly as in
    vm_protected_fire.) */
 oop vm_on_do(oop protBlock, oop predBlock, oop handlerBlock) {
-    extern void gc_temp_root_push(oop o);
     jmp_buf env;
     jmp_buf *saved_top          = g_protect_top;
     size_t saved_sp             = vm_stack_ptr;
@@ -269,7 +265,6 @@ oop vm_on_do(oop protBlock, oop predBlock, oop handlerBlock) {
    cleanup re-entry before the re-raise. The gc_temp_roots_count SAVE/RESTORE
    idiom balances every exit. */
 oop vm_ensure(oop protBlock, oop cleanupBlock) {
-    extern void gc_temp_root_push(oop o);
     jmp_buf env;
     jmp_buf *saved_top          = g_protect_top;
     size_t saved_sp             = vm_stack_ptr;
@@ -739,7 +734,6 @@ static int bp_hit(oop method, long off) {
 typedef oop (*PrimitiveFunc)(oop receiver, int argc, oop *args);
 
 /* Forward declarations */
-extern oop send(oop receiver, oop selector, int argc, oop *args);
 
 /*
  * Control flow and reflection primitives
@@ -1826,8 +1820,6 @@ oop primitive_vtable_bindings(oop receiver, int argc, oop *args) {
        root. gc_allocate does not zero memory, so seed every slot to NULL FIRST,
        before any allocation, so a GC that now traces the rooted arr never reads
        garbage out of a half-built array. */
-    extern void gc_temp_root_push(oop o);
-    extern void gc_temp_roots_clear(void);
     for (size_t i = 0; i < vt->size; i++) arr->slots[i] = NULL;
     gc_temp_root_push((oop)arr);
 
