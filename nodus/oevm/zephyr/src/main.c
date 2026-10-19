@@ -29,7 +29,7 @@
 #include "oevm.h"
 #include "space.h"        /* rete#233 T10: space_channel_count at the deep-sleep line */
 #include "reboot_note.h"  /* rete#215: the retained panic note (this file owns the storage) */
-void observer_start(void);   /* zephyr/src/observer.c (rete#215) */
+#include "observer.h"     /* observer_start (rete#215, invarlint#48) */
 #include "oimg.h"
 #include "thread_bringup.h"
 #include "log_udp.h"

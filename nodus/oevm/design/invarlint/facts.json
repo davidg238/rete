@@ -1,5 +1,5 @@
 {
-  "commit": "009748a7",
+  "commit": "f34a9b09",
   "root": "/home/david/workspace/rete/nodus/oevm",
   "config": "build-esp32c6-B",
   "partial": false,
@@ -800,7 +800,7 @@
     {
       "id": "func:k_sys_fatal_error_handler",
       "kind": "func",
-      "loc": "zephyr/src/reboot_note.c:87",
+      "loc": "zephyr/src/reboot_note.c:85",
       "attrs": {
         "exported": "true",
         "is_handler": "false",
@@ -1136,7 +1136,7 @@
     {
       "id": "func:observer_halt",
       "kind": "func",
-      "loc": "zephyr/src/observer.c:334",
+      "loc": "zephyr/src/observer.c:335",
       "attrs": {
         "exported": "true",
         "is_handler": "false",
@@ -1148,7 +1148,7 @@
     {
       "id": "func:observer_start",
       "kind": "func",
-      "loc": "zephyr/src/observer.c:395",
+      "loc": "zephyr/src/observer.c:396",
       "attrs": {
         "exported": "true",
         "is_handler": "false",
@@ -2366,7 +2366,7 @@
     {
       "id": "func:reboot_note_ack",
       "kind": "func",
-      "loc": "zephyr/src/reboot_note.c:66",
+      "loc": "zephyr/src/reboot_note.c:64",
       "attrs": {
         "exported": "true",
         "is_handler": "false",
@@ -2379,7 +2379,7 @@
     {
       "id": "func:reboot_note_consecutive",
       "kind": "func",
-      "loc": "zephyr/src/reboot_note.c:71",
+      "loc": "zephyr/src/reboot_note.c:69",
       "attrs": {
         "exported": "true",
         "is_handler": "false",
@@ -2392,7 +2392,7 @@
     {
       "id": "func:reboot_note_init",
       "kind": "func",
-      "loc": "zephyr/src/reboot_note.c:39",
+      "loc": "zephyr/src/reboot_note.c:37",
       "attrs": {
         "exported": "true",
         "is_handler": "false",
@@ -2404,7 +2404,7 @@
     {
       "id": "func:reboot_note_read",
       "kind": "func",
-      "loc": "zephyr/src/reboot_note.c:43",
+      "loc": "zephyr/src/reboot_note.c:41",
       "attrs": {
         "exported": "true",
         "is_handler": "false",
@@ -2416,7 +2416,7 @@
     {
       "id": "func:reboot_note_write",
       "kind": "func",
-      "loc": "zephyr/src/reboot_note.c:49",
+      "loc": "zephyr/src/reboot_note.c:47",
       "attrs": {
         "exported": "true",
         "is_handler": "false",
@@ -6374,7 +6374,7 @@
     {
       "id": "func:zephyr/src/observer.c:obs_trace_dump",
       "kind": "func",
-      "loc": "zephyr/src/observer.c:111",
+      "loc": "zephyr/src/observer.c:112",
       "attrs": {
         "exported": "false",
         "is_handler": "false",
@@ -6386,7 +6386,7 @@
     {
       "id": "func:zephyr/src/observer.c:obs_trace_record",
       "kind": "func",
-      "loc": "zephyr/src/observer.c:102",
+      "loc": "zephyr/src/observer.c:103",
       "attrs": {
         "exported": "false",
         "is_handler": "false",
@@ -6398,7 +6398,7 @@
     {
       "id": "func:zephyr/src/observer.c:observer_dump",
       "kind": "func",
-      "loc": "zephyr/src/observer.c:314",
+      "loc": "zephyr/src/observer.c:315",
       "attrs": {
         "exported": "false",
         "is_handler": "false",
@@ -6410,7 +6410,7 @@
     {
       "id": "func:zephyr/src/observer.c:observer_forensics",
       "kind": "func",
-      "loc": "zephyr/src/observer.c:303",
+      "loc": "zephyr/src/observer.c:304",
       "attrs": {
         "exported": "false",
         "is_handler": "false",
@@ -6422,7 +6422,7 @@
     {
       "id": "func:zephyr/src/observer.c:observer_thread_fn",
       "kind": "func",
-      "loc": "zephyr/src/observer.c:343",
+      "loc": "zephyr/src/observer.c:344",
       "attrs": {
         "exported": "false",
         "is_handler": "false",
@@ -6434,7 +6434,7 @@
     {
       "id": "func:zephyr/src/observer.c:observer_verdict",
       "kind": "func",
-      "loc": "zephyr/src/observer.c:142",
+      "loc": "zephyr/src/observer.c:143",
       "attrs": {
         "exported": "false",
         "is_handler": "false",
@@ -6446,7 +6446,7 @@
     {
       "id": "func:zephyr/src/reboot_note.c:rn_reason_for",
       "kind": "func",
-      "loc": "zephyr/src/reboot_note.c:78",
+      "loc": "zephyr/src/reboot_note.c:76",
       "attrs": {
         "exported": "false",
         "is_handler": "false",
@@ -6918,7 +6918,7 @@
     {
       "id": "global:observer_stack",
       "kind": "global",
-      "loc": "zephyr/src/observer.c:392",
+      "loc": "zephyr/src/observer.c:393",
       "attrs": {
         "type": "struct z_thread_stack_element[2048]",
         "unit": "unit:zephyr/src"
@@ -8817,7 +8817,7 @@
     {
       "id": "global:zephyr/src/observer.c:g_core",
       "kind": "global",
-      "loc": "zephyr/src/observer.c:87",
+      "loc": "zephyr/src/observer.c:88",
       "attrs": {
         "type": "struct ObsCore",
         "unit": "unit:zephyr/src"
@@ -8826,7 +8826,7 @@
     {
       "id": "global:zephyr/src/observer.c:g_hw_wdt",
       "kind": "global",
-      "loc": "zephyr/src/observer.c:80",
+      "loc": "zephyr/src/observer.c:81",
       "attrs": {
         "type": "const struct device *",
         "unit": "unit:zephyr/src"
@@ -8835,7 +8835,7 @@
     {
       "id": "global:zephyr/src/observer.c:g_trace",
       "kind": "global",
-      "loc": "zephyr/src/observer.c:99",
+      "loc": "zephyr/src/observer.c:100",
       "attrs": {
         "type": "struct ObsTrace[32]",
         "unit": "unit:zephyr/src"
@@ -8844,7 +8844,7 @@
     {
       "id": "global:zephyr/src/observer.c:g_trace_w",
       "kind": "global",
-      "loc": "zephyr/src/observer.c:100",
+      "loc": "zephyr/src/observer.c:101",
       "attrs": {
         "type": "uint32_t",
         "unit": "unit:zephyr/src"
@@ -8853,7 +8853,7 @@
     {
       "id": "global:zephyr/src/observer.c:g_wdt_channel",
       "kind": "global",
-      "loc": "zephyr/src/observer.c:81",
+      "loc": "zephyr/src/observer.c:82",
       "attrs": {
         "type": "int",
         "unit": "unit:zephyr/src"
@@ -8862,7 +8862,7 @@
     {
       "id": "global:zephyr/src/observer.c:observer_thread",
       "kind": "global",
-      "loc": "zephyr/src/observer.c:393",
+      "loc": "zephyr/src/observer.c:394",
       "attrs": {
         "type": "struct k_thread",
         "unit": "unit:zephyr/src"
@@ -8871,7 +8871,7 @@
     {
       "id": "global:zephyr/src/reboot_note.c:g_note",
       "kind": "global",
-      "loc": "zephyr/src/reboot_note.c:30",
+      "loc": "zephyr/src/reboot_note.c:28",
       "attrs": {
         "type": "struct RebootNote",
         "unit": "unit:zephyr/src"
@@ -10037,67 +10037,67 @@
       "kind": "calls",
       "from": "func:k_sys_fatal_error_handler",
       "to": "func:__builtin_trap",
-      "loc": "zephyr/src/reboot_note.c:124"
+      "loc": "zephyr/src/reboot_note.c:122"
     },
     {
       "kind": "calls",
       "from": "func:k_sys_fatal_error_handler",
       "to": "func:k_uptime_get_32",
-      "loc": "zephyr/src/reboot_note.c:106"
+      "loc": "zephyr/src/reboot_note.c:104"
     },
     {
       "kind": "calls",
       "from": "func:k_sys_fatal_error_handler",
       "to": "func:k_uptime_get_32",
-      "loc": "zephyr/src/reboot_note.c:113"
-    },
-    {
-      "kind": "calls",
-      "from": "func:k_sys_fatal_error_handler",
-      "to": "func:observer_halt",
-      "loc": "zephyr/src/reboot_note.c:121"
-    },
-    {
-      "kind": "calls",
-      "from": "func:k_sys_fatal_error_handler",
-      "to": "func:printk",
       "loc": "zephyr/src/reboot_note.c:111"
     },
     {
       "kind": "calls",
       "from": "func:k_sys_fatal_error_handler",
-      "to": "func:printk",
-      "loc": "zephyr/src/reboot_note.c:120"
-    },
-    {
-      "kind": "calls",
-      "from": "func:k_sys_fatal_error_handler",
-      "to": "func:reboot_note_consecutive",
-      "loc": "zephyr/src/reboot_note.c:113"
-    },
-    {
-      "kind": "calls",
-      "from": "func:k_sys_fatal_error_handler",
-      "to": "func:reboot_note_consecutive",
+      "to": "func:observer_halt",
       "loc": "zephyr/src/reboot_note.c:119"
     },
     {
       "kind": "calls",
       "from": "func:k_sys_fatal_error_handler",
+      "to": "func:printk",
+      "loc": "zephyr/src/reboot_note.c:109"
+    },
+    {
+      "kind": "calls",
+      "from": "func:k_sys_fatal_error_handler",
+      "to": "func:printk",
+      "loc": "zephyr/src/reboot_note.c:118"
+    },
+    {
+      "kind": "calls",
+      "from": "func:k_sys_fatal_error_handler",
+      "to": "func:reboot_note_consecutive",
+      "loc": "zephyr/src/reboot_note.c:111"
+    },
+    {
+      "kind": "calls",
+      "from": "func:k_sys_fatal_error_handler",
+      "to": "func:reboot_note_consecutive",
+      "loc": "zephyr/src/reboot_note.c:117"
+    },
+    {
+      "kind": "calls",
+      "from": "func:k_sys_fatal_error_handler",
       "to": "func:reboot_note_write",
-      "loc": "zephyr/src/reboot_note.c:105"
+      "loc": "zephyr/src/reboot_note.c:103"
     },
     {
       "kind": "calls",
       "from": "func:k_sys_fatal_error_handler",
       "to": "func:sys_reboot",
-      "loc": "zephyr/src/reboot_note.c:123"
+      "loc": "zephyr/src/reboot_note.c:121"
     },
     {
       "kind": "calls",
       "from": "func:k_sys_fatal_error_handler",
       "to": "func:zephyr/src/reboot_note.c:rn_reason_for",
-      "loc": "zephyr/src/reboot_note.c:105"
+      "loc": "zephyr/src/reboot_note.c:103"
     },
     {
       "kind": "calls",
@@ -10865,61 +10865,61 @@
       "kind": "calls",
       "from": "func:observer_halt",
       "to": "func:arch_irq_lock",
-      "loc": "zephyr/src/observer.c:339"
+      "loc": "zephyr/src/observer.c:340"
     },
     {
       "kind": "calls",
       "from": "func:observer_halt",
       "to": "func:k_busy_wait",
-      "loc": "zephyr/src/observer.c:338"
+      "loc": "zephyr/src/observer.c:339"
     },
     {
       "kind": "calls",
       "from": "func:observer_halt",
       "to": "func:printk",
-      "loc": "zephyr/src/observer.c:336"
+      "loc": "zephyr/src/observer.c:337"
     },
     {
       "kind": "calls",
       "from": "func:observer_halt",
       "to": "func:wdt_disable",
-      "loc": "zephyr/src/observer.c:335"
+      "loc": "zephyr/src/observer.c:336"
     },
     {
       "kind": "calls",
       "from": "func:observer_start",
       "to": "func:device_is_ready",
-      "loc": "zephyr/src/observer.c:398"
+      "loc": "zephyr/src/observer.c:399"
     },
     {
       "kind": "calls",
       "from": "func:observer_start",
       "to": "func:k_thread_create",
-      "loc": "zephyr/src/observer.c:417"
+      "loc": "zephyr/src/observer.c:418"
     },
     {
       "kind": "calls",
       "from": "func:observer_start",
       "to": "func:k_thread_name_set",
-      "loc": "zephyr/src/observer.c:421"
+      "loc": "zephyr/src/observer.c:422"
     },
     {
       "kind": "calls",
       "from": "func:observer_start",
       "to": "func:printk",
-      "loc": "zephyr/src/observer.c:406"
+      "loc": "zephyr/src/observer.c:407"
     },
     {
       "kind": "calls",
       "from": "func:observer_start",
       "to": "func:printk",
-      "loc": "zephyr/src/observer.c:414"
+      "loc": "zephyr/src/observer.c:415"
     },
     {
       "kind": "calls",
       "from": "func:observer_start",
       "to": "func:task_wdt_init",
-      "loc": "zephyr/src/observer.c:402"
+      "loc": "zephyr/src/observer.c:403"
     },
     {
       "kind": "calls",
@@ -14603,43 +14603,43 @@
       "kind": "calls",
       "from": "func:reboot_note_ack",
       "to": "func:memset",
-      "loc": "zephyr/src/reboot_note.c:67"
+      "loc": "zephyr/src/reboot_note.c:65"
     },
     {
       "kind": "calls",
       "from": "func:reboot_note_consecutive",
       "to": "func:src/reboot_note.h:reboot_note_is_valid",
-      "loc": "zephyr/src/reboot_note.c:72"
+      "loc": "zephyr/src/reboot_note.c:70"
     },
     {
       "kind": "calls",
       "from": "func:reboot_note_init",
       "to": "func:memset",
-      "loc": "zephyr/src/reboot_note.c:40"
+      "loc": "zephyr/src/reboot_note.c:38"
     },
     {
       "kind": "calls",
       "from": "func:reboot_note_init",
       "to": "func:src/reboot_note.h:reboot_note_is_valid",
-      "loc": "zephyr/src/reboot_note.c:40"
+      "loc": "zephyr/src/reboot_note.c:38"
     },
     {
       "kind": "calls",
       "from": "func:reboot_note_read",
       "to": "func:src/reboot_note.h:reboot_note_is_valid",
-      "loc": "zephyr/src/reboot_note.c:44"
+      "loc": "zephyr/src/reboot_note.c:42"
     },
     {
       "kind": "calls",
       "from": "func:reboot_note_write",
       "to": "func:src/reboot_note.h:reboot_note_checksum",
-      "loc": "zephyr/src/reboot_note.c:63"
+      "loc": "zephyr/src/reboot_note.c:61"
     },
     {
       "kind": "calls",
       "from": "func:reboot_note_write",
       "to": "func:src/reboot_note.h:reboot_note_is_valid",
-      "loc": "zephyr/src/reboot_note.c:51"
+      "loc": "zephyr/src/reboot_note.c:49"
     },
     {
       "kind": "calls",
@@ -22601,199 +22601,199 @@
       "kind": "calls",
       "from": "func:zephyr/src/observer.c:obs_trace_dump",
       "to": "func:k_busy_wait",
-      "loc": "zephyr/src/observer.c:121"
+      "loc": "zephyr/src/observer.c:122"
     },
     {
       "kind": "calls",
       "from": "func:zephyr/src/observer.c:obs_trace_dump",
       "to": "func:printk",
-      "loc": "zephyr/src/observer.c:114"
+      "loc": "zephyr/src/observer.c:115"
     },
     {
       "kind": "calls",
       "from": "func:zephyr/src/observer.c:obs_trace_dump",
       "to": "func:printk",
-      "loc": "zephyr/src/observer.c:118"
+      "loc": "zephyr/src/observer.c:119"
     },
     {
       "kind": "calls",
       "from": "func:zephyr/src/observer.c:obs_trace_record",
       "to": "func:k_uptime_get_32",
-      "loc": "zephyr/src/observer.c:104"
+      "loc": "zephyr/src/observer.c:105"
     },
     {
       "kind": "calls",
       "from": "func:zephyr/src/observer.c:obs_trace_record",
       "to": "func:pulse_drained",
-      "loc": "zephyr/src/observer.c:106"
+      "loc": "zephyr/src/observer.c:107"
     },
     {
       "kind": "calls",
       "from": "func:zephyr/src/observer.c:obs_trace_record",
       "to": "func:pulse_pending",
-      "loc": "zephyr/src/observer.c:105"
+      "loc": "zephyr/src/observer.c:106"
     },
     {
       "kind": "calls",
       "from": "func:zephyr/src/observer.c:observer_dump",
       "to": "func:k_uptime_get_32",
-      "loc": "zephyr/src/observer.c:319"
+      "loc": "zephyr/src/observer.c:320"
     },
     {
       "kind": "calls",
       "from": "func:zephyr/src/observer.c:observer_dump",
       "to": "func:platform_app_cad_ms",
-      "loc": "zephyr/src/observer.c:319"
+      "loc": "zephyr/src/observer.c:320"
     },
     {
       "kind": "calls",
       "from": "func:zephyr/src/observer.c:observer_dump",
       "to": "func:printk",
-      "loc": "zephyr/src/observer.c:315"
+      "loc": "zephyr/src/observer.c:316"
     },
     {
       "kind": "calls",
       "from": "func:zephyr/src/observer.c:observer_dump",
       "to": "func:pulse_coalesced",
-      "loc": "zephyr/src/observer.c:321"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/observer.c:observer_dump",
-      "to": "func:pulse_drops",
-      "loc": "zephyr/src/observer.c:320"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/observer.c:observer_dump",
-      "to": "func:pulse_pending",
-      "loc": "zephyr/src/observer.c:320"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/observer.c:observer_dump",
-      "to": "func:pulse_stale",
-      "loc": "zephyr/src/observer.c:321"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/observer.c:observer_dump",
-      "to": "func:reboot_note_consecutive",
       "loc": "zephyr/src/observer.c:322"
     },
     {
       "kind": "calls",
       "from": "func:zephyr/src/observer.c:observer_dump",
-      "to": "func:zephyr/src/observer.c:obs_trace_dump",
+      "to": "func:pulse_drops",
+      "loc": "zephyr/src/observer.c:321"
+    },
+    {
+      "kind": "calls",
+      "from": "func:zephyr/src/observer.c:observer_dump",
+      "to": "func:pulse_pending",
+      "loc": "zephyr/src/observer.c:321"
+    },
+    {
+      "kind": "calls",
+      "from": "func:zephyr/src/observer.c:observer_dump",
+      "to": "func:pulse_stale",
+      "loc": "zephyr/src/observer.c:322"
+    },
+    {
+      "kind": "calls",
+      "from": "func:zephyr/src/observer.c:observer_dump",
+      "to": "func:reboot_note_consecutive",
       "loc": "zephyr/src/observer.c:323"
+    },
+    {
+      "kind": "calls",
+      "from": "func:zephyr/src/observer.c:observer_dump",
+      "to": "func:zephyr/src/observer.c:obs_trace_dump",
+      "loc": "zephyr/src/observer.c:324"
     },
     {
       "kind": "calls",
       "from": "func:zephyr/src/observer.c:observer_thread_fn",
       "to": "func:k_sleep",
-      "loc": "zephyr/src/observer.c:378"
+      "loc": "zephyr/src/observer.c:379"
     },
     {
       "kind": "calls",
       "from": "func:zephyr/src/observer.c:observer_thread_fn",
       "to": "func:k_uptime_get_32",
-      "loc": "zephyr/src/observer.c:374"
+      "loc": "zephyr/src/observer.c:375"
     },
     {
       "kind": "calls",
       "from": "func:zephyr/src/observer.c:observer_thread_fn",
       "to": "func:observer_halt",
-      "loc": "zephyr/src/observer.c:375"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/observer.c:observer_thread_fn",
-      "to": "func:reboot_note_consecutive",
-      "loc": "zephyr/src/observer.c:375"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/observer.c:observer_thread_fn",
-      "to": "func:reboot_note_write",
-      "loc": "zephyr/src/observer.c:374"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/observer.c:observer_thread_fn",
-      "to": "func:sys_reboot",
       "loc": "zephyr/src/observer.c:376"
     },
     {
       "kind": "calls",
       "from": "func:zephyr/src/observer.c:observer_thread_fn",
+      "to": "func:reboot_note_consecutive",
+      "loc": "zephyr/src/observer.c:376"
+    },
+    {
+      "kind": "calls",
+      "from": "func:zephyr/src/observer.c:observer_thread_fn",
+      "to": "func:reboot_note_write",
+      "loc": "zephyr/src/observer.c:375"
+    },
+    {
+      "kind": "calls",
+      "from": "func:zephyr/src/observer.c:observer_thread_fn",
+      "to": "func:sys_reboot",
+      "loc": "zephyr/src/observer.c:377"
+    },
+    {
+      "kind": "calls",
+      "from": "func:zephyr/src/observer.c:observer_thread_fn",
       "to": "func:task_wdt_add",
-      "loc": "zephyr/src/observer.c:346"
+      "loc": "zephyr/src/observer.c:347"
     },
     {
       "kind": "calls",
       "from": "func:zephyr/src/observer.c:observer_thread_fn",
       "to": "func:task_wdt_feed",
-      "loc": "zephyr/src/observer.c:370"
+      "loc": "zephyr/src/observer.c:371"
     },
     {
       "kind": "calls",
       "from": "func:zephyr/src/observer.c:observer_thread_fn",
       "to": "func:zephyr/src/observer.c:obs_trace_record",
-      "loc": "zephyr/src/observer.c:367"
+      "loc": "zephyr/src/observer.c:368"
     },
     {
       "kind": "calls",
       "from": "func:zephyr/src/observer.c:observer_thread_fn",
       "to": "func:zephyr/src/observer.c:observer_dump",
-      "loc": "zephyr/src/observer.c:372"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/observer.c:observer_thread_fn",
-      "to": "func:zephyr/src/observer.c:observer_forensics",
       "loc": "zephyr/src/observer.c:373"
     },
     {
       "kind": "calls",
       "from": "func:zephyr/src/observer.c:observer_thread_fn",
+      "to": "func:zephyr/src/observer.c:observer_forensics",
+      "loc": "zephyr/src/observer.c:374"
+    },
+    {
+      "kind": "calls",
+      "from": "func:zephyr/src/observer.c:observer_thread_fn",
       "to": "func:zephyr/src/observer.c:observer_verdict",
-      "loc": "zephyr/src/observer.c:368"
+      "loc": "zephyr/src/observer.c:369"
     },
     {
       "kind": "calls",
       "from": "func:zephyr/src/observer.c:observer_verdict",
       "to": "func:k_uptime_get_32",
-      "loc": "zephyr/src/observer.c:145"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/observer.c:observer_verdict",
-      "to": "func:platform_app_cad_ms",
-      "loc": "zephyr/src/observer.c:147"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/observer.c:observer_verdict",
-      "to": "func:platform_debug_held",
-      "loc": "zephyr/src/observer.c:148"
-    },
-    {
-      "kind": "calls",
-      "from": "func:zephyr/src/observer.c:observer_verdict",
-      "to": "func:pulse_drained",
       "loc": "zephyr/src/observer.c:146"
     },
     {
       "kind": "calls",
       "from": "func:zephyr/src/observer.c:observer_verdict",
-      "to": "func:src/observer_core.h:observer_core_verdict",
+      "to": "func:platform_app_cad_ms",
+      "loc": "zephyr/src/observer.c:148"
+    },
+    {
+      "kind": "calls",
+      "from": "func:zephyr/src/observer.c:observer_verdict",
+      "to": "func:platform_debug_held",
       "loc": "zephyr/src/observer.c:149"
     },
     {
       "kind": "calls",
       "from": "func:zephyr/src/observer.c:observer_verdict",
+      "to": "func:pulse_drained",
+      "loc": "zephyr/src/observer.c:147"
+    },
+    {
+      "kind": "calls",
+      "from": "func:zephyr/src/observer.c:observer_verdict",
+      "to": "func:src/observer_core.h:observer_core_verdict",
+      "loc": "zephyr/src/observer.c:150"
+    },
+    {
+      "kind": "calls",
+      "from": "func:zephyr/src/observer.c:observer_verdict",
       "to": "func:timer_target_snapshot",
-      "loc": "zephyr/src/observer.c:144"
+      "loc": "zephyr/src/observer.c:145"
     },
     {
       "kind": "calls_indirect",
@@ -25224,7 +25224,7 @@
       "kind": "declares",
       "from": "unit:zephyr/src",
       "to": "func:observer_halt",
-      "loc": "zephyr/src/reboot_note.c:22",
+      "loc": "zephyr/src/observer.h:13",
       "attrs": {
         "sig": "void (void)"
       }
@@ -25233,7 +25233,7 @@
       "kind": "declares",
       "from": "unit:zephyr/src",
       "to": "func:observer_start",
-      "loc": "zephyr/src/main.c:32",
+      "loc": "zephyr/src/observer.h:9",
       "attrs": {
         "sig": "void (void)"
       }
@@ -25289,7 +25289,7 @@
       "kind": "declares",
       "from": "unit:zephyr/src",
       "to": "func:platform_debug_held",
-      "loc": "zephyr/src/observer.c:60",
+      "loc": "zephyr/src/observer.c:61",
       "attrs": {
         "sig": "int (void)"
       }
@@ -26485,25 +26485,25 @@
       "kind": "reads_global",
       "from": "func:observer_halt",
       "to": "global:zephyr/src/observer.c:g_hw_wdt",
-      "loc": "zephyr/src/observer.c:335"
+      "loc": "zephyr/src/observer.c:336"
     },
     {
       "kind": "reads_global",
       "from": "func:observer_start",
       "to": "global:zephyr/src/observer.c:g_hw_wdt",
-      "loc": "zephyr/src/observer.c:398"
+      "loc": "zephyr/src/observer.c:399"
     },
     {
       "kind": "reads_global",
       "from": "func:observer_start",
       "to": "global:zephyr/src/observer.c:g_hw_wdt",
-      "loc": "zephyr/src/observer.c:402"
+      "loc": "zephyr/src/observer.c:403"
     },
     {
       "kind": "reads_global",
       "from": "func:observer_start",
       "to": "global:zephyr/src/observer.c:g_hw_wdt",
-      "loc": "zephyr/src/observer.c:416"
+      "loc": "zephyr/src/observer.c:417"
     },
     {
       "kind": "reads_global",
@@ -27835,25 +27835,25 @@
       "kind": "reads_global",
       "from": "func:reboot_note_consecutive",
       "to": "global:zephyr/src/reboot_note.c:g_note",
-      "loc": "zephyr/src/reboot_note.c:72"
+      "loc": "zephyr/src/reboot_note.c:70"
     },
     {
       "kind": "reads_global",
       "from": "func:reboot_note_read",
       "to": "global:zephyr/src/reboot_note.c:g_note",
-      "loc": "zephyr/src/reboot_note.c:45"
+      "loc": "zephyr/src/reboot_note.c:43"
     },
     {
       "kind": "reads_global",
       "from": "func:reboot_note_write",
       "to": "global:zephyr/src/reboot_note.c:g_note",
-      "loc": "zephyr/src/reboot_note.c:51"
+      "loc": "zephyr/src/reboot_note.c:49"
     },
     {
       "kind": "reads_global",
       "from": "func:reboot_note_write",
       "to": "global:zephyr/src/reboot_note.c:g_note",
-      "loc": "zephyr/src/reboot_note.c:57"
+      "loc": "zephyr/src/reboot_note.c:55"
     },
     {
       "kind": "reads_global",
@@ -31039,37 +31039,37 @@
       "kind": "reads_global",
       "from": "func:zephyr/src/observer.c:obs_trace_dump",
       "to": "global:zephyr/src/observer.c:g_trace_w",
-      "loc": "zephyr/src/observer.c:112"
+      "loc": "zephyr/src/observer.c:113"
     },
     {
       "kind": "reads_global",
       "from": "func:zephyr/src/observer.c:obs_trace_dump",
       "to": "global:zephyr/src/observer.c:g_trace_w",
-      "loc": "zephyr/src/observer.c:113"
+      "loc": "zephyr/src/observer.c:114"
     },
     {
       "kind": "reads_global",
       "from": "func:zephyr/src/observer.c:obs_trace_record",
       "to": "global:zephyr/src/observer.c:g_core",
-      "loc": "zephyr/src/observer.c:107"
+      "loc": "zephyr/src/observer.c:108"
     },
     {
       "kind": "reads_global",
       "from": "func:zephyr/src/observer.c:obs_trace_record",
       "to": "global:zephyr/src/observer.c:g_trace_w",
-      "loc": "zephyr/src/observer.c:103"
+      "loc": "zephyr/src/observer.c:104"
     },
     {
       "kind": "reads_global",
       "from": "func:zephyr/src/observer.c:observer_dump",
       "to": "global:zephyr/src/observer.c:g_core",
-      "loc": "zephyr/src/observer.c:318"
+      "loc": "zephyr/src/observer.c:319"
     },
     {
       "kind": "reads_global",
       "from": "func:zephyr/src/observer.c:observer_thread_fn",
       "to": "global:zephyr/src/observer.c:g_wdt_channel",
-      "loc": "zephyr/src/observer.c:370"
+      "loc": "zephyr/src/observer.c:371"
     },
     {
       "kind": "reads_path",
@@ -31143,7 +31143,7 @@
       "kind": "stores_fn",
       "from": "func:observer_start",
       "to": "func:zephyr/src/observer.c:observer_thread_fn",
-      "loc": "zephyr/src/observer.c:419",
+      "loc": "zephyr/src/observer.c:420",
       "attrs": {
         "into": ""
       }
@@ -32835,7 +32835,7 @@
       "kind": "writes_global",
       "from": "func:observer_start",
       "to": "global:__device_dts_ord_44",
-      "loc": "zephyr/src/observer.c:397",
+      "loc": "zephyr/src/observer.c:398",
       "attrs": {
         "op": "addr"
       }
@@ -32844,18 +32844,9 @@
       "kind": "writes_global",
       "from": "func:observer_start",
       "to": "global:observer_stack",
-      "loc": "zephyr/src/observer.c:417",
+      "loc": "zephyr/src/observer.c:418",
       "attrs": {
         "op": "decay"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:observer_start",
-      "to": "global:zephyr/src/observer.c:g_hw_wdt",
-      "loc": "zephyr/src/observer.c:397",
-      "attrs": {
-        "op": "assign"
       }
     },
     {
@@ -32870,8 +32861,17 @@
     {
       "kind": "writes_global",
       "from": "func:observer_start",
+      "to": "global:zephyr/src/observer.c:g_hw_wdt",
+      "loc": "zephyr/src/observer.c:399",
+      "attrs": {
+        "op": "assign"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:observer_start",
       "to": "global:zephyr/src/observer.c:observer_thread",
-      "loc": "zephyr/src/observer.c:417",
+      "loc": "zephyr/src/observer.c:418",
       "attrs": {
         "op": "addr"
       }
@@ -32880,7 +32880,7 @@
       "kind": "writes_global",
       "from": "func:observer_start",
       "to": "global:zephyr/src/observer.c:observer_thread",
-      "loc": "zephyr/src/observer.c:421",
+      "loc": "zephyr/src/observer.c:422",
       "attrs": {
         "op": "addr"
       }
@@ -34122,7 +34122,7 @@
       "kind": "writes_global",
       "from": "func:reboot_note_ack",
       "to": "global:zephyr/src/reboot_note.c:g_note",
-      "loc": "zephyr/src/reboot_note.c:67",
+      "loc": "zephyr/src/reboot_note.c:65",
       "attrs": {
         "op": "addr"
       }
@@ -34131,7 +34131,7 @@
       "kind": "writes_global",
       "from": "func:reboot_note_ack",
       "to": "global:zephyr/src/reboot_note.c:g_note",
-      "loc": "zephyr/src/reboot_note.c:68",
+      "loc": "zephyr/src/reboot_note.c:66",
       "attrs": {
         "op": "assign"
       }
@@ -34140,7 +34140,7 @@
       "kind": "writes_global",
       "from": "func:reboot_note_consecutive",
       "to": "global:zephyr/src/reboot_note.c:g_note",
-      "loc": "zephyr/src/reboot_note.c:72",
+      "loc": "zephyr/src/reboot_note.c:70",
       "attrs": {
         "op": "addr"
       }
@@ -34149,7 +34149,7 @@
       "kind": "writes_global",
       "from": "func:reboot_note_init",
       "to": "global:zephyr/src/reboot_note.c:g_note",
-      "loc": "zephyr/src/reboot_note.c:40",
+      "loc": "zephyr/src/reboot_note.c:38",
       "attrs": {
         "op": "addr"
       }
@@ -34158,7 +34158,7 @@
       "kind": "writes_global",
       "from": "func:reboot_note_read",
       "to": "global:zephyr/src/reboot_note.c:g_note",
-      "loc": "zephyr/src/reboot_note.c:44",
+      "loc": "zephyr/src/reboot_note.c:42",
       "attrs": {
         "op": "addr"
       }
@@ -34167,9 +34167,27 @@
       "kind": "writes_global",
       "from": "func:reboot_note_write",
       "to": "global:zephyr/src/reboot_note.c:g_note",
-      "loc": "zephyr/src/reboot_note.c:51",
+      "loc": "zephyr/src/reboot_note.c:49",
       "attrs": {
         "op": "addr"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:reboot_note_write",
+      "to": "global:zephyr/src/reboot_note.c:g_note",
+      "loc": "zephyr/src/reboot_note.c:56",
+      "attrs": {
+        "op": "assign"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:reboot_note_write",
+      "to": "global:zephyr/src/reboot_note.c:g_note",
+      "loc": "zephyr/src/reboot_note.c:57",
+      "attrs": {
+        "op": "assign"
       }
     },
     {
@@ -34204,24 +34222,6 @@
       "from": "func:reboot_note_write",
       "to": "global:zephyr/src/reboot_note.c:g_note",
       "loc": "zephyr/src/reboot_note.c:61",
-      "attrs": {
-        "op": "assign"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:reboot_note_write",
-      "to": "global:zephyr/src/reboot_note.c:g_note",
-      "loc": "zephyr/src/reboot_note.c:62",
-      "attrs": {
-        "op": "assign"
-      }
-    },
-    {
-      "kind": "writes_global",
-      "from": "func:reboot_note_write",
-      "to": "global:zephyr/src/reboot_note.c:g_note",
-      "loc": "zephyr/src/reboot_note.c:63",
       "attrs": {
         "op": "assign"
       }
@@ -37551,7 +37551,7 @@
       "kind": "writes_global",
       "from": "func:zephyr/src/observer.c:obs_trace_dump",
       "to": "global:zephyr/src/observer.c:g_trace",
-      "loc": "zephyr/src/observer.c:117",
+      "loc": "zephyr/src/observer.c:118",
       "attrs": {
         "op": "addr"
       }
@@ -37560,7 +37560,7 @@
       "kind": "writes_global",
       "from": "func:zephyr/src/observer.c:obs_trace_record",
       "to": "global:zephyr/src/observer.c:g_trace",
-      "loc": "zephyr/src/observer.c:103",
+      "loc": "zephyr/src/observer.c:104",
       "attrs": {
         "op": "addr"
       }
@@ -37569,7 +37569,7 @@
       "kind": "writes_global",
       "from": "func:zephyr/src/observer.c:obs_trace_record",
       "to": "global:zephyr/src/observer.c:g_trace_w",
-      "loc": "zephyr/src/observer.c:108",
+      "loc": "zephyr/src/observer.c:109",
       "attrs": {
         "op": "incdec"
       }
@@ -37578,7 +37578,7 @@
       "kind": "writes_global",
       "from": "func:zephyr/src/observer.c:observer_thread_fn",
       "to": "global:zephyr/src/observer.c:g_wdt_channel",
-      "loc": "zephyr/src/observer.c:346",
+      "loc": "zephyr/src/observer.c:347",
       "attrs": {
         "op": "assign"
       }
@@ -37587,7 +37587,7 @@
       "kind": "writes_global",
       "from": "func:zephyr/src/observer.c:observer_verdict",
       "to": "global:zephyr/src/observer.c:g_core",
-      "loc": "zephyr/src/observer.c:149",
+      "loc": "zephyr/src/observer.c:150",
       "attrs": {
         "op": "addr"
       }

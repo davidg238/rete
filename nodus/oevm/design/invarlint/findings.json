@@ -708,47 +708,47 @@
       },
       {
         "func": "func:zephyr/src/observer.c:obs_trace_record",
-        "loc": "zephyr/src/observer.c:105",
+        "loc": "zephyr/src/observer.c:106",
         "via": "pulse_pending"
       },
       {
         "func": "func:zephyr/src/observer.c:obs_trace_record",
-        "loc": "zephyr/src/observer.c:106",
+        "loc": "zephyr/src/observer.c:107",
         "via": "pulse_drained"
       },
       {
         "func": "func:zephyr/src/observer.c:observer_verdict",
-        "loc": "zephyr/src/observer.c:144",
+        "loc": "zephyr/src/observer.c:145",
         "via": "timer_target_snapshot"
       },
       {
         "func": "func:zephyr/src/observer.c:observer_verdict",
-        "loc": "zephyr/src/observer.c:146",
+        "loc": "zephyr/src/observer.c:147",
         "via": "pulse_drained"
       },
       {
         "func": "func:zephyr/src/observer.c:observer_verdict",
-        "loc": "zephyr/src/observer.c:148",
+        "loc": "zephyr/src/observer.c:149",
         "via": "platform_debug_held"
       },
       {
         "func": "func:zephyr/src/observer.c:observer_dump",
-        "loc": "zephyr/src/observer.c:320",
+        "loc": "zephyr/src/observer.c:321",
         "via": "pulse_drops"
       },
       {
         "func": "func:zephyr/src/observer.c:observer_dump",
-        "loc": "zephyr/src/observer.c:320",
+        "loc": "zephyr/src/observer.c:321",
         "via": "pulse_pending"
       },
       {
         "func": "func:zephyr/src/observer.c:observer_dump",
-        "loc": "zephyr/src/observer.c:321",
+        "loc": "zephyr/src/observer.c:322",
         "via": "pulse_coalesced"
       },
       {
         "func": "func:zephyr/src/observer.c:observer_dump",
-        "loc": "zephyr/src/observer.c:321",
+        "loc": "zephyr/src/observer.c:322",
         "via": "pulse_stale"
       }
     ]
@@ -786,42 +786,42 @@
       },
       {
         "func": "func:zephyr/src/observer.c:observer_verdict",
-        "loc": "zephyr/src/observer.c:147",
+        "loc": "zephyr/src/observer.c:148",
         "via": "platform_app_cad_ms"
       },
       {
         "func": "func:zephyr/src/observer.c:observer_verdict",
-        "loc": "zephyr/src/observer.c:149",
+        "loc": "zephyr/src/observer.c:150",
         "via": "observer_core_verdict"
       },
       {
         "func": "func:zephyr/src/observer.c:observer_dump",
-        "loc": "zephyr/src/observer.c:319",
+        "loc": "zephyr/src/observer.c:320",
         "via": "platform_app_cad_ms"
       },
       {
         "func": "func:reboot_note_init",
-        "loc": "zephyr/src/reboot_note.c:40",
+        "loc": "zephyr/src/reboot_note.c:38",
         "via": "reboot_note_is_valid"
       },
       {
         "func": "func:reboot_note_read",
-        "loc": "zephyr/src/reboot_note.c:44",
+        "loc": "zephyr/src/reboot_note.c:42",
         "via": "reboot_note_is_valid"
       },
       {
         "func": "func:reboot_note_write",
-        "loc": "zephyr/src/reboot_note.c:51",
+        "loc": "zephyr/src/reboot_note.c:49",
         "via": "reboot_note_is_valid"
       },
       {
         "func": "func:reboot_note_write",
-        "loc": "zephyr/src/reboot_note.c:63",
+        "loc": "zephyr/src/reboot_note.c:61",
         "via": "reboot_note_checksum"
       },
       {
         "func": "func:reboot_note_consecutive",
-        "loc": "zephyr/src/reboot_note.c:72",
+        "loc": "zephyr/src/reboot_note.c:70",
         "via": "reboot_note_is_valid"
       }
     ]
@@ -960,34 +960,6 @@
   },
   {
     "rule": "extern-redeclared",
-    "subject": "func:observer_halt",
-    "loc": "zephyr/src/observer.c:334",
-    "message": "observer_halt is declared by hand 1 times in .c files, not by a header",
-    "count": 1,
-    "sites": [
-      {
-        "func": "file:zephyr/src/reboot_note.c",
-        "loc": "zephyr/src/reboot_note.c:22",
-        "via": "void (void)"
-      }
-    ]
-  },
-  {
-    "rule": "extern-redeclared",
-    "subject": "func:observer_start",
-    "loc": "zephyr/src/observer.c:395",
-    "message": "observer_start is declared by hand 1 times in .c files, not by a header",
-    "count": 1,
-    "sites": [
-      {
-        "func": "file:zephyr/src/main.c",
-        "loc": "zephyr/src/main.c:32",
-        "via": "void (void)"
-      }
-    ]
-  },
-  {
-    "rule": "extern-redeclared",
     "subject": "func:oimg_bootstrap",
     "loc": "src/oimg_loader.c:281",
     "message": "oimg_bootstrap is declared by hand 1 times in .c files, not by a header",
@@ -1023,7 +995,7 @@
     "sites": [
       {
         "func": "file:zephyr/src/observer.c",
-        "loc": "zephyr/src/observer.c:60",
+        "loc": "zephyr/src/observer.c:61",
         "via": "int (void)"
       }
     ]
@@ -4199,53 +4171,63 @@
     "sites": [
       {
         "func": "func:reboot_note_ack",
-        "loc": "zephyr/src/reboot_note.c:67",
+        "loc": "zephyr/src/reboot_note.c:65",
         "via": "writes"
       },
       {
         "func": "func:reboot_note_ack",
-        "loc": "zephyr/src/reboot_note.c:68",
+        "loc": "zephyr/src/reboot_note.c:66",
         "via": "writes"
       },
       {
         "func": "func:reboot_note_consecutive",
-        "loc": "zephyr/src/reboot_note.c:72",
+        "loc": "zephyr/src/reboot_note.c:70",
         "via": "reads"
       },
       {
         "func": "func:reboot_note_consecutive",
-        "loc": "zephyr/src/reboot_note.c:72",
+        "loc": "zephyr/src/reboot_note.c:70",
         "via": "writes"
       },
       {
         "func": "func:reboot_note_init",
-        "loc": "zephyr/src/reboot_note.c:40",
+        "loc": "zephyr/src/reboot_note.c:38",
         "via": "writes"
       },
       {
         "func": "func:reboot_note_read",
-        "loc": "zephyr/src/reboot_note.c:44",
+        "loc": "zephyr/src/reboot_note.c:42",
         "via": "writes"
       },
       {
         "func": "func:reboot_note_read",
-        "loc": "zephyr/src/reboot_note.c:45",
+        "loc": "zephyr/src/reboot_note.c:43",
         "via": "reads"
       },
       {
         "func": "func:reboot_note_write",
-        "loc": "zephyr/src/reboot_note.c:51",
+        "loc": "zephyr/src/reboot_note.c:49",
         "via": "reads"
       },
       {
         "func": "func:reboot_note_write",
-        "loc": "zephyr/src/reboot_note.c:51",
+        "loc": "zephyr/src/reboot_note.c:49",
+        "via": "writes"
+      },
+      {
+        "func": "func:reboot_note_write",
+        "loc": "zephyr/src/reboot_note.c:55",
+        "via": "reads"
+      },
+      {
+        "func": "func:reboot_note_write",
+        "loc": "zephyr/src/reboot_note.c:56",
         "via": "writes"
       },
       {
         "func": "func:reboot_note_write",
         "loc": "zephyr/src/reboot_note.c:57",
-        "via": "reads"
+        "via": "writes"
       },
       {
         "func": "func:reboot_note_write",
@@ -4265,16 +4247,6 @@
       {
         "func": "func:reboot_note_write",
         "loc": "zephyr/src/reboot_note.c:61",
-        "via": "writes"
-      },
-      {
-        "func": "func:reboot_note_write",
-        "loc": "zephyr/src/reboot_note.c:62",
-        "via": "writes"
-      },
-      {
-        "func": "func:reboot_note_write",
-        "loc": "zephyr/src/reboot_note.c:63",
         "via": "writes"
       }
     ]
@@ -8487,17 +8459,17 @@
     "sites": [
       {
         "func": "func:zephyr/src/observer.c:obs_trace_record",
-        "loc": "zephyr/src/observer.c:107",
+        "loc": "zephyr/src/observer.c:108",
         "via": "reads"
       },
       {
         "func": "func:zephyr/src/observer.c:observer_dump",
-        "loc": "zephyr/src/observer.c:318",
+        "loc": "zephyr/src/observer.c:319",
         "via": "reads"
       },
       {
         "func": "func:zephyr/src/observer.c:observer_verdict",
-        "loc": "zephyr/src/observer.c:149",
+        "loc": "zephyr/src/observer.c:150",
         "via": "writes"
       }
     ]
@@ -8510,17 +8482,7 @@
     "sites": [
       {
         "func": "func:observer_halt",
-        "loc": "zephyr/src/observer.c:335",
-        "via": "reads"
-      },
-      {
-        "func": "func:observer_start",
-        "loc": "zephyr/src/observer.c:397",
-        "via": "writes"
-      },
-      {
-        "func": "func:observer_start",
-        "loc": "zephyr/src/observer.c:398",
+        "loc": "zephyr/src/observer.c:336",
         "via": "reads"
       },
       {
@@ -8530,12 +8492,22 @@
       },
       {
         "func": "func:observer_start",
-        "loc": "zephyr/src/observer.c:402",
+        "loc": "zephyr/src/observer.c:399",
         "via": "reads"
       },
       {
         "func": "func:observer_start",
-        "loc": "zephyr/src/observer.c:416",
+        "loc": "zephyr/src/observer.c:399",
+        "via": "writes"
+      },
+      {
+        "func": "func:observer_start",
+        "loc": "zephyr/src/observer.c:403",
+        "via": "reads"
+      },
+      {
+        "func": "func:observer_start",
+        "loc": "zephyr/src/observer.c:417",
         "via": "reads"
       }
     ]
@@ -8548,22 +8520,22 @@
     "sites": [
       {
         "func": "func:zephyr/src/observer.c:obs_trace_dump",
-        "loc": "zephyr/src/observer.c:112",
-        "via": "reads"
-      },
-      {
-        "func": "func:zephyr/src/observer.c:obs_trace_dump",
         "loc": "zephyr/src/observer.c:113",
         "via": "reads"
       },
       {
-        "func": "func:zephyr/src/observer.c:obs_trace_record",
-        "loc": "zephyr/src/observer.c:103",
+        "func": "func:zephyr/src/observer.c:obs_trace_dump",
+        "loc": "zephyr/src/observer.c:114",
         "via": "reads"
       },
       {
         "func": "func:zephyr/src/observer.c:obs_trace_record",
-        "loc": "zephyr/src/observer.c:108",
+        "loc": "zephyr/src/observer.c:104",
+        "via": "reads"
+      },
+      {
+        "func": "func:zephyr/src/observer.c:obs_trace_record",
+        "loc": "zephyr/src/observer.c:109",
         "via": "writes"
       }
     ]
@@ -10433,12 +10405,12 @@
     "sites": [
       {
         "func": "func:zephyr/src/observer.c:obs_trace_dump",
-        "loc": "zephyr/src/observer.c:117",
+        "loc": "zephyr/src/observer.c:118",
         "via": "writes"
       },
       {
         "func": "func:zephyr/src/observer.c:obs_trace_record",
-        "loc": "zephyr/src/observer.c:103",
+        "loc": "zephyr/src/observer.c:104",
         "via": "writes"
       }
     ]
@@ -10451,12 +10423,12 @@
     "sites": [
       {
         "func": "func:zephyr/src/observer.c:observer_thread_fn",
-        "loc": "zephyr/src/observer.c:346",
+        "loc": "zephyr/src/observer.c:347",
         "via": "writes"
       },
       {
         "func": "func:zephyr/src/observer.c:observer_thread_fn",
-        "loc": "zephyr/src/observer.c:370",
+        "loc": "zephyr/src/observer.c:371",
         "via": "reads"
       }
     ]
@@ -10656,7 +10628,7 @@
     "sites": [
       {
         "func": "func:observer_start",
-        "loc": "zephyr/src/observer.c:397",
+        "loc": "zephyr/src/observer.c:398",
         "via": "writes"
       }
     ]
@@ -10695,7 +10667,7 @@
     "sites": [
       {
         "func": "func:observer_start",
-        "loc": "zephyr/src/observer.c:417",
+        "loc": "zephyr/src/observer.c:418",
         "via": "writes"
       }
     ]
@@ -11411,12 +11383,12 @@
     "sites": [
       {
         "func": "func:observer_start",
-        "loc": "zephyr/src/observer.c:417",
+        "loc": "zephyr/src/observer.c:418",
         "via": "writes"
       },
       {
         "func": "func:observer_start",
-        "loc": "zephyr/src/observer.c:421",
+        "loc": "zephyr/src/observer.c:422",
         "via": "writes"
       }
     ]
@@ -11547,12 +11519,12 @@
     "sites": [
       {
         "func": "func:zephyr/src/observer.c:observer_verdict",
-        "loc": "zephyr/src/observer.c:147",
+        "loc": "zephyr/src/observer.c:148",
         "via": "zephyr/src"
       },
       {
         "func": "func:zephyr/src/observer.c:observer_dump",
-        "loc": "zephyr/src/observer.c:319",
+        "loc": "zephyr/src/observer.c:320",
         "via": "zephyr/src"
       }
     ]
@@ -12501,27 +12473,35 @@
     "sites": [
       {
         "func": "func:reboot_note_ack",
-        "loc": "zephyr/src/reboot_note.c:67"
+        "loc": "zephyr/src/reboot_note.c:65"
       },
       {
         "func": "func:reboot_note_ack",
-        "loc": "zephyr/src/reboot_note.c:68"
+        "loc": "zephyr/src/reboot_note.c:66"
       },
       {
         "func": "func:reboot_note_consecutive",
-        "loc": "zephyr/src/reboot_note.c:72"
+        "loc": "zephyr/src/reboot_note.c:70"
       },
       {
         "func": "func:reboot_note_init",
-        "loc": "zephyr/src/reboot_note.c:40"
+        "loc": "zephyr/src/reboot_note.c:38"
       },
       {
         "func": "func:reboot_note_read",
-        "loc": "zephyr/src/reboot_note.c:44"
+        "loc": "zephyr/src/reboot_note.c:42"
       },
       {
         "func": "func:reboot_note_write",
-        "loc": "zephyr/src/reboot_note.c:51"
+        "loc": "zephyr/src/reboot_note.c:49"
+      },
+      {
+        "func": "func:reboot_note_write",
+        "loc": "zephyr/src/reboot_note.c:56"
+      },
+      {
+        "func": "func:reboot_note_write",
+        "loc": "zephyr/src/reboot_note.c:57"
       },
       {
         "func": "func:reboot_note_write",
@@ -12538,14 +12518,6 @@
       {
         "func": "func:reboot_note_write",
         "loc": "zephyr/src/reboot_note.c:61"
-      },
-      {
-        "func": "func:reboot_note_write",
-        "loc": "zephyr/src/reboot_note.c:62"
-      },
-      {
-        "func": "func:reboot_note_write",
-        "loc": "zephyr/src/reboot_note.c:63"
       }
     ]
   },
@@ -14753,11 +14725,11 @@
     "sites": [
       {
         "func": "func:observer_start",
-        "loc": "zephyr/src/observer.c:397"
+        "loc": "zephyr/src/observer.c:398"
       },
       {
         "func": "func:observer_start",
-        "loc": "zephyr/src/observer.c:398"
+        "loc": "zephyr/src/observer.c:399"
       }
     ]
   },
@@ -14769,11 +14741,11 @@
     "sites": [
       {
         "func": "func:zephyr/src/observer.c:obs_trace_dump",
-        "loc": "zephyr/src/observer.c:117"
+        "loc": "zephyr/src/observer.c:118"
       },
       {
         "func": "func:zephyr/src/observer.c:obs_trace_record",
-        "loc": "zephyr/src/observer.c:103"
+        "loc": "zephyr/src/observer.c:104"
       }
     ]
   },
@@ -14785,11 +14757,11 @@
     "sites": [
       {
         "func": "func:observer_start",
-        "loc": "zephyr/src/observer.c:417"
+        "loc": "zephyr/src/observer.c:418"
       },
       {
         "func": "func:observer_start",
-        "loc": "zephyr/src/observer.c:421"
+        "loc": "zephyr/src/observer.c:422"
       }
     ]
   },
@@ -17373,27 +17345,35 @@
     "sites": [
       {
         "func": "func:reboot_note_ack",
-        "loc": "zephyr/src/reboot_note.c:67"
+        "loc": "zephyr/src/reboot_note.c:65"
       },
       {
         "func": "func:reboot_note_ack",
-        "loc": "zephyr/src/reboot_note.c:68"
+        "loc": "zephyr/src/reboot_note.c:66"
       },
       {
         "func": "func:reboot_note_consecutive",
-        "loc": "zephyr/src/reboot_note.c:72"
+        "loc": "zephyr/src/reboot_note.c:70"
       },
       {
         "func": "func:reboot_note_init",
-        "loc": "zephyr/src/reboot_note.c:40"
+        "loc": "zephyr/src/reboot_note.c:38"
       },
       {
         "func": "func:reboot_note_read",
-        "loc": "zephyr/src/reboot_note.c:44"
+        "loc": "zephyr/src/reboot_note.c:42"
       },
       {
         "func": "func:reboot_note_write",
-        "loc": "zephyr/src/reboot_note.c:51"
+        "loc": "zephyr/src/reboot_note.c:49"
+      },
+      {
+        "func": "func:reboot_note_write",
+        "loc": "zephyr/src/reboot_note.c:56"
+      },
+      {
+        "func": "func:reboot_note_write",
+        "loc": "zephyr/src/reboot_note.c:57"
       },
       {
         "func": "func:reboot_note_write",
@@ -17410,14 +17390,6 @@
       {
         "func": "func:reboot_note_write",
         "loc": "zephyr/src/reboot_note.c:61"
-      },
-      {
-        "func": "func:reboot_note_write",
-        "loc": "zephyr/src/reboot_note.c:62"
-      },
-      {
-        "func": "func:reboot_note_write",
-        "loc": "zephyr/src/reboot_note.c:63"
       }
     ]
   },
@@ -17860,25 +17832,25 @@
     "sites": [
       {
         "func": "func:zephyr/src/observer.c:obs_trace_dump",
-        "loc": "zephyr/src/observer.c:117"
+        "loc": "zephyr/src/observer.c:118"
       },
       {
         "func": "func:zephyr/src/observer.c:obs_trace_record",
-        "loc": "zephyr/src/observer.c:103"
+        "loc": "zephyr/src/observer.c:104"
       },
       {
         "func": "func:zephyr/src/observer.c:observer_dump",
-        "loc": "zephyr/src/observer.c:323",
+        "loc": "zephyr/src/observer.c:324",
         "via": "calls obs_trace_dump"
       },
       {
         "func": "func:zephyr/src/observer.c:observer_thread_fn",
-        "loc": "zephyr/src/observer.c:367",
+        "loc": "zephyr/src/observer.c:368",
         "via": "calls obs_trace_record"
       },
       {
         "func": "func:zephyr/src/observer.c:observer_thread_fn",
-        "loc": "zephyr/src/observer.c:372",
+        "loc": "zephyr/src/observer.c:373",
         "via": "calls observer_dump"
       }
     ]
@@ -19502,12 +19474,12 @@
     "sites": [
       {
         "func": "func:zephyr/src/observer.c:observer_thread_fn",
-        "loc": "zephyr/src/observer.c:368",
+        "loc": "zephyr/src/observer.c:369",
         "via": "calls observer_verdict"
       },
       {
         "func": "func:zephyr/src/observer.c:observer_verdict",
-        "loc": "zephyr/src/observer.c:149"
+        "loc": "zephyr/src/observer.c:150"
       }
     ]
   },
@@ -19519,11 +19491,11 @@
     "sites": [
       {
         "func": "func:zephyr/src/observer.c:obs_trace_record",
-        "loc": "zephyr/src/observer.c:108"
+        "loc": "zephyr/src/observer.c:109"
       },
       {
         "func": "func:zephyr/src/observer.c:observer_thread_fn",
-        "loc": "zephyr/src/observer.c:367",
+        "loc": "zephyr/src/observer.c:368",
         "via": "calls obs_trace_record"
       }
     ]
@@ -19848,7 +19820,7 @@
     "sites": [
       {
         "func": "func:observer_start",
-        "loc": "zephyr/src/observer.c:397"
+        "loc": "zephyr/src/observer.c:398"
       }
     ]
   },
@@ -20052,7 +20024,7 @@
     "sites": [
       {
         "func": "func:observer_start",
-        "loc": "zephyr/src/observer.c:417"
+        "loc": "zephyr/src/observer.c:418"
       }
     ]
   },
@@ -21364,11 +21336,11 @@
     "sites": [
       {
         "func": "func:observer_start",
-        "loc": "zephyr/src/observer.c:397"
+        "loc": "zephyr/src/observer.c:398"
       },
       {
         "func": "func:observer_start",
-        "loc": "zephyr/src/observer.c:398"
+        "loc": "zephyr/src/observer.c:399"
       }
     ]
   },
@@ -21380,7 +21352,7 @@
     "sites": [
       {
         "func": "func:zephyr/src/observer.c:observer_thread_fn",
-        "loc": "zephyr/src/observer.c:346"
+        "loc": "zephyr/src/observer.c:347"
       }
     ]
   },
@@ -21392,11 +21364,11 @@
     "sites": [
       {
         "func": "func:observer_start",
-        "loc": "zephyr/src/observer.c:417"
+        "loc": "zephyr/src/observer.c:418"
       },
       {
         "func": "func:observer_start",
-        "loc": "zephyr/src/observer.c:421"
+        "loc": "zephyr/src/observer.c:422"
       }
     ]
   },

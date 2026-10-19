@@ -45,6 +45,7 @@
 #include <stdbool.h>
 #include "reboot_note.h"
 #include "observer_core.h"
+#include "observer.h"
 #include "pulse_backend.h"
 #include "target_backend.h"   /* timer_target_snapshot (invarlint#53) */
 #include "platform.h"         /* platform_app_cad_ms (invarlint#48) */
