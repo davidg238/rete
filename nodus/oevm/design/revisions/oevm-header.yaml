@@ -1,7 +1,12 @@
 name: oevm-header
 pattern: Facade
-intent: oevm.h, which already declares send, is the one declaration of the interpreter's entry points
-compromise: none
+intent: oevm.h, which declares gc.c's allocators and send, is the one declaration of the collector and interpreter entry points
+compromise: oevm.h grows by six prototypes rather than gaining a gc.h
 ops:
+  - declare: {func: gc_allocate, header: src/oevm.h}
+  - declare: {func: mark_object, header: src/oevm.h}
+  - declare: {func: gc_temp_root_push, header: src/oevm.h}
+  - declare: {func: gc_temp_roots_clear, header: src/oevm.h}
   - declare: {func: run_interpreter, header: src/oevm.h}
   - declare: {func: send, header: src/oevm.h}
+  - declare: {func: method_cache_flush, header: src/oevm.h}

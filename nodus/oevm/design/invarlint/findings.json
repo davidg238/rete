@@ -934,12 +934,82 @@
     "rule": "extern-redeclared",
     "subject": "func:gc_allocate",
     "loc": "src/gc.c:343",
-    "message": "gc_allocate is declared by hand in 5 .c files, not by a header",
-    "count": 5,
+    "message": "gc_allocate is declared by hand 19 times in .c files, not by a header",
+    "count": 19,
     "sites": [
+      {
+        "func": "file:src/dispatch.c",
+        "loc": "src/dispatch.c:1081",
+        "via": "struct Object * (struct Object *, unsigned int)"
+      },
+      {
+        "func": "file:src/dispatch.c",
+        "loc": "src/dispatch.c:1107",
+        "via": "struct Object * (struct Object *, unsigned int)"
+      },
+      {
+        "func": "file:src/dispatch.c",
+        "loc": "src/dispatch.c:1133",
+        "via": "struct Object * (struct Object *, unsigned int)"
+      },
+      {
+        "func": "file:src/dispatch.c",
+        "loc": "src/dispatch.c:1461",
+        "via": "struct Object * (struct Object *, unsigned int)"
+      },
+      {
+        "func": "file:src/dispatch.c",
+        "loc": "src/dispatch.c:1472",
+        "via": "struct Object * (struct Object *, unsigned int)"
+      },
+      {
+        "func": "file:src/dispatch.c",
+        "loc": "src/dispatch.c:1490",
+        "via": "struct Object * (struct Object *, unsigned int)"
+      },
+      {
+        "func": "file:src/dispatch.c",
+        "loc": "src/dispatch.c:1805",
+        "via": "struct Object * (struct Object *, unsigned int)"
+      },
+      {
+        "func": "file:src/dispatch.c",
+        "loc": "src/dispatch.c:1851",
+        "via": "struct Object * (struct Object *, unsigned int)"
+      },
+      {
+        "func": "file:src/dispatch.c",
+        "loc": "src/dispatch.c:42",
+        "via": "struct Object * (struct Object *, unsigned int)"
+      },
+      {
+        "func": "file:src/dispatch.c",
+        "loc": "src/dispatch.c:456",
+        "via": "struct Object * (struct Object *, unsigned int)"
+      },
+      {
+        "func": "file:src/dispatch.c",
+        "loc": "src/dispatch.c:56",
+        "via": "struct Object * (struct Object *, unsigned int)"
+      },
+      {
+        "func": "file:src/dispatch.c",
+        "loc": "src/dispatch.c:639",
+        "via": "struct Object * (struct Object *, unsigned int)"
+      },
+      {
+        "func": "file:src/dispatch.c",
+        "loc": "src/dispatch.c:73",
+        "via": "struct Object * (struct Object *, unsigned int)"
+      },
       {
         "func": "file:src/http.c",
         "loc": "src/http.c:15",
+        "via": "struct Object * (struct Object *, unsigned int)"
+      },
+      {
+        "func": "file:src/oimg_loader.c",
+        "loc": "src/oimg_loader.c:283",
         "via": "struct Object * (struct Object *, unsigned int)"
       },
       {
@@ -966,9 +1036,132 @@
   },
   {
     "rule": "extern-redeclared",
+    "subject": "func:gc_temp_root_push",
+    "loc": "src/gc.c:816",
+    "message": "gc_temp_root_push is declared by hand 15 times in .c files, not by a header",
+    "count": 15,
+    "sites": [
+      {
+        "func": "file:src/dispatch.c",
+        "loc": "src/dispatch.c:1155",
+        "via": "void (struct Object *)"
+      },
+      {
+        "func": "file:src/dispatch.c",
+        "loc": "src/dispatch.c:1206",
+        "via": "void (struct Object *)"
+      },
+      {
+        "func": "file:src/dispatch.c",
+        "loc": "src/dispatch.c:74",
+        "via": "void (struct Object *)"
+      },
+      {
+        "func": "file:src/http.c",
+        "loc": "src/http.c:17",
+        "via": "void (struct Object *)"
+      },
+      {
+        "func": "file:src/oimg_loader.c",
+        "loc": "src/oimg_loader.c:288",
+        "via": "void (struct Object *)"
+      },
+      {
+        "func": "file:src/platform.c",
+        "loc": "src/platform.c:1050",
+        "via": "void (struct Object *)"
+      },
+      {
+        "func": "file:src/platform.c",
+        "loc": "src/platform.c:1223",
+        "via": "void (struct Object *)"
+      },
+      {
+        "func": "file:src/platform.c",
+        "loc": "src/platform.c:1270",
+        "via": "void (struct Object *)"
+      },
+      {
+        "func": "file:src/platform.c",
+        "loc": "src/platform.c:1391",
+        "via": "void (struct Object *)"
+      },
+      {
+        "func": "file:src/space.c",
+        "loc": "src/space.c:385",
+        "via": "void (struct Object *)"
+      },
+      {
+        "func": "file:src/udp.c",
+        "loc": "src/udp.c:89",
+        "via": "void (struct Object *)"
+      },
+      {
+        "func": "file:src/vm.c",
+        "loc": "src/vm.c:119",
+        "via": "void (struct Object *)"
+      },
+      {
+        "func": "file:src/vm.c",
+        "loc": "src/vm.c:1829",
+        "via": "void (struct Object *)"
+      },
+      {
+        "func": "file:src/vm.c",
+        "loc": "src/vm.c:211",
+        "via": "void (struct Object *)"
+      },
+      {
+        "func": "file:src/vm.c",
+        "loc": "src/vm.c:272",
+        "via": "void (struct Object *)"
+      }
+    ]
+  },
+  {
+    "rule": "extern-redeclared",
+    "subject": "func:gc_temp_roots_clear",
+    "loc": "src/gc.c:827",
+    "message": "gc_temp_roots_clear is declared by hand 6 times in .c files, not by a header",
+    "count": 6,
+    "sites": [
+      {
+        "func": "file:src/http.c",
+        "loc": "src/http.c:18",
+        "via": "void (void)"
+      },
+      {
+        "func": "file:src/oimg_loader.c",
+        "loc": "src/oimg_loader.c:289",
+        "via": "void (void)"
+      },
+      {
+        "func": "file:src/platform.c",
+        "loc": "src/platform.c:1224",
+        "via": "void (void)"
+      },
+      {
+        "func": "file:src/platform.c",
+        "loc": "src/platform.c:1271",
+        "via": "void (void)"
+      },
+      {
+        "func": "file:src/udp.c",
+        "loc": "src/udp.c:90",
+        "via": "void (void)"
+      },
+      {
+        "func": "file:src/vm.c",
+        "loc": "src/vm.c:1830",
+        "via": "void (void)"
+      }
+    ]
+  },
+  {
+    "rule": "extern-redeclared",
     "subject": "func:indexable_new",
     "loc": "src/platform.c:586",
-    "message": "indexable_new is declared by hand in 4 .c files, not by a header",
+    "message": "indexable_new is declared by hand 4 times in .c files, not by a header",
     "count": 4,
     "sites": [
       {
@@ -997,7 +1190,7 @@
     "rule": "extern-redeclared",
     "subject": "func:mark_object",
     "loc": "src/gc.c:799",
-    "message": "mark_object is declared by hand in 2 .c files, not by a header",
+    "message": "mark_object is declared by hand 2 times in .c files, not by a header",
     "count": 2,
     "sites": [
       {
@@ -1014,9 +1207,28 @@
   },
   {
     "rule": "extern-redeclared",
+    "subject": "func:send",
+    "loc": "src/dispatch.c:2078",
+    "message": "send is declared by hand 2 times in .c files, not by a header",
+    "count": 2,
+    "sites": [
+      {
+        "func": "file:src/oimg_loader.c",
+        "loc": "src/oimg_loader.c:282",
+        "via": "struct Object * (struct Object *, struct Object *, int, struct Object * *)"
+      },
+      {
+        "func": "file:src/vm.c",
+        "loc": "src/vm.c:742",
+        "via": "struct Object * (struct Object *, struct Object *, int, struct Object * *)"
+      }
+    ]
+  },
+  {
+    "rule": "extern-redeclared",
     "subject": "func:deep_sleep_target",
     "loc": "zephyr/src/main.c:582",
-    "message": "deep_sleep_target is declared by hand in 1 .c files, not by a header",
+    "message": "deep_sleep_target is declared by hand 1 times in .c files, not by a header",
     "count": 1,
     "sites": [
       {
@@ -1028,28 +1240,14 @@
   },
   {
     "rule": "extern-redeclared",
-    "subject": "func:gc_temp_root_push",
-    "loc": "src/gc.c:816",
-    "message": "gc_temp_root_push is declared by hand in 1 .c files, not by a header",
+    "subject": "func:handle_gc_trace",
+    "loc": "src/handles.c:66",
+    "message": "handle_gc_trace is declared by hand 1 times in .c files, not by a header",
     "count": 1,
     "sites": [
       {
-        "func": "file:src/http.c",
-        "loc": "src/http.c:17",
-        "via": "void (struct Object *)"
-      }
-    ]
-  },
-  {
-    "rule": "extern-redeclared",
-    "subject": "func:gc_temp_roots_clear",
-    "loc": "src/gc.c:827",
-    "message": "gc_temp_roots_clear is declared by hand in 1 .c files, not by a header",
-    "count": 1,
-    "sites": [
-      {
-        "func": "file:src/http.c",
-        "loc": "src/http.c:18",
+        "func": "file:src/gc.c",
+        "loc": "src/gc.c:888",
         "via": "void (void)"
       }
     ]
@@ -1058,7 +1256,7 @@
     "rule": "extern-redeclared",
     "subject": "func:log_udp_drain",
     "loc": "src/backend/zephyr/log_udp.c:405",
-    "message": "log_udp_drain is declared by hand in 1 .c files, not by a header",
+    "message": "log_udp_drain is declared by hand 1 times in .c files, not by a header",
     "count": 1,
     "sites": [
       {
@@ -1072,7 +1270,7 @@
     "rule": "extern-redeclared",
     "subject": "func:log_udp_set_target",
     "loc": "src/backend/zephyr/log_udp.c:352",
-    "message": "log_udp_set_target is declared by hand in 1 .c files, not by a header",
+    "message": "log_udp_set_target is declared by hand 1 times in .c files, not by a header",
     "count": 1,
     "sites": [
       {
@@ -1086,7 +1284,7 @@
     "rule": "extern-redeclared",
     "subject": "func:log_udp_tee",
     "loc": "src/backend/zephyr/log_udp.c:152",
-    "message": "log_udp_tee is declared by hand in 1 .c files, not by a header",
+    "message": "log_udp_tee is declared by hand 1 times in .c files, not by a header",
     "count": 1,
     "sites": [
       {
@@ -1100,7 +1298,7 @@
     "rule": "extern-redeclared",
     "subject": "func:log_udp_tee_paced",
     "loc": "src/backend/zephyr/log_udp.c:165",
-    "message": "log_udp_tee_paced is declared by hand in 1 .c files, not by a header",
+    "message": "log_udp_tee_paced is declared by hand 1 times in .c files, not by a header",
     "count": 1,
     "sites": [
       {
@@ -1112,9 +1310,37 @@
   },
   {
     "rule": "extern-redeclared",
+    "subject": "func:method_cache_flush",
+    "loc": "src/dispatch.c:290",
+    "message": "method_cache_flush is declared by hand 1 times in .c files, not by a header",
+    "count": 1,
+    "sites": [
+      {
+        "func": "file:src/gc.c",
+        "loc": "src/gc.c:840",
+        "via": "void (void)"
+      }
+    ]
+  },
+  {
+    "rule": "extern-redeclared",
+    "subject": "func:mirror_object",
+    "loc": "src/mirror.c:30",
+    "message": "mirror_object is declared by hand 1 times in .c files, not by a header",
+    "count": 1,
+    "sites": [
+      {
+        "func": "file:src/oimg_loader.c",
+        "loc": "src/oimg_loader.c:333",
+        "via": "struct Object * (void)"
+      }
+    ]
+  },
+  {
+    "rule": "extern-redeclared",
     "subject": "func:observer_halt",
     "loc": "zephyr/src/observer.c:336",
-    "message": "observer_halt is declared by hand in 1 .c files, not by a header",
+    "message": "observer_halt is declared by hand 1 times in .c files, not by a header",
     "count": 1,
     "sites": [
       {
@@ -1128,7 +1354,7 @@
     "rule": "extern-redeclared",
     "subject": "func:observer_start",
     "loc": "zephyr/src/observer.c:397",
-    "message": "observer_start is declared by hand in 1 .c files, not by a header",
+    "message": "observer_start is declared by hand 1 times in .c files, not by a header",
     "count": 1,
     "sites": [
       {
@@ -1142,7 +1368,7 @@
     "rule": "extern-redeclared",
     "subject": "func:oimg_bootstrap",
     "loc": "src/oimg_loader.c:281",
-    "message": "oimg_bootstrap is declared by hand in 1 .c files, not by a header",
+    "message": "oimg_bootstrap is declared by hand 1 times in .c files, not by a header",
     "count": 1,
     "sites": [
       {
@@ -1156,7 +1382,7 @@
     "rule": "extern-redeclared",
     "subject": "func:oimg_root",
     "loc": "src/oimg_loader.c:271",
-    "message": "oimg_root is declared by hand in 1 .c files, not by a header",
+    "message": "oimg_root is declared by hand 1 times in .c files, not by a header",
     "count": 1,
     "sites": [
       {
@@ -1170,7 +1396,7 @@
     "rule": "extern-redeclared",
     "subject": "func:platform_app_cad_ms",
     "loc": "src/platform.c:19",
-    "message": "platform_app_cad_ms is declared by hand in 1 .c files, not by a header",
+    "message": "platform_app_cad_ms is declared by hand 1 times in .c files, not by a header",
     "count": 1,
     "sites": [
       {
@@ -1184,7 +1410,7 @@
     "rule": "extern-redeclared",
     "subject": "func:platform_debug_held",
     "loc": "src/backend/zephyr/platform_zephyr.c:257",
-    "message": "platform_debug_held is declared by hand in 1 .c files, not by a header",
+    "message": "platform_debug_held is declared by hand 1 times in .c files, not by a header",
     "count": 1,
     "sites": [
       {
@@ -1198,7 +1424,7 @@
     "rule": "extern-redeclared",
     "subject": "func:reboot_note_ack",
     "loc": "zephyr/src/reboot_note.c:66",
-    "message": "reboot_note_ack is declared by hand in 1 .c files, not by a header",
+    "message": "reboot_note_ack is declared by hand 1 times in .c files, not by a header",
     "count": 1,
     "sites": [
       {
@@ -1212,7 +1438,7 @@
     "rule": "extern-redeclared",
     "subject": "func:reboot_note_consecutive",
     "loc": "zephyr/src/reboot_note.c:71",
-    "message": "reboot_note_consecutive is declared by hand in 1 .c files, not by a header",
+    "message": "reboot_note_consecutive is declared by hand 1 times in .c files, not by a header",
     "count": 1,
     "sites": [
       {
@@ -1226,7 +1452,7 @@
     "rule": "extern-redeclared",
     "subject": "func:reboot_note_init",
     "loc": "zephyr/src/reboot_note.c:39",
-    "message": "reboot_note_init is declared by hand in 1 .c files, not by a header",
+    "message": "reboot_note_init is declared by hand 1 times in .c files, not by a header",
     "count": 1,
     "sites": [
       {
@@ -1240,7 +1466,7 @@
     "rule": "extern-redeclared",
     "subject": "func:reboot_note_read",
     "loc": "zephyr/src/reboot_note.c:43",
-    "message": "reboot_note_read is declared by hand in 1 .c files, not by a header",
+    "message": "reboot_note_read is declared by hand 1 times in .c files, not by a header",
     "count": 1,
     "sites": [
       {
@@ -1254,7 +1480,7 @@
     "rule": "extern-redeclared",
     "subject": "func:reboot_note_write",
     "loc": "zephyr/src/reboot_note.c:49",
-    "message": "reboot_note_write is declared by hand in 1 .c files, not by a header",
+    "message": "reboot_note_write is declared by hand 1 times in .c files, not by a header",
     "count": 1,
     "sites": [
       {
@@ -1268,7 +1494,7 @@
     "rule": "extern-redeclared",
     "subject": "func:reset_cause_timer_wake",
     "loc": "zephyr/src/main.c:306",
-    "message": "reset_cause_timer_wake is declared by hand in 1 .c files, not by a header",
+    "message": "reset_cause_timer_wake is declared by hand 1 times in .c files, not by a header",
     "count": 1,
     "sites": [
       {
@@ -1282,7 +1508,7 @@
     "rule": "extern-redeclared",
     "subject": "func:rtc_alarm_arm",
     "loc": "zephyr/src/main.c:555",
-    "message": "rtc_alarm_arm is declared by hand in 1 .c files, not by a header",
+    "message": "rtc_alarm_arm is declared by hand 1 times in .c files, not by a header",
     "count": 1,
     "sites": [
       {
@@ -1296,7 +1522,7 @@
     "rule": "extern-redeclared",
     "subject": "func:run_interpreter",
     "loc": "src/vm.c:1024",
-    "message": "run_interpreter is declared by hand in 1 .c files, not by a header",
+    "message": "run_interpreter is declared by hand 1 times in .c files, not by a header",
     "count": 1,
     "sites": [
       {
@@ -1308,15 +1534,43 @@
   },
   {
     "rule": "extern-redeclared",
-    "subject": "func:send",
-    "loc": "src/dispatch.c:2078",
-    "message": "send is declared by hand in 1 .c files, not by a header",
+    "subject": "func:serial_object",
+    "loc": "src/serial.c:15",
+    "message": "serial_object is declared by hand 1 times in .c files, not by a header",
     "count": 1,
     "sites": [
       {
-        "func": "file:src/vm.c",
-        "loc": "src/vm.c:742",
-        "via": "struct Object * (struct Object *, struct Object *, int, struct Object * *)"
+        "func": "file:src/oimg_loader.c",
+        "loc": "src/oimg_loader.c:312",
+        "via": "struct Object * (void)"
+      }
+    ]
+  },
+  {
+    "rule": "extern-redeclared",
+    "subject": "func:space_gc_trace",
+    "loc": "src/space.c:424",
+    "message": "space_gc_trace is declared by hand 1 times in .c files, not by a header",
+    "count": 1,
+    "sites": [
+      {
+        "func": "file:src/gc.c",
+        "loc": "src/gc.c:883",
+        "via": "void (void)"
+      }
+    ]
+  },
+  {
+    "rule": "extern-redeclared",
+    "subject": "func:udp_object",
+    "loc": "src/udp.c:48",
+    "message": "udp_object is declared by hand 1 times in .c files, not by a header",
+    "count": 1,
+    "sites": [
+      {
+        "func": "file:src/oimg_loader.c",
+        "loc": "src/oimg_loader.c:318",
+        "via": "struct Object * (void)"
       }
     ]
   },

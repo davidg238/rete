@@ -1,4 +1,4 @@
-# invarlint findings — 5cebe5ca
+# invarlint findings — c02d1eec
 
 ## root-bypassed (5)
 
@@ -56,20 +56,24 @@
 | global:rl_q | 3 | `platform_console_take_line` (src/backend/zephyr/platform_zephyr.c:194)<br>`platform_zephyr.c:rl_getc` (src/backend/zephyr/platform_zephyr.c:173)<br>`platform_zephyr.c:rl_isr` (src/backend/zephyr/platform_zephyr.c:149) |
 | … 74 more unowned-writer rows; see findings.json | | |
 
-## extern-redeclared (25)
+## extern-redeclared (31)
 
 | subject | count | sites |
 |---|---|---|
-| gc_allocate | 5 | `http.c` (src/http.c:15; struct Object * (struct Object *, unsigned int))<br>`platform.c` (src/platform.c:557; struct Object * (struct Object *, unsigned int))<br>`space.c` (src/space.c:54; struct Object * (struct Object *, unsigned int))<br>`udp.c` (src/udp.c:21; struct Object * (struct Object *, unsigned int))<br>`vm.c` (src/vm.c:51; struct Object * (struct Object *, unsigned int)) |
+| gc_allocate | 19 | `dispatch.c` (src/dispatch.c:1081; struct Object * (struct Object *, unsigned int))<br>`dispatch.c` (src/dispatch.c:1107; struct Object * (struct Object *, unsigned int))<br>`dispatch.c` (src/dispatch.c:1133; struct Object * (struct Object *, unsigned int))<br>`dispatch.c` (src/dispatch.c:1461; struct Object * (struct Object *, unsigned int))<br>`dispatch.c` (src/dispatch.c:1472; struct Object * (struct Object *, unsigned int))<br>`dispatch.c` (src/dispatch.c:1490; struct Object * (struct Object *, unsigned int))<br>`dispatch.c` (src/dispatch.c:1805; struct Object * (struct Object *, unsigned int))<br>`dispatch.c` (src/dispatch.c:1851; struct Object * (struct Object *, unsigned int))<br>`dispatch.c` (src/dispatch.c:42; struct Object * (struct Object *, unsigned int))<br>`dispatch.c` (src/dispatch.c:456; struct Object * (struct Object *, unsigned int))<br>`dispatch.c` (src/dispatch.c:56; struct Object * (struct Object *, unsigned int))<br>`dispatch.c` (src/dispatch.c:639; struct Object * (struct Object *, unsigned int))<br>+7 more |
+| gc_temp_root_push | 15 | `dispatch.c` (src/dispatch.c:1155; void (struct Object *))<br>`dispatch.c` (src/dispatch.c:1206; void (struct Object *))<br>`dispatch.c` (src/dispatch.c:74; void (struct Object *))<br>`http.c` (src/http.c:17; void (struct Object *))<br>`oimg_loader.c` (src/oimg_loader.c:288; void (struct Object *))<br>`platform.c` (src/platform.c:1050; void (struct Object *))<br>`platform.c` (src/platform.c:1223; void (struct Object *))<br>`platform.c` (src/platform.c:1270; void (struct Object *))<br>`platform.c` (src/platform.c:1391; void (struct Object *))<br>`space.c` (src/space.c:385; void (struct Object *))<br>`udp.c` (src/udp.c:89; void (struct Object *))<br>`vm.c` (src/vm.c:119; void (struct Object *))<br>+3 more |
+| gc_temp_roots_clear | 6 | `http.c` (src/http.c:18; void (void))<br>`oimg_loader.c` (src/oimg_loader.c:289; void (void))<br>`platform.c` (src/platform.c:1224; void (void))<br>`platform.c` (src/platform.c:1271; void (void))<br>`udp.c` (src/udp.c:90; void (void))<br>`vm.c` (src/vm.c:1830; void (void)) |
 | indexable_new | 4 | `http.c` (src/http.c:16; struct Object * (long))<br>`space.c` (src/space.c:40; struct Object * (long))<br>`udp.c` (src/udp.c:22; struct Object * (long))<br>`vm.c` (src/vm.c:2323; struct Object * (long)) |
 | mark_object | 2 | `handles.c` (src/handles.c:8; void (struct Object *))<br>`space.c` (src/space.c:46; void (struct Object *)) |
+| send | 2 | `oimg_loader.c` (src/oimg_loader.c:282; struct Object * (struct Object *, struct Object *, int, struct Object * *))<br>`vm.c` (src/vm.c:742; struct Object * (struct Object *, struct Object *, int, struct Object * *)) |
 | deep_sleep_target | 1 | `platform.c` (src/platform.c:537; void (int)) |
-| gc_temp_root_push | 1 | `http.c` (src/http.c:17; void (struct Object *)) |
-| gc_temp_roots_clear | 1 | `http.c` (src/http.c:18; void (void)) |
+| handle_gc_trace | 1 | `gc.c` (src/gc.c:888; void (void)) |
 | log_udp_drain | 1 | `platform_zephyr.c` (src/backend/zephyr/platform_zephyr.c:38; void (int)) |
 | log_udp_set_target | 1 | `platform_zephyr.c` (src/backend/zephyr/platform_zephyr.c:37; int (const char *, unsigned int, int)) |
 | log_udp_tee | 1 | `platform_zephyr.c` (src/backend/zephyr/platform_zephyr.c:33; void (const char *, unsigned int)) |
 | log_udp_tee_paced | 1 | `platform_zephyr.c` (src/backend/zephyr/platform_zephyr.c:36; void (const char *, unsigned int)) |
+| method_cache_flush | 1 | `gc.c` (src/gc.c:840; void (void)) |
+| mirror_object | 1 | `oimg_loader.c` (src/oimg_loader.c:333; struct Object * (void)) |
 | observer_halt | 1 | `reboot_note.c` (zephyr/src/reboot_note.c:22; void (void)) |
 | observer_start | 1 | `main.c` (zephyr/src/main.c:32; void (void)) |
 | oimg_bootstrap | 1 | `main.c` (zephyr/src/main.c:1572; struct Object * (struct Object *)) |
@@ -84,7 +88,9 @@
 | reset_cause_timer_wake | 1 | `platform.c` (src/platform.c:524; int (void)) |
 | rtc_alarm_arm | 1 | `platform.c` (src/platform.c:546; int (int, int, int)) |
 | run_interpreter | 1 | `dispatch.c` (src/dispatch.c:325; struct Object * (struct Object *, struct Object *, int, struct Object * *)) |
-| send | 1 | `vm.c` (src/vm.c:742; struct Object * (struct Object *, struct Object *, int, struct Object * *)) |
+| serial_object | 1 | `oimg_loader.c` (src/oimg_loader.c:312; struct Object * (void)) |
+| space_gc_trace | 1 | `gc.c` (src/gc.c:883; void (void)) |
+| udp_object | 1 | `oimg_loader.c` (src/oimg_loader.c:318; struct Object * (void)) |
 
 ## context-coupling (7)
 

@@ -1,5 +1,5 @@
 {
-  "commit": "5cebe5ca",
+  "commit": "c02d1eec",
   "root": "/home/david/workspace/rete/nodus/oevm",
   "config": "build-esp32c6-B",
   "partial": false,
@@ -22983,7 +22983,147 @@
       "kind": "declares",
       "from": "unit:src",
       "to": "func:gc_allocate",
+      "loc": "src/dispatch.c:1081",
+      "attrs": {
+        "sig": "oop (oop, size_t)",
+        "type": "struct Object * (struct Object *, unsigned int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:gc_allocate",
+      "loc": "src/dispatch.c:1107",
+      "attrs": {
+        "sig": "oop (oop, size_t)",
+        "type": "struct Object * (struct Object *, unsigned int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:gc_allocate",
+      "loc": "src/dispatch.c:1133",
+      "attrs": {
+        "sig": "oop (oop, size_t)",
+        "type": "struct Object * (struct Object *, unsigned int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:gc_allocate",
+      "loc": "src/dispatch.c:1461",
+      "attrs": {
+        "sig": "oop (oop, size_t)",
+        "type": "struct Object * (struct Object *, unsigned int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:gc_allocate",
+      "loc": "src/dispatch.c:1472",
+      "attrs": {
+        "sig": "oop (oop, size_t)",
+        "type": "struct Object * (struct Object *, unsigned int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:gc_allocate",
+      "loc": "src/dispatch.c:1490",
+      "attrs": {
+        "sig": "oop (oop, size_t)",
+        "type": "struct Object * (struct Object *, unsigned int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:gc_allocate",
+      "loc": "src/dispatch.c:1805",
+      "attrs": {
+        "sig": "oop (oop, size_t)",
+        "type": "struct Object * (struct Object *, unsigned int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:gc_allocate",
+      "loc": "src/dispatch.c:1851",
+      "attrs": {
+        "sig": "oop (oop, size_t)",
+        "type": "struct Object * (struct Object *, unsigned int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:gc_allocate",
+      "loc": "src/dispatch.c:42",
+      "attrs": {
+        "sig": "oop (oop, size_t)",
+        "type": "struct Object * (struct Object *, unsigned int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:gc_allocate",
+      "loc": "src/dispatch.c:456",
+      "attrs": {
+        "sig": "oop (oop, size_t)",
+        "type": "struct Object * (struct Object *, unsigned int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:gc_allocate",
+      "loc": "src/dispatch.c:56",
+      "attrs": {
+        "sig": "oop (oop, size_t)",
+        "type": "struct Object * (struct Object *, unsigned int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:gc_allocate",
+      "loc": "src/dispatch.c:639",
+      "attrs": {
+        "sig": "oop (oop, size_t)",
+        "type": "struct Object * (struct Object *, unsigned int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:gc_allocate",
+      "loc": "src/dispatch.c:73",
+      "attrs": {
+        "sig": "oop (oop, size_t)",
+        "type": "struct Object * (struct Object *, unsigned int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:gc_allocate",
       "loc": "src/http.c:15",
+      "attrs": {
+        "sig": "oop (oop, size_t)",
+        "type": "struct Object * (struct Object *, unsigned int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:gc_allocate",
+      "loc": "src/oimg_loader.c:283",
       "attrs": {
         "sig": "oop (oop, size_t)",
         "type": "struct Object * (struct Object *, unsigned int)"
@@ -23042,7 +23182,147 @@
       "kind": "declares",
       "from": "unit:src",
       "to": "func:gc_temp_root_push",
+      "loc": "src/dispatch.c:1155",
+      "attrs": {
+        "sig": "void (oop)",
+        "type": "void (struct Object *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:gc_temp_root_push",
+      "loc": "src/dispatch.c:1206",
+      "attrs": {
+        "sig": "void (oop)",
+        "type": "void (struct Object *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:gc_temp_root_push",
+      "loc": "src/dispatch.c:74",
+      "attrs": {
+        "sig": "void (oop)",
+        "type": "void (struct Object *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:gc_temp_root_push",
       "loc": "src/http.c:17",
+      "attrs": {
+        "sig": "void (oop)",
+        "type": "void (struct Object *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:gc_temp_root_push",
+      "loc": "src/oimg_loader.c:288",
+      "attrs": {
+        "sig": "void (oop)",
+        "type": "void (struct Object *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:gc_temp_root_push",
+      "loc": "src/platform.c:1050",
+      "attrs": {
+        "sig": "void (oop)",
+        "type": "void (struct Object *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:gc_temp_root_push",
+      "loc": "src/platform.c:1223",
+      "attrs": {
+        "sig": "void (oop)",
+        "type": "void (struct Object *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:gc_temp_root_push",
+      "loc": "src/platform.c:1270",
+      "attrs": {
+        "sig": "void (oop)",
+        "type": "void (struct Object *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:gc_temp_root_push",
+      "loc": "src/platform.c:1391",
+      "attrs": {
+        "sig": "void (oop)",
+        "type": "void (struct Object *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:gc_temp_root_push",
+      "loc": "src/space.c:385",
+      "attrs": {
+        "sig": "void (oop)",
+        "type": "void (struct Object *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:gc_temp_root_push",
+      "loc": "src/udp.c:89",
+      "attrs": {
+        "sig": "void (oop)",
+        "type": "void (struct Object *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:gc_temp_root_push",
+      "loc": "src/vm.c:119",
+      "attrs": {
+        "sig": "void (oop)",
+        "type": "void (struct Object *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:gc_temp_root_push",
+      "loc": "src/vm.c:1829",
+      "attrs": {
+        "sig": "void (oop)",
+        "type": "void (struct Object *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:gc_temp_root_push",
+      "loc": "src/vm.c:211",
+      "attrs": {
+        "sig": "void (oop)",
+        "type": "void (struct Object *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:gc_temp_root_push",
+      "loc": "src/vm.c:272",
       "attrs": {
         "sig": "void (oop)",
         "type": "void (struct Object *)"
@@ -23053,6 +23333,51 @@
       "from": "unit:src",
       "to": "func:gc_temp_roots_clear",
       "loc": "src/http.c:18",
+      "attrs": {
+        "sig": "void (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:gc_temp_roots_clear",
+      "loc": "src/oimg_loader.c:289",
+      "attrs": {
+        "sig": "void (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:gc_temp_roots_clear",
+      "loc": "src/platform.c:1224",
+      "attrs": {
+        "sig": "void (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:gc_temp_roots_clear",
+      "loc": "src/platform.c:1271",
+      "attrs": {
+        "sig": "void (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:gc_temp_roots_clear",
+      "loc": "src/udp.c:90",
+      "attrs": {
+        "sig": "void (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:gc_temp_roots_clear",
+      "loc": "src/vm.c:1830",
       "attrs": {
         "sig": "void (void)"
       }
@@ -23082,6 +23407,15 @@
       "loc": "src/handles.h:45",
       "attrs": {
         "sig": "void (int)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:handle_gc_trace",
+      "loc": "src/gc.c:888",
+      "attrs": {
+        "sig": "void (void)"
       }
     },
     {
@@ -23474,6 +23808,15 @@
       "kind": "declares",
       "from": "unit:src",
       "to": "func:method_cache_flush",
+      "loc": "src/gc.c:840",
+      "attrs": {
+        "sig": "void (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:method_cache_flush",
       "loc": "src/oevm.h:576",
       "attrs": {
         "sig": "void (void)"
@@ -23504,6 +23847,16 @@
       "from": "unit:src",
       "to": "func:mirror_object",
       "loc": "src/mirror.h:4",
+      "attrs": {
+        "sig": "oop (void)",
+        "type": "struct Object * (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:mirror_object",
+      "loc": "src/oimg_loader.c:333",
       "attrs": {
         "sig": "oop (void)",
         "type": "struct Object * (void)"
@@ -24613,6 +24966,16 @@
       "kind": "declares",
       "from": "unit:src",
       "to": "func:send",
+      "loc": "src/oimg_loader.c:282",
+      "attrs": {
+        "sig": "oop (oop, oop, int, oop *)",
+        "type": "struct Object * (struct Object *, struct Object *, int, struct Object * *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:send",
       "loc": "src/vm.c:742",
       "attrs": {
         "sig": "oop (oop, oop, int, oop *)",
@@ -24712,6 +25075,16 @@
       "kind": "declares",
       "from": "unit:src",
       "to": "func:serial_object",
+      "loc": "src/oimg_loader.c:312",
+      "attrs": {
+        "sig": "oop (void)",
+        "type": "struct Object * (void)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:serial_object",
       "loc": "src/serial.h:4",
       "attrs": {
         "sig": "oop (void)",
@@ -24782,6 +25155,15 @@
       "attrs": {
         "sig": "void (oop)",
         "type": "void (struct Object *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:space_gc_trace",
+      "loc": "src/gc.c:883",
+      "attrs": {
+        "sig": "void (void)"
       }
     },
     {
@@ -25154,6 +25536,16 @@
       "attrs": {
         "sig": "oop (oop, int, oop *)",
         "type": "struct Object * (struct Object *, int, struct Object * *)"
+      }
+    },
+    {
+      "kind": "declares",
+      "from": "unit:src",
+      "to": "func:udp_object",
+      "loc": "src/oimg_loader.c:318",
+      "attrs": {
+        "sig": "oop (void)",
+        "type": "struct Object * (void)"
       }
     },
     {

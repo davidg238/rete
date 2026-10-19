@@ -1,0 +1,6 @@
+name: serial-header
+pattern: Facade
+intent: oimg_loader.c includes the header that already declares serial_object
+compromise: oevm.h's second prototype of serial_object stays
+ops:
+  - declare: {func: serial_object, header: src/serial.h}

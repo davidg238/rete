@@ -1,9 +1,0 @@
-name: gc-header
-pattern: Facade
-intent: one header declares the collector entry points the allocating modules call
-compromise: a new header for four functions; the rest of gc.c stays reached through oevm.h
-ops:
-  - declare: {func: gc_allocate, header: src/gc.h}
-  - declare: {func: mark_object, header: src/gc.h}
-  - declare: {func: gc_temp_root_push, header: src/gc.h}
-  - declare: {func: gc_temp_roots_clear, header: src/gc.h}
