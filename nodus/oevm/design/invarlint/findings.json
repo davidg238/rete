@@ -11386,25 +11386,6 @@
     ]
   },
   {
-    "rule": "root-bypassed",
-    "subject": "func:platform_app_cad_ms",
-    "loc": "src/platform.c:19",
-    "message": "platform_app_cad_ms (context src) is called from 2 functions in other contexts without going through a root (roots: Boot, CoreCallbacks, SharedKernel, Space, Targets)",
-    "count": 2,
-    "sites": [
-      {
-        "func": "func:zephyr/src/observer.c:observer_verdict",
-        "loc": "zephyr/src/observer.c:145",
-        "via": "zephyr/src"
-      },
-      {
-        "func": "func:zephyr/src/observer.c:observer_dump",
-        "loc": "zephyr/src/observer.c:317",
-        "via": "zephyr/src"
-      }
-    ]
-  },
-  {
     "rule": "unowned-writer",
     "subject": "global:false_sym_obj",
     "message": "global:false_sym_obj has 62 write statements in 7 functions and no card owns it",

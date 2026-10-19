@@ -1,6 +1,4 @@
 [
-  "root-bypassed|func:platform_app_cad_ms|func:zephyr/src/observer.c:observer_dump",
-  "root-bypassed|func:platform_app_cad_ms|func:zephyr/src/observer.c:observer_verdict",
   "unowned-writer|global:Symbol_debug_|func:kernel_boot",
   "unowned-writer|global:Symbol_debug_|func:primitive_register_debugger_hook",
   "unowned-writer|global:Symbol_value|func:kernel_boot",

@@ -1,10 +1,4 @@
-# invarlint findings — 830ce39e
-
-## root-bypassed (1)
-
-| subject | count | sites |
-|---|---|---|
-| platform_app_cad_ms | 2 | `observer.c:observer_verdict` (zephyr/src/observer.c:145; zephyr/src)<br>`observer.c:observer_dump` (zephyr/src/observer.c:317; zephyr/src) |
+# invarlint findings — a9c2a88d
 
 ## unowned-writer (114)
 
