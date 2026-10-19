@@ -46,16 +46,13 @@
 #include "reboot_note.h"
 #include "observer_core.h"
 #include "pulse_backend.h"
+#include "target_backend.h"   /* timer_target_snapshot (invarlint#53) */
 
 #ifdef CONFIG_TASK_WDT
 #include <zephyr/drivers/watchdog.h>
 #include <zephyr/sys/reboot.h>
 #include <zephyr/task_wdt/task_wdt.h>
 
-/* Declared across translation units the way platform.c declares bell/ntp/rtc — the tree's
-   idiom for a target leaf that lives in another file. Defined in
-   src/backend/zephyr/timer_zephyr.c. */
-int timer_target_snapshot(uint32_t *period_ms, uint32_t *since_ms, int max);
 
 /* rete#273 D1: the app's declared cadence, defined in src/platform.c beside the prim. */
 uint32_t platform_app_cad_ms(void);

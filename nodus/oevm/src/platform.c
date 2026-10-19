@@ -9,6 +9,7 @@
 #include "http.h"
 #include "http_backend.h"
 #include "sensor_backend.h"  /* AMG8833 thermal rung: the Tier-1 sensor seam */
+#include "target_backend.h"  /* invarlint#53: the board leaves, declared once */
 #include "span.h"            /* tuvm#61: job-latency span slots */
 
 /* rete#273 D1: the app's declared cadence for the observer (PRIM_pf_appLiveness).
@@ -167,8 +168,6 @@ int gpio_target_level(int pin) {
    across two repos (tuvm#63) for two functions.
    Note the direction is the MIRROR of gpio_target_fire below, which platform.c
    defines and main.c calls inbound. */
-extern int gpio_target_set(int pin, int level);
-extern int gpio_target_level(int pin);
 #endif
 
 /* tuvm#88: the host side of the display seam — a real character grid, not a
@@ -271,11 +270,6 @@ int display_target_refresh_row(int row) {
    devicetree node they read — the same split gpio_target_set/level use, and for
    the same reason: a new .c file costs edits to nine enumerated source lists
    across two repos (tuvm#63). */
-extern int display_target_available(void);
-extern int display_target_clear(void);
-extern int display_target_put(int row, int col, const char *s, int n);
-extern int display_target_refresh(void);
-extern int display_target_refresh_row(int row);
 #endif
 
 /* tuvm#94 stage 1: the host side of the bell seam. There is nothing to synthesise
@@ -515,22 +509,15 @@ void deep_sleep_target(int seconds) {
    display five above (tuvm#63). Like those, both symbols must exist and link on
    EVERY Zephyr board, including the ones with no speaker: the guard goes inside
    the function bodies, never around the definitions. */
-extern int bell_target_available(void);
-extern int bell_target_strike(int bells);
 /* tuvm#94 stage 4. Same rule as the bell pair above: the symbol must link on EVERY
    Zephyr board, so main.c guards the BODY (a board without CONFIG_WIFI answers -1),
    never the definition. */
-extern int ntp_target_sync(int tz_offset_seconds);
 /* tuvm#100 (2026-08-01): the date half of the NTP seam. Same linkage rule; it
    answers -1 until a sync has succeeded, so a board with no network is already
    handled without a second guard. */
-extern int ntp_target_date(void);
 /* tuvm#94 stage 5: RTC-retention leaves live in zephyr/src/main.c (the .rtc.data
    struct is beside the wifi/ntp leaves). Same rule as bell/ntp — the symbols link on
    every Zephyr board; main.c guards bodies, never definitions. */
-extern int rtc_target_valid(void);
-extern int rtc_target_get(int i);
-extern void rtc_target_put(int i, int v);
 /* rete#233 T10: the reset-cause leaf (hwinfo) lives in zephyr/src/main.c beside the
    RTC retention block. Same rule: links on every board; a board whose hwinfo has no
    reset cause answers 1 from the body. */
@@ -552,8 +539,6 @@ extern void deep_sleep_target(int seconds);
    devicetree-reading leaves. Same rule as bell/ntp/rtc — the symbol must link on
    EVERY Zephyr board, so main.c guards the BODY (a board with no RTC node in its
    devicetree answers -1), never the definition. */
-extern int wallclock_target_read(void);
-extern int wallclock_target_set(int yyyymmdd, int seconds_of_day);
 /* shipsBellsV3 (#102): the RTC alarm leaf, same rule as the wall-clock one above
    — zephyr/src/main.c guards the BODY (a board with no RTC alias, or an image
    built without CONFIG_RTC_ALARM, answers -1), never the definition, so the

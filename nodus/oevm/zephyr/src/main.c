@@ -33,6 +33,7 @@ void observer_start(void);   /* zephyr/src/observer.c (rete#215) */
 #include "oimg.h"
 #include "thread_bringup.h"
 #include "log_udp.h"
+#include "target_backend.h"   /* invarlint#53: the leaves this file defines, declared once */
 
 /* OUTSIDE the CONFIG_WIFI block below, because the NTP seam is no longer inside
    it: a Thread node has SNTP and no WiFi. See ntp_target_sync(). */
