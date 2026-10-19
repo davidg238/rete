@@ -1,6 +1,4 @@
 [
   "owns-violated|global:Symbol_debug_|func:primitive_register_debugger_hook",
-  "owns-violated|global:Symbol_value|func:run_interpreter",
-  "unowned-writer|global:platform_debug_pending|func:src/backend/zephyr/platform_zephyr.c:rl_isr",
-  "unowned-writer|global:platform_debug_pending|func:src/backend/zephyr/platform_zephyr.c:rl_line_taken"
+  "owns-violated|global:Symbol_value|func:run_interpreter"
 ]

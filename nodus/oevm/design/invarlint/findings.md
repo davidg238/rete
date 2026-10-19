@@ -1,4 +1,4 @@
-# invarlint findings — e9a1fc8f
+# invarlint findings — 1071ed42
 
 ## owns-violated (2)
 
@@ -6,12 +6,6 @@
 |---|---|---|
 | global:Symbol_debug_ | 1 | `primitive_register_debugger_hook` (src/vm.c:1893) |
 | global:Symbol_value | 1 | `run_interpreter` (src/vm.c:1039) |
-
-## unowned-writer (1)
-
-| subject | count | sites |
-|---|---|---|
-| global:platform_debug_pending | 2 | `platform_zephyr.c:rl_isr` (src/backend/zephyr/platform_zephyr.c:149)<br>`platform_zephyr.c:rl_line_taken` (src/backend/zephyr/platform_zephyr.c:164) |
 
 ## context-coupling (6)
 
@@ -134,11 +128,12 @@
 | global:src/vm.c:g_mprof_n | 6 | `mprof_start` (src/vm.c:597; writes)<br>`primitive_calls_reset` (src/vm.c:2404; writes)<br>`primitive_calls_stats` (src/vm.c:2387; reads)<br>`vm.c:mprof_bump` (src/vm.c:486; writes)<br>`vm.c:mprof_count` (src/vm.c:645; reads)<br>`vm.c:mprof_report` (src/vm.c:544; reads)<br>`vm.c:mprof_report` (src/vm.c:552; reads)<br>`vm.c:mprof_report` (src/vm.c:554; reads) |
 | … 190 more global-flow rows; see findings.json | | |
 
-## owns-exceeded (36)
+## owns-exceeded (40)
 
 | subject | count | sites |
 |---|---|---|
 | Interpreter/global:src/vm.c:g_protect_top | 3 | `vm_ensure` (src/vm.c:271)<br>`vm_ensure` (src/vm.c:277)<br>`vm_ensure` (src/vm.c:294)<br>`vm_on_do` (src/vm.c:211)<br>`vm_on_do` (src/vm.c:214)<br>`vm_on_do` (src/vm.c:224)<br>`vm_protected_fire` (src/vm.c:170)<br>`vm_protected_fire` (src/vm.c:181) |
+| DebugAttention/global:src/backend/zephyr/platform_zephyr.c:rl_lines | 2 | `platform_zephyr.c:rl_isr` (src/backend/zephyr/platform_zephyr.c:147)<br>`platform_zephyr.c:rl_line_taken` (src/backend/zephyr/platform_zephyr.c:165) |
 | Boot/global:BoxedBindingVtable | 1 | `kernel_boot` (src/kernel_boot.c:128) |
 | Boot/global:BytecodeClosureVtable | 1 | `kernel_boot` (src/kernel_boot.c:126) |
 | Boot/global:ContextVtable | 1 | `kernel_boot` (src/kernel_boot.c:131) |
@@ -171,6 +166,9 @@
 | Boot/global:src/oimg_loader.c:img_supervisor_nslots | 1 | `oimg_load_blob` (src/oimg_loader.c:187) |
 | Boot/global:src/oimg_loader.c:img_supervisor_run_sel_ref | 1 | `oimg_load_blob` (src/oimg_loader.c:186) |
 | Boot/global:src/oimg_loader.c:img_supervisor_vtable_ref | 1 | `oimg_load_blob` (src/oimg_loader.c:184) |
+| DebugAttention/global:rl_q | 1 | `platform_zephyr.c:rl_isr` (src/backend/zephyr/platform_zephyr.c:146) |
+| DebugAttention/global:src/backend/zephyr/platform_zephyr.c:console_seq | 1 | `platform_zephyr.c:rl_isr` (src/backend/zephyr/platform_zephyr.c:151) |
+| DebugAttention/global:src/backend/zephyr/platform_zephyr.c:rl_spoken | 1 | `platform_zephyr.c:rl_isr` (src/backend/zephyr/platform_zephyr.c:145) |
 | Interpreter/global:Symbol_value | 1 | `run_interpreter` (src/vm.c:1039) |
 | Interpreter/global:g_active_stack | 1 | `run_interpreter` (src/vm.c:1032) |
 | Interpreter/global:vm_stack | 1 | `run_interpreter` (src/vm.c:1033) |

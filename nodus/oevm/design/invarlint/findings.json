@@ -10119,6 +10119,22 @@
   },
   {
     "rule": "owns-exceeded",
+    "subject": "card:DebugAttention/global:src/backend/zephyr/platform_zephyr.c:rl_lines",
+    "message": "DebugAttention does not own global:src/backend/zephyr/platform_zephyr.c:rl_lines, and 2 of its implementers write it",
+    "count": 2,
+    "sites": [
+      {
+        "func": "func:src/backend/zephyr/platform_zephyr.c:rl_isr",
+        "loc": "src/backend/zephyr/platform_zephyr.c:147"
+      },
+      {
+        "func": "func:src/backend/zephyr/platform_zephyr.c:rl_line_taken",
+        "loc": "src/backend/zephyr/platform_zephyr.c:165"
+      }
+    ]
+  },
+  {
+    "rule": "owns-exceeded",
     "subject": "card:Boot/global:BoxedBindingVtable",
     "message": "Boot does not own global:BoxedBindingVtable, and 1 of its implementers write it",
     "count": 1,
@@ -10503,6 +10519,42 @@
   },
   {
     "rule": "owns-exceeded",
+    "subject": "card:DebugAttention/global:rl_q",
+    "message": "DebugAttention does not own global:rl_q, and 1 of its implementers write it",
+    "count": 1,
+    "sites": [
+      {
+        "func": "func:src/backend/zephyr/platform_zephyr.c:rl_isr",
+        "loc": "src/backend/zephyr/platform_zephyr.c:146"
+      }
+    ]
+  },
+  {
+    "rule": "owns-exceeded",
+    "subject": "card:DebugAttention/global:src/backend/zephyr/platform_zephyr.c:console_seq",
+    "message": "DebugAttention does not own global:src/backend/zephyr/platform_zephyr.c:console_seq, and 1 of its implementers write it",
+    "count": 1,
+    "sites": [
+      {
+        "func": "func:src/backend/zephyr/platform_zephyr.c:rl_isr",
+        "loc": "src/backend/zephyr/platform_zephyr.c:151"
+      }
+    ]
+  },
+  {
+    "rule": "owns-exceeded",
+    "subject": "card:DebugAttention/global:src/backend/zephyr/platform_zephyr.c:rl_spoken",
+    "message": "DebugAttention does not own global:src/backend/zephyr/platform_zephyr.c:rl_spoken, and 1 of its implementers write it",
+    "count": 1,
+    "sites": [
+      {
+        "func": "func:src/backend/zephyr/platform_zephyr.c:rl_isr",
+        "loc": "src/backend/zephyr/platform_zephyr.c:145"
+      }
+    ]
+  },
+  {
+    "rule": "owns-exceeded",
     "subject": "card:Interpreter/global:Symbol_value",
     "message": "Interpreter does not own global:Symbol_value, and 1 of its implementers write it",
     "count": 1,
@@ -10675,22 +10727,6 @@
         "func": "func:src/backend/zephyr/timer_zephyr.c:timer_start",
         "loc": "src/backend/zephyr/timer_zephyr.c:72",
         "via": "writes"
-      }
-    ]
-  },
-  {
-    "rule": "unowned-writer",
-    "subject": "global:platform_debug_pending",
-    "message": "global:platform_debug_pending has 2 write statements in 2 functions and no card owns it",
-    "count": 2,
-    "sites": [
-      {
-        "func": "func:src/backend/zephyr/platform_zephyr.c:rl_isr",
-        "loc": "src/backend/zephyr/platform_zephyr.c:149"
-      },
-      {
-        "func": "func:src/backend/zephyr/platform_zephyr.c:rl_line_taken",
-        "loc": "src/backend/zephyr/platform_zephyr.c:164"
       }
     ]
   },
