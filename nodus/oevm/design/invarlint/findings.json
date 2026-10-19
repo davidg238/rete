@@ -10279,6 +10279,30 @@
   },
   {
     "rule": "owns-exceeded",
+    "subject": "card:Boot/global:Symbol_debug_",
+    "message": "Boot does not own global:Symbol_debug_, and 1 of its implementers write it",
+    "count": 1,
+    "sites": [
+      {
+        "func": "func:kernel_boot",
+        "loc": "src/kernel_boot.c:141"
+      }
+    ]
+  },
+  {
+    "rule": "owns-exceeded",
+    "subject": "card:Boot/global:Symbol_value",
+    "message": "Boot does not own global:Symbol_value, and 1 of its implementers write it",
+    "count": 1,
+    "sites": [
+      {
+        "func": "func:kernel_boot",
+        "loc": "src/kernel_boot.c:140"
+      }
+    ]
+  },
+  {
+    "rule": "owns-exceeded",
     "subject": "card:Boot/global:VtableVtable",
     "message": "Boot does not own global:VtableVtable, and 1 of its implementers write it",
     "count": 1,
@@ -10590,26 +10614,402 @@
     ]
   },
   {
-    "rule": "owns-violated",
-    "subject": "global:Symbol_debug_",
-    "message": "global:Symbol_debug_ is owned by Boot but written from 1 other functions",
+    "rule": "owns-exceeded",
+    "subject": "card:WellKnownSymbols/global:BoxedBindingVtable",
+    "message": "WellKnownSymbols does not own global:BoxedBindingVtable, and 1 of its implementers write it",
     "count": 1,
     "sites": [
       {
-        "func": "func:primitive_register_debugger_hook",
-        "loc": "src/vm.c:1893"
+        "func": "func:kernel_boot",
+        "loc": "src/kernel_boot.c:128"
       }
     ]
   },
   {
-    "rule": "owns-violated",
-    "subject": "global:Symbol_value",
-    "message": "global:Symbol_value is owned by Boot but written from 1 other functions",
+    "rule": "owns-exceeded",
+    "subject": "card:WellKnownSymbols/global:BytecodeClosureVtable",
+    "message": "WellKnownSymbols does not own global:BytecodeClosureVtable, and 1 of its implementers write it",
+    "count": 1,
+    "sites": [
+      {
+        "func": "func:kernel_boot",
+        "loc": "src/kernel_boot.c:126"
+      }
+    ]
+  },
+  {
+    "rule": "owns-exceeded",
+    "subject": "card:WellKnownSymbols/global:ContextVtable",
+    "message": "WellKnownSymbols does not own global:ContextVtable, and 1 of its implementers write it",
+    "count": 1,
+    "sites": [
+      {
+        "func": "func:kernel_boot",
+        "loc": "src/kernel_boot.c:131"
+      }
+    ]
+  },
+  {
+    "rule": "owns-exceeded",
+    "subject": "card:WellKnownSymbols/global:FloatVtable",
+    "message": "WellKnownSymbols does not own global:FloatVtable, and 1 of its implementers write it",
+    "count": 1,
+    "sites": [
+      {
+        "func": "func:kernel_boot",
+        "loc": "src/kernel_boot.c:133"
+      }
+    ]
+  },
+  {
+    "rule": "owns-exceeded",
+    "subject": "card:WellKnownSymbols/global:IntegerVtable",
+    "message": "WellKnownSymbols does not own global:IntegerVtable, and 1 of its implementers write it",
+    "count": 1,
+    "sites": [
+      {
+        "func": "func:kernel_boot",
+        "loc": "src/kernel_boot.c:132"
+      }
+    ]
+  },
+  {
+    "rule": "owns-exceeded",
+    "subject": "card:WellKnownSymbols/global:LargeIntegerVtable",
+    "message": "WellKnownSymbols does not own global:LargeIntegerVtable, and 1 of its implementers write it",
+    "count": 1,
+    "sites": [
+      {
+        "func": "func:kernel_boot",
+        "loc": "src/kernel_boot.c:134"
+      }
+    ]
+  },
+  {
+    "rule": "owns-exceeded",
+    "subject": "card:WellKnownSymbols/global:MethodContextVtable",
+    "message": "WellKnownSymbols does not own global:MethodContextVtable, and 1 of its implementers write it",
+    "count": 1,
+    "sites": [
+      {
+        "func": "func:kernel_boot",
+        "loc": "src/kernel_boot.c:135"
+      }
+    ]
+  },
+  {
+    "rule": "owns-exceeded",
+    "subject": "card:WellKnownSymbols/global:PrimitiveClosureVtable",
+    "message": "WellKnownSymbols does not own global:PrimitiveClosureVtable, and 1 of its implementers write it",
+    "count": 1,
+    "sites": [
+      {
+        "func": "func:kernel_boot",
+        "loc": "src/kernel_boot.c:127"
+      }
+    ]
+  },
+  {
+    "rule": "owns-exceeded",
+    "subject": "card:WellKnownSymbols/global:RawBytesVtable",
+    "message": "WellKnownSymbols does not own global:RawBytesVtable, and 1 of its implementers write it",
+    "count": 1,
+    "sites": [
+      {
+        "func": "func:kernel_boot",
+        "loc": "src/kernel_boot.c:125"
+      }
+    ]
+  },
+  {
+    "rule": "owns-exceeded",
+    "subject": "card:WellKnownSymbols/global:StackVtable",
+    "message": "WellKnownSymbols does not own global:StackVtable, and 1 of its implementers write it",
+    "count": 1,
+    "sites": [
+      {
+        "func": "func:kernel_boot",
+        "loc": "src/kernel_boot.c:130"
+      }
+    ]
+  },
+  {
+    "rule": "owns-exceeded",
+    "subject": "card:WellKnownSymbols/global:StringVtable",
+    "message": "WellKnownSymbols does not own global:StringVtable, and 1 of its implementers write it",
+    "count": 1,
+    "sites": [
+      {
+        "func": "func:kernel_boot",
+        "loc": "src/kernel_boot.c:124"
+      }
+    ]
+  },
+  {
+    "rule": "owns-exceeded",
+    "subject": "card:WellKnownSymbols/global:SymbolVtable",
+    "message": "WellKnownSymbols does not own global:SymbolVtable, and 1 of its implementers write it",
+    "count": 1,
+    "sites": [
+      {
+        "func": "func:kernel_boot",
+        "loc": "src/kernel_boot.c:123"
+      }
+    ]
+  },
+  {
+    "rule": "owns-exceeded",
+    "subject": "card:WellKnownSymbols/global:VtableVtable",
+    "message": "WellKnownSymbols does not own global:VtableVtable, and 1 of its implementers write it",
+    "count": 1,
+    "sites": [
+      {
+        "func": "func:kernel_boot",
+        "loc": "src/kernel_boot.c:122"
+      }
+    ]
+  },
+  {
+    "rule": "owns-exceeded",
+    "subject": "card:WellKnownSymbols/global:builtin_registry",
+    "message": "WellKnownSymbols does not own global:builtin_registry, and 1 of its implementers write it",
+    "count": 1,
+    "sites": [
+      {
+        "func": "func:kernel_boot",
+        "loc": "src/kernel_boot.c:149"
+      },
+      {
+        "func": "func:kernel_boot",
+        "loc": "src/kernel_boot.c:150"
+      },
+      {
+        "func": "func:kernel_boot",
+        "loc": "src/kernel_boot.c:151"
+      },
+      {
+        "func": "func:kernel_boot",
+        "loc": "src/kernel_boot.c:153"
+      },
+      {
+        "func": "func:kernel_boot",
+        "loc": "src/kernel_boot.c:154"
+      },
+      {
+        "func": "func:kernel_boot",
+        "loc": "src/kernel_boot.c:155"
+      },
+      {
+        "func": "func:kernel_boot",
+        "loc": "src/kernel_boot.c:156"
+      },
+      {
+        "func": "func:kernel_boot",
+        "loc": "src/kernel_boot.c:157"
+      },
+      {
+        "func": "func:kernel_boot",
+        "loc": "src/kernel_boot.c:158"
+      },
+      {
+        "func": "func:kernel_boot",
+        "loc": "src/kernel_boot.c:159"
+      },
+      {
+        "func": "func:kernel_boot",
+        "loc": "src/kernel_boot.c:160"
+      },
+      {
+        "func": "func:kernel_boot",
+        "loc": "src/kernel_boot.c:163"
+      },
+      {
+        "func": "func:kernel_boot",
+        "loc": "src/kernel_boot.c:164"
+      },
+      {
+        "func": "func:kernel_boot",
+        "loc": "src/kernel_boot.c:166"
+      },
+      {
+        "func": "func:kernel_boot",
+        "loc": "src/kernel_boot.c:167"
+      },
+      {
+        "func": "func:kernel_boot",
+        "loc": "src/kernel_boot.c:169"
+      },
+      {
+        "func": "func:kernel_boot",
+        "loc": "src/kernel_boot.c:170"
+      },
+      {
+        "func": "func:kernel_boot",
+        "loc": "src/kernel_boot.c:171"
+      }
+    ]
+  },
+  {
+    "rule": "owns-exceeded",
+    "subject": "card:WellKnownSymbols/global:current_frame",
+    "message": "WellKnownSymbols does not own global:current_frame, and 1 of its implementers write it",
     "count": 1,
     "sites": [
       {
         "func": "func:run_interpreter",
-        "loc": "src/vm.c:1039"
+        "loc": "src/vm.c:1035"
+      },
+      {
+        "func": "func:run_interpreter",
+        "loc": "src/vm.c:1086"
+      },
+      {
+        "func": "func:run_interpreter",
+        "loc": "src/vm.c:1708"
+      },
+      {
+        "func": "func:run_interpreter",
+        "loc": "src/vm.c:1767"
+      }
+    ]
+  },
+  {
+    "rule": "owns-exceeded",
+    "subject": "card:WellKnownSymbols/global:debugger_hook",
+    "message": "WellKnownSymbols does not own global:debugger_hook, and 1 of its implementers write it",
+    "count": 1,
+    "sites": [
+      {
+        "func": "func:primitive_register_debugger_hook",
+        "loc": "src/vm.c:1889"
+      }
+    ]
+  },
+  {
+    "rule": "owns-exceeded",
+    "subject": "card:WellKnownSymbols/global:g_active_stack",
+    "message": "WellKnownSymbols does not own global:g_active_stack, and 1 of its implementers write it",
+    "count": 1,
+    "sites": [
+      {
+        "func": "func:run_interpreter",
+        "loc": "src/vm.c:1032"
+      }
+    ]
+  },
+  {
+    "rule": "owns-exceeded",
+    "subject": "card:WellKnownSymbols/global:g_boot_inflight_argc",
+    "message": "WellKnownSymbols does not own global:g_boot_inflight_argc, and 1 of its implementers write it",
+    "count": 1,
+    "sites": [
+      {
+        "func": "func:run_interpreter",
+        "loc": "src/vm.c:1026"
+      },
+      {
+        "func": "func:run_interpreter",
+        "loc": "src/vm.c:1102"
+      }
+    ]
+  },
+  {
+    "rule": "owns-exceeded",
+    "subject": "card:WellKnownSymbols/global:g_boot_inflight_args",
+    "message": "WellKnownSymbols does not own global:g_boot_inflight_args, and 1 of its implementers write it",
+    "count": 1,
+    "sites": [
+      {
+        "func": "func:run_interpreter",
+        "loc": "src/vm.c:1025"
+      },
+      {
+        "func": "func:run_interpreter",
+        "loc": "src/vm.c:1101"
+      }
+    ]
+  },
+  {
+    "rule": "owns-exceeded",
+    "subject": "card:WellKnownSymbols/global:g_boot_inflight_receiver",
+    "message": "WellKnownSymbols does not own global:g_boot_inflight_receiver, and 1 of its implementers write it",
+    "count": 1,
+    "sites": [
+      {
+        "func": "func:run_interpreter",
+        "loc": "src/vm.c:1024"
+      },
+      {
+        "func": "func:run_interpreter",
+        "loc": "src/vm.c:1100"
+      }
+    ]
+  },
+  {
+    "rule": "owns-exceeded",
+    "subject": "card:WellKnownSymbols/global:oimg_singleton",
+    "message": "WellKnownSymbols does not own global:oimg_singleton, and 1 of its implementers write it",
+    "count": 1,
+    "sites": [
+      {
+        "func": "func:kernel_boot",
+        "loc": "src/kernel_boot.c:144"
+      },
+      {
+        "func": "func:kernel_boot",
+        "loc": "src/kernel_boot.c:145"
+      },
+      {
+        "func": "func:kernel_boot",
+        "loc": "src/kernel_boot.c:146"
+      }
+    ]
+  },
+  {
+    "rule": "owns-exceeded",
+    "subject": "card:WellKnownSymbols/global:src/kernel_boot.c:kernel_boot.booted",
+    "message": "WellKnownSymbols does not own global:src/kernel_boot.c:kernel_boot.booted, and 1 of its implementers write it",
+    "count": 1,
+    "sites": [
+      {
+        "func": "func:kernel_boot",
+        "loc": "src/kernel_boot.c:116"
+      }
+    ]
+  },
+  {
+    "rule": "owns-exceeded",
+    "subject": "card:WellKnownSymbols/global:vm_stack",
+    "message": "WellKnownSymbols does not own global:vm_stack, and 1 of its implementers write it",
+    "count": 1,
+    "sites": [
+      {
+        "func": "func:run_interpreter",
+        "loc": "src/vm.c:1033"
+      }
+    ]
+  },
+  {
+    "rule": "owns-exceeded",
+    "subject": "card:WellKnownSymbols/global:vm_stack_ptr",
+    "message": "WellKnownSymbols does not own global:vm_stack_ptr, and 1 of its implementers write it",
+    "count": 1,
+    "sites": [
+      {
+        "func": "func:run_interpreter",
+        "loc": "src/vm.c:1034"
+      },
+      {
+        "func": "func:run_interpreter",
+        "loc": "src/vm.c:1062"
+      },
+      {
+        "func": "func:run_interpreter",
+        "loc": "src/vm.c:1704"
+      },
+      {
+        "func": "func:run_interpreter",
+        "loc": "src/vm.c:1766"
       }
     ]
   },

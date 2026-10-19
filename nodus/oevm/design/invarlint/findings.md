@@ -1,11 +1,4 @@
-# invarlint findings — 1071ed42
-
-## owns-violated (2)
-
-| subject | count | sites |
-|---|---|---|
-| global:Symbol_debug_ | 1 | `primitive_register_debugger_hook` (src/vm.c:1893) |
-| global:Symbol_value | 1 | `run_interpreter` (src/vm.c:1039) |
+# invarlint findings — 569e6c32
 
 ## context-coupling (6)
 
@@ -128,7 +121,7 @@
 | global:src/vm.c:g_mprof_n | 6 | `mprof_start` (src/vm.c:597; writes)<br>`primitive_calls_reset` (src/vm.c:2404; writes)<br>`primitive_calls_stats` (src/vm.c:2387; reads)<br>`vm.c:mprof_bump` (src/vm.c:486; writes)<br>`vm.c:mprof_count` (src/vm.c:645; reads)<br>`vm.c:mprof_report` (src/vm.c:544; reads)<br>`vm.c:mprof_report` (src/vm.c:552; reads)<br>`vm.c:mprof_report` (src/vm.c:554; reads) |
 | … 190 more global-flow rows; see findings.json | | |
 
-## owns-exceeded (40)
+## owns-exceeded (66)
 
 | subject | count | sites |
 |---|---|---|
@@ -146,6 +139,8 @@
 | Boot/global:StackVtable | 1 | `kernel_boot` (src/kernel_boot.c:130) |
 | Boot/global:StringVtable | 1 | `kernel_boot` (src/kernel_boot.c:124) |
 | Boot/global:SymbolVtable | 1 | `kernel_boot` (src/kernel_boot.c:123) |
+| Boot/global:Symbol_debug_ | 1 | `kernel_boot` (src/kernel_boot.c:141) |
+| Boot/global:Symbol_value | 1 | `kernel_boot` (src/kernel_boot.c:140) |
 | Boot/global:VtableVtable | 1 | `kernel_boot` (src/kernel_boot.c:122) |
 | Boot/global:src/kernel_boot.c:kernel_boot.booted | 1 | `kernel_boot` (src/kernel_boot.c:116) |
 | Boot/global:src/oimg_loader.c:img_classnames_count | 1 | `oimg_load_blob` (src/oimg_loader.c:190) |
@@ -170,7 +165,6 @@
 | DebugAttention/global:src/backend/zephyr/platform_zephyr.c:console_seq | 1 | `platform_zephyr.c:rl_isr` (src/backend/zephyr/platform_zephyr.c:151) |
 | DebugAttention/global:src/backend/zephyr/platform_zephyr.c:rl_spoken | 1 | `platform_zephyr.c:rl_isr` (src/backend/zephyr/platform_zephyr.c:145) |
 | Interpreter/global:Symbol_value | 1 | `run_interpreter` (src/vm.c:1039) |
-| Interpreter/global:g_active_stack | 1 | `run_interpreter` (src/vm.c:1032) |
-| Interpreter/global:vm_stack | 1 | `run_interpreter` (src/vm.c:1033) |
+| … 26 more owns-exceeded rows; see findings.json | | |
 
-… 364 more rows; see findings.json
+… 390 more rows; see findings.json

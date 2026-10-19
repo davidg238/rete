@@ -1,4 +1,1 @@
-[
-  "owns-violated|global:Symbol_debug_|func:primitive_register_debugger_hook",
-  "owns-violated|global:Symbol_value|func:run_interpreter"
-]
+[]
