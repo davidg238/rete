@@ -1,10 +1,6 @@
 [
   "extern-redeclared|func:deep_sleep_target|file:src/platform.c",
   "extern-redeclared|func:handle_gc_trace|file:src/gc.c",
-  "extern-redeclared|func:indexable_new|file:src/http.c",
-  "extern-redeclared|func:indexable_new|file:src/space.c",
-  "extern-redeclared|func:indexable_new|file:src/udp.c",
-  "extern-redeclared|func:indexable_new|file:src/vm.c",
   "extern-redeclared|func:log_udp_drain|file:src/backend/zephyr/platform_zephyr.c",
   "extern-redeclared|func:log_udp_set_target|file:src/backend/zephyr/platform_zephyr.c",
   "extern-redeclared|func:log_udp_tee_paced|file:src/backend/zephyr/platform_zephyr.c",
@@ -14,7 +10,6 @@
   "extern-redeclared|func:observer_start|file:zephyr/src/main.c",
   "extern-redeclared|func:oimg_bootstrap|file:zephyr/src/main.c",
   "extern-redeclared|func:oimg_root|file:zephyr/src/main.c",
-  "extern-redeclared|func:platform_app_cad_ms|file:zephyr/src/observer.c",
   "extern-redeclared|func:platform_debug_held|file:zephyr/src/observer.c",
   "extern-redeclared|func:reboot_note_ack|file:src/platform.c",
   "extern-redeclared|func:reboot_note_consecutive|file:src/platform.c",

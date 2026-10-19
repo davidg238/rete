@@ -6,13 +6,13 @@
    NetBridge egress idiom, entirely in nsl + the httpRespondId:status:body:
    prim in platform.c — this file only drains the REQUEST side. */
 #include "http.h"
+#include "platform.h"
 #include "http_backend.h"
 #include "space.h"
 #include "oimg.h"
 #include <string.h>
 
 extern oop StringVtable;
-extern oop indexable_new(intptr_t n);
 
 static oop http_make_string(const char *bytes, size_t len) {
     oop s = gc_allocate(StringVtable, sizeof(struct String) + len);

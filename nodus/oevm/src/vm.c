@@ -2,6 +2,7 @@
 #define _POSIX_C_SOURCE 200809L
 #endif
 #include "oevm.h"
+#include "platform.h"
 #include "platform_backend.h"
 #include "frame_abi.h"
 #include "oimg.h"
@@ -2311,8 +2312,6 @@ oop primitive_compiled_method_set_instruction_at(oop receiver, int argc, oop *ar
 
 /* --- Confined read-only mirror primitives (Task 2) ---
    Reachable ONLY via mirror_dispatch; never in dispatch.c switch(pid). */
-
-extern oop indexable_new(intptr_t n);
 
 oop primitive_method_offset(oop receiver, int argc, oop *args) {
     (void)argc; (void)args;

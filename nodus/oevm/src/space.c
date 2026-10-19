@@ -27,17 +27,10 @@
    ring buffer (ring depth is a work-order sizing detail per the design doc),
    not a correctness bug: FIFO order and exact-match semantics are unaffected. */
 #include "space.h"
+#include "platform.h"
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
-
-/* platform.c's indexable allocator (struct ObjectInstance: slots[0] = TAG_SMI
-   length, slots[1..n] = elements, 1-based) — used both for the snapshot Array
-   of a channel's reaction blocks and the outer {value, snapshot, channelPath}
-   triple space_dequeue answers. Declared extern here rather than a shared
-   header, mirroring src/udp.c's precedent (indexable_new is non-static in
-   platform.c). */
-extern oop indexable_new(intptr_t n);
 
 /* Milestone D Task 2: build the channel-path String for the crash record
    (Space>>drain needs it to post `Record tag: #crash ... with: #channel ->

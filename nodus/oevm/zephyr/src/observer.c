@@ -47,15 +47,13 @@
 #include "observer_core.h"
 #include "pulse_backend.h"
 #include "target_backend.h"   /* timer_target_snapshot (invarlint#53) */
+#include "platform.h"         /* platform_app_cad_ms (invarlint#48) */
 
 #ifdef CONFIG_TASK_WDT
 #include <zephyr/drivers/watchdog.h>
 #include <zephyr/sys/reboot.h>
 #include <zephyr/task_wdt/task_wdt.h>
 
-
-/* rete#273 D1: the app's declared cadence, defined in src/platform.c beside the prim. */
-uint32_t platform_app_cad_ms(void);
 
 /* rete#311: is the VM blocked in the debug read (a breakpoint, or the boot-time
    command loop)? Defined in src/backend/zephyr/platform_zephyr.c beside the read. */
