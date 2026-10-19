@@ -1,0 +1,6 @@
+name: app-cadence
+pattern: Facade
+intent: the core's declared app cadence is read by the liveness observer through a port
+compromise: a declared port accepts the crossing, it does not fix it; platform_app_cad_ms stays in platform.h
+ops:
+  - card: {file: app_cadence.yaml}

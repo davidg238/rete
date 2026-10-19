@@ -1,7 +1,6 @@
 [
   "root-bypassed|func:log_udp_start|func:main",
-  "root-bypassed|func:oevm_thread_free_buffers|func:src/backend/zephyr/log_udp.c:wait_for_radio",
-  "root-bypassed|func:oevm_thread_tx_queued|func:src/backend/zephyr/log_udp.c:net_tx_busy",
+  "root-bypassed|func:oevm_thread_bringup|func:main",
   "root-bypassed|func:platform_app_cad_ms|func:zephyr/src/observer.c:observer_dump",
   "root-bypassed|func:platform_app_cad_ms|func:zephyr/src/observer.c:observer_verdict",
   "root-bypassed|func:runner_select|func:main",

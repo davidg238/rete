@@ -1,0 +1,6 @@
+name: adapter-start
+pattern: Facade
+intent: main is the composition root; the adapters it starts declare their start as a port
+compromise: a declared port accepts the crossing, it does not fix it; the start functions stay in their headers (runner.h, log_udp.h, thread_bringup.h)
+ops:
+  - card: {file: adapter_start.yaml}

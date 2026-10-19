@@ -1976,7 +1976,7 @@ int main(void) {
      * it through their first display prim; wakes that don't never touch the glass. */
 
 #ifdef CONFIG_NET_L2_OPENTHREAD
-    oevm_thread_bringup();   /* shared OT bring-up seam (src/thread_bringup.c) */
+    oevm_thread_bringup();   /* shared OT bring-up seam (src/backend/zephyr/thread_bringup.c) */
 #endif
 #ifdef CONFIG_WIFI
     wifi_bringup();      /* #46: associate to WiFi + DHCPv4 before the VM binds the http listener */

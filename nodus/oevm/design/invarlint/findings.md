@@ -1,13 +1,12 @@
-# invarlint findings — 2f4c88bf
+# invarlint findings — d00534a3
 
-## root-bypassed (5)
+## root-bypassed (4)
 
 | subject | count | sites |
 |---|---|---|
 | platform_app_cad_ms | 2 | `observer.c:observer_verdict` (zephyr/src/observer.c:145; zephyr/src)<br>`observer.c:observer_dump` (zephyr/src/observer.c:317; zephyr/src) |
 | log_udp_start | 1 | `main` (zephyr/src/main.c:1888; zephyr/src) |
-| oevm_thread_free_buffers | 1 | `log_udp.c:wait_for_radio` (src/backend/zephyr/log_udp.c:279; src/backend/zephyr) |
-| oevm_thread_tx_queued | 1 | `log_udp.c:net_tx_busy` (src/backend/zephyr/log_udp.c:393; src/backend/zephyr) |
+| oevm_thread_bringup | 1 | `main` (zephyr/src/main.c:1979; zephyr/src) |
 | runner_select | 1 | `main` (zephyr/src/main.c:1919; zephyr/src) |
 
 ## unowned-writer (114)
@@ -56,16 +55,15 @@
 | global:rl_q | 3 | `platform_console_take_line` (src/backend/zephyr/platform_zephyr.c:191)<br>`platform_zephyr.c:rl_getc` (src/backend/zephyr/platform_zephyr.c:170)<br>`platform_zephyr.c:rl_isr` (src/backend/zephyr/platform_zephyr.c:146) |
 | … 74 more unowned-writer rows; see findings.json | | |
 
-## context-coupling (7)
+## context-coupling (6)
 
 | subject | count | sites |
 |---|---|---|
 | src -> src/backend/zephyr | 56 | `send_resolve` (src/dispatch.c:1704; platform_console_write)<br>`send_resolve` (src/dispatch.c:1707; platform_console_write)<br>`send_resolve` (src/dispatch.c:1710; platform_console_write)<br>`send_resolve` (src/dispatch.c:1711; platform_console_write)<br>`send_resolve` (src/dispatch.c:1714; platform_console_write)<br>`send_resolve` (src/dispatch.c:1715; platform_console_write)<br>`send_resolve` (src/dispatch.c:1717; platform_console_write)<br>`send_resolve` (src/dispatch.c:1723; platform_console_flush)<br>`send_resolve` (src/dispatch.c:1807; platform_console_write)<br>`send_resolve` (src/dispatch.c:1810; platform_console_write)<br>`send_resolve` (src/dispatch.c:1813; platform_console_write)<br>`send_resolve` (src/dispatch.c:1814; platform_console_write)<br>+97 more |
 | src -> zephyr/src | 21 | `platform_dispatch` (src/platform.c:1339; reboot_note_read)<br>`platform_dispatch` (src/platform.c:1368; reboot_note_ack)<br>`platform_dispatch` (src/platform.c:1782; rtc_alarm_arm)<br>`platform_dispatch` (src/platform.c:1847; gpio_target_set)<br>`platform_dispatch` (src/platform.c:1855; gpio_target_level)<br>`platform_dispatch` (src/platform.c:1864; display_target_available)<br>`platform_dispatch` (src/platform.c:1865; display_target_clear)<br>`platform_dispatch` (src/platform.c:1876; display_target_available)<br>`platform_dispatch` (src/platform.c:1879; display_target_put)<br>`platform_dispatch` (src/platform.c:1886; display_target_available)<br>`platform_dispatch` (src/platform.c:1887; display_target_refresh)<br>`platform_dispatch` (src/platform.c:1891; display_target_available)<br>+12 more |
-| zephyr/src -> src/backend/zephyr | 11 | `main` (zephyr/src/main.c:1888; log_udp_start)<br>`main` (zephyr/src/main.c:1919; runner_select)<br>`main` (zephyr/src/main.c:1945; ota_note_running_hash)<br>`main` (zephyr/src/main.c:1946; ota_env)<br>`observer.c:obs_trace_record` (zephyr/src/observer.c:103; pulse_pending)<br>`observer.c:obs_trace_record` (zephyr/src/observer.c:104; pulse_drained)<br>`observer.c:observer_verdict` (zephyr/src/observer.c:142; timer_target_snapshot)<br>`observer.c:observer_verdict` (zephyr/src/observer.c:144; pulse_drained)<br>`observer.c:observer_verdict` (zephyr/src/observer.c:146; platform_debug_held)<br>`observer.c:observer_dump` (zephyr/src/observer.c:318; pulse_drops)<br>`observer.c:observer_dump` (zephyr/src/observer.c:318; pulse_pending)<br>`observer.c:observer_dump` (zephyr/src/observer.c:319; pulse_coalesced)<br>+1 more |
+| zephyr/src -> src/backend/zephyr | 12 | `main` (zephyr/src/main.c:1888; log_udp_start)<br>`main` (zephyr/src/main.c:1919; runner_select)<br>`main` (zephyr/src/main.c:1945; ota_note_running_hash)<br>`main` (zephyr/src/main.c:1946; ota_env)<br>`main` (zephyr/src/main.c:1979; oevm_thread_bringup)<br>`observer.c:obs_trace_record` (zephyr/src/observer.c:103; pulse_pending)<br>`observer.c:obs_trace_record` (zephyr/src/observer.c:104; pulse_drained)<br>`observer.c:observer_verdict` (zephyr/src/observer.c:142; timer_target_snapshot)<br>`observer.c:observer_verdict` (zephyr/src/observer.c:144; pulse_drained)<br>`observer.c:observer_verdict` (zephyr/src/observer.c:146; platform_debug_held)<br>`observer.c:observer_dump` (zephyr/src/observer.c:318; pulse_drops)<br>`observer.c:observer_dump` (zephyr/src/observer.c:318; pulse_pending)<br>+2 more |
 | zephyr/src -> src | 9 | `main` (zephyr/src/main.c:1912; kernel_boot)<br>`main` (zephyr/src/main.c:1924; oimg_load_blob)<br>`main` (zephyr/src/main.c:1944; ota_sha256)<br>`main` (zephyr/src/main.c:1986; oimg_bootstrap)<br>`main` (zephyr/src/main.c:1986; oimg_root)<br>`observer.c:observer_verdict` (zephyr/src/observer.c:145; platform_app_cad_ms)<br>`observer.c:observer_verdict` (zephyr/src/observer.c:147; observer_core_verdict)<br>`observer.c:observer_dump` (zephyr/src/observer.c:317; platform_app_cad_ms)<br>`reboot_note_init` (zephyr/src/reboot_note.c:38; reboot_note_is_valid)<br>`reboot_note_read` (zephyr/src/reboot_note.c:42; reboot_note_is_valid)<br>`reboot_note_write` (zephyr/src/reboot_note.c:49; reboot_note_is_valid)<br>`reboot_note_write` (zephyr/src/reboot_note.c:61; reboot_note_checksum)<br>+1 more |
 | src/backend/zephyr -> src | 7 | `http_poll` (src/backend/zephyr/http_zephyr.c:181; http_parse_reqline)<br>`http_poll` (src/backend/zephyr/http_zephyr.c:182; http_accept_request)<br>`platform_backend_node_id` (src/backend/zephyr/platform_zephyr.c:428; link_addr_hex)<br>`pulse_pump` (src/backend/zephyr/pulse_zephyr.c:103; space_post_id)<br>`pulse_pump` (src/backend/zephyr/pulse_zephyr.c:107; space_post_id)<br>`pulse_pump_nb` (src/backend/zephyr/pulse_zephyr.c:125; space_post_id)<br>`pulse_zephyr.c:pulse_payload` (src/backend/zephyr/pulse_zephyr.c:74; handle_get)<br>`runner.c:hash_slot` (src/backend/zephyr/runner.c:151; ota_sha256)<br>`timer_zephyr.c:timer_start` (src/backend/zephyr/timer_zephyr.c:72; space_intern) |
-| src/backend/zephyr -> zephyr/src | 2 | `log_udp.c:wait_for_radio` (src/backend/zephyr/log_udp.c:279; oevm_thread_free_buffers)<br>`log_udp.c:net_tx_busy` (src/backend/zephyr/log_udp.c:393; oevm_thread_tx_queued) |
 | src/backend/zephyr -> zephyr/src/ed25519 | 1 | `runner.c:verified` (src/backend/zephyr/runner.c:157; ED25519_verify) |
 
 ## context-map (4)

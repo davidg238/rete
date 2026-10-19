@@ -683,8 +683,8 @@
   {
     "rule": "context-coupling",
     "subject": "context:zephyr/src -\u003e context:src/backend/zephyr",
-    "message": "zephyr/src uses 11 functions of src/backend/zephyr from 13 sites",
-    "count": 11,
+    "message": "zephyr/src uses 12 functions of src/backend/zephyr from 14 sites",
+    "count": 12,
     "sites": [
       {
         "func": "func:main",
@@ -705,6 +705,11 @@
         "func": "func:main",
         "loc": "zephyr/src/main.c:1946",
         "via": "ota_env"
+      },
+      {
+        "func": "func:main",
+        "loc": "zephyr/src/main.c:1979",
+        "via": "oevm_thread_bringup"
       },
       {
         "func": "func:zephyr/src/observer.c:obs_trace_record",
@@ -881,24 +886,6 @@
   },
   {
     "rule": "context-coupling",
-    "subject": "context:src/backend/zephyr -\u003e context:zephyr/src",
-    "message": "src/backend/zephyr uses 2 functions of zephyr/src from 2 sites",
-    "count": 2,
-    "sites": [
-      {
-        "func": "func:src/backend/zephyr/log_udp.c:wait_for_radio",
-        "loc": "src/backend/zephyr/log_udp.c:279",
-        "via": "oevm_thread_free_buffers"
-      },
-      {
-        "func": "func:src/backend/zephyr/log_udp.c:net_tx_busy",
-        "loc": "src/backend/zephyr/log_udp.c:393",
-        "via": "oevm_thread_tx_queued"
-      }
-    ]
-  },
-  {
-    "rule": "context-coupling",
     "subject": "context:src/backend/zephyr -\u003e context:zephyr/src/ed25519",
     "message": "src/backend/zephyr uses 1 functions of zephyr/src/ed25519 from 1 sites",
     "count": 1,
@@ -918,12 +905,12 @@
   {
     "rule": "context-map",
     "subject": "context:src/backend/zephyr",
-    "message": "src/backend/zephyr: 1 unit, 115 funcs, 0 handlers, writes 0 tables, calls into 3 contexts (src, zephyr/src, zephyr/src/ed25519)"
+    "message": "src/backend/zephyr: 1 unit, 118 funcs, 0 handlers, writes 0 tables, calls into 2 contexts (src, zephyr/src/ed25519)"
   },
   {
     "rule": "context-map",
     "subject": "context:zephyr/src",
-    "message": "zephyr/src: 1 unit, 43 funcs, 0 handlers, writes 0 tables, calls into 2 contexts (src, src/backend/zephyr)"
+    "message": "zephyr/src: 1 unit, 40 funcs, 0 handlers, writes 0 tables, calls into 2 contexts (src, src/backend/zephyr)"
   },
   {
     "rule": "context-map",
@@ -11433,29 +11420,15 @@
   },
   {
     "rule": "root-bypassed",
-    "subject": "func:oevm_thread_free_buffers",
-    "loc": "zephyr/src/thread_bringup.c:61",
-    "message": "oevm_thread_free_buffers (context zephyr/src) is called from 1 functions in other contexts without going through a root (roots: App, Targets)",
+    "subject": "func:oevm_thread_bringup",
+    "loc": "src/backend/zephyr/thread_bringup.c:34",
+    "message": "oevm_thread_bringup (context src/backend/zephyr) is called from 1 functions in other contexts without going through a root (roots: DebugHold, TimerSnapshot, ZephyrBackends)",
     "count": 1,
     "sites": [
       {
-        "func": "func:src/backend/zephyr/log_udp.c:wait_for_radio",
-        "loc": "src/backend/zephyr/log_udp.c:279",
-        "via": "src/backend/zephyr"
-      }
-    ]
-  },
-  {
-    "rule": "root-bypassed",
-    "subject": "func:oevm_thread_tx_queued",
-    "loc": "zephyr/src/thread_bringup.c:75",
-    "message": "oevm_thread_tx_queued (context zephyr/src) is called from 1 functions in other contexts without going through a root (roots: App, Targets)",
-    "count": 1,
-    "sites": [
-      {
-        "func": "func:src/backend/zephyr/log_udp.c:net_tx_busy",
-        "loc": "src/backend/zephyr/log_udp.c:393",
-        "via": "src/backend/zephyr"
+        "func": "func:main",
+        "loc": "zephyr/src/main.c:1979",
+        "via": "zephyr/src"
       }
     ]
   },

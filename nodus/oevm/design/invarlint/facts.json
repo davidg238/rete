@@ -1,5 +1,5 @@
 {
-  "commit": "2f4c88bf",
+  "commit": "d00534a3",
   "root": "/home/david/workspace/rete/nodus/oevm",
   "config": "build-esp32c6-B",
   "partial": false,
@@ -1351,37 +1351,37 @@
     {
       "id": "func:oevm_thread_bringup",
       "kind": "func",
-      "loc": "zephyr/src/thread_bringup.c:34",
+      "loc": "src/backend/zephyr/thread_bringup.c:34",
       "attrs": {
         "exported": "true",
         "is_handler": "false",
         "loc_count": "26",
         "sig": "void (void)",
-        "unit": "unit:zephyr/src"
+        "unit": "unit:src/backend/zephyr"
       }
     },
     {
       "id": "func:oevm_thread_free_buffers",
       "kind": "func",
-      "loc": "zephyr/src/thread_bringup.c:61",
+      "loc": "src/backend/zephyr/thread_bringup.c:61",
       "attrs": {
         "exported": "true",
         "is_handler": "false",
         "loc_count": "12",
         "sig": "int (void)",
-        "unit": "unit:zephyr/src"
+        "unit": "unit:src/backend/zephyr"
       }
     },
     {
       "id": "func:oevm_thread_tx_queued",
       "kind": "func",
-      "loc": "zephyr/src/thread_bringup.c:75",
+      "loc": "src/backend/zephyr/thread_bringup.c:75",
       "attrs": {
         "exported": "true",
         "is_handler": "false",
         "loc_count": "12",
         "sig": "int (void)",
-        "unit": "unit:zephyr/src"
+        "unit": "unit:src/backend/zephyr"
       }
     },
     {
@@ -11129,127 +11129,127 @@
       "kind": "calls",
       "from": "func:oevm_thread_bringup",
       "to": "func:k_msleep",
-      "loc": "zephyr/src/thread_bringup.c:56"
+      "loc": "src/backend/zephyr/thread_bringup.c:56"
     },
     {
       "kind": "calls",
       "from": "func:oevm_thread_bringup",
       "to": "func:net_if_get_default",
-      "loc": "zephyr/src/thread_bringup.c:39"
+      "loc": "src/backend/zephyr/thread_bringup.c:39"
     },
     {
       "kind": "calls",
       "from": "func:oevm_thread_bringup",
       "to": "func:net_if_up",
-      "loc": "zephyr/src/thread_bringup.c:44"
+      "loc": "src/backend/zephyr/thread_bringup.c:44"
     },
     {
       "kind": "calls",
       "from": "func:oevm_thread_bringup",
       "to": "func:openthread_get_default_context",
-      "loc": "zephyr/src/thread_bringup.c:38"
+      "loc": "src/backend/zephyr/thread_bringup.c:38"
     },
     {
       "kind": "calls",
       "from": "func:oevm_thread_bringup",
       "to": "func:openthread_get_default_instance",
-      "loc": "zephyr/src/thread_bringup.c:47"
+      "loc": "src/backend/zephyr/thread_bringup.c:47"
     },
     {
       "kind": "calls",
       "from": "func:oevm_thread_bringup",
       "to": "func:openthread_init",
-      "loc": "zephyr/src/thread_bringup.c:35"
+      "loc": "src/backend/zephyr/thread_bringup.c:35"
     },
     {
       "kind": "calls",
       "from": "func:oevm_thread_bringup",
       "to": "func:openthread_mutex_lock",
-      "loc": "zephyr/src/thread_bringup.c:49"
+      "loc": "src/backend/zephyr/thread_bringup.c:49"
     },
     {
       "kind": "calls",
       "from": "func:oevm_thread_bringup",
       "to": "func:openthread_mutex_unlock",
-      "loc": "zephyr/src/thread_bringup.c:51"
+      "loc": "src/backend/zephyr/thread_bringup.c:51"
     },
     {
       "kind": "calls",
       "from": "func:oevm_thread_bringup",
       "to": "func:openthread_run",
-      "loc": "zephyr/src/thread_bringup.c:36"
+      "loc": "src/backend/zephyr/thread_bringup.c:36"
     },
     {
       "kind": "calls",
       "from": "func:oevm_thread_bringup",
       "to": "func:otThreadGetDeviceRole",
-      "loc": "zephyr/src/thread_bringup.c:50"
+      "loc": "src/backend/zephyr/thread_bringup.c:50"
     },
     {
       "kind": "calls",
       "from": "func:oevm_thread_bringup",
       "to": "func:printk",
-      "loc": "zephyr/src/thread_bringup.c:45"
+      "loc": "src/backend/zephyr/thread_bringup.c:45"
     },
     {
       "kind": "calls",
       "from": "func:oevm_thread_bringup",
       "to": "func:printk",
-      "loc": "zephyr/src/thread_bringup.c:53"
+      "loc": "src/backend/zephyr/thread_bringup.c:53"
     },
     {
       "kind": "calls",
       "from": "func:oevm_thread_bringup",
       "to": "func:printk",
-      "loc": "zephyr/src/thread_bringup.c:58"
+      "loc": "src/backend/zephyr/thread_bringup.c:58"
     },
     {
       "kind": "calls",
       "from": "func:oevm_thread_free_buffers",
       "to": "func:openthread_get_default_instance",
-      "loc": "zephyr/src/thread_bringup.c:63"
+      "loc": "src/backend/zephyr/thread_bringup.c:63"
     },
     {
       "kind": "calls",
       "from": "func:oevm_thread_free_buffers",
       "to": "func:openthread_mutex_lock",
-      "loc": "zephyr/src/thread_bringup.c:69"
+      "loc": "src/backend/zephyr/thread_bringup.c:69"
     },
     {
       "kind": "calls",
       "from": "func:oevm_thread_free_buffers",
       "to": "func:openthread_mutex_unlock",
-      "loc": "zephyr/src/thread_bringup.c:71"
+      "loc": "src/backend/zephyr/thread_bringup.c:71"
     },
     {
       "kind": "calls",
       "from": "func:oevm_thread_free_buffers",
       "to": "func:otMessageGetBufferInfo",
-      "loc": "zephyr/src/thread_bringup.c:70"
+      "loc": "src/backend/zephyr/thread_bringup.c:70"
     },
     {
       "kind": "calls",
       "from": "func:oevm_thread_tx_queued",
       "to": "func:openthread_get_default_instance",
-      "loc": "zephyr/src/thread_bringup.c:77"
+      "loc": "src/backend/zephyr/thread_bringup.c:77"
     },
     {
       "kind": "calls",
       "from": "func:oevm_thread_tx_queued",
       "to": "func:openthread_mutex_lock",
-      "loc": "zephyr/src/thread_bringup.c:83"
+      "loc": "src/backend/zephyr/thread_bringup.c:83"
     },
     {
       "kind": "calls",
       "from": "func:oevm_thread_tx_queued",
       "to": "func:openthread_mutex_unlock",
-      "loc": "zephyr/src/thread_bringup.c:85"
+      "loc": "src/backend/zephyr/thread_bringup.c:85"
     },
     {
       "kind": "calls",
       "from": "func:oevm_thread_tx_queued",
       "to": "func:otMessageGetBufferInfo",
-      "loc": "zephyr/src/thread_bringup.c:84"
+      "loc": "src/backend/zephyr/thread_bringup.c:84"
     },
     {
       "kind": "calls",
