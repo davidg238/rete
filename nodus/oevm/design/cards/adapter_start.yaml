@@ -1,0 +1,11 @@
+# Proposed by Claude 2026-10-18 (invarlint#48) from the last root-bypassed keys, by the Boot precedent
+# (main starts the core): main starts the adapters — pick the program slot, tee the console, bring up
+# the radio. A declared port accepts the crossing, it does not fix it.
+name: AdapterStart
+root: true
+does:
+  - the adapters' start, called once by the app's main
+implemented_by:
+  - c: runner_select
+  - c: log_udp_start
+  - c: oevm_thread_bringup

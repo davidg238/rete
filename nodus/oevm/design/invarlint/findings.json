@@ -11405,48 +11405,6 @@
     ]
   },
   {
-    "rule": "root-bypassed",
-    "subject": "func:log_udp_start",
-    "loc": "src/backend/zephyr/log_udp.c:560",
-    "message": "log_udp_start (context src/backend/zephyr) is called from 1 functions in other contexts without going through a root (roots: DebugHold, TimerSnapshot, ZephyrBackends)",
-    "count": 1,
-    "sites": [
-      {
-        "func": "func:main",
-        "loc": "zephyr/src/main.c:1888",
-        "via": "zephyr/src"
-      }
-    ]
-  },
-  {
-    "rule": "root-bypassed",
-    "subject": "func:oevm_thread_bringup",
-    "loc": "src/backend/zephyr/thread_bringup.c:34",
-    "message": "oevm_thread_bringup (context src/backend/zephyr) is called from 1 functions in other contexts without going through a root (roots: DebugHold, TimerSnapshot, ZephyrBackends)",
-    "count": 1,
-    "sites": [
-      {
-        "func": "func:main",
-        "loc": "zephyr/src/main.c:1979",
-        "via": "zephyr/src"
-      }
-    ]
-  },
-  {
-    "rule": "root-bypassed",
-    "subject": "func:runner_select",
-    "loc": "src/backend/zephyr/runner.c:188",
-    "message": "runner_select (context src/backend/zephyr) is called from 1 functions in other contexts without going through a root (roots: DebugHold, TimerSnapshot, ZephyrBackends)",
-    "count": 1,
-    "sites": [
-      {
-        "func": "func:main",
-        "loc": "zephyr/src/main.c:1919",
-        "via": "zephyr/src"
-      }
-    ]
-  },
-  {
     "rule": "unowned-writer",
     "subject": "global:false_sym_obj",
     "message": "global:false_sym_obj has 62 write statements in 7 functions and no card owns it",

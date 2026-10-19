@@ -1,9 +1,6 @@
 [
-  "root-bypassed|func:log_udp_start|func:main",
-  "root-bypassed|func:oevm_thread_bringup|func:main",
   "root-bypassed|func:platform_app_cad_ms|func:zephyr/src/observer.c:observer_dump",
   "root-bypassed|func:platform_app_cad_ms|func:zephyr/src/observer.c:observer_verdict",
-  "root-bypassed|func:runner_select|func:main",
   "unowned-writer|global:Symbol_debug_|func:kernel_boot",
   "unowned-writer|global:Symbol_debug_|func:primitive_register_debugger_hook",
   "unowned-writer|global:Symbol_value|func:kernel_boot",

@@ -1,13 +1,10 @@
-# invarlint findings — d00534a3
+# invarlint findings — 830ce39e
 
-## root-bypassed (4)
+## root-bypassed (1)
 
 | subject | count | sites |
 |---|---|---|
 | platform_app_cad_ms | 2 | `observer.c:observer_verdict` (zephyr/src/observer.c:145; zephyr/src)<br>`observer.c:observer_dump` (zephyr/src/observer.c:317; zephyr/src) |
-| log_udp_start | 1 | `main` (zephyr/src/main.c:1888; zephyr/src) |
-| oevm_thread_bringup | 1 | `main` (zephyr/src/main.c:1979; zephyr/src) |
-| runner_select | 1 | `main` (zephyr/src/main.c:1919; zephyr/src) |
 
 ## unowned-writer (114)
 
