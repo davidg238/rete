@@ -60,7 +60,7 @@ Three planes, three contracts — and note that only one of them is a network pr
 |-------|-----------|----------|-----------|
 | **Southbound** (gateway ↔ node) | porta ↔ any conforming node | `protocol/PROTOCOL-NSL.md` §§1–4 + `MANIFEST.cddl` | plain UDP + CBOR (the exchange); a binary block plane for bulk bytes |
 | **Northbound** (dev tool → gateway) | node-repo tooling → porta | `porta/devsdk` (`exec`, `provision`) | a Go import. v1's `apiclient` went with v1's HTTP API; a dev tool's network path is now custos through the operator routes below |
-| **Operator** (human/agent → gateway) | CLI → the store; browser/agent → custos → porta | the path namespaces themselves; `GET /health`, `GET /manifest`, `POST /blob`, `PUT`/`GET /node/{id}/{path...}` (rete#398); custos's named queries (`custos/internal/gate`) | a local sqlite open (§3.1); HTTP for the five routes; custos reads the store `mode=ro` (live) or a `porta snapshot` file (history) |
+| **Operator** (human/agent → gateway) | CLI → the store; browser/agent → custos → porta | the path namespaces themselves; `GET /health`, `GET /manifest`, `POST /blob`, `PUT`/`GET /node/{id}/{path...}` (rete#398); `GET /blob/{hash}`, `GET /node/{id}/log` (rete#432); custos's named queries (`custos/internal/gate`) | a local sqlite open (§3.1); HTTP for the seven routes; custos reads the store `mode=ro` (live) or a `porta snapshot` file (history) |
 
 The code more than one peer needs is a Go module of its own, `protocol/` — `cval` (the
 codec), `manifest` (the catalogue's table), `store` (the store's shared vocabulary:
@@ -122,8 +122,8 @@ What the gateway *is*:
   space**: a 512 B batch and a 256 B value are radio constraints, not preferences.
 - **The judge of silence.** A ticking sweep forms one liveness verdict per node against
   the budget the node itself declared (§3.5).
-- **The operator surface.** Five HTTP routes: `GET /health`, `GET /manifest`, and since
-  rete#398 the HTTP twins of three CLI commands. `POST /blob` is `porta blob put` (the
+- **The operator surface.** Seven HTTP routes: `GET /health`, `GET /manifest`, since
+  rete#398 the HTTP twins of three CLI commands, and since rete#432 two reads. `POST /blob` is `porta blob put` (the
   bytes stored content-addressed, their SHA-256 signed with `porta.key`; answers `{Hash,
   Size, Sig, Record}`, `Record` the `App` value as hex). `PUT /node/{id}/{path...}` is
   `porta put --raw`, for `goal/**` cells and `dbg/req` stream rows, porta's whole inbound
@@ -131,7 +131,11 @@ What the gateway *is*:
   `Store.Write` door, so the gw/ ban, the 256 B cap and the manifest gate hold; the
   actor is `X-Porta-Actor` or the peer address; answers `{Seq}`). `GET
   /node/{id}/{path...}` is one cell of `porta get`, the raw CBOR with its seq in
-  `X-Porta-Seq`. They are general on purpose: a push is a blob and a goal write, the
+  `X-Porta-Seq`. `GET /blob/{hash}` answers a stored blob's bytes (404 if absent), so a
+  peer keeps no copy of what it pushed. `GET /node/{id}/log?path=P&after=N` is `porta
+  log`'s query as a cursor: the rows on `P` with store row id > `N`, oldest first, each
+  with its `ID` — the row id and not the node's seq, which rewinds every boot (rete#432
+  P5). They are general on purpose: a push is a blob and a goal write, the
   same write carries `goal/debug/main`, `goal/console`, `goal/profile` and a debugger's `dbg/req` line, and porta never learns what an app is. Admission
   is the listener's CIDR allowlist and nothing else, a known gap for 0.1
   (`../../docs/design/2026-10-12-398-load-through-porta-design.md` Q3). v1's dashboard, JSON API and MCP server are deferred → operator surface

@@ -31,7 +31,7 @@ func newLogCmd() *cobra.Command {
 			}
 			defer st.Close()
 			announceStore(c)
-			rows, err := st.Events(args[0], limit, boot)
+			rows, err := st.Events(args[0], space.EventFilter{Limit: limit, Boot: boot})
 			if err != nil {
 				return err
 			}

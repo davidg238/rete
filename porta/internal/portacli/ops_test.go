@@ -8,11 +8,13 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/davidg238/porta/internal/blob"
@@ -138,7 +140,7 @@ func TestOpsDbgReqIsAStream(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer st.Close()
-	evs, err := st.Events("n1", 10, 0)
+	evs, err := st.Events("n1", space.EventFilter{Limit: 10})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -169,5 +171,76 @@ func TestOpsBlobWithoutAKeyRefuses(t *testing.T) {
 	defer srv.Close()
 	if resp, body := do(t, srv, "POST", "/blob", []byte("x")); resp.StatusCode != 400 {
 		t.Fatalf("keyless POST /blob: %d %s", resp.StatusCode, body)
+	}
+}
+
+// rete#432 P6: a peer reads back the blob it pushed, by the hash porta answered.
+func TestOpsBlobRead(t *testing.T) {
+	srv, _ := opsServer(t)
+	text := []byte("oevm-patch 1 vtable 280\n")
+	_, body := do(t, srv, "POST", "/blob", text)
+	var put struct{ Hash string }
+	if err := json.Unmarshal(body, &put); err != nil {
+		t.Fatalf("POST /blob: %s", body)
+	}
+	resp, got := do(t, srv, "GET", "/blob/"+put.Hash, nil)
+	if resp.StatusCode != 200 || !bytes.Equal(got, text) {
+		t.Fatalf("GET /blob: %d %q, want %q", resp.StatusCode, got, text)
+	}
+	absent := strings.Repeat("ab", 32)
+	if resp, _ := do(t, srv, "GET", "/blob/"+absent, nil); resp.StatusCode != 404 {
+		t.Errorf("an absent blob: %d, want 404", resp.StatusCode)
+	}
+	if resp, _ := do(t, srv, "GET", "/blob/xyz", nil); resp.StatusCode != 400 {
+		t.Errorf("a malformed hash: %d, want 400", resp.StatusCode)
+	}
+}
+
+// rete#432 P5: the log is read by porta's row id, oldest first, filtered to one
+// path, so a poller that keeps the last ID it saw reads each row exactly once.
+func TestOpsLogCursor(t *testing.T) {
+	srv, _ := opsServer(t)
+	for _, l := range []string{"dbg:break 1 0", "dbg:continue", "dbg:step"} {
+		v, _ := cval.Encode(l)
+		do(t, srv, "PUT", "/node/n1/dbg/req", v)
+	}
+	g, _ := cval.Encode("bell")
+	do(t, srv, "PUT", "/node/n1/goal/name", g)
+	type row struct {
+		ID    int64
+		Path  string
+		Value string
+	}
+	read := func(q string) []row {
+		t.Helper()
+		resp, body := do(t, srv, "GET", "/node/n1/log"+q, nil)
+		var rows []row
+		if resp.StatusCode != 200 || json.Unmarshal(body, &rows) != nil {
+			t.Fatalf("GET log%s: %d %s", q, resp.StatusCode, body)
+		}
+		return rows
+	}
+	all := read("?path=dbg/req")
+	if len(all) != 3 {
+		t.Fatalf("%d dbg/req rows, want 3 (the goal/name row filtered out): %+v", len(all), all)
+	}
+	for i, r := range all {
+		want, _ := cval.Encode([]string{"dbg:break 1 0", "dbg:continue", "dbg:step"}[i])
+		if r.Path != "dbg/req" || r.Value != hex.EncodeToString(want) || (i > 0 && r.ID <= all[i-1].ID) {
+			t.Fatalf("row %d = %+v: want dbg/req rows oldest first", i, r)
+		}
+	}
+	rest := read(fmt.Sprintf("?path=dbg/req&after=%d", all[1].ID))
+	if len(rest) != 1 || rest[0].ID != all[2].ID {
+		t.Fatalf("after %d: %+v, want only the last row", all[1].ID, rest)
+	}
+	if n := len(read("")); n != 4 {
+		t.Errorf("no path: %d rows, want 4", n)
+	}
+	if empty := read(fmt.Sprintf("?path=dbg/req&after=%d", all[2].ID)); len(empty) != 0 {
+		t.Errorf("after the last row: %+v, want []", empty)
+	}
+	if resp, _ := do(t, srv, "GET", "/node/n1/log?after=x", nil); resp.StatusCode != 400 {
+		t.Errorf("a malformed cursor: %d, want 400", resp.StatusCode)
 	}
 }

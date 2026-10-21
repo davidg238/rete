@@ -151,7 +151,7 @@ func TestLoopbackGate(t *testing.T) {
 	})
 	node.roundTrip(req)
 	node.roundTrip(req) // the same datagram again, as a lossy radio would
-	evs, _ := st.Events("c6-01", 100, 0)
+	evs, _ := st.Events("c6-01", space.EventFilter{Limit: 100})
 	n := 0
 	for _, e := range evs {
 		if e.Path == "tel/log" {

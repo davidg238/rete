@@ -64,7 +64,7 @@ func TestManifestGateWireDoor(t *testing.T) {
 		t.Fatalf("refused entry must still ack: hw=%d skipped=%d", hw, skipped)
 	}
 	// the refused bytes are KEPT: an events row with actor=gate naming the check
-	evs, err := s.Events("n1", 10, 0)
+	evs, err := s.Events("n1", EventFilter{Limit: 10})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -96,7 +96,7 @@ func TestManifestGateDirection(t *testing.T) {
 		{Seq: 1, Path: "goal/name", Kind: cval.KindCell, Value: v}}); err != nil {
 		t.Fatal(err)
 	}
-	evs, err := s.Events("n1", 10, 0)
+	evs, err := s.Events("n1", EventFilter{Limit: 10})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -182,7 +182,7 @@ func TestIngestRefusesAForgedGatewayVerdict(t *testing.T) {
 		cells[0].Direction != store.DirectionGateway {
 		t.Fatalf("the node overwrote the gateway's verdict: %+v", cells)
 	}
-	evs, err := s.Events("n1", 10, 0)
+	evs, err := s.Events("n1", EventFilter{Limit: 10})
 	if err != nil {
 		t.Fatal(err)
 	}

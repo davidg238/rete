@@ -13,22 +13,32 @@ package portacli
 //	POST /blob                   the bytes; answers {Hash, Size, Sig, Record} (hex)
 //	PUT  /node/{id}/{path...}    one closed cval encoding to a goal/ cell, or a dbg/req row; answers {Seq}
 //	GET  /node/{id}/{path...}    the cell's value as raw CBOR, its seq in X-Porta-Seq
+//	GET  /blob/{hash}            a stored blob's bytes (rete#432 P6: a peer keeps no copy of what it pushed)
+//	GET  /node/{id}/log?path=P&after=N
+//	                             the node's rows on P with row id > N, oldest first, as
+//	                             [{ID, Seq, Path, Value (hex CBOR), TsMs, BootID}] (rete#432 P5)
 
 import (
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"net/http"
 	"strconv"
 	"strings"
 
+	"github.com/davidg238/porta/internal/blob"
 	"github.com/davidg238/porta/internal/space"
 	"github.com/davidg238/rete/protocol/cval"
 )
 
 // maxBlob bounds an upload: well over a 768K program slot.
 const maxBlob = 4 << 20
+
+// maxLogRows bounds one log read; a reader pages on with the last ID.
+const maxLogRows = 1000
 
 func mountOps(mux *http.ServeMux, st *space.Store, db string) {
 	mux.HandleFunc("POST /blob", func(w http.ResponseWriter, r *http.Request) {
@@ -72,6 +82,54 @@ func mountOps(mux *http.ServeMux, st *space.Store, db string) {
 			return
 		}
 		answerJSON(w, map[string]any{"Seq": seq})
+	})
+	mux.HandleFunc("GET /blob/{hash}", func(w http.ResponseWriter, r *http.Request) {
+		h, err := hex.DecodeString(r.PathValue("hash"))
+		if err != nil || len(h) != 32 {
+			http.Error(w, "porta: a blob is named by its SHA-256, 64 hex digits", http.StatusBadRequest)
+			return
+		}
+		bst, err := blob.Open(blobDir(db))
+		if err != nil {
+			http.Error(w, "porta: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+		b, err := bst.Get(h)
+		if errors.Is(err, fs.ErrNotExist) {
+			http.NotFound(w, r)
+			return
+		}
+		if err != nil {
+			http.Error(w, "porta: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/octet-stream")
+		w.Write(b)
+	})
+	mux.HandleFunc("GET /node/{id}/log", func(w http.ResponseWriter, r *http.Request) {
+		q := r.URL.Query()
+		f := space.EventFilter{Path: q.Get("path"), Oldest: true, Limit: maxLogRows}
+		if a := q.Get("after"); a != "" {
+			n, err := strconv.ParseInt(a, 10, 64)
+			if err != nil {
+				http.Error(w, "porta: after is a row id", http.StatusBadRequest)
+				return
+			}
+			f.After = n
+		}
+		evs, err := st.Events(r.PathValue("id"), f)
+		if err != nil {
+			http.Error(w, "porta: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+		rows := []map[string]any{}
+		for _, e := range evs {
+			rows = append(rows, map[string]any{
+				"ID": e.ID, "Seq": e.Seq, "Path": e.Path, "Value": hex.EncodeToString(e.Value),
+				"TsMs": e.TsMs, "BootID": e.BootID,
+			})
+		}
+		answerJSON(w, rows)
 	})
 	mux.HandleFunc("GET /node/{id}/{path...}", func(w http.ResponseWriter, r *http.Request) {
 		path := r.PathValue("path")

@@ -156,7 +156,7 @@ func TestIngestDedupesOnHighWater(t *testing.T) {
 	if hw, skipped, err = st.Ingest("n1", 7, batch); hw != 2 || skipped != 2 || err != nil {
 		t.Fatalf("replayed Ingest = %d, %d, %v; want 2, 2, nil", hw, skipped, err)
 	}
-	evs, _ := st.Events("n1", 100, 0)
+	evs, _ := st.Events("n1", EventFilter{Limit: 100})
 	if len(evs) != 2 {
 		t.Fatalf("got %d events after replay, want 2", len(evs))
 	}
@@ -166,7 +166,7 @@ func TestIngestDedupesOnHighWater(t *testing.T) {
 func TestEventsCarryProvenance(t *testing.T) {
 	st := testStore(t)
 	st.Write("n1", "goal/name", cval.KindCell, enc(t, "alpha"), "agent-7", "rollout")
-	evs, _ := st.Events("n1", 10, 0)
+	evs, _ := st.Events("n1", EventFilter{Limit: 10})
 	if len(evs) != 1 {
 		t.Fatalf("got %d events, want 1", len(evs))
 	}
@@ -185,7 +185,7 @@ func TestSupersededIntentSurvivesInTheLog(t *testing.T) {
 	if len(tree) != 1 {
 		t.Fatalf("tree has %d rows, want 1", len(tree))
 	}
-	evs, _ := st.Events("n1", 10, 0)
+	evs, _ := st.Events("n1", EventFilter{Limit: 10})
 	if len(evs) != 2 {
 		t.Fatalf("log has %d rows, want 2 (X must still be visible)", len(evs))
 	}
@@ -281,11 +281,11 @@ func TestEventsFilterByBoot(t *testing.T) {
 	st := testStore(t)
 	st.Ingest("n1", 40, []Entry{{Seq: 1, Path: "tel/log", Kind: cval.KindStream, Value: enc(t, "old")}})
 	st.Ingest("n1", 41, []Entry{{Seq: 1, Path: "tel/log", Kind: cval.KindStream, Value: enc(t, "new")}})
-	all, _ := st.Events("n1", 100, 0)
+	all, _ := st.Events("n1", EventFilter{Limit: 100})
 	if len(all) != 2 {
 		t.Fatalf("unfiltered log has %d rows, want 2", len(all))
 	}
-	one, _ := st.Events("n1", 100, 41)
+	one, _ := st.Events("n1", EventFilter{Limit: 100, Boot: 41})
 	if len(one) != 1 || one[0].BootID != 41 {
 		t.Fatalf("--boot 41 returned %+v, want exactly the boot-41 row", one)
 	}
@@ -679,7 +679,7 @@ func TestGatewayVerdictCarriesTheNodesCurrentBoot(t *testing.T) {
 	if tree[0].Direction != store.DirectionGateway || tree[0].BootID != 44 || tree[0].Seq != 0 {
 		t.Fatalf("gw row = %+v, want direction=gw boot=44 seq=0", tree[0])
 	}
-	events, _ := st.Events("n1", 10, 0)
+	events, _ := st.Events("n1", EventFilter{Limit: 10})
 	var found *Event
 	for i := range events {
 		if events[i].Path == store.PathLiveness {

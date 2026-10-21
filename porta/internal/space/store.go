@@ -33,6 +33,7 @@ type Entry struct {
 
 type Event struct {
 	Entry
+	ID        int64 // the store's row id: monotonic across boots, unlike Seq (rete#432 P5)
 	TsMs      int64
 	Direction string
 	Actor     string
@@ -765,18 +766,39 @@ func (s *Store) CurrentBoot(nodeID string) (int64, error) {
 	return boot.Int64, err
 }
 
-// Events returns the most recent log rows, newest first — porta log.
+// EventFilter narrows an Events read. The zero value is porta log's read: every
+// row of the node, newest first, no bound.
+type EventFilter struct {
+	Limit int    // at most this many rows; 0 is no bound
+	Boot  int64  // > 0: only rows of that boot
+	Path  string // non-empty: only rows on that exact path
+	After int64  // only rows with ID > After
+	// Oldest reads oldest first: with After, a cursor that misses no row (rete#432 P5:
+	// a node's Seq rewinds every boot, the row id never does).
+	Oldest bool
+}
+
+// Events returns a node's log rows — porta log, and the cursor read of
+// GET /node/{id}/log.
 //
-// boot > 0 restricts the read to one boot. That question is answerable HERE and
+// Boot restricts the read to one boot. That question is answerable HERE and
 // not on the cell tree: the log is append-only, so "what did the node publish
 // during boot N" is a filter, whereas cells holds only the latest value per path
 // and could answer at most "paths whose last write happened to fall in boot N".
-func (s *Store) Events(nodeID string, limit int, boot int64) ([]Event, error) {
+func (s *Store) Events(nodeID string, f EventFilter) ([]Event, error) {
+	order := "DESC"
+	if f.Oldest {
+		order = "ASC"
+	}
+	limit := f.Limit
+	if limit <= 0 {
+		limit = -1 // SQLite: no bound
+	}
 	rows, err := s.db.Query(`
-		SELECT seq, path, kind, value_cbor, ts_ms, direction, actor, reason, boot_id
-		FROM events WHERE node_id = ? AND (? = 0 OR boot_id = ?)
-		ORDER BY id DESC LIMIT ?`,
-		nodeID, boot, boot, limit)
+		SELECT id, seq, path, kind, value_cbor, ts_ms, direction, actor, reason, boot_id
+		FROM events WHERE node_id = ? AND (? = 0 OR boot_id = ?) AND (? = '' OR path = ?) AND id > ?
+		ORDER BY id `+order+` LIMIT ?`,
+		nodeID, f.Boot, f.Boot, f.Path, f.Path, f.After, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -785,7 +807,7 @@ func (s *Store) Events(nodeID string, limit int, boot int64) ([]Event, error) {
 	for rows.Next() {
 		var e Event
 		var k int
-		if err := rows.Scan(&e.Seq, &e.Path, &k, &e.Value, &e.TsMs, &e.Direction, &e.Actor, &e.Reason, &e.BootID); err != nil {
+		if err := rows.Scan(&e.ID, &e.Seq, &e.Path, &k, &e.Value, &e.TsMs, &e.Direction, &e.Actor, &e.Reason, &e.BootID); err != nil {
 			return nil, err
 		}
 		e.Kind = cval.Kind(k)

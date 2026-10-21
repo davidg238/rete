@@ -160,7 +160,7 @@ func TestRebootReusesSeqValues(t *testing.T) {
 	if hw, err := DecodeAck(srv.Handle(second)); err != nil || hw != 2 {
 		t.Fatalf("second boot ack = %d, %v; want 2, nil", hw, err)
 	}
-	evs, _ := st.Events("n1", 100, 0)
+	evs, _ := st.Events("n1", space.EventFilter{Limit: 100})
 	ins := 0
 	for _, e := range evs {
 		if e.Direction == "in" {
@@ -210,7 +210,7 @@ func TestMissedAckIsNotMistakenForAReboot(t *testing.T) {
 	srv.Handle(pull)
 	srv.Handle(push) // the same rows, re-offered
 
-	evs, _ := st.Events("n1", 100, 0)
+	evs, _ := st.Events("n1", space.EventFilter{Limit: 100})
 	ins := 0
 	for _, e := range evs {
 		if e.Direction == "in" {
@@ -343,7 +343,7 @@ func TestStalePullDoesNotDuplicate(t *testing.T) {
 	})
 	srv.Handle(next)
 
-	evs, _ := st.Events("n1", 100, 0)
+	evs, _ := st.Events("n1", space.EventFilter{Limit: 100})
 	ins := 0
 	for _, e := range evs {
 		if e.Direction == "in" {
@@ -363,7 +363,7 @@ func TestReplayedPushIsIdempotent(t *testing.T) {
 	})
 	srv.Handle(req)
 	srv.Handle(req)
-	evs, _ := st.Events("n1", 100, 0)
+	evs, _ := st.Events("n1", space.EventFilter{Limit: 100})
 	if len(evs) != 1 {
 		t.Fatalf("got %d events after a replayed push, want 1", len(evs))
 	}
