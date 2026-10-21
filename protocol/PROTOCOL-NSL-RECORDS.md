@@ -366,7 +366,7 @@ forward, `R` reads as "cell". Direction is from the node's point of view.
 | `goal/name` | R | `str` |
 | `goal/forward` | R | `Forward { … }` — the whole policy, never a patch |
 | `goal/config/<app>/<key>` | R | scalar (`int`/`str`/`bool`/`sym`) |
-| `goal/debug/<app>` | R | `Debug { sha: bytes, breaks: [[blob: int, off: int] …] }` — the WHOLE breakpoint set for the image `sha` names (an offset means nothing in another image); empty is the detach. Replayed to a fresh boot, so a deep-sleeping node re-arms from it (rete#375) |
+| `goal/debug/<app>` | R | `Debug { sha: bytes, breaks: [[blob: int, off: int] …], patches?: BlobRef }` — the WHOLE breakpoint set for the image `sha` names (an offset means nothing in another image); empty is the detach. Replayed to a fresh boot, so a deep-sleeping node re-arms from it (rete#375). `patches` is the WHOLE patch set for `sha` (rete#432): a blob of VM patch texts, one per line, applied in order ahead of the breaks, unsigned (debug images only); absent is none. A set that extends the applied one applies its new lines; any other change reboots the node, which replays the set at boot |
 | `goal/console` | R | `Console { addr: str, port: int }` — the console's UDP tee target, a literal IPv6 address (rete#415); `""` turns the tee off. Replayed to a fresh boot, so a waking node re-tees before its work |
 | `goal/profile` | R | `Profile { id: int, ms: int }` — one request; served once, carried across a sleep that cuts it (rete#415) |
 | `goal/do/reboot` | **E** | `Reboot {}` — exactly-once via cursor |

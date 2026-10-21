@@ -789,6 +789,17 @@ records:
         kind: config
         meaning: "[[blob, off] …]: each breakpoint's method blob offset and pc, as dbg:break names them"
         refs: [rete#375]
+      - key: patches
+        name: patches
+        unit: any
+        kind: config
+        meaning: "BlobRef to the WHOLE patch set for sha: one VM patch text per line, applied in order, ahead of the breaks"
+        validity: >
+          Optional; absent means no patches. Unsigned (debug images only, rete#313). A set
+          that extends the applied one is applied in its new lines; one that does not
+          reboots the node, which replays the set at boot. At most 16 lines (one per method,
+          METHOD_OVERRIDES_MAX). A failed fetch answers `dbg:error patches fetch`.
+        refs: [rete#432]
 
   debug-obs:
     record: DebugObs

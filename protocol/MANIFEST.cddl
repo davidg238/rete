@@ -110,6 +110,7 @@ sym-n           = #6.39("n")
 sym-ob          = #6.39("ob")
 sym-ohw         = #6.39("ohw")
 sym-ovr         = #6.39("ovr")
+sym-patches     = #6.39("patches")
 sym-path        = #6.39("path")
 sym-pco         = #6.39("pco")
 sym-pdr         = #6.39("pdr")
@@ -185,9 +186,12 @@ config-cell = scalar
 ; The WHOLE breakpoint set for the program named by sha (rete#375): a blob offset
 ; means nothing in another image. An empty set is the detach; the cell is what a
 ; cold-booting node re-arms from (a dbg/req row is not replayed, rete#262).
+; patches names the WHOLE patch set for sha (rete#432): a blob of VM patch texts,
+; one per line, applied in order before the breaks; unsigned. Absent = none.
 debug = #6.27([sym-Debug, {
-  sym-sha    => bstr,
-  sym-breaks => [* [blob: uint, off: uint]],
+    sym-sha     => bstr,
+    sym-breaks  => [* [blob: uint, off: uint]],
+  ? sym-patches => blobref,
 }])
 
 ;# path=obs/debug  kind=cell  class=routine  dir=up
