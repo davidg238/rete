@@ -14,7 +14,7 @@
 #      sha arms nothing (the node answers `dbg:error sha`), so the stop that follows
 #      can only have come from the sha check passing.
 #      Leg A also reads obs/debug: held true at the stop, false after the continue.
-#   D. profile in the same debug image: a `profile <ms>` row goes to the kernel's
+#   D. profile in the same debug image: a goal/profile cell goes to the kernel's
 #      Profiler, not the debugger, so the window opens at the next check-in, closes on
 #      its own timer while the node sleeps, and never holds the node.
 #   C. the control: the same image and the same rows without OEVM_DEBUG. No debugger,
@@ -198,11 +198,13 @@ sleep 1
 echo "  ticked, and dbg/resp stayed empty"
 stop_node; stop_porta
 
-echo "[5/6] leg D: a profile request to the debug image opens a window and holds nothing"
+echo "[5/6] leg D: a goal/profile cell to the debug image opens a window and holds nothing"
 DB="$W/d.db"; echo 70 > "$W/bootid"
 serve "$DB" --manifest "$ROOT/protocol/MANIFEST.cddl"
 start_node "$W/d.log" debug
-req "$DB" "profile 2000"
+# rete#415 Q8: porta asks by the goal/profile cell (Profile{id 7, ms 2000}); the Profiler no
+# longer reads dbg/req, so a `profile <ms>` row here would open nothing.
+"$W/porta" put --db "$DB" --raw "$NODE" goal/profile d81b82d8276750726f66696c65a2d82762696407d827626d731907d0 >/dev/null
 for _ in $(seq 1 300); do grep -q '^mprof\[window\]: end' "$W/d.log" && break; sleep 0.1; done
 grep -q '^mprof\[window\]: end' "$W/d.log" || { echo "FAIL: no profile window closed within 30 s"; tail -20 "$W/d.log"; exit 1; }
 [ "$(resp_count "$DB" "dbg:")" = 0 ] || { echo "FAIL: the profile request reached the debugger (dbg/resp rows)"; exit 1; }
