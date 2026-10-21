@@ -52,7 +52,8 @@ class SleepyDebugNode usingPlatform: platform net: net = (
     total:: self work: ticks.
     space out: 'tel/log' value:
       (platform Record tag: #Log with: #lvl -> #info
-         with: #txt -> ('tick ' , ticks printString , ' total ' , total printString , ' held ' , bridge heldExchanges printString)).
+         with: #txt -> ('tick ' , ticks printString , ' total ' , total printString , ' held ' , bridge heldExchanges printString
+             , ' scale ' , self scale printString , ' bias ' , self bias printString)).
     ^ self
   )
 
@@ -62,6 +63,12 @@ class SleepyDebugNode usingPlatform: platform net: net = (
     sum:: total + n.
     ^ sum
   )
+
+  (* rete#432: two methods a patch set rewrites, each read in every tick's log line, so
+     a gate sees which patches are in force. Two, so a set can extend (patch both) and
+     shrink (drop one). *)
+  scale = ( ^ 1 )
+  bias  = ( ^ 0 )
 ) : (
   public packageUsing: manifest = ( ^ self new )
 )
