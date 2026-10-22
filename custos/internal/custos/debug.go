@@ -21,7 +21,6 @@ package custos
 
 import (
 	_ "embed"
-	"encoding/json"
 	"io"
 	"net/http"
 	"strconv"
@@ -50,20 +49,81 @@ type Source struct {
 }
 
 // Done is /debug/do's answer: whether the command did what it says, why not
-// (as the CLI said it, or the VM's dbg:error line), and the state after it.
+// (as the CLI said it, or the VM's dbg:error line), and the state after it. On
+// a porta node (portadebug.go) a command that goes to the node is Pending, with
+// the seq porta answered: the node's answer arrives in State.
 type Done struct {
-	OK    bool
-	Error string
-	State debug.State
+	OK      bool
+	Error   string
+	Pending bool  `json:",omitempty"`
+	Seq     int64 `json:",omitempty"`
+	State   debug.State
 }
+
+// answerOK is answerJSON with 200.
+func answerOK(w http.ResponseWriter, v any) { answerJSON(w, http.StatusOK, v) }
 
 // mountDebug serves s. busy is the cable's: a load on the same cable holds it.
 func mountDebug(mux *http.ServeMux, prefixes []string, s *debug.Session, busy *sync.Mutex) {
-	answer := func(w http.ResponseWriter, v any) {
-		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("Cache-Control", "no-store")
-		json.NewEncoder(w).Encode(v)
+	answer := answerOK
+	mountDebugView(mux, prefixes, s)
+	handle(mux, prefixes, "POST /debug/do", func(w http.ResponseWriter, r *http.Request) {
+		body, err := io.ReadAll(io.LimitReader(r.Body, 4096))
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if !busy.TryLock() {
+			http.Error(w, "custos: a command is already running", http.StatusConflict)
+			return
+		}
+		defer busy.Unlock()
+		res := s.Do(strings.TrimSpace(string(body))) // quit has nothing to leave: the cable stays held
+		answer(w, Done{OK: res.Err == "", Error: res.Err, State: s.State(-1, 0)})
+	})
+
+	handle(mux, prefixes, "POST /debug/patch", func(w http.ResponseWriter, r *http.Request) {
+		method, edited, ok := patchRequest(w, r)
+		if !ok {
+			return
+		}
+		if !busy.TryLock() {
+			http.Error(w, "custos: a command is already running", http.StatusConflict)
+			return
+		}
+		defer busy.Unlock()
+		sm := s.SourceMap()
+		text, err := nsl.Patch(sm.MapPath, sm.SourcePath, edited, method, false)
+		if err != nil {
+			// A refusal (a new constant, a block, another image) is the answer, not
+			// a server fault: the VM was not touched.
+			answer(w, Done{Error: err.Error(), State: s.State(-1, 0)})
+			return
+		}
+		res := s.Patch(text)
+		answer(w, Done{OK: res.Err == "", Error: res.Err, State: s.State(-1, 0)})
+	})
+}
+
+// patchRequest reads /debug/patch's method and edited source, or answers why not.
+func patchRequest(w http.ResponseWriter, r *http.Request) (string, []byte, bool) {
+	method := r.URL.Query().Get("method")
+	if method == "" {
+		http.Error(w, "custos: name the method, ?method=<Vtable>>selector", http.StatusBadRequest)
+		return "", nil, false
 	}
+	edited, err := io.ReadAll(io.LimitReader(r.Body, 1<<20))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return "", nil, false
+	}
+	return method, edited, true
+}
+
+// mountDebugView serves the debug page and what it reads, on a cable and on a
+// porta node alike.
+func mountDebugView(mux *http.ServeMux, prefixes []string, s *debug.Session) {
+	answer := answerOK
 	handle(mux, prefixes, "GET /debug", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.Write(debugPage)
@@ -89,47 +149,5 @@ func mountDebug(mux *http.ServeMux, prefixes []string, s *debug.Session, busy *s
 			after = n
 		}
 		answer(w, s.State(after, pollWait))
-	})
-	handle(mux, prefixes, "POST /debug/do", func(w http.ResponseWriter, r *http.Request) {
-		body, err := io.ReadAll(io.LimitReader(r.Body, 4096))
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-		if !busy.TryLock() {
-			http.Error(w, "custos: a command is already running", http.StatusConflict)
-			return
-		}
-		defer busy.Unlock()
-		res := s.Do(strings.TrimSpace(string(body))) // quit has nothing to leave: the cable stays held
-		answer(w, Done{res.Err == "", res.Err, s.State(-1, 0)})
-	})
-
-	handle(mux, prefixes, "POST /debug/patch", func(w http.ResponseWriter, r *http.Request) {
-		method := r.URL.Query().Get("method")
-		if method == "" {
-			http.Error(w, "custos: name the method, ?method=<Vtable>>selector", http.StatusBadRequest)
-			return
-		}
-		edited, err := io.ReadAll(io.LimitReader(r.Body, 1<<20))
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-		if !busy.TryLock() {
-			http.Error(w, "custos: a command is already running", http.StatusConflict)
-			return
-		}
-		defer busy.Unlock()
-		sm := s.SourceMap()
-		text, err := nsl.Patch(sm.MapPath, sm.SourcePath, edited, method)
-		if err != nil {
-			// A refusal (a new constant, a block, another image) is the answer, not
-			// a server fault: the VM was not touched.
-			answer(w, Done{false, err.Error(), s.State(-1, 0)})
-			return
-		}
-		res := s.Patch(text)
-		answer(w, Done{res.Err == "", res.Err, s.State(-1, 0)})
 	})
 }

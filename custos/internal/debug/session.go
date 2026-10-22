@@ -215,8 +215,13 @@ func (s *Session) OnLine(l string) {
 				s.say("%s", text)
 			}
 		}
-	} else if !quiet {
-		s.say("%s", l)
+	} else {
+		if strings.HasPrefix(l, "dbg:frames") {
+			s.takeFrames(l)
+		}
+		if !quiet {
+			s.say("%s", l)
+		}
 	}
 	s.record(seen{text: l})
 }

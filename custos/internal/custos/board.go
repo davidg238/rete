@@ -155,9 +155,6 @@ func ParseBoards(ports, hosts, udps, nodes, maps, sources []string) ([]Board, er
 			if b.UDP != 0 {
 				return nil, fmt.Errorf("custos: --%s names board %s, which logs over the mesh and serves its console only", t.flag, name)
 			}
-			if b.Node != "" && t.flag == "source" {
-				return nil, fmt.Errorf("custos: --source names board %s, a porta node, which has no debug page", name)
-			}
 			t.set(b, v)
 		}
 	}
@@ -257,12 +254,20 @@ func mountBoard(ctx context.Context, mux *http.ServeMux, prefixes []string, b Bo
 			return nil, fmt.Errorf("a porta node needs --porta-http")
 		}
 		p := load.Porta{Base: porta, Node: b.Node}
-		if err := mountPortaLoad(mux, prefixes, p, busy); err != nil {
+		var follow func(string) string
+		if b.Map != "" {
+			var err error
+			if follow, err = mountPortaDebug(ctx, mux, prefixes, b, p, busy); err != nil {
+				return nil, err
+			}
+		}
+		if err := mountPortaLoad(mux, prefixes, p, busy, follow); err != nil {
 			return nil, err
 		}
 		if advertise == "" {
+			// Debug's answers come from dbg/resp; profile's rows by the console tee.
 			if b.Map != "" {
-				return nil, fmt.Errorf("a porta node's profile needs --advertise: its rows come back by the console tee")
+				return []string{"load", "debug"}, nil
 			}
 			return []string{"load"}, nil
 		}
@@ -273,7 +278,7 @@ func mountBoard(ctx context.Context, mux *http.ServeMux, prefixes []string, b Bo
 		verbs := []string{"log", "runs", "panics", "health", "load"}
 		if b.Map != "" {
 			mountPortaProfile(mux, prefixes, b.Map, p, s, busy)
-			verbs = append(verbs, "profile")
+			verbs = append(verbs, "debug", "profile")
 		}
 		return verbs, nil
 	}

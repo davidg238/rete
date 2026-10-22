@@ -53,7 +53,6 @@ func TestParseBoardsRefuses(t *testing.T) {
 		"one cable":               {{"a=/dev/ttyA", "b=/dev/ttyA"}, nil, nil, nil, nil, nil},
 		"<name>=<udp port>":       {nil, nil, {"c6=x"}, nil, nil, nil},
 		"serves its console only": {nil, nil, {"c6=54330"}, nil, {"c6=/x.map.json"}, nil},
-		"has no debug page":       {nil, nil, nil, {"bell=206ef1195438"}, {"bell=/x.map.json"}, {"bell=/x.nsl"}},
 		"bell is named twice":     {nil, {"bell=/bin/true"}, nil, {"bell=206ef1195438"}, nil, nil},
 		"twice":                   {{"a=/dev/ttyA"}, nil, {"a=54330"}, nil, nil, nil},
 	}

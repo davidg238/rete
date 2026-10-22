@@ -10,6 +10,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -25,14 +26,26 @@ type fakePorta struct {
 	seq    int64
 	actor  string
 	refuse string // a PUT refusal, porta's words
+	blobs  map[string][]byte
+	resp   []string // the node's dbg/resp rows; row id = index + 1
+}
+
+// says is the node's half of a debug answer: one dbg/resp row.
+func (f *fakePorta) says(line string) {
+	f.mu.Lock()
+	f.resp = append(f.resp, line)
+	f.mu.Unlock()
 }
 
 func (f *fakePorta) server(t *testing.T) *httptest.Server {
-	f.cells = map[string][]byte{}
+	f.cells, f.blobs = map[string][]byte{}, map[string][]byte{}
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /blob", func(w http.ResponseWriter, r *http.Request) {
 		b, _ := io.ReadAll(r.Body)
 		sum := sha256.Sum256(b)
+		f.mu.Lock()
+		f.blobs[hex.EncodeToString(sum[:])] = b
+		f.mu.Unlock()
 		rec, _ := cval.Encode(cval.Record{Tag: "App", Fields: cval.Map{{K: cval.Symbol("sig"), V: cval.Bytes{1}}}})
 		json.NewEncoder(w).Encode(map[string]any{"Hash": hex.EncodeToString(sum[:]), "Size": len(b), "Sig": "01", "Record": hex.EncodeToString(rec)})
 	})
@@ -48,6 +61,29 @@ func (f *fakePorta) server(t *testing.T) *httptest.Server {
 		f.actor = r.Header.Get("X-Porta-Actor")
 		f.cells[r.PathValue("id")+"/"+r.PathValue("path")] = b
 		json.NewEncoder(w).Encode(map[string]any{"Seq": f.seq})
+	})
+	mux.HandleFunc("GET /blob/{hash}", func(w http.ResponseWriter, r *http.Request) {
+		f.mu.Lock()
+		b, ok := f.blobs[r.PathValue("hash")]
+		f.mu.Unlock()
+		if !ok {
+			http.NotFound(w, r)
+			return
+		}
+		w.Write(b)
+	})
+	mux.HandleFunc("GET /node/{id}/log", func(w http.ResponseWriter, r *http.Request) {
+		after, _ := strconv.Atoi(r.URL.Query().Get("after"))
+		rows := []map[string]any{}
+		f.mu.Lock()
+		for i, l := range f.resp {
+			if i+1 > after && r.URL.Query().Get("path") == "dbg/resp" {
+				v, _ := cval.Encode(l)
+				rows = append(rows, map[string]any{"ID": i + 1, "Value": hex.EncodeToString(v)})
+			}
+		}
+		f.mu.Unlock()
+		json.NewEncoder(w).Encode(rows)
 	})
 	mux.HandleFunc("GET /node/{id}/{path...}", func(w http.ResponseWriter, r *http.Request) {
 		f.mu.Lock()

@@ -23,7 +23,9 @@ import (
 	"github.com/davidg238/rete/custos/internal/load"
 )
 
-func mountPortaLoad(mux *http.ServeMux, prefixes []string, p load.Porta, busy *sync.Mutex) error {
+// follow is the debug page's (portadebug.go), told the pushed image's sha; nil
+// when the board serves no debug page.
+func mountPortaLoad(mux *http.ServeMux, prefixes []string, p load.Porta, busy *sync.Mutex, follow func(sha string) string) error {
 	dir, err := os.MkdirTemp("", "custos-push-")
 	if err != nil {
 		return err
@@ -74,6 +76,9 @@ func mountPortaLoad(mux *http.ServeMux, prefixes []string, p load.Porta, busy *s
 			return
 		}
 		l := &Load{LoadedMs: time.Now().UnixMilli(), Result: load.Result{Image: push.Image, Size: push.Size, SHA256: push.SHA256}, Push: &push}
+		if follow != nil {
+			l.Debug = follow(push.SHA256)
+		}
 		mu.Lock()
 		last = l
 		mu.Unlock()

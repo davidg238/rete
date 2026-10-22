@@ -58,8 +58,10 @@ func lastLines(s string, n int) string {
 
 // Patch compiles one method of edited (the whole edited source of the program
 // whose map is mapPath and whose source is source) against that image, and
-// answers the VM's patch text: what `dbg:patch` sends (rete#313).
-func Patch(mapPath, source string, edited []byte, method string) (string, error) {
+// answers the VM's patch text: what `dbg:patch` sends (rete#313). blob is a
+// line of a patch set through porta (rete#432), which the cable's line cap does
+// not bound.
+func Patch(mapPath, source string, edited []byte, method string, blob bool) (string, error) {
 	f, err := os.CreateTemp("", "custos-patch-*.nsl")
 	if err != nil {
 		return "", err
@@ -70,7 +72,11 @@ func Patch(mapPath, source string, edited []byte, method string) (string, error)
 		return "", err
 	}
 	f.Close()
-	out, err := run("patch_method.py", mapPath, source, f.Name(), method)
+	args := []string{mapPath, source, f.Name(), method}
+	if blob {
+		args = append([]string{"--blob"}, args...)
+	}
+	out, err := run("patch_method.py", args...)
 	return strings.TrimSpace(out), err
 }
 

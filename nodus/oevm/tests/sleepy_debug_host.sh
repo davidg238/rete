@@ -20,10 +20,12 @@
 #   C. the control: the same image and the same rows without OEVM_DEBUG. No debugger,
 #      so nothing may come back on dbg/resp — a stop reported here would mean leg A's
 #      green came from somewhere other than the debugger.
-#   P. patch through porta (rete#432): the cell's `patches` names a blob, the whole
-#      patch set for sha. The node applies it at a check-in, replays it at every boot
-#      (the killed process is the deep sleep), applies only the new line when a set
-#      extends, and exits 75 ("relaunch me", the host's reboot) when one shrinks.
+#   P. patch through porta (rete#432): an agent patches through custos's HTTP, which
+#      keeps the whole patch set for sha as a blob at porta, named by the cell's
+#      `patches`. The node applies it at a check-in, replays it at every boot (the
+#      killed process is the deep sleep), applies only the new line when a set
+#      extends, and exits 75 ("relaunch me", the host's reboot) when a DELETE shrinks
+#      it. The node's answers reach custos's state from dbg/resp.
 # Not in the suite: standalone, like porta_sync_host.sh (same ports, same lock).
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -42,11 +44,12 @@ command -v go >/dev/null 2>&1 || { echo "SKIP: go is not on PATH"; exit 0; }
 ROOT="$(git rev-parse --show-toplevel)"
 W="$(mktemp -d /tmp/sleepy_debug.XXXXXX)"
 NODE="sleepy-$$"
-PORTA_PID=""; NODE_PID=""
-trap 'kill ${PORTA_PID:-} ${NODE_PID:-} 2>/dev/null || true' EXIT
+PORTA_PID=""; NODE_PID=""; CUSTOS_PID=""
+trap 'kill ${PORTA_PID:-} ${NODE_PID:-} ${CUSTOS_PID:-} 2>/dev/null || true' EXIT
 
-echo "[1/7] build porta, the host VM and the node image"
+echo "[1/7] build porta, custos, the host VM and the node image"
 ( cd "$ROOT/porta" && go build -o "$W/porta" ./cmd/porta )
+( cd "$ROOT/custos" && go build -o "$W/custos" ./cmd/custos )
 gcc -std=c99 -Isrc tools/dump_layout.c -o "$W/dl" && "$W/dl" > "$W/layout.json"
 python3 "$ROOT/nodus/nsl/tools/ns_compile_oevm.py" zephyr/SleepyDebugNode.nsl "$W/node.oimg" \
   --format=oimg --layout="$W/layout.json" >/dev/null
@@ -68,8 +71,8 @@ echo "  work: is blob offset $OFF"
 # The program's hash, as the node reports it in obs/apps/main and as a Debug goal
 # names it (#375). The host node learns its own from OEVM_IMAGE_HASH (ota.c).
 SHA=$(sha256sum "$W/node.oimg" | awk '{print $1}')
-goal_hex() {  # $1 = sha hex, $2 = blob offset ("" = no break), $3 $4 = patch blob hash hex, size
-  # -> hex of Debug{sha, breaks: [[off 0]] or [], patches?: BlobRef{hash, size}}
+goal_hex() {  # $1 = sha hex, $2 = blob offset ("" = no break)
+  # -> hex of Debug{sha, breaks: [[off 0]] or []}
   python3 - "$@" <<'PY'
 import sys
 def head(major, n):
@@ -78,15 +81,11 @@ def head(major, n):
     if n < 65536: return bytes([major << 5 | 25]) + n.to_bytes(2, "big")
     return bytes([major << 5 | 26]) + n.to_bytes(4, "big")
 def sym(s): return b"\xd8\x27" + head(3, len(s)) + s.encode()
-a = sys.argv[1:] + [""] * 3
+a = sys.argv[1:] + [""]
 sha = bytes.fromhex(a[0])
 breaks = head(4, 1) + head(4, 2) + head(0, int(a[1])) + head(0, 0) if a[1] else head(4, 0)
 fields = sym("sha") + head(2, len(sha)) + sha + sym("breaks") + breaks
-if a[2]:
-    h = bytes.fromhex(a[2])
-    fields += (sym("patches") + b"\xd8\x1b" + head(4, 2) + sym("BlobRef") + head(5, 2)
-               + sym("hash") + head(2, len(h)) + h + sym("size") + head(0, int(a[3])))
-rec = b"\xd8\x1b" + head(4, 2) + sym("Debug") + head(5, 3 if a[2] else 2) + fields
+rec = b"\xd8\x1b" + head(4, 2) + sym("Debug") + head(5, 2) + fields
 print(rec.hex())
 PY
 }
@@ -227,19 +226,23 @@ ROWS=$(grep -c '^mprof: ' "$W/d.log" || true)
 echo "  window closed with $ROWS rows on the console, and nothing on dbg/resp: the node was never held"
 stop_node; stop_porta
 
-echo "[6/7] leg P: a patch set through porta, applied, replayed at boot, extended, shrunk"
+echo "[6/7] leg P: an agent patches through custos and porta: applied, replayed at boot, extended, shrunk"
 DB="$W/p.db"; echo 80 > "$W/bootid"
 "$W/porta" --db "$DB" key gen >/dev/null   # porta signs every blob it stores
-serve "$DB" --manifest "$ROOT/protocol/MANIFEST.cddl"
-SRC=zephyr/SleepyDebugNode.nsl
-patch_text() {  # $1 = method, $2 = its new body -> the VM's patch text for SleepyDebugNode>>$1
+# porta's operator HTTP on 16968 and custos on 16967, as porta_sync_host.sh (one lock).
+serve "$DB" --manifest "$ROOT/protocol/MANIFEST.cddl" --http-port 16968 --http-bind 127.0.0.1
+SRC="$PWD/zephyr/SleepyDebugNode.nsl"
+HOME="$W" RETE_NSL_TOOLS="$ROOT/nodus/nsl/tools" "$W/custos" --bind 127.0.0.1 --port 16967 \
+  --porta-http http://127.0.0.1:16968 --porta-node "sleepy=$NODE" \
+  --map "sleepy=$W/node.oimg.map.json" --source "sleepy=$SRC" >"$W/custos.log" 2>&1 &
+CUSTOS_PID=$!
+CU="http://127.0.0.1:16967/board/sleepy"
+for _ in $(seq 1 50); do curl -sf http://127.0.0.1:16967/boards | grep -q '"debug"' && break; sleep 0.1; done
+curl -sf http://127.0.0.1:16967/boards | grep -q '"debug"' || { echo "FAIL: custos does not serve the node's debug"; cat "$W/custos.log"; exit 1; }
+patch() {  # $1 = method, $2 = its new body: the edited source to custos, answered Pending
   sed "s/^  $1 *= ( .* )$/  $1 = ( $2 )/" "$SRC" > "$W/edit-$1.nsl"
-  python3 "$ROOT/nodus/nsl/tools/patch_method.py" --blob "$W/node.oimg.map.json" "$SRC" "$W/edit-$1.nsl" "SleepyDebugNode>>$1"
-}
-put_set() {  # $@ = the set's lines, in order -> goal/debug/main names that blob
-  printf '%s\n' "$@" > "$W/set.txt"
-  local h; h=$("$W/porta" --db "$DB" blob put "$W/set.txt" | awk '/^hash/{print $2}')
-  "$W/porta" put --db "$DB" --raw "$NODE" goal/debug/main "$(goal_hex "$SHA" "" "$h" "$(stat -c %s "$W/set.txt")")" >/dev/null
+  local a; a=$(curl -sf -X POST --data-binary @"$W/edit-$1.nsl" "$CU/debug/patch?method=SleepyDebugNode%3E%3E$1")
+  echo "$a" | grep -q '"Pending":true' || { echo "FAIL: custos did not post the patch of $1: $a"; exit 1; }
 }
 await_tick() {  # $1 = fixed text in a tel/log row, $2 = timeout s
   for _ in $(seq 1 $(( $2 * 10 ))); do
@@ -248,12 +251,12 @@ await_tick() {  # $1 = fixed text in a tel/log row, $2 = timeout s
     sleep 0.1
   done; return 1
 }
-SCALE=$(patch_text scale '^ 1000') && BIAS=$(patch_text bias '^ 7') \
-  || { echo "FAIL: patch_method.py refused a patch"; exit 1; }
 start_node "$W/p.log" debug
-put_set "$SCALE"
+patch scale '^ 1000'
 await_tick "scale 1000 bias 0" 25 || { echo "FAIL: the patch set never took effect"; tail -20 "$W/p.log"; exit 1; }
-echo "  a patch set of one: in force at a check-in"
+for _ in $(seq 1 50); do curl -sf "$CU/debug/state" | grep -qF 'dbg:ok patch' && break; sleep 0.1; done
+curl -sf "$CU/debug/state" | grep -qF 'dbg:ok patch' || { echo "FAIL: the node's dbg:ok patch never reached custos's state"; exit 1; }
+echo "  a patch set of one: in force at a check-in, and the node's answer in custos's state"
 stop_node   # the deep sleep
 start_node "$W/p.log" debug
 B=$(cat "$W/bootid")
@@ -263,17 +266,18 @@ done
 FIRST=$(plog "$DB" "$NODE" --boot "$B" --limit 100000 | grep 'tel/log' | tail -1)
 echo "$FIRST" | grep -qF "scale 1000" || { echo "FAIL: the relaunch's first tick ran unpatched: $FIRST"; exit 1; }
 echo "  replayed at boot: the relaunch's first tick is patched"
-put_set "$SCALE" "$BIAS"
+patch bias '^ 7'
 await_tick "scale 1000 bias 7" 25 || { echo "FAIL: the extended set never took effect, or the node exited"; tail -20 "$W/p.log"; exit 1; }
 echo "  extended by one line with no reboot"
-put_set "$BIAS"
+A=$(curl -sf -X DELETE "$CU/debug/patch?method=SleepyDebugNode%3E%3Escale")
+echo "$A" | grep -q '"Pending":true' || { echo "FAIL: custos did not post the removal: $A"; exit 1; }
 RC=0; for _ in $(seq 1 250); do kill -0 "$NODE_PID" 2>/dev/null || break; sleep 0.1; done
 wait "$NODE_PID" || RC=$?; NODE_PID=""
 [ "$RC" = 75 ] || { echo "FAIL: a shrunk set did not reboot the node (exit $RC, want 75)"; tail -20 "$W/p.log"; exit 1; }
 start_node "$W/p.log" debug
 await_tick "scale 1 bias 7" 25 || { echo "FAIL: the relaunch did not run the smaller set"; tail -20 "$W/p.log"; exit 1; }
-echo "  shrunk: exit 75, and the relaunch runs the smaller set"
-stop_node; stop_porta
+echo "  shrunk by a DELETE: exit 75, and the relaunch runs the smaller set"
+stop_node; kill "$CUSTOS_PID" 2>/dev/null || true; wait "$CUSTOS_PID" 2>/dev/null || true; CUSTOS_PID=""; stop_porta
 
 echo "  logs in $W"
 echo "[7/7] SLEEPY DEBUG OK"

@@ -64,7 +64,7 @@ func TestPortaProfileThroughTheTee(t *testing.T) {
 
 	var infos []BoardInfo
 	getJSON(t, srv.URL+"/boards", &infos)
-	if got := strings.Join(infos[0].Verbs, " "); got != "log runs panics health load profile" {
+	if got := strings.Join(infos[0].Verbs, " "); got != "log runs panics health load debug profile" {
 		t.Fatalf("verbs %q", got)
 	}
 	addr, port := f.teeTarget(t, "n1")
@@ -141,15 +141,23 @@ func TestPortaProfileRefusesAnotherProgramsMap(t *testing.T) {
 	}
 }
 
-// Without --advertise a porta node serves load only, and a map on it is refused
-// at start-up rather than served as a profile that can never come back.
+// Without --advertise a porta node with a map serves load and debug (its answers
+// come from dbg/resp, rete#432), and no profile, whose rows come back by the tee.
 func TestPortaProfileNeedsAdvertise(t *testing.T) {
 	f := &fakePorta{}
 	ps := f.server(t)
-	err := mountBoards(context.Background(), http.NewServeMux(), []Board{{Name: "bell", Node: "n1", Map: fixtureMap(t)}},
+	mux := http.NewServeMux()
+	err := mountBoards(context.Background(), mux, []Board{{Name: "bell", Node: "n1", Map: fixtureMap(t)}},
 		"", t.TempDir(), ps.URL, "")
-	if err == nil || !strings.Contains(err.Error(), "--advertise") {
-		t.Fatalf("err %v", err)
+	if err != nil {
+		t.Fatal(err)
+	}
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+	var infos []BoardInfo
+	getJSON(t, srv.URL+"/boards", &infos)
+	if got := strings.Join(infos[0].Verbs, " "); got != "load debug" {
+		t.Fatalf("verbs %q", got)
 	}
 	err = mountBoards(context.Background(), http.NewServeMux(), []Board{{Name: "bell", Node: "n1"}},
 		"", t.TempDir(), ps.URL, "127.0.0.1")

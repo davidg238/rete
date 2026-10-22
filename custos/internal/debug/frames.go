@@ -101,16 +101,27 @@ func localVars(regs, ctx map[int]string, vars []imagemap.Var) []Var {
 	return out
 }
 
-// backtrace asks the VM for the stack at this stop and keeps it, for `locals
-// N` and for State.
+// backtrace asks the VM for the stack at this stop; OnLine keeps the answer,
+// for `locals N` and for State.
 func (s *Session) backtrace() ([]FrameView, error) {
 	got := s.askQuiet("dbg:backtrace", `^dbg:(frames|error)`)
 	if len(got) == 0 {
 		return nil, errors.New("no answer to dbg:backtrace")
 	}
-	frames, err := ParseFrames(got[len(got)-1])
-	if err != nil {
+	if _, err := ParseFrames(got[len(got)-1]); err != nil {
 		return nil, err
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return append([]FrameView(nil), s.framesV...), nil
+}
+
+// takeFrames keeps a dbg:frames line as the stack at this stop, whoever asked
+// for it: the session's own bt, or a line posted through porta (rete#432).
+func (s *Session) takeFrames(line string) {
+	frames, err := ParseFrames(line)
+	if err != nil {
+		return
 	}
 	views := make([]FrameView, len(frames))
 	for i, f := range frames {
@@ -122,7 +133,6 @@ func (s *Session) backtrace() ([]FrameView, error) {
 	s.frames, s.framesV = frames, views
 	s.notify()
 	s.mu.Unlock()
-	return views, nil
 }
 
 // locals asks the VM for frame n's registers and Context and names the ones

@@ -68,7 +68,7 @@ func main() {
 	flag.Func("board", "a board on its console cable, `name=tty` (a bare name reads ~/.config/rete/console-<name>.env), repeatable: every verb at /board/<name>/ (peer design D15)", each(&ports))
 	flag.Func("host", "a host VM instead of a board, `name=binary`: \"dev=/tmp/oevm_img\"; it runs the image beside the board's --map", each(&hosts))
 	flag.Func("udp-log", "a board that logs over the mesh, `name=port`: its console datagrams are collected, and its console verbs served", each(&udps))
-	flag.Func("porta-node", "a node porta knows, `name=node-id`: load pushes it a program through --porta-http, and is answered at the goal write (rete#398)", each(&nodes))
+	flag.Func("porta-node", "a node porta knows, `name=node-id`: load pushes it a program through --porta-http, and is answered at the goal write (rete#398); with a --map, debug and patch through its goal/debug/main cell and dbg/req, each answered Pending (rete#432)", each(&nodes))
 	flag.StringVar(&cfg.Advertise, "advertise", "", "this host's IPv6 address as the nodes reach it (a literal: the mesh has no names): each --porta-node is told by goal/console to tee its console here, and serves its console verbs and, with a --map, profile (rete#415)")
 	flag.Func("map", "a board's program map, `name=path`.oimg.map.json: without one the board serves load only", each(&maps))
 	flag.Func("source", "a board's .nsl, `name=path` (default: beside its --map)", each(&sources))

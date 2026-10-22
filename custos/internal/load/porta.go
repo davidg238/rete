@@ -92,28 +92,105 @@ func (p Porta) Push(path string) (Push, error) {
 	if err != nil {
 		return Push{}, err
 	}
-	b, _, err := p.call("POST", strings.TrimRight(p.Base, "/")+"/blob", img, nil)
+	signed, err := p.PutBlob(img)
 	if err != nil {
 		return Push{}, err
 	}
-	var signed struct {
-		Hash, Record string
-		Size         int64
-	}
-	if err := json.Unmarshal(b, &signed); err != nil {
-		return Push{}, fmt.Errorf("porta POST /blob: %w", err)
-	}
-	rec, err := hex.DecodeString(signed.Record)
-	if err != nil {
-		return Push{}, fmt.Errorf("porta POST /blob: Record: %w", err)
-	}
 	name := filepath.Base(path)
-	seq, err := p.put("goal/apps/main", rec, "custos load "+name)
+	seq, err := p.put("goal/apps/main", signed.Record, "custos load "+name)
 	if err != nil {
 		return Push{}, err
 	}
 	out := Push{Image: name, Size: signed.Size, SHA256: signed.Hash, Seq: seq}
 	return p.Refresh(out)
+}
+
+// Stored is what porta answers for a stored blob: its hash (hex), its size, and
+// the goal/apps/<name> App record that names it, signed (cval).
+type Stored struct {
+	Hash   string
+	Size   int64
+	Record []byte
+}
+
+// PutBlob stores b at porta, which signs it.
+func (p Porta) PutBlob(b []byte) (Stored, error) {
+	body, _, err := p.call("POST", strings.TrimRight(p.Base, "/")+"/blob", b, nil)
+	if err != nil {
+		return Stored{}, err
+	}
+	var signed struct {
+		Hash, Record string
+		Size         int64
+	}
+	if err := json.Unmarshal(body, &signed); err != nil {
+		return Stored{}, fmt.Errorf("porta POST /blob: %w", err)
+	}
+	rec, err := hex.DecodeString(signed.Record)
+	if err != nil {
+		return Stored{}, fmt.Errorf("porta POST /blob: Record: %w", err)
+	}
+	return Stored{signed.Hash, signed.Size, rec}, nil
+}
+
+// Blob is a stored blob's bytes, named by its hash (hex).
+func (p Porta) Blob(hash string) ([]byte, error) {
+	u := strings.TrimRight(p.Base, "/") + "/blob/" + url.PathEscape(hash)
+	b, code, err := p.call("GET", u, nil, nil)
+	if err == nil && code == http.StatusNotFound {
+		err = fmt.Errorf("porta holds no blob %.12s", hash)
+	}
+	return b, err
+}
+
+// Read is the node's cell at path, decoded; nil when porta holds none.
+func (p Porta) Read(path string) (any, error) {
+	b, code, err := p.call("GET", p.cell(path), nil, nil)
+	if err != nil || code == http.StatusNotFound {
+		return nil, err
+	}
+	v, err := cval.Decode(b)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", path, err)
+	}
+	return v, nil
+}
+
+// Row is one row of the node's event log: porta's row id (the cursor) and the
+// value, decoded.
+type Row struct {
+	ID    int64
+	Value any
+}
+
+// Log is the node's rows on path with a row id past after, oldest first: at
+// most porta's page, so a reader asks again from the last ID.
+func (p Porta) Log(path string, after int64) ([]Row, error) {
+	u := p.cell("log") + "?path=" + url.QueryEscape(path) + "&after=" + fmt.Sprint(after)
+	b, _, err := p.call("GET", u, nil, nil)
+	if err != nil {
+		return nil, err
+	}
+	var rows []struct {
+		ID    int64
+		Value string
+	}
+	if err := json.Unmarshal(b, &rows); err != nil {
+		return nil, fmt.Errorf("porta GET log: %w", err)
+	}
+	out := make([]Row, 0, len(rows))
+	for _, r := range rows {
+		enc, err := hex.DecodeString(r.Value)
+		if err != nil {
+			return nil, fmt.Errorf("porta GET log: row %d: %w", r.ID, err)
+		}
+		v, err := cval.Decode(enc)
+		if err != nil {
+			return nil, fmt.Errorf("porta GET log: row %d: %w", r.ID, err)
+		}
+		out = append(out, Row{r.ID, v})
+	}
+	return out, nil
 }
 
 // Write encodes v as one closed cval value and writes it at path on the node:
