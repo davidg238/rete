@@ -1,0 +1,34 @@
+(*
+expect:
+int hash nil
+short hash nil
+ota: blob: size out of range
+huge size nil
+ota: blob: size out of range
+negative size nil
+bad host nil
+ota: blob: block timed out after 5 attempts, block=0
+no server nil
+finished
+*)
+(* rete#432 — `fetchBlob:size:host:port:` with arguments that came out of a goal/
+   record (the Debug cell's patches BlobRef) and are wrong. Every one is an answer,
+   nil, never a raise: reaching `finished` is the assertion, as in 01. The last asks
+   a port nobody serves, so it is the timeout path (5 attempts) and costs ~5 s.
+   The fetch that succeeds is the gate's (sleepy_debug_host.sh leg P, against a real
+   porta); the block protocol itself is ota_seam_test's test_fetch_blob. *)
+class FetchBlobRefusals packageUsing: manifest = () (
+  public main: platform args: args = (
+    | h say |
+    h:: platform ByteArray fromHex: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'.
+    say:: [ :what :r | (what , (r == nil ifTrue: [ ' nil' ] ifFalse: [ ' ANSWERED — GUARD MISSING' ])) println ].
+    say value: 'int hash' value: (platform fetchBlob: 42 size: 4 host: '127.0.0.1' port: 1).
+    say value: 'short hash' value: (platform fetchBlob: (platform ByteArray fromHex: 'e3b0') size: 4 host: '127.0.0.1' port: 1).
+    say value: 'huge size' value: (platform fetchBlob: h size: 1000000 host: '127.0.0.1' port: 1).
+    say value: 'negative size' value: (platform fetchBlob: h size: -1 host: '127.0.0.1' port: 1).
+    say value: 'bad host' value: (platform fetchBlob: h size: 4 host: 7 port: 1).
+    say value: 'no server' value: (platform fetchBlob: h size: 0 host: '127.0.0.1' port: 1).
+    'finished' println.
+  )
+) : (
+)

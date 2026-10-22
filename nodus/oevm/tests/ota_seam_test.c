@@ -359,6 +359,36 @@ static void test_trial_confirm_activate(void) {
     printf("  trial/activate    OK\n");
 }
 
+/* 10. rete#432: a blob into memory — the debug image's patch set. Same block
+ *     protocol, no slot (it works with none configured), the length held to the
+ *     BlobRef's size in both directions, and the digest checked. */
+static void test_fetch_blob(void) {
+    uint8_t buf[BLOB_LEN + BLOCK];
+    reset(blob_a, hash_a);
+    stage_configured = 0;                   /* memory, not the slot */
+    assert(ota_fetch_blob("::1", 5684, hash_a, BLOB_LEN, buf) == 1);
+    assert(memcmp(buf, blob_a, BLOB_LEN) == 0);
+    assert(requested_count(1) == 2);        /* the scripted drop, retried */
+    assert(n_requested == 4);
+    assert(stage_len == 0);                 /* the slot untouched */
+
+    reset(blob_a, hash_a); drop_block1_once = 0;
+    memset(buf, 0xee, sizeof buf);
+    assert(ota_fetch_blob("::1", 5684, hash_a, BLOB_LEN - 1, buf) == 0);   /* longer than its record */
+    assert(buf[BLOB_LEN - 1] == 0xee);                                     /* refused before it overran */
+    reset(blob_a, hash_a); drop_block1_once = 0;
+    assert(ota_fetch_blob("::1", 5684, hash_a, BLOB_LEN + 1, buf) == 0);   /* shorter than its record */
+
+    reset(blob_b, hash_a); drop_block1_once = 0;                           /* serves B under A's name */
+    assert(ota_fetch_blob("::1", 5684, hash_a, BLOB_LEN, buf) == 0);
+
+    reset(blob_a, hash_a); drop_block1_once = 0;
+    memcpy(serve_hash, hash_b, 32);                                        /* the peer knows only B */
+    assert(ota_fetch_blob("::1", 5684, hash_a, BLOB_LEN, buf) == 0);
+    assert(n_requested == 1);                                              /* an error frame is not retried */
+    printf("  fetch blob        OK\n");
+}
+
 /* rete#310: ota_sha256 is the hash the C6 prints for the program it loaded.
    HASH_A_HEX was computed with python hashlib, so this is a conformance check. */
 static void test_ota_sha256_known_answer(void) {
@@ -388,6 +418,7 @@ int main(void) {
     test_unconfigured();
     test_running_hash();
     test_trial_confirm_activate();
+    test_fetch_blob();
     printf("ota_seam_test OK\n");
     return 0;
 }

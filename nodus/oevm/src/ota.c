@@ -433,6 +433,35 @@ int ota_stage(const uint8_t hash[32], const uint8_t *sig, int sig_len,
 #endif
 }
 
+int ota_fetch_blob(const char *host, int port, const uint8_t hash[32], long size, uint8_t *buf) {
+    if (!host || !hash || !buf || size < 0) return 0;
+    int sock = udp_socket_bind(0);
+    if (sock < 0) { say("blob: cannot bind a socket"); return 0; }
+    uint8_t data[OTA_BLOCK];
+    long total = 0;
+    int ok = 1;
+    for (uint32_t blk = 0;; blk++) {
+        int len = 0, more = 0;
+        int r = fetch_block(sock, host, port, hash, blk, data, &len, &more);
+        if (r <= 0) {
+            if (r == 0) say_n("blob: block timed out after 5 attempts, block=", (long)blk);
+            ok = 0;
+            break;
+        }
+        if (total + len > size) { say_n("blob: longer than its record, size=", size); ok = 0; break; }
+        memcpy(buf + total, data, (size_t)len);
+        total += len;
+        if (!more) break;
+    }
+    udp_close(sock);
+    if (!ok) return 0;
+    if (total != size) { say_n("blob: shorter than its record, bytes=", total); return 0; }
+    uint8_t got[32];
+    ota_sha256(buf, total, got);
+    if (memcmp(got, hash, 32) != 0) { say("blob: hash MISMATCH"); return 0; }
+    return 1;
+}
+
 void ota_confirm(void) {
     ota_touch_confirm();
     say("confirmed");

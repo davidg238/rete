@@ -591,4 +591,13 @@
    port did not parse (the tee is then unchanged). Appended after basicReplace; 164 by
    COUNTING PRIM_NAMES (163 entries before this). Platform-dispatched. */
 #define PRIM_pf_consoleTee        164
+/* rete#432: `fetchBlob: hash size: n host: h port: p` — a blob of n bytes from porta's
+   block server, fetched blocking on the VM thread (ota.h ota_fetch_blob), answered as a
+   RawBytes leaf, or nil on any failure (the reason on the console). n is capped by
+   OTA_BLOB_MAX. Appended after consoleTee; 165 by COUNTING PRIM_NAMES. Platform-dispatched. */
+#define PRIM_pf_fetchBlob         165
+/* rete#432: `reboot` — leave on request: exit(75) on the host, a warm sys_reboot on
+   target (ota_backend.h ota_exit_reboot). Does not return where the backend can leave.
+   Appended after fetchBlob:...; 166. Platform-dispatched. */
+#define PRIM_pf_reboot            166
 #endif /* OEVM_PRIM_IDS_H */

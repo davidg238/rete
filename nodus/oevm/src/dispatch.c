@@ -1025,6 +1025,10 @@ enum {
        computed). Appended after basicReplace; no pre-existing id shifts.
        Platform-dispatched (mirrored in prim_ids.h). Points the console's UDP tee. */
     PRIM_pf_consoleTee,
+    /* rete#432: `platform fetchBlob:size:host:port:` (165) and `platform reboot` (166),
+       counted, not computed. Platform-dispatched (mirrored in prim_ids.h). */
+    PRIM_pf_fetchBlob,
+    PRIM_pf_reboot,
 };
 
 /* Must stay parallel to the enum above (index i -> id i+1).
@@ -1047,7 +1051,7 @@ static const char *const PRIM_NAMES[] = {
    — this catches it at build time instead. C99-safe (no _Static_assert under
    -std=c99): a false condition makes a negative-sized array, which is a hard
    compile error. ADVANCE THIS to the new last id whenever prims are appended. */
-typedef char prim_names_enum_parity_check[(N_PRIM_NAMES == PRIM_pf_consoleTee) ? 1 : -1];
+typedef char prim_names_enum_parity_check[(N_PRIM_NAMES == PRIM_pf_reboot) ? 1 : -1];
 
 /* rete#226 — CLASSIFICATION HAPPENS ONCE, WHERE THE SYMBOL IS MADE.
 

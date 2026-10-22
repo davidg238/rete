@@ -61,6 +61,19 @@ int  ota_trial(void);
 int  ota_stage(const uint8_t hash[32], const uint8_t *sig, int sig_len,
                const char *host, int port, long *staged);
 
+/* rete#432: a small blob (a debug image's patch set), fetched on the CALLER's
+ * thread from the block server at host:port into buf[0..size): the same block
+ * protocol as ota_stage, but into memory, not the slot, and blocking — a patch set
+ * is a few blocks, not a program. 1 = buf holds exactly `size` bytes whose SHA-256
+ * is `hash`; 0 = it does not (a timeout, a peer error, a length or digest
+ * mismatch; the reason went to the console). `size` comes from the BlobRef, so a
+ * longer blob is refused at the block that overruns it, before buf does. */
+int  ota_fetch_blob(const char *host, int port, const uint8_t hash[32], long size, uint8_t *buf);
+/* The largest blob ota_fetch_blob is asked for: METHOD_OVERRIDES_MAX (16) patches of
+ * up to 1 KiB of text each. Invented (#432); a set refused by it in use is what
+ * would move it. */
+#define OTA_BLOB_MAX  16384
+
 /* Touch the confirm marker — "this trial image works". Becomes
  * boot_write_img_confirmed() on target. Idempotent; never fails loudly. */
 void ota_confirm(void);

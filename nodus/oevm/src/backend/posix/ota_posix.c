@@ -100,6 +100,11 @@ void ota_exit_stage_ready(void) {
     exit(42);                            /* STAGE_READY — the runner's contract */
 }
 
+void ota_exit_reboot(void) {
+    fflush(NULL);                        /* the console line must outlive us */
+    exit(75);                            /* "relaunch me" — the host's reboot (rete#432) */
+}
+
 /* rete#233 T9: one detached pthread per fetch; ota.c runs one fetch at a time, so a
    single static start record is enough and nothing is malloc'd. */
 static struct { void (*fn)(void *); void *arg; } start_rec;

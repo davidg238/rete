@@ -4529,6 +4529,18 @@ class Kernel usingPlatform: platform = (
   otaRawOf: aBytes = (
     aBytes == nil ifTrue: [ ^ nil ].
     ^ aBytes rawLeaf )
+  (* rete#432: the blob of `size` bytes whose SHA-256 is aHash (a Bytes), from the
+     block server at aHost:aPort, as an immutable Bytes; nil on any failure, the
+     reason on the console. BLOCKING on this thread: a debug image's patch set is a
+     few blocks (ota.h ota_fetch_blob), and the size is capped there. *)
+  public fetchBlob: aHash size: size host: aHost port: aPort = ( | raw |
+    aHash isBytes ifFalse: [ ^ nil ].
+    raw:: platform fetchBlob: aHash rawLeaf size: size host: aHost port: aPort.
+    raw == nil ifTrue: [ ^ nil ].
+    ^ Bytes overRaw: raw )
+  (* rete#432: leave and boot again — exit(75) on the host ("relaunch me"), a warm
+     reset on a board. DOES NOT RETURN where the backend can leave. *)
+  public reboot = ( platform reboot. ^ self )
   (* #165 D2/D6: parse a dbg/req line into a window length in ms. PURE — it
      starts nothing and touches no state, so it is testable without a bridge and
      the app stays in charge of the window's lifecycle.

@@ -17,6 +17,7 @@
 static uint32_t s_app_cad_ms = 0;
 uint32_t platform_app_cad_ms(void) { return s_app_cad_ms; }
 #include "ota.h"             /* rete#25: the image-push seam, prims 145-150 */
+#include "ota_backend.h"     /* rete#432: ota_exit_reboot, prim 166 */
 #include "reboot_note.h"    /* rete#215: the retained panic note, prims 153-154 */
 #include <stdio.h>
 #include <stdlib.h>
@@ -1636,6 +1637,39 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
         *out = r > 0 ? true_symbol : r < 0 ? false_symbol : TAG_SMI(staged);
         return 1;
     }
+    case PRIM_pf_fetchBlob: {
+        /* rete#432: fetchBlob: hash size: n host: h port: p. Every argument comes from a
+           goal/ record, so a malformed one answers nil, never a raise. The hash and host
+           are copied out BEFORE the one allocation (the leaves may move), and the fetch
+           writes into the new leaf with nothing allocating in between. */
+        size_t hn = 0, hostn = 0;
+        const uint8_t *hp    = ota_leaf_bytes(args[0], &hn);
+        const uint8_t *hostp = ota_leaf_bytes(args[2], &hostn);
+        uint8_t hash[32];
+        char host[128];
+        *out = NULL;
+        if (hp == NULL || hn != 32 || !IS_SMI(args[1]) || hostp == NULL ||
+            hostn == 0 || hostn >= sizeof host || !IS_SMI(args[3])) return 1;
+        intptr_t size = UNTAG_SMI(args[1]);
+        if (size < 0 || size > OTA_BLOB_MAX) {
+            { static const char m[] = "ota: blob: size out of range\n"; platform_console_write(m, sizeof m - 1); }
+            return 1;
+        }
+        memcpy(hash, hp, 32);
+        memcpy(host, hostp, hostn);
+        host[hostn] = '\0';
+        int port = (int)UNTAG_SMI(args[3]);
+        extern oop gc_allocate(oop vtable, size_t size);
+        oop b = gc_allocate(RawBytesVtable, sizeof(struct String) + (size_t)size);
+        if (b == NULL) return 1;
+        ((struct String *)b)->length = (size_t)size;
+        if (ota_fetch_blob(host, port, hash, (long)size, (uint8_t *)((struct String *)b)->bytes)) *out = b;
+        return 1;
+    }
+    case PRIM_pf_reboot:
+        ota_exit_reboot();               /* does not return where the backend can leave */
+        *out = platform_object();
+        return 1;
     case PRIM_pf_otaConfirm:
         /* "This trial image works." Idempotent and never fails loudly (ota.h),
            so it answers the platform capability rather than a status — there is

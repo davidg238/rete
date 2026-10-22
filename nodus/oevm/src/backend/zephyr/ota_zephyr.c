@@ -154,6 +154,16 @@ void ota_touch_confirm(void) {
 #endif
 }
 
+void ota_exit_reboot(void) {
+#ifdef __ZEPHYR__
+    /* rete#432: WARM, so RTC memory survives (main.c) and the next boot reads as a
+       software reset, as after an OTA trial. */
+    printk("reboot: on request\n");
+    k_msleep(100);
+    sys_reboot(SYS_REBOOT_WARM);
+#endif
+}
+
 void ota_exit_stage_ready(void) {
 #ifdef __ZEPHYR__
     /* The host analog is exit(42) into the runner; here the runner is the next boot.
