@@ -100,6 +100,9 @@ serve() {  # $1 = db, $2.. = extra flags
 }
 stop_porta() { kill "$PORTA_PID" 2>/dev/null || true; wait "$PORTA_PID" 2>/dev/null || true; PORTA_PID=""; }
 start_node() {  # $1 = log, $2 = "debug" or "std"
+  # The log is shared by every launch of a leg, so wait for a NEW ready line: the
+  # first one matched a relaunch at once, before its boot (found during #432).
+  local n0; n0=$(grep -c "SLEEPY NODE READY" "$1" 2>/dev/null || true)
   if [ "$2" = debug ]; then
     OEVM_DEBUG=1 OEVM_TIMER_WALLCLOCK=1 OEVM_BOOTID_FILE="$W/bootid" OEVM_NODE_ID="$NODE" OEVM_IMAGE_HASH="$SHA" \
       "$W/oevm" "$W/node.oimg" </dev/null >>"$1" 2>&1 &
@@ -108,7 +111,9 @@ start_node() {  # $1 = log, $2 = "debug" or "std"
       "$W/oevm" "$W/node.oimg" </dev/null >>"$1" 2>&1 &
   fi
   NODE_PID=$!
-  for _ in $(seq 1 50); do grep -q "SLEEPY NODE READY" "$1" && return; sleep 0.1; done
+  for _ in $(seq 1 50); do
+    [ "$(grep -c "SLEEPY NODE READY" "$1" 2>/dev/null || true)" -gt "${n0:-0}" ] && return; sleep 0.1
+  done
   echo "FAIL: node did not start"; cat "$1"; exit 1
 }
 stop_node() { kill "$NODE_PID" 2>/dev/null || true; wait "$NODE_PID" 2>/dev/null || true; NODE_PID=""; }
