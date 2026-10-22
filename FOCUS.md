@@ -5,8 +5,8 @@ blocks are in `docs/status/focus-history.md`; live state is in the issues and `d
 
 - **0.1 (David, 2026-10-09): one node, every verb — load, debug, patch, profile — through porta, over the radio, while it sleeps.**
   Load, debug, profile built through porta on both bells (#415 closed 2026-10-14). **Left: patch through porta, #432 (P1; David 2026-10-14: in 0.1).**
-- **Next session starts with:** branch `432-patch-porta` (pushed), focus #432. Read `docs/design/2026-10-15-432-patch-through-porta-design.md`
-  (Q1–Q5 decided). Plan `docs/superpowers/plans/2026-10-15-432-patch-through-porta.md` (P1–P10 correct the design); build from Task 1, the host leg in `sleepy_debug_host.sh`, falsified first.
+- **Next session starts with:** branch `432-patch-porta` (pushed), focus #432, **Task 6** of `docs/superpowers/plans/2026-10-15-432-patch-through-porta.md`:
+  custos's debug verbs on a porta node. Tasks 1–5 built; `nodus/oevm/tests/sleepy_debug_host.sh` leg P green (falsified); suite 305/0 on msi; footprint re-banked 81437 (David).
 - **Awaiting David:** #368's history rewrite (force-push); #201/#202 for 0.1 or not; build
   `POST /load?build=last` or drop it from the peer design; #396; paper E draft 6 and L (#429); #175's memo; #413 and #424's designs; bands for #294, #295.
 - **Bench:**
@@ -14,6 +14,7 @@ blocks are in `docs/status/focus-history.md`; live state is in the issues and `d
     `~/porta-415` (UDP 6979 / HTTP 6980, c6b's) and `custos-415` on 127.0.0.1 :6990 (c6b), :6991 (MagTag), :6992 (wall bell).
   - c6b (opti7040 `ttyUSB0`), the MagTag (program `ed7c71ee…`) and the wall bell (`206ef1195438`, program `35eff2a1…`, goal seq 10)
     run #415's firmware (MagTag/c6b firmware 7; the bell `flash-bell.sh` at `c5b0b66d`). msi is `msi-7d43` now; plain `msi` misresolves.
+  - msi worktree `~/rete-432` tracks the branch through the side ref `432-patch-porta-sync` (push it, then `git reset --hard` there).
 - **Decided — do not re-litigate:** custos = nsl peer, porta language-neutral (D1–D2); share only `protocol/` (#338); agent first (D11–D12); D13–D19;
   #432 Q1–Q5 (the patch set a blob named by `Debug{sha, breaks, patches}`, replayed at boot; a shrink reboots; unsigned; fetch each wake;
   custos's porta debug verbs in scope); #415 Q1–Q9 + Q2′ (one-shot retained `goal/profile`, one request mechanism, the tee target a kept cell, no build-time literal); OTA §10 T1–T10 +
