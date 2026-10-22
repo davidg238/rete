@@ -1,4 +1,13 @@
-# T0.3 footprint baseline — HOST config. Re-banked 2026-10-13 for rete#415 (David: re-bank the footprint).
+# T0.3 footprint baseline — HOST config. Re-banked 2026-10-21 for rete#432 (David: re-bank the footprint).
+#
+#  +2600 B  78837 -> 81437, measured on msi-7d43 at 192fe344 (branch 432-patch-porta):
+#            +669  master since the #415 bank, inside the 2 %, never re-banked; not split per commit on the host;
+#           +1931  rete#432: prim 165 fetchBlob:size:host:port: and 166 reboot (platform.o +1046, dispatch.o +33),
+#                  ota_fetch_blob over one block loop shared with the slot fetch (ota.o +852, its console strings
+#                  included: Berkeley text counts .rodata).
+#           Bought: patch through porta, replayed at boot (sleepy_debug_host leg P).
+#
+# Previous header (2026-10-13): Re-banked 2026-10-13 for rete#415 (David: re-bank the footprint).
 #
 #  +1908 B  76929 -> 78837, measured on msi-7d43 at 48f51ebf (branch 415-profile-porta):
 #           +1100  master since the Opt #12 bank, inside the 2 %, never re-banked: rete#37 Opt #16-#17 and L4(b)/L5,
@@ -77,12 +86,13 @@
 # 61049 -> 67661 by adding four TUs the gate had never weighed (ota.c, span.c,
 # handles.c, and timer_posix.o — which was compiled and then omitted from its own
 # `size -t` line), of which only +8 B was real drift.
+192fe344 sleepy_debug_host: start_node waits for a NEW ready line (found during #432)
    text	   data	    bss	    dec	    hex	filename
   17747	     20	   1192	  18959	   4a0f	vm.o
-  17607	   1365	 132832	 151804	  250fc	dispatch.o
+  17640	   1381	 132832	 151853	  2512d	dispatch.o
    5032	     24	17048480	17053536	1043760	gc.o
     577	   1008	      4	   1589	    635	kernel_boot.o
-  13270	     28	   1032	  14330	   37fa	platform.o
+  14316	     28	   1064	  15408	   3c30	platform.o
     510	      0	     88	    598	    256	serial.o
     939	      0	     88	   1027	    403	udp.o
     474	      0	      0	    474	    1da	http.o
@@ -91,12 +101,12 @@
    2652	      0	    312	   2964	    b94	oimg_loader.o
    3238	      0	  16448	  19686	   4ce6	space.o
     602	      0	    544	   1146	    47a	handles.o
-   4601	      0	    176	   4777	   12a9	ota.o
+   5453	      0	    176	   5629	   15fd	ota.o
     613	      0	    800	   1413	    585	span.o
-   2652	     12	   1156	   3820	    eec	platform_posix.o
+   3321	     12	   1156	   4489	   1189	platform_posix.o
     336	      0	   4128	   4464	   1170	serial_posix.o
    1168	      0	      0	   1168	    490	udp_posix.o
    1059	      4	      0	   1063	    427	http_posix.o
    1141	      4	   1056	   2201	    899	timer_posix.o
-  78837	   2469	17208824	17290130	107d392	(TOTALS)
-data+bss (host proxy for MCU static RAM): 17211293
+  81437	   2485	17208856	17292778	107ddea	(TOTALS)
+data+bss (host proxy for MCU static RAM): 17211341
