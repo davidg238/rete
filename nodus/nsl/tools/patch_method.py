@@ -2,7 +2,7 @@
 """patch_method.py — one method of a running image, recompiled from edited source
 (rete#313).
 
-    python3 tools/patch_method.py <running.oimg.map.json> <old.nsl> <new.nsl> <Vtable>>selector>
+    python3 tools/patch_method.py [--blob] <running.oimg.map.json> <old.nsl> <new.nsl> <Vtable>>selector>
 
 A method in an .oimg names everything it uses by the image's own offsets, and the
 VM matches a selector by identity, so a method from a second image is useless to
@@ -18,7 +18,9 @@ The output, on stdout, is the VM's patch text, one line: the debugger sends it a
 `dbg:patch <text>` (supervisor.nsl doPatch:; vm.c primitive_patch), on the desktop
 and over a board's cable alike. A debug line is capped by the VM's read buffer
 (platform.c PRIM_pf_readLine), so a patch that would not fit is refused here rather
-than arriving cut. Exits 1 with the reason on a refusal.
+than arriving cut. `--blob` writes the same text for a patch set through porta
+(rete#432): one line of a blob, which no read buffer holds, so the cap is not
+applied. Exits 1 with the reason on a refusal.
 """
 import hashlib
 import json
@@ -60,7 +62,7 @@ def encode(ser, c):
         raise Refused(f"the running image holds no {c!r} ({e.args[0]})")
 
 
-def build(image_map, old_src, new_src, qual):
+def build(image_map, old_src, new_src, qual, cable=True):
     if ">>" not in qual:
         raise Refused(f"name the method as <Vtable>>selector, not {qual!r}")
     vt_name, selector = qual.split(">>", 1)
@@ -88,18 +90,21 @@ def build(image_map, old_src, new_src, qual):
         " ".join(f"{w:x}" for w in consts),
     ]
     text = " ".join(words)
-    if len("dbg:patch " + text) > LINE_BYTES:
+    if cable and len("dbg:patch " + text) > LINE_BYTES:
         raise Refused(f"the patch is {len(text)} B; a debug line holds {LINE_BYTES - len('dbg:patch ')}")
     return text + "\n", old_m, new_m
 
 
 def main(argv):
+    blob = argv[:1] == ["--blob"]
+    if blob:
+        argv = argv[1:]
     if len(argv) != 4:
         print(__doc__.strip().splitlines()[2].strip(), file=sys.stderr)
         return 2
     map_path, old_src, new_src, qual = argv
     try:
-        text, old_m, new_m = build(json.load(open(map_path)), old_src, new_src, qual)
+        text, old_m, new_m = build(json.load(open(map_path)), old_src, new_src, qual, cable=not blob)
     except Refused as e:
         print(f"patch_method: refused: {e}")
         return 1

@@ -1,0 +1,51 @@
+(*
+expect:
+lines 2: a1 b22
+trailing newline and blank lines dropped: 2
+boot replay: a1 b22
+same set: none
+extend: c3
+shrink: reboot
+diverge: reboot
+none after some: reboot
+none after none: none
+*)
+(* rete#432 Q2 — the patch set's prefix rule, the pure half of DebugLink>>syncPatches
+   (the fetch, the queue and the reboot are sleepy_debug_host.sh leg P's). A set the
+   node has applied a prefix of is extended in its new lines; anything else is a
+   reboot, which the boot then replays from nothing applied. *)
+class PatchPlan packageUsing: manifest = () (
+  public main: platform args: args = (
+    | bytesOf set show |
+    bytesOf:: [ :s | | ba | ba:: platform ByteArray new: s size.
+      1 to: s size do: [ :i | ba u8At: i put: (s at: i) ]. ba freeze ].
+    show:: [ :what :plan | | out |
+      plan == nil
+        ifTrue: [ (what , ': reboot') println ]
+        ifFalse: [
+          out:: what , ':'.
+          plan isEmpty ifTrue: [ out:: out , ' none' ].
+          plan do: [ :l | out:: out , ' ' , l ].
+          out println ] ].
+    set:: platform patchLinesOf: (bytesOf value: 'a1
+b22').
+    show value: 'lines ' , set size printString value: set.
+    ('trailing newline and blank lines dropped: ' ,
+      (platform patchLinesOf: (bytesOf value: '
+a1
+
+b22
+')) size printString) println.
+    show value: 'boot replay' value: (platform patchPlan: OrderedCollection new for: set).
+    show value: 'same set' value: (platform patchPlan: set for: set).
+    show value: 'extend' value: (platform patchPlan: set for: (platform patchLinesOf: (bytesOf value: 'a1
+b22
+c3'))).
+    show value: 'shrink' value: (platform patchPlan: set for: (platform patchLinesOf: (bytesOf value: 'b22'))).
+    show value: 'diverge' value: (platform patchPlan: set for: (platform patchLinesOf: (bytesOf value: 'a1
+b23'))).
+    show value: 'none after some' value: (platform patchPlan: set for: OrderedCollection new).
+    show value: 'none after none' value: (platform patchPlan: OrderedCollection new for: OrderedCollection new).
+  )
+) : (
+)

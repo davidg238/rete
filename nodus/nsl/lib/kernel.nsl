@@ -1637,10 +1637,12 @@ class Kernel usingPlatform: platform = (
      next push, and `readLine` answers the next line, running held exchanges while
      there is none. nil (the debugger's EOF, which resumes) when an exchange is
      already on the stack. *)
-  class DebugLink = ( | private bridge private space private lines private armed | ) (
+  class DebugLink = ( | private bridge private space private lines private armed
+                        private applied private want private have private retry ::= false. | ) (
     public setBridge: b space: s = (
       bridge:: b. space:: s.
       lines:: OrderedCollection new. armed:: OrderedCollection new.
+      applied:: OrderedCollection new.
       ^ self )
     public accept: line = ( lines add: line. ^ self )
     (* goal/debug/main is the WHOLE breakpoint set, `Debug{sha, breaks: [[blob off]…]}`
@@ -1650,9 +1652,11 @@ class Kernel usingPlatform: platform = (
        the cell is a set, not a sum — and an empty set is the detach. The goal means
        "set these and run", so a continue follows. Untrusted: anything off-shape is
        ignored, field by field. A node that knows no hash (a bare host run) cannot
-       check, and arms. *)
+       check, and arms.
+       rete#432: `patches`, a BlobRef, names the WHOLE patch set for the sha; its new
+       lines are queued AHEAD of the breaks (syncPatches). The sha check covers both. *)
     public acceptGoal: v = (
-      | sha mine breaks i bp at |
+      | sha mine breaks i bp at p |
       (outer rankOf: v) = 9 ifFalse: [ ^ self ].
       v tag = #Debug ifFalse: [ ^ self ].
       breaks:: v at: #breaks ifAbsent: [ nil ].
@@ -1662,6 +1666,10 @@ class Kernel usingPlatform: platform = (
         sha:: v at: #sha ifAbsent: [ nil ].
         ((outer rankOf: sha) = 5 and: [ sha = mine ]) ifFalse: [
           self say: 'dbg:error sha'. ^ self ] ].
+      p:: v at: #patches ifAbsent: [ nil ].
+      (p == nil or: [ (outer rankOf: p) = 9 and: [ p tag = #BlobRef ] ])
+        ifTrue: [ want:: p. self syncPatches ]
+        ifFalse: [ self say: 'dbg:error patches' ].
       i:: 1.
       [ i <= armed size ] whileTrue: [ lines add: 'dbg:clear ' , (armed at: i). i:: i + 1 ].
       armed:: OrderedCollection new.
@@ -1678,6 +1686,36 @@ class Kernel usingPlatform: platform = (
         i:: i + 1 ].
       lines add: 'dbg:continue'.
       ^ self )
+    (* rete#432 Q2: bring the patches applied this boot to the set the cell names.
+       The set's new lines are queued as `dbg:patch`, run at the stop the check-in's
+       wake makes (P1); a set that does not extend the applied one reboots, because a
+       VM cannot unpatch in place, and the boot replays the set (nothing applied: all
+       of it). A failed fetch says so on dbg/resp and is retried at the next check-in;
+       the breaks arm regardless. Costs nothing while the applied set is the cell's. *)
+    public syncPatches = ( | set plan |
+      retry:: false.
+      (self sameRef: want as: have) ifTrue: [ ^ self ].
+      want == nil
+        ifTrue: [ set:: OrderedCollection new ]
+        ifFalse: [
+          set:: bridge fetchBlob: want.
+          set == nil ifTrue: [ retry:: true. self say: 'dbg:error patches fetch'. ^ self ].
+          set:: outer patchLinesOf: set ].
+      plan:: outer patchPlan: applied for: set.
+      plan == nil ifTrue: [
+        'debug: patch set does not extend the applied one - rebooting' println.
+        bridge reboot.
+        ^ self ].
+      plan do: [ :l | lines add: 'dbg:patch ' , l. applied add: l ].
+      have:: want.
+      ^ self )
+    (* rete#432: the check-in's retry of a failed fetch, at its START, so a fetch that
+       failed during check-in N is tried again at N+1, not twice in N. *)
+    public retryPatches = ( retry ifTrue: [ self syncPatches ]. ^ self )
+    sameRef: a as: b = (
+      a == nil ifTrue: [ ^ b == nil ].
+      b == nil ifTrue: [ ^ false ].
+      ^ (a at: #hash ifAbsent: [ nil ]) = (b at: #hash ifAbsent: [ nil ]) )
     public pending = ( ^ lines isEmpty not )
     public next = ( ^ lines removeFirst )
     public say: s = ( bridge offer: 'dbg/resp' value: s. ^ self )
@@ -1941,6 +1979,19 @@ class Kernel usingPlatform: platform = (
        construction, rete#376) ------------------------------------------- *)
     (* Only `dbg:` lines are the debugger's. `profile <ms>` stays with the kernel's
        Profiler, so a profile request never holds the node. ASCII d b g : = 100 98 103 58. *)
+    (* rete#432: the blob a BlobRef names, from porta's block server (the exchange
+       port + 1, as OTA), as a Bytes; nil when the ref is off-shape or the fetch fails.
+       A ref with an alg says which hash; only #sha256 is fetched (RECORDS §2.3). *)
+    public fetchBlob: ref = ( | h n alg |
+      ((outer rankOf: ref) = 9 and: [ ref tag = #BlobRef ]) ifFalse: [ ^ nil ].
+      alg:: ref at: #alg ifAbsent: [ #sha256 ].
+      alg = #sha256 ifFalse: [ ^ nil ].
+      h:: ref at: #hash ifAbsent: [ nil ].
+      n:: ref at: #size ifAbsent: [ nil ].
+      ((outer rankOf: h) = 5 and: [ (outer rankOf: n) = 2 ]) ifFalse: [ ^ nil ].
+      ^ outer fetchBlob: h size: n host: peerHost port: peerPort + 1 )
+    (* rete#432: the reboot a shrunk patch set asks for (DebugLink>>syncPatches). *)
+    public reboot = ( outer reboot. ^ self )
     isDbgLine: v = (
       (outer rankOf: v) = 4 ifFalse: [ ^ false ].
       v size < 4 ifTrue: [ ^ false ].
@@ -2491,6 +2542,7 @@ class Kernel usingPlatform: platform = (
          a node with no socket still ticked (rete#272 D3.3). *)
       wakes:: wakes + 1.
       socket == nil ifTrue: [ ^ self ].
+      dbgLink == nil ifFalse: [ dbgLink retryPatches ].
       exchanging:: true.
       spans begin: sPullSend.
       frame:: self pullFrame.
@@ -4551,6 +4603,36 @@ class Kernel usingPlatform: platform = (
      invented constant, and a zero-length window would enable counting and never
      stop. The caller does nothing on 0, and the line still lands in the space,
      so a request that could not be understood is visible rather than eaten. *)
+  (* rete#432: a patch set's blob (a Bytes) as its lines, in order — one VM patch
+     text per line, newline (10) the separator, empty lines dropped. PURE. *)
+  public patchLinesOf: aBytes = ( | out start i n arr k |
+    out:: OrderedCollection new.
+    n:: aBytes byteSize.
+    start:: 1.
+    i:: 1.
+    [ i <= (n + 1) ] whileTrue: [
+      (i > n or: [ (aBytes u8At: i) = 10 ]) ifTrue: [
+        i > start ifTrue: [
+          arr:: platform basicNew: Array indexable: i - start.
+          k:: 0.
+          [ k < (i - start) ] whileTrue: [ arr at: k + 1 put: (aBytes u8At: start + k). k:: k + 1 ].
+          out add: (platform string: arr) ].
+        start:: i + 1 ].
+      i:: i + 1 ].
+    ^ out )
+  (* rete#432 Q2: what a patch set asks of a node that applied `applied` this boot:
+     the lines still to apply when the set extends it (all of it when nothing is
+     applied — the boot replay; none when it is the same set), or nil when it does
+     not, which is a reboot, since a VM cannot unpatch a method in place. PURE. *)
+  public patchPlan: applied for: set = ( | i out |
+    applied size > set size ifTrue: [ ^ nil ].
+    i:: 1.
+    [ i <= applied size ] whileTrue: [
+      (applied at: i) = (set at: i) ifFalse: [ ^ nil ].
+      i:: i + 1 ].
+    out:: OrderedCollection new.
+    [ i <= set size ] whileTrue: [ out add: (set at: i). i:: i + 1 ].
+    ^ out )
   public parseProfileMs: line = (
     | rs verb tok n i b |
     rs:: ReadStream on: line.

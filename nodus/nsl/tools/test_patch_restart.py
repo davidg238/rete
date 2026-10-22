@@ -93,8 +93,8 @@ class VMProc:
         return self.p.returncode
 
 
-def patch(new_src):
-    return subprocess.run([sys.executable, os.path.join(HERE, "patch_method.py"), OIMG + ".map.json",
+def patch(new_src, *flags):
+    return subprocess.run([sys.executable, os.path.join(HERE, "patch_method.py"), *flags, OIMG + ".map.json",
                            OLD, new_src, "PatchRestartTarget>>report"],
                           cwd=NSROOT, capture_output=True, text=True)
 
@@ -140,13 +140,30 @@ def run_refusal():
     return "a new string refused: " + r.stdout.strip().splitlines()[-1]
 
 
+def run_line_cap():
+    """rete#432 P8: a patch over the cable's 511-byte line is refused for the cable
+    and written for a blob (a patch set through porta), where no line buffer reads it."""
+    big = "/tmp/48_patch_restart_target_v4.nsl"
+    with open(NEW) as f:
+        text = f.read().replace("v:: self value.", "v:: self value" + " + 1" * 120 + ".")
+    with open(big, "w") as f:
+        f.write(text)
+    r = patch(big)
+    assert r.returncode == 1 and "a debug line holds" in r.stdout, r.stdout + r.stderr
+    b = patch(big, "--blob")
+    assert b.returncode == 0 and len("dbg:patch " + b.stdout.strip()) > 511, b.stdout + b.stderr
+    return f"a {len(b.stdout.strip())} B patch: refused for the cable, written with --blob"
+
+
 def main():
     build()
     a = run_patch_restart()
     b = run_refusal()
+    c = run_line_cap()
     print("test_patch_restart: PASSED (Path B, desktop)")
     print(a)
     print(b)
+    print(c)
 
 
 if __name__ == "__main__":
