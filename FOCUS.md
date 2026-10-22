@@ -5,9 +5,9 @@ blocks are in `docs/status/focus-history.md`; live state is in the issues and `d
 
 - **0.1 (David, 2026-10-09): one node, every verb — load, debug, patch, profile — through porta, over the radio, while it sleeps.**
   Load, debug, profile built through porta on both bells (#415 closed 2026-10-14). **Left: patch through porta, #432 (P1; David 2026-10-14: in 0.1).**
-- **Next session starts with:** branch `432-patch-porta` (pushed), focus #432, **Task 6** of `docs/superpowers/plans/2026-10-15-432-patch-through-porta.md`:
-  custos's debug verbs on a porta node. Tasks 1–5 built; `nodus/oevm/tests/sleepy_debug_host.sh` leg P green (falsified); suite 305/0 on msi; footprint re-banked 81437 (David).
-- **Awaiting David:** #368's history rewrite (force-push); #201/#202 for 0.1 or not; build
+- **Next session starts with:** branch `432-patch-porta` (pushed), focus #432, **Task 8** (docs) of `docs/superpowers/plans/2026-10-15-432-patch-through-porta.md`,
+  then Task 9 (bench). Tasks 1–7 built; custos's porta debug verbs `bd2ec903`; leg P through custos green (opti7040); Go gates green.
+- **Awaiting David:** #432 Task 6 deviations (porta `step`/`next` one bytecode; `locals` raw; `--map` debug w/o `--advertise`); #368's history rewrite (force-push); #201/#202 for 0.1 or not; build
   `POST /load?build=last` or drop it from the peer design; #396; paper E draft 6 and L (#429); #175's memo; #413 and #424's designs; bands for #294, #295.
 - **Bench:**
   - gw: `porta-398 serve --db soak-2026-08-04.db --manifest MANIFEST-415.cddl` (HTTP :6970). Ours, safe to stop: a test porta in
