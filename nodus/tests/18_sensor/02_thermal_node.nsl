@@ -1,14 +1,14 @@
 (*
 expect:
 before nil true
-after px30 3120
+after px30 31200
 rate change ok
 done
 *)
 (* AMG8833 rung Task 3 — the ctl-cadence sampler, on the host virtual clock.
    Before any tick the sample cell has never been written, so bare `peek` answers
    nil. Advancing the virtual clock past the 500ms cadence fires the timer onto
-   the tick STREAM, whose reaction reads `platform sensorFrame` and puts the frame
+   the tick STREAM, whose reaction reads `platform sensorRead: 'thermal'` and puts the frame
    on the sample CELL. The tick stream and the sample cell are DIFFERENT names:
    Timers posts at the capability root, and posting at a cell's root would raise. *)
 (* The nested `ThermalNode` this test drives is added in Step 3 — deliberately NOT
@@ -47,14 +47,14 @@ class ThermalNodeTest packageUsing: manifest = () (
     (* A failed fetch answers nil: skip the put and KEEP the last good frame.
        Never publish a partial or absent frame onto the cell.
 
-       The raw indexable from `sensorFrame` CANNOT travel on a channel: put:value:
+       The raw indexable from `sensorRead:` CANNOT travel on a channel: put:value:
        runs the value algebra (checkValue: -> rankOf:), `platform valueRank:`
        answers -1 for a raw indexable, and the fallback `valueRank` send DNUs
        because the prim receiver carries no vtable. So copy it into a List (rank 8)
        at the publish boundary — what the predecessor HttpServerNode.nsl did. *)
     sampleOnce = (
       | f oc i |
-      f:: seam sensorFrame.
+      f:: seam sensorRead: 'thermal'.
       (f == nil) ifTrue: [ ^ self ].
       oc:: seam OrderedCollection new.
       i:: 1. [ i <= 64 ] whileTrue: [

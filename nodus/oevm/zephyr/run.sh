@@ -7,7 +7,7 @@
 # solidified_image.c.
 set -euo pipefail
 
-MODEL=B NODE=TimerNode.nsl DO_FLASH=0 CAPTURE=0 PRISTINE=0 BUILD_DIR="" BOARD_ID=esp32c6 CONF_EXTRA=""
+MODEL=B NODE=TimerNode.nsl DO_FLASH=0 CAPTURE=0 PRISTINE=0 BUILD_DIR="" BOARD_ID=esp32c6 CONF_EXTRA="" DTC_OVERLAY=""
 # Which chip's ROM ld the setjmp/longjmp patch targets. Only meaningful when a
 # profile sets ROM_PATCH=1; the esp32 profile leaves this default.
 ROM_PATCH_CHIP=esp32
@@ -21,6 +21,7 @@ while [ $# -gt 0 ]; do
     --build-dir)  BUILD_DIR="$2"; shift 2 ;;
     --board)      BOARD_ID="$2"; shift 2 ;;
     --conf-extra) CONF_EXTRA="$2"; shift 2 ;;
+    --dtc-overlay) DTC_OVERLAY="$2"; shift 2 ;;
     *) echo "unknown arg: $1" >&2; exit 2 ;;
   esac
 done
@@ -633,6 +634,18 @@ if [ ${#EXTRA_CONF_FILES[@]} -gt 0 ]; then
   IFS=';'
   EXTRA_CONF_ARG=(-DEXTRA_CONF_FILE="${EXTRA_CONF_FILES[*]}")
   unset IFS
+fi
+# --dtc-overlay (rete#438): a caller-supplied devicetree overlay, applied after the
+# board's own boards/<board>.overlay. This is how a board rete may not carry (a
+# proprietary PCB, e.g. ttgm's) adds its sensor nodes and the `<kind>0` aliases the
+# sensor seam looks up (rete#436), with the file living in the board's own repo.
+# Made absolute because west runs from $ZDIR; a missing file is fatal here rather
+# than a devicetree with no sensor node and a node that reads nil forever.
+if [ -n "$DTC_OVERLAY" ]; then
+  [ -f "$DTC_OVERLAY" ] || { echo "--dtc-overlay: no such file: $DTC_OVERLAY" >&2; exit 2; }
+  DTC_OVERLAY="$(cd "$(dirname "$DTC_OVERLAY")" && pwd)/$(basename "$DTC_OVERLAY")"
+  EXTRA_CONF_ARG+=(-DEXTRA_DTC_OVERLAY_FILE="$DTC_OVERLAY")
+  echo "[extra] dtc overlay -> $DTC_OVERLAY"
 fi
 # ROM setjmp/longjmp/ungetc fault under Zephyr+picolibc (same forced-ROM-newlib
 # family as fflush); patch the vendored SDK ld to use picolibc's. Idempotent; a

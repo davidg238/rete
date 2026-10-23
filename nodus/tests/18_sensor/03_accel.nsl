@@ -1,0 +1,33 @@
+(*
+expect:
+size 3
+x 0
+y 0
+z 9807
+unknown nil true
+armed true
+thermal arm nil true
+done
+*)
+(* rete#436 — the sensor seam past the AMG8833. `platform sensorRead: kind` finds the
+   device by the devicetree alias `<kind>0` and answers a raw Array of SMIs in
+   milli-units of Zephyr's SI unit for the channel (milli-m/s² here). The host backend
+   answers an accelerometer at rest, flat: (0, 0, 9807). An unknown kind answers nil.
+   `sensorArm:post:on:threshold:` answers the platform when armed and nil when the
+   backend cannot (rete#184); the host arms 'accel' and refuses 'thermal' until #58,
+   exactly as the target does. Design: docs/design/2026-10-23-sensor-seam-design.md. *)
+class AccelRead packageUsing: manifest = () (
+  public main: platform args: args = (
+    | a |
+    a:: platform sensorRead: 'accel'.
+    ('size ' , a basicSize printString) out.
+    ('x ' , (a basicAt: 1) printString) out.
+    ('y ' , (a basicAt: 2) printString) out.
+    ('z ' , (a basicAt: 3) printString) out.
+    ('unknown nil ' , ((platform sensorRead: 'humidity') == nil) printString) out.
+    ('armed ' , ((platform sensorArm: 'accel' post: #moved on: 'obs/accel' threshold: 1000) == nil) not printString) out.
+    ('thermal arm nil ' , ((platform sensorArm: 'thermal' post: #hot on: 'obs/thermal' threshold: 30000) == nil) printString) out.
+    'done' out.
+  )
+) : (
+)

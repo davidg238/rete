@@ -187,24 +187,21 @@
 #define PRIM_pf_httpBegin  113
 #define PRIM_pf_httpChunk  114
 #define PRIM_pf_httpEnd    115
-/* AMG8833 thermal rung (2026-07-19): the sensor seam.
-     sensorFrame                                 -> 64-slot Array of centi-degC
-                                                    SMIs, or nil if not ready.
-     sensorArmEventPost: msg on: path threshold: -> arm the driver threshold
-                                                    trigger; a crossing posts msg
-                                                    on the interned channel path
-                                                    via pulse_post_isr. Same
-                                                    String-path + handle_new shape
-                                                    as gpioPin:edge:post:on:, and
-                                                    the same answer as
-                                                    rtcAlarmAt:post:on: — the
-                                                    platform on success, NIL when
-                                                    the backend cannot arm (rete#184:
-                                                    it used to answer the platform
-                                                    either way, reporting "armed"
-                                                    for a trigger that was not). */
-#define PRIM_pf_sensorFrame     116
-#define PRIM_pf_sensorArmEvent  117
+/* The sensor seam (AMG8833 rung 2026-07-19; generalised rete#436, design
+   docs/design/2026-10-23-sensor-seam-design.md). Ids kept, names replaced in place.
+     sensorRead: kind                             -> raw Array of SMIs in milli-units
+                                                     of the channel's SI unit, or nil
+                                                     if the kind is unknown/not ready.
+     sensorArm: kind post: msg on: path threshold: -> arm the kind's trigger; a firing
+                                                     posts msg on the interned path via
+                                                     pulse_post_isr. Same String-path +
+                                                     handle_new shape as
+                                                     gpioPin:edge:post:on:, and the same
+                                                     answer as rtcAlarmAt:post:on: — the
+                                                     platform on success, NIL when the
+                                                     backend cannot arm (rete#184). */
+#define PRIM_pf_sensorRead  116
+#define PRIM_pf_sensorArm   117
 /* Rung 3 Task 4: the out-of-range sentinel returned by cborIntFromMajor:arg:
    for the one unrepresentable CBOR integer (major 1, arg 2^64-1 => value -2^64,
    just past the ratified +/-(2^64-1) range). In this VM nil IS the C NULL
@@ -215,7 +212,7 @@
 #define CBOR_OOR_SENTINEL NULL
 
 /* tuvm#61 job latency: the span seam — spanBegin:/spanEnd:/spanStats:/spanRecord:us:.
-   Appended after sensorArmEvent; no pre-existing id shifts. 118-121 were arrived at
+   Appended after sensorArm (then sensorArmEvent); no pre-existing id shifts. 118-121 were arrived at
    by COUNTING PRIM_NAMES (117 entries before this append), not by 117+1 arithmetic,
    per the standing rule above. The slots these address are NAMELESS in C — the
    name<->slot table lives in nsl's Spans class, the same division timer_backend.h
@@ -393,7 +390,7 @@
    says WHEN. Arms the DS3231's Alarm1 (the one with a seconds field) for a
    time-of-day; when it fires, the driver's workqueue callback posts `msg` on the
    interned channel through the ordinary pulse mailbox. Mirrors
-   sensorArmEventPost:on:threshold: exactly: the path is interned and the message
+   sensorArm:post:on:threshold: exactly: the path is interned and the message
    oop pinned via an M6 handle HERE, in thread context, because the delivery side
    must never touch the VM.
    FULL match mask (hour+minute+second), i.e. once per day, and the node re-arms

@@ -10,7 +10,7 @@ name 'dev/thermal0/sample'. main: is the composition root.
 *)
 class ThermalHttpNode usingPlatform: platform net: net = () (
 
-  (* ---- presentation: a 64-px centi-degC frame as an SVG heat-grid ----
+  (* ---- presentation: a 64-px milli-degC frame as an SVG heat-grid ----
      The frame arrives off the 'dev/thermal0/sample' CELL, so it is a List (rank
      8), not the raw indexable the prim answers — a raw indexable cannot cross a
      channel at all (put:value: runs the value algebra and the vtable-less prim
@@ -27,7 +27,7 @@ class ThermalHttpNode usingPlatform: platform net: net = () (
         line:: ''.
         col:: 0. [ col <= 7 ] whileTrue: [
           t:: f at: (row * 8 + col + 1).
-          k:: ((t - 1500) * 255) // 2000.
+          k:: ((t - 15000) * 255) // 20000.
           (k < 0)   ifTrue: [ k:: 0 ].
           (k > 255) ifTrue: [ k:: 255 ].
           line:: line , '<rect x=''' , col printString , ''' y=''' , row printString ,
@@ -50,13 +50,13 @@ class ThermalHttpNode usingPlatform: platform net: net = () (
           (t > maxV) ifTrue: [ maxV:: t. hotR:: row. hotC:: col ].
           (t < minV) ifTrue: [ minV:: t ].
           col:: col + 1 ]. row:: row + 1 ].
-      ^ 'max ' , (self centi: maxV) , 'C min ' , (self centi: minV) ,
+      ^ 'max ' , (self milli: maxV) , 'C min ' , (self milli: minV) ,
         'C hot (' , hotR printString , ',' , hotC printString , ')' )
 
-    centi: v = (
+    milli: v = (
       | whole tenth |
-      whole:: v // 100.
-      tenth:: (v - (whole * 100)) // 10.
+      whole:: v // 1000.
+      tenth:: (v - (whole * 1000)) // 100.
       ^ whole printString , '.' , tenth printString )
   ) : (
   )
@@ -101,7 +101,7 @@ class ThermalHttpNode usingPlatform: platform net: net = () (
     (* A failed fetch answers nil: skip the put and KEEP the last good frame.
        Never publish a partial or absent frame onto the cell.
 
-       The raw indexable from `sensorFrame` CANNOT travel on a channel: put:value:
+       The raw indexable from `sensorRead:` CANNOT travel on a channel: put:value:
        runs the value algebra (checkValue: -> rankOf:), `platform valueRank:`
        answers -1 for a raw indexable, and the fallback `valueRank` send DNUs
        because the prim receiver carries no vtable. So copy it into a List (rank 8,
@@ -113,7 +113,7 @@ class ThermalHttpNode usingPlatform: platform net: net = () (
       | f oc i |
       spans begin: sJob.
       spans begin: sAcquire.
-      f:: seam sensorFrame.
+      f:: seam sensorRead: 'thermal'.
       spans end: sAcquire.
       (f == nil) ifTrue: [
         (* A failed fetch produces NO span sample, so it has to be counted or it

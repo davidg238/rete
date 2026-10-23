@@ -5,8 +5,8 @@
  * with underscores (cmake/modules/extensions.cmake:1709-1712) — hence
  * `esp32_devkitc_esp32_procpu.overlay`. A plain `esp32_devkitc.overlay` is NOT a name
  * the build looks for: it would be silently ignored, the amg88xx node would never
- * exist, DT_NODE_EXISTS would compile the backend's #else branch, and every frame
- * would read nil with no error anywhere. If the sensor never appears, check first
+ * exist, the `thermal0` alias would name nothing, and every
+ * `sensorRead: 'thermal'` would answer nil with no error anywhere. If the sensor never appears, check first
  * that the build log says "Found devicetree overlay: .../boards/<this file>".
  *
  * Pins verified against the board devicetree
@@ -37,5 +37,13 @@
 		reg = <0x69>;
 		int-gpios = <&gpio0 4 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
 		status = "okay";
+	};
+};
+
+/* The sensor seam finds a kind's device by the alias `<kind>0` (rete#436,
+   sensor_zephyr.c), never by node label. */
+/ {
+	aliases {
+		thermal0 = &amg88xx;
 	};
 };

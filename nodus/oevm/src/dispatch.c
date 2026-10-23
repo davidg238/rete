@@ -849,21 +849,21 @@ enum {
     PRIM_pf_httpBegin,
     PRIM_pf_httpChunk,
     PRIM_pf_httpEnd,
-    /* AMG8833 thermal rung (2026-07-19): the Tier-1 sensor seam. sensorFrame
-       answers a 64-element Array of centi-degC SMIs (or nil when the device is
-       not ready); sensorArmEventPost:on:threshold: arms the driver's threshold trigger
-       onto a channel via the pulse seam. Appended after httpEnd — no
-       pre-existing id shifts. Counted (not computed) to be the 116th/117th
-       PRIM_NAMES entries. Platform-dispatched (mirrored in prim_ids.h). */
-    PRIM_pf_sensorFrame,
-    PRIM_pf_sensorArmEvent,
+    /* The sensor seam (AMG8833 rung 2026-07-19; generalised rete#436): sensorRead:
+       answers one reading of a kind as an Array of milli-unit SMIs (or nil);
+       sensorArm:post:on:threshold: arms the kind's trigger onto a channel via the
+       pulse seam. Appended after httpEnd — no pre-existing id shifts. Counted (not
+       computed) to be the 116th/117th PRIM_NAMES entries. Platform-dispatched
+       (mirrored in prim_ids.h). */
+    PRIM_pf_sensorRead,
+    PRIM_pf_sensorArm,
     /* tuvm#61 job latency: the span seam. spanBegin:/spanEnd: open and close a
        NAMELESS slot (the name table lives in nsl's Spans class, the timer-seam
        convention); spanStats: snapshots one; spanRecord:us: feeds a sample
        directly — the deterministic test seam, compiled unconditionally because
        gating it behind a test define would fork the parity guard below between
        build flavours, and the only thing it can do is add a sample to a slot.
-       Appended after sensorArmEvent — no pre-existing id shifts. Counted (not
+       Appended after sensorArm — no pre-existing id shifts. Counted (not
        computed) to be the 118th-121st PRIM_NAMES entries. Platform-dispatched
        (mirrored in prim_ids.h). */
     PRIM_pf_spanBegin,

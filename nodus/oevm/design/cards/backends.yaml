@@ -52,8 +52,8 @@ implemented_by:
   - c: pulse_pump_nb
   - c: pulse_stale
   # src/sensor_backend.h
-  - c: sensor_arm_event
-  - c: sensor_frame_read
+  - c: sensor_arm
+  - c: sensor_read
   # src/serial_backend.h
   - c: serial_at_end
   - c: serial_open

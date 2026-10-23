@@ -1,0 +1,26 @@
+/* A generic st,lis2dh on the nRF52840 DK's Arduino I2C header (rete#436) — the
+ * compile fixture for the sensor seam's 'accel' kind, passed with
+ *   run.sh --board nrf52840dk --dtc-overlay boards/fixtures/lis2dh_on_nrf52840dk.overlay \
+ *          --conf-extra prj_accel_lis2dh.conf
+ * No real board's pins: a board that has an accelerometer supplies its own overlay
+ * (rete#438), naming the node with the `accel0` alias the seam looks up.
+ * irq-gpios: INT1 then INT2; any-motion goes to INT2 unless `anym-on-int1`.
+ * P1.01/P1.02 are free Arduino-header pins on the DK. */
+#include <zephyr/dt-bindings/gpio/gpio.h>
+
+&arduino_i2c {
+	status = "okay";
+
+	lis2dh: lis2dh@19 {
+		compatible = "st,lis2dh";
+		reg = <0x19>;
+		irq-gpios = <&gpio1 1 GPIO_ACTIVE_HIGH>, <&gpio1 2 GPIO_ACTIVE_HIGH>;
+		status = "okay";
+	};
+};
+
+/ {
+	aliases {
+		accel0 = &lis2dh;
+	};
+};

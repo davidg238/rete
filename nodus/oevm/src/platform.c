@@ -694,14 +694,14 @@ static const uint8_t *ota_leaf_bytes(oop v, size_t *len) {
    fills: one slot per half-hourly strike is a ~15.5 h uptime ceiling by
    construction, and the field data (#153, 3431 samples) shows handlesLive stepping
    +1 every thirty minutes with nothing ever given back.
-   There is exactly ONE outstanding alarm and ONE outstanding sensor trigger per
-   node, so one int each is the whole state. -1 is the invalid sentinel handle_new
+   There is exactly ONE outstanding alarm per node, so one int is the whole state;
+   the sensor trigger is one per KIND, and its pin lives with the kind in the sensor
+   backend, which hands the superseded one back (rete#436). -1 is the invalid sentinel handle_new
    can never return (handles.h keeps the sign bit clear), and handle_free ignores
    it, so no first-arm special case is needed. The timer seam
    (backend/zephyr/timer_zephyr.c:43) and the GPIO seam (host_gpio_register above)
    already reclaim theirs; these two were the outliers. */
 static int rtc_alarm_pin    = -1;
-static int sensor_event_pin = -1;
 
 int platform_dispatch(int pid, int argc, oop *args, oop *out) {
     (void)argc;
@@ -1711,56 +1711,64 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
         *out = platform_object();
         return 1;
     }
-    case PRIM_pf_sensorFrame: {
-        /* `platform sensorFrame` — one 8x8 thermal frame as a 64-slot Array of
-           centi-degC SMIs, or nil when the device is not ready. GC-safety: the
-           backend fills a C buffer BEFORE the single allocating call
-           (indexable_new); the 64 stores are SMIs (immediates, no allocation), so
-           no heap oop is ever held across an allocation and no gc_temp_root pin is
-           required — the same shape as heapStats/sysStats above. args are ignored
-           (0-arg selector). */
-        int32_t px[OEVM_THERMAL_PIXELS];
-        if (sensor_frame_read(px) != 0) { *out = NULL; return 1; }   /* not ready -> nil */
-        oop r = indexable_new(OEVM_THERMAL_PIXELS);
-        for (int i = 0; i < OEVM_THERMAL_PIXELS; i++)
-            ((struct ObjectInstance *)r)->slots[i + 1] = TAG_SMI((intptr_t)px[i]);
+    case PRIM_pf_sensorRead: {
+        /* `platform sensorRead: 'kind'` (rete#436) — one reading as a raw Array of
+           SMIs in milli-units of the channel's SI unit (sensor_backend.h), or nil
+           when the kind is unknown or its device not ready. GC-safety: the kind's
+           bytes are copied out and the backend fills a C buffer BEFORE the single
+           allocating call (indexable_new); the stores are SMIs (immediates, no
+           allocation), so no heap oop is held across an allocation and no
+           gc_temp_root pin is required — the same shape as heapStats/sysStats. */
+        oop kind = args[0];
+        if (kind == NULL || IS_SMI(kind) || StringVtable == NULL ||
+            obj_vtable(kind) != StringVtable) {
+            fprintf(stderr, "VM Error: platform sensorRead: expects a String kind\n");
+            abort();
+        }
+        struct String *k = (struct String *)kind;
+        int32_t v[OEVM_SENSOR_MAX_VALUES];
+        int n = sensor_read((const char *)k->bytes, k->length, v);
+        if (n <= 0) { *out = NULL; return 1; }                    /* not ready -> nil */
+        oop r = indexable_new(n);
+        for (int i = 0; i < n; i++)
+            ((struct ObjectInstance *)r)->slots[i + 1] = TAG_SMI((intptr_t)v[i]);
         *out = r;
         return 1;
     }
-    case PRIM_pf_sensorArmEvent: {
-        /* sensorArmEventPost: msg on: 'path' threshold: centi — mirrors
-           gpioPin:edge:post:on: exactly: the channel arrives as a String PATH
-           (interned to a chan_id here, in thread context) and the message oop is
-           pinned via an M6 handle, because an ISR must never touch the VM. The
-           trigger handler then only calls pulse_post_isr(chan_id, handle_idx). */
-        oop path = args[1];
-        if (path == NULL || IS_SMI(path) || StringVtable == NULL ||
+    case PRIM_pf_sensorArm: {
+        /* sensorArm: 'kind' post: msg on: 'path' threshold: milli (rete#436) —
+           mirrors gpioPin:edge:post:on: exactly: the channel arrives as a String
+           PATH (interned to a chan_id here, in thread context) and the message oop
+           is pinned via an M6 handle, because a trigger handler must never touch
+           the VM. The handler then only calls pulse_post_isr(chan_id, handle_idx). */
+        oop kind = args[0], path = args[2];
+        if (kind == NULL || IS_SMI(kind) || path == NULL || IS_SMI(path) ||
+            StringVtable == NULL || obj_vtable(kind) != StringVtable ||
             obj_vtable(path) != StringVtable) {
-            fprintf(stderr, "VM Error: platform sensorArmEventPost:on:threshold: expects a String channel\n");
+            fprintf(stderr, "VM Error: platform sensorArm:post:on:threshold: expects a String kind and channel\n");
             abort();
         }
+        struct String *k = (struct String *)kind;
         struct String *p = (struct String *)path;
         int chan_id = space_intern((const char *)p->bytes, p->length);
-        int hidx = handle_new(args[0]);                 /* pin the message oop via M6 */
-        int32_t thr = IS_SMI(args[2]) ? (int32_t)UNTAG_SMI(args[2]) : 0;
-        if (sensor_arm_event(chan_id, hidx, thr) != 0) {
+        int hidx = handle_new(args[1]);                 /* pin the message oop via M6 */
+        int32_t thr = IS_SMI(args[3]) ? (int32_t)UNTAG_SMI(args[3]) : 0;
+        int superseded = -1;
+        if (sensor_arm((const char *)k->bytes, k->length, chan_id, hidx, thr, &superseded) != 0) {
             handle_free(hidx);                          /* nothing holds this pin — do not leak it */
-            *out = NULL;                                /* nil — could not arm */
+            *out = NULL;                                /* nil — could not arm (rete#184) */
             return 1;
         }
-        /* Released after a confirmed arm, never before — see the longer note on
-           the ordering under PRIM_pf_rtcAlarmAt below. Answering NIL on a refused
-           arm is new with rete#184: this used to answer the platform either way,
-           i.e. report "armed" for a trigger that was not, which is the one thing
-           the neighbouring rtcAlarmAt: seam is careful not to do. */
-        handle_free(sensor_event_pin);                  /* release the superseded pin — no slot leak */
-        sensor_event_pin = hidx;
+        /* Released after a confirmed arm, never before — see the longer note on the
+           ordering under PRIM_pf_rtcAlarmAt below. One pin per kind: the backend
+           hands back the one this arm replaced. */
+        handle_free(superseded);
         *out = platform_object();
         return 1;
     }
     case PRIM_pf_rtcAlarmAt: {
         /* rtcAlarmAt: secondsOfDay post: msg on: 'path' (#102). Same shape as
-           sensorArmEventPost:on:threshold: above and for the same reason: the
+           sensorArm:post:on:threshold: above and for the same reason: the
            channel arrives as a String PATH, interned here in thread context, and
            the message oop is pinned via an M6 handle because the delivery side
            (the DS3231 driver's workqueue callback) must never touch the VM.
