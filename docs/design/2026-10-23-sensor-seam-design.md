@@ -40,6 +40,9 @@ motion interrupt that wakes the node.
 
 - Slope duration, output data rate, range, 6D-position vs any-motion mode: devicetree properties the board
   overlay sets (`anym-mode`, `anym-on-int1`), not prims — until an app needs to change them at runtime.
+- A `'mag'` kind (ttgm, 2026-10-23, not yet a request: the chair turns when David stands): one table row —
+  alias `mag0`, `SENSOR_CHAN_MAGN_XYZ`, 3 values in milli-gauss — on Zephyr's `st,lis2mdl` driver, which
+  covers the LSM303AGR magnetometer. Its trigger is data-ready only, so the row would read but not arm.
 - SED poll period: start at the OpenThread default; the measured current and the event latency set it.
 
 ## Measured (2026-10-23, branch `sensor-seam-436`)

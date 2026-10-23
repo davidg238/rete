@@ -164,12 +164,12 @@ void ota_exit_stage_ready(void) {
 #endif
 }
 
-#if defined(__ZEPHYR__) && !defined(CONFIG_OEVM_OTA_INCHANNEL)
+#if defined(OTA_HAVE_SLOT) && !defined(CONFIG_OEVM_OTA_INCHANNEL)
 /* rete#233 T9: the fetch thread. One object and one 2.5 KB stack, reused fetch after
-   fetch; it exists only where this file is compiled for a board (every board, since
-   platform.c calls ota_stage unconditionally — a board without a slot never starts
-   it) AND the stage is off-thread: CONFIG_OEVM_OTA_INCHANNEL (T10, the S2) links
-   neither the object nor the stack, and ota.c never calls ota_thread_start. Preemptible and below main (the VM, prio 0), so it runs when the VM waits on
+   fetch; it exists only on a board with a program slot to stage into (OTA_HAVE_SLOT —
+   rete#427: without one the stack was 2,688 B of dead RAM on the nRF52840s, which
+   never start it) AND the stage is off-thread: CONFIG_OEVM_OTA_INCHANNEL (T10, the S2)
+   links neither the object nor the stack, and ota.c never calls ota_thread_start. Preemptible and below main (the VM, prio 0), so it runs when the VM waits on
    its pulse mailbox and never delays a tick. The high-water line is the measurement
    that sizes the stack (needs CONFIG_INIT_STACKS): 1856 B on c6spare for a 174 KB
    image over Thread, 2026-10-10, so 2560 is that plus a third. */
@@ -204,7 +204,7 @@ int ota_thread_start(void (*fn)(void *), void *arg) {
 #else
 int ota_thread_start(void (*fn)(void *), void *arg) {
     (void)fn; (void)arg;
-    return 0;        /* no board, no thread: ota_stage answers -1, as the contract says */
+    return 0;        /* no slot, no thread: ota_stage answers -1, as the contract says */
 }
 #endif
 
