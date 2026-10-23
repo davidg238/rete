@@ -58,7 +58,6 @@ target_sources(app PRIVATE
   ${OEVM_SRC}/src/serial.c ${OEVM_SRC}/src/udp.c ${OEVM_SRC}/src/mirror.c
   ${OEVM_SRC}/src/backend/zephyr/platform_zephyr.c
   ${OEVM_SRC}/src/backend/zephyr/serial_zephyr.c
-  ${OEVM_SRC}/src/backend/zephyr/udp_zephyr.c
   ${OEVM_SRC}/src/backend/zephyr/pulse_zephyr.c
   ${OEVM_SRC}/src/backend/zephyr/timer_zephyr.c
   ${OEVM_SRC}/src/backend/zephyr/span_zephyr.c
@@ -173,6 +172,13 @@ message(STATUS "oevm board name: '${OEVM_BOARD_NAME}'")
 # (#59, 2026-07-20). Re-split behind thread_bringup.h only if the APIs diverge.
 if (CONFIG_NET_L2_OPENTHREAD)
   target_sources(app PRIVATE ${OEVM_SRC}/src/backend/zephyr/thread_bringup.c)
+endif()
+# rete#439 (spike): the datagram backend follows the radio. A Bluetooth build carries the
+# seam over an L2CAP channel to a phone relay (udp_ble.c); every other build uses sockets.
+if (CONFIG_BT)
+  target_sources(app PRIVATE ${OEVM_SRC}/src/backend/zephyr/udp_ble.c)
+else()
+  target_sources(app PRIVATE ${OEVM_SRC}/src/backend/zephyr/udp_zephyr.c)
 endif()
 
 # ---- Model A/B knob -------------------------------------------------------

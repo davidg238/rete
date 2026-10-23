@@ -7,7 +7,7 @@
 # solidified_image.c.
 set -euo pipefail
 
-MODEL=B NODE=TimerNode.nsl DO_FLASH=0 CAPTURE=0 PRISTINE=0 BUILD_DIR="" BOARD_ID=esp32c6 CONF_EXTRA="" DTC_OVERLAY=""
+MODEL=B NODE=TimerNode.nsl DO_FLASH=0 CAPTURE=0 PRISTINE=0 BUILD_DIR="" BOARD_ID=esp32c6 CONF_EXTRA="" DTC_OVERLAY="" CONF_OVERRIDE=""
 # Which chip's ROM ld the setjmp/longjmp patch targets. Only meaningful when a
 # profile sets ROM_PATCH=1; the esp32 profile leaves this default.
 ROM_PATCH_CHIP=esp32
@@ -22,6 +22,7 @@ while [ $# -gt 0 ]; do
     --board)      BOARD_ID="$2"; shift 2 ;;
     --conf-extra) CONF_EXTRA="$2"; shift 2 ;;
     --dtc-overlay) DTC_OVERLAY="$2"; shift 2 ;;
+    --conf)       CONF_OVERRIDE="$2"; shift 2 ;;
     *) echo "unknown arg: $1" >&2; exit 2 ;;
   esac
 done
@@ -541,6 +542,13 @@ else
   BLOB_ARG=(-DOEVM_BLOB="$OIMG")
 fi
 
+# --conf (rete#439): replace the profile's CONF_FILE — same board, another radio (the
+# DK's prj_dk_ble.conf). Everything else in the profile stands.
+if [ -n "$CONF_OVERRIDE" ]; then
+  [ -f "$ZDIR/$CONF_OVERRIDE" ] || { echo "--conf: no such file in $ZDIR: $CONF_OVERRIDE" >&2; exit 2; }
+  CONF_FILE="$CONF_OVERRIDE"
+  echo "[conf]  $CONF_FILE (replaces the profile's)"
+fi
 PRISTINE_ARG=(); [ "$PRISTINE" = 1 ] && PRISTINE_ARG=(-p always)
 # WiFi credentials overlay (#46): git-ignored, generated once with the real
 # SSID/PSK (never tracked). Appended only when present so a checkout without
@@ -596,13 +604,14 @@ case "$BOARD_ID" in
       *)                         WANTS_THREAD=0 ;;
     esac
     ;;
-  nrf52840dk)
-    THREAD_LOCAL="$ZDIR/prj_dk_thread_local.conf"
-    WANTS_THREAD=1
-    ;;
-  nrf52840dongle)
-    THREAD_LOCAL="$ZDIR/prj_dongle_thread_local.conf"
-    WANTS_THREAD=1
+  nrf52840dk|nrf52840dongle)
+    case "$BOARD_ID" in
+      nrf52840dk)     THREAD_LOCAL="$ZDIR/prj_dk_thread_local.conf" ;;
+      nrf52840dongle) THREAD_LOCAL="$ZDIR/prj_dongle_thread_local.conf" ;;
+    esac
+    # Same rule as the C6: credentials follow the radio, read from the CONF_FILE itself
+    # since --conf can swap Thread out (rete#439, prj_dk_ble.conf).
+    if grep -q '^CONFIG_NET_L2_OPENTHREAD=y' "$ZDIR/$CONF_FILE"; then WANTS_THREAD=1; else WANTS_THREAD=0; fi
     ;;
   *)
     THREAD_LOCAL=""

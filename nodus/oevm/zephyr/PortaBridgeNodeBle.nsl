@@ -1,0 +1,266 @@
+(*
+PortaBridgeNodeBle — SPIKE rete#439: PortaBridgeNodeNrf with exactly two differences,
+for a build whose datagram seam rides Bluetooth LE to David's phone, which relays each
+datagram as UDP over Tailscale (src/backend/zephyr/udp_ble.c, prj_dk_ble.conf):
+  1. gwAddr is gw85224-01's TAILSCALE IPv6, not its Thread mesh-local EID — the phone
+     sends from the tailnet, not the mesh;
+  2. gwPort is the bench's TEST porta (~/porta-415, :6979), so the spike never writes
+     into the production soak database on :6969.
+The rest of this header is PortaBridgeNodeNrf's, unchanged.
+
+PortaBridgeNodeNrf — PortaBridgeNode, on the nRF52840, over the same real Thread
+mesh the echo soak has been running on since 2026-07-11.
+
+ONE FILE FOR BOTH nRF BOARDS, and that is a fact about the hardware rather than a
+convenience: the DK and the PCA10059 dongle differ in console (uart0/VCOM vs SoC
+USB-CDC), trigger pin (BUTTON1 P0.11 vs SW1 P1.06) and flash method (J-Link vs nRF
+Util DFU) — every one of which is Kconfig or devicetree, NONE of which is nsl. This
+file was briefly called ...NodeDK before the board on the bench turned out to be a
+dongle; the name was the only thing that had to change. See
+docs/BOARD_PORTS.md for the per-board table. rete#281: three DKs have
+round-tripped 720,878 datagrams to `udp-echo6` on gw85224-01 and NONE of it reaches
+porta, because nothing on nRF ever spoke the space protocol. This file is the item
+that fixes that; items 2-5 of #281 (layout json, run.sh profile, collector env, heap
+re-derivation) are the plumbing around it.
+
+This file is PortaBridgeNode.nsl with FOUR differences and no others:
+  1. the constants below address the real gateway over the mesh instead of
+     loopback — the gw ML-EID and porta's :6969, not 127.0.0.1:16969;
+  2. `chip` answers #nrf52840, so obs/build says which silicon reported. This is
+     the point of the whole exercise: it is the FIRST non-Espressif row porta will
+     have, and #281's argument is that two C6s is the entire current sample;
+  3. `localPort` is 16970, the target twins' choice. The host twin's 16979 is a
+     LOOPBACK workaround (porta serve takes 16969..16970 first when both ends run
+     on one machine); on a board the gateway is a different host and the band is
+     free, so this file agrees with PortaBridgeNodeC6 rather than with its own
+     parent;
+  4. `tick` prints one console line, for PortaBridgeNodeC6's difference-3 reason:
+     porta cannot witness the node's own `misses`, so a leg that passes either way
+     is not a test. On first bring-up this is also the only evidence available
+     before any row reaches the store.
+A change to the BRIDGING body of this file is a change to all three. That rule now
+spans THREE files and is enforced by nothing — see rete#172, which already records
+the C6 twin's header drifting out of step with its own body. Landing this file makes
+#172 worse on purpose: the alternative was a fourth mechanism (a shared base class
+or a constants record) invented before any DK node had run once.
+
+THE ARENA IS THE RISK (#281 item 5). The rung-7 echo node ran config D at
+OEVM_HEAP_SIZE=49152 with VM_STACK_INIT_WORDS=4096 — and on this part the VM stack
+is fixed INSIDE the arena, which is the real boot-OOM. That node held no space, no
+bridge, no Spans. The C6 twin needs 128 KB. The DK has 256 KB of RAM, so the arena
+is the lever; boot with it raised and let the measurement earn it back down, rather
+than guessing a smaller number and reading the OOM as a design fault.
+
+MTD vs FTD: the soak nodes are MTDs, PortaBridgeNodeC6 is an FTD. The gw ML-EID is
+correct either way and does not depend on the role (rung-7 note), so this file does
+not care — but an MTD child has no OMR source address at all, which is why the
+address below is mesh-local and must stay that way.
+
+Dialect: `[ ... ] whileTrue:`, never `repeat`; state in instance slots so every
+reaction block is a one-line self-send.
+expect (console /dev/ttyACM0 @115200, once attached):
+PORTA NODE READY
+tick 1 misses 0 acked 0
+*)
+class PortaBridgeNodeBle usingPlatform: platform net: net = (
+  | private space private bridge private timers private ticks ::= 0.
+    (* tuvm#107: the span table. ONE window per boot — see `main:args:`. *)
+    private spans private capture private sTick private sCheckIn private sPublish private capturing ::= false. |
+) (
+  (* rete#241: `platform nodeId`, same one-liner as the C6 twin. #186 kept a literal
+     here because host answered the slot-shaped "host" for every VM at once; d5b5545
+     made a host VM name itself `<hostname>-NNNN`; rete#118 deleted that fallback. A
+     host VM has no silicon, so it answers the OEVM_NODE_ID env value and the primitive
+     fails when it is unset or empty. The gate (`tests/porta_sync_host.sh`) supplies a
+     per-run id through it, so two concurrent runs no longer write into one porta space
+     the way two devkits shared `c6-bench`. *)
+  public nodeId    = ( ^ platform nodeId )
+  (* gw85224-01's mesh-local EID, the same literal ThreadEchoNodeDK and
+     PortaBridgeNodeC6 already use, read from the OTBR on 2026-06-28 and unchanged
+     since. NOT the OMR address: there is no global IPv6 on this mesh and no DNS64,
+     and an MTD child never SLAAC-configures an OMR address, so a send to the OMR
+     prefix fails SILENTLY — the rung-7 lesson, and it cost a bench session. *)
+  gwAddr    = ( ^ 'fd7a:115c:a1e0::bf01:d921' )   (* rete#439: gw's Tailscale IPv6 *)
+  gwPort    = ( ^ 6979 )                         (* rete#439: the test porta *)
+  (* 16970 — see difference 3 in the header. The host twin's 16979 exists only
+     because porta serve and the node share one machine under
+     tests/porta_sync_host.sh; here they do not. *)
+  localPort = ( ^ 16970 )
+  cadence   = ( ^ 2000 )   (* ms between check-ins *)
+  (* Build provenance, so an agent can tell which code is on which node. `chip`
+     is a source constant because it is a build fact; `build` (obs/build) carries
+     the string #74 gave the node to name its own build (git describe + timestamp).
+     `sdk` and `image` are still OMITTED — #74 covers only the build id, not those
+     — and absence means "the node cannot say", which is honest and is not a
+     default. #nrf52840 is the first value here that is not an Espressif part. *)
+  chip      = ( ^ #nrf52840 )
+
+  public main: platform2 args: args = (
+    | sock tickChan |
+    space:: platform space.
+    sock:: net udpBindPort: self localPort.
+    sock == nil ifTrue: [ ^ self fail: 'bind' ].
+    (* The ONE Spans for this image, minted BEFORE the bridge because the bridge
+       registers its own six slots at construction. Two instances would both
+       allocate from 2 and silently share samples. *)
+    spans:: platform Spans new.
+    bridge:: platform PortaBridge
+      socket: sock space: space id: self nodeId peer: self gwAddr port: self gwPort
+      spans: spans.
+    bridge subscribeStream: 'tel/log'.
+    bridge subscribeStream: 'sys/reset'.
+
+    (* rete#273 D2: this node's own promise about its radio — telCad and how many
+       consecutive misses it tolerates. 16 and not the fleet default of 8 because
+       porta refuses to judge a budget below its own 30 s sweep tick (D2.1), and
+       2 s x 8 = 16 s is; 2 s x 16 = 32 s is judged. The 2 s is bench turnaround,
+       not a claim about the radio. appCad stays at the bridge default (x 8). *)
+    bridge liveness: self cadence misses: 16.
+
+    (* tuvm#107 landed, so the span cells fit the 256 B cap and `diag/**` is in the
+       bridge's outbound cell scan. No subscribeStream: here — these are CELLS.
+
+       ONE window per boot, closed by an event this node can name for itself: the
+       first tick on which the gateway has ACKED something (`bridge acked > 0`), so
+       the window is exactly "boot until the round trip is proven". No period, no
+       tunable — a repeating window would need one, and there is no data yet to
+       choose it from. After the window the cells stop changing, `changedSince:`
+       stops returning them, and the steady-state wire cost is zero.
+
+       Remote control of the window is a different question, blocked on tuvm#159:
+       porta may write only goal/** and dbg/req, so it cannot drive diag/spans/ctl. *)
+    (* `spans` was minted above, with the bridge, which holds slots 2-7 for its own
+       six-way decomposition of checkIn; these three land at 8-10. *)
+    sTick::     spans register: #jobTick.     (* the whole timer -> publish job *)
+    sCheckIn::  spans register: #checkIn.     (* pull + push, the network round trip *)
+    sPublish::  spans register: #publish.     (* the health and log writes *)
+    capture::   platform SpanCapture onSpace: space spans: spans.
+    capture start.
+    capturing:: true.
+    (space channel: 'diag/spans/ctl')
+      put: '' value: (platform Record tag: #SpanCtl with: #state -> #running).
+
+    (* porta's writes land as ordinary cell writes, so the echo is an ordinary
+       reaction — there is no protocol handler anywhere in this node. *)
+    (space channel: 'goal/name') whenever: '' do: [ :v | self nameChanged: v ].
+
+    (* rete#312: `dbg/req` profile requests are the kernel's (Kernel>>profiler,
+       installed by the Supervisor before main:); this node only dispatches
+       `sys/timer`, which is what closes the window. *)
+
+    (* rete#259: the bridge owns obs/build; #man rides iff the image carries a
+       manifest pin (rete#243). *)
+    bridge publishBuild: self chip.
+
+    timers:: platform timers.     (* hold ONE instance — it owns the pending registry *)
+    space whenever: 'sys/timer' do: [ :e | timers dispatch: e ].
+    tickChan:: space channel: 'sys/tick'.
+    tickChan whenever: '' do: [ :m | self tick ].
+    (* rete#231 D1: the KERNEL owns the period now. The app still owns what a tick
+       DOES — its reaction on this channel is unchanged — but the registration is
+       the bridge's, so the deadline #215's observer reads from
+       timer_target_snapshot exists even for an app that declares no timer of its
+       own, and a heartbeat this node stops emitting when it wedges is a heartbeat
+       whose absence means something. The bridge is HANDED this instance: two
+       Timers alias each other's tokens and drop every dispatch silently. *)
+    bridge startTicking: timers on: tickChan.
+
+    'PORTA NODE READY' println.
+    [ true ] whileTrue: [
+      platform pumpEvents.        (* blocks until the cadence timer fires *)
+      space drain ].
+    ^ 0
+  )
+
+  (* One check-in, then one report. In that order: applying goal/** first means the
+     health this node publishes describes the state porta just asked for, not the
+     one before it. *)
+  tick = (
+    ticks:: ticks + 1.
+    spans begin: sTick.
+    spans begin: sCheckIn.
+    bridge checkIn.
+    spans end: sCheckIn.
+    spans begin: sPublish.
+    self publishHealth.
+    space out: 'tel/log' value:
+      (platform Record tag: #Log with: #lvl -> #info
+                                 with: #txt -> ('tick ' , ticks printString)).
+    spans end: sPublish.
+    (* jobTick closes BEFORE the window does, so the tick that ends the window is
+       itself measured — otherwise the last sample would be the one missing. *)
+    spans end: sTick.
+    (* difference 4 — the console line. `misses` and `acked` are the two numbers
+       that separate "the mesh is up and porta answers" from "the mesh is up and
+       porta does not", and neither is visible from the gateway side. *)
+    ('tick ' , ticks printString , ' misses ' , bridge misses printString
+             , ' acked ' , bridge acked printString) println.
+    self closeWindowIfAcked.
+    ^ self
+  )
+
+  (* tuvm#107: writing #stopped is what makes SpanCapture publish the per-slot cells
+     and the { n, ms } summary; they ride the NEXT check-in's push. Guarded by
+     `capturing` because #stopped while already stopped is ignored by SpanCapture,
+     but the cell write itself is not free and this runs every tick forever. *)
+  closeWindowIfAcked = (
+    capturing ifFalse: [ ^ self ].
+    bridge acked > 0 ifFalse: [ ^ self ].
+    capturing:: false.
+    (space channel: 'diag/spans/ctl')
+      put: '' value: (platform Record tag: #SpanCtl with: #state -> #stopped).
+    ^ self
+  )
+
+  nameChanged: v = ( space put: 'obs/name' value: v. ^ self )
+
+  (* LIVENESS AND DELIVERY ONLY (design D2, 2026-08-04). heapFree/heapLargest/overruns
+     left this record — not duplicated elsewhere, DELETED from here, because every one
+     of them already lives at sys/metrics (RECORDS §4.4), which the bridge now
+     publishes on every check-in. Two overlapping health records is how obs/health
+     came to have three mutually inconsistent definitions: 3 fields in the conformance
+     target, 7 in RECORDS, 8 actually on the wire.
+
+     wakes/pollTimeouts carry the tick count and the bridge's missed replies until the
+     mode record gives them a stricter meaning.
+
+     streamDropped STAYS. It counts information lost on the way OUT, which is the
+     number that says the observability itself is lying — a delivery fact about this
+     node's reporting, not a VM internal. *)
+  publishHealth = (
+    | pairs |
+    pairs:: platform OrderedCollection new.
+    pairs add: #up -> platform monotonicMillis.
+    (* `bridge bootId` and NOT the literal 1, and not `platform bootId` either:
+       this is the same latched value the push envelope carries, so the record
+       and the envelope cannot disagree. They did — rete#211: #162 made bootId a
+       real persisted counter and moved the envelope over, but every app's
+       publishHealth kept the constant, so obs/health answered `bid 1` forever
+       while the envelope beside it said 38. obs/health is the ONLY place the
+       boot id reaches a path, so that constant was the whole of the space's
+       answer to "which boot is this?". 0 here is truthful, not a failure: the
+       posix backend has no persistent identity unless OEVM_BOOTID_FILE is set. *)
+    pairs add: #bid -> bridge bootId.
+    pairs add: #wak -> ticks.
+    pairs add: #pto -> bridge misses.
+    pairs add: #sdr -> bridge dropped.
+    (* rete#199 — REFUSED, and it is not `pto`. A node the gateway is uniformly
+       rejecting gets a reply to every exchange, so `pto` reads 0 the whole way to
+       its death; without this field the record is identical for a healthy node and
+       for one that has been shouting into a closed door since boot. This is the
+       one number that separates "the gateway is unreachable" from "the gateway
+       refuses me", and they are different problems with different fixes. *)
+    pairs add: #ref -> bridge refused.
+    (* rete#232 rider — see PortaBridgeNodeC6: a counted-and-dropped inbound
+       entry is a PERMANENT loss under porta's replay guard, so it must be
+       visible. *)
+    pairs add: #rej -> bridge rejected.
+    space put: 'obs/health' value:
+      (platform Record tag: #Health fields: (platform Map fromPairs: pairs)).
+    ^ self
+  )
+
+  fail: msg = ( msg println. ^ 1 )
+) : (
+  public packageUsing: manifest = ( ^ self new )
+)
