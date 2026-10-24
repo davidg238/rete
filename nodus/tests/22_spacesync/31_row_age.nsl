@@ -1,0 +1,41 @@
+(*
+expect:
+entries 3
+held age 60000
+cell age 0
+fresh age 0
+*)
+(* rete#444 — a row is stamped with when it was CAPTURED, not when it reached porta.
+   A stream row records monoMs at capture; collectOutbound turns that into its AGE at
+   this push (ms since capture), and porta stamps it arrival - age (G6: the node keeps
+   no clock). A cell's age is 0: the space keeps no write time, and a cell is "the
+   latest value", sent as of the scan.
+
+   The held row waits 60 s on the host's virtual clock before the push is collected,
+   standing in for a link outage; the fresh row is captured just before the push.
+   Without the fix the held row would go out with no age, and porta would stamp it
+   at arrival — the ACC01's captures that came in at 11:12 on 2026-10-24. *)
+class RowAge packageUsing: manifest = () (
+  public main: platform args: args = (
+    | space bridge spans rows |
+    space:: platform space.
+    spans:: platform Spans new.
+    bridge:: platform PortaBridge socket: nil space: space id: 'n1' peer: '::1' port: 6969 spans: spans.
+    bridge subscribeStream: 'tel/log'.
+
+    space out: 'tel/log' value: 'held'.
+    space drain.
+    platform advanceMillis: 60000.
+    space out: 'tel/log' value: 'fresh'.
+    space put: 'obs/name' value: 'bench'.
+    space drain.
+
+    rows:: bridge collectOutbound.
+    ('entries ' , rows size printString) out.
+    rows do: [ :r |
+      (r at: 4) = 'held' ifTrue: [ ('held age ' , (r at: 5) printString) out ].
+      (r at: 4) = 'fresh' ifTrue: [ ('fresh age ' , (r at: 5) printString) out ].
+      (r at: 2) = 'obs/name' ifTrue: [ ('cell age ' , (r at: 5) printString) out ] ].
+  )
+) : (
+)

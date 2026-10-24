@@ -261,7 +261,7 @@ func (s *Server) handlePush(r cval.Record, peer string) ([]byte, error) {
 	if !ok {
 		return nil, fmt.Errorf("%w: missing #ent", errShape)
 	}
-	entries, err := listToEntries(ev)
+	entries, err := pushEntries(ev)
 	if err != nil {
 		return nil, err
 	}

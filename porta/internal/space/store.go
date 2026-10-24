@@ -29,6 +29,10 @@ type Entry struct {
 	Path  string
 	Kind  cval.Kind
 	Value []byte
+	// AgeMs is how long before the push the node captured this entry: a stream
+	// row held in the node's outbox, 0 for a cell (rete#444, G6). Ingest stamps
+	// the row arrival - AgeMs. Zero for porta-authored entries.
+	AgeMs int64
 }
 
 type Event struct {
@@ -460,12 +464,15 @@ func (s *Store) Ingest(nodeID string, bootID int64, entries []Entry) (hw int64, 
 		// rebooted node's tree arrives over seconds, so a read taken mid-rewrite
 		// otherwise blends two boots and cannot be told from a coherent one
 		// (rete#210). The value costs nothing to carry — it is already in hand.
+		// rete#444: the row's time is when the node CAPTURED it, which for a row
+		// held through an outage is long before it arrived. last_seen stays now.
+		at := now - e.AgeMs
 		if e.Kind == cval.KindCell {
-			if err := upsertCell(tx, nodeID, e.Path, e.Seq, e.Kind, e.Value, now, "in", bootID); err != nil {
+			if err := upsertCell(tx, nodeID, e.Path, e.Seq, e.Kind, e.Value, at, "in", bootID); err != nil {
 				return 0, 0, err
 			}
 		}
-		if err := appendEvent(tx, nodeID, e.Path, e.Seq, e.Kind, e.Value, now, "in", nodeID, "", bootID); err != nil {
+		if err := appendEvent(tx, nodeID, e.Path, e.Seq, e.Kind, e.Value, at, "in", nodeID, "", bootID); err != nil {
 			return 0, 0, err
 		}
 		hw = e.Seq

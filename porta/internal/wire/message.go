@@ -93,6 +93,40 @@ func listToEntries(v any) ([]space.Entry, error) {
 	return out, nil
 }
 
+// pushEntries decodes a #push's [[seq, path, kind, value, ageMs], …] (rete#444):
+// ageMs is how long before this push the node captured the entry, so Ingest
+// stamps arrival - age. A negative age is refused rather than stamped in the
+// future. A batch (porta -> node) keeps the 4-element shape: listToEntries.
+func pushEntries(v any) ([]space.Entry, error) {
+	l, ok := v.(cval.List)
+	if !ok {
+		return nil, fmt.Errorf("%w: #ent is not a list", errShape)
+	}
+	out := make([]space.Entry, 0, len(l))
+	for _, item := range l {
+		row, ok := item.(cval.List)
+		if !ok || len(row) != 5 {
+			return nil, fmt.Errorf("%w: a push entry is not a 5-element list", errShape)
+		}
+		seq, ok1 := row[0].(int64)
+		path, ok2 := row[1].(string)
+		kind, ok3 := row[2].(int64)
+		age, ok4 := row[4].(int64)
+		if !ok1 || !ok2 || !ok3 || !ok4 {
+			return nil, fmt.Errorf("%w: push entry header types", errShape)
+		}
+		raw, err := cval.Encode(row[3])
+		if err != nil {
+			return nil, err
+		}
+		if age < 0 {
+			return nil, fmt.Errorf("%w: push entry age %d is negative", errShape, age)
+		}
+		out = append(out, space.Entry{Seq: seq, Path: path, Kind: cval.Kind(kind), Value: raw, AgeMs: age})
+	}
+	return out, nil
+}
+
 func EncodePull(id string, cursor, bootID, hw, wak int64) ([]byte, error) {
 	return cval.Encode(cval.Record{Tag: "pull", Fields: cval.Map{
 		{K: cval.Symbol("id"), V: id},
@@ -104,9 +138,13 @@ func EncodePull(id string, cursor, bootID, hw, wak int64) ([]byte, error) {
 }
 
 func EncodePush(id string, bootID int64, entries []space.Entry) ([]byte, error) {
-	l, err := entriesToList(entries)
-	if err != nil {
-		return nil, err
+	l := make(cval.List, 0, len(entries))
+	for _, e := range entries {
+		v, err := cval.Decode(e.Value)
+		if err != nil {
+			return nil, fmt.Errorf("stored value at %s is not decodable: %w", e.Path, err)
+		}
+		l = append(l, cval.List{e.Seq, e.Path, int64(e.Kind), v, e.AgeMs})
 	}
 	return cval.Encode(cval.Record{Tag: "push", Fields: cval.Map{
 		{K: cval.Symbol("id"), V: id},

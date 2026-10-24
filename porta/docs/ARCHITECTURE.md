@@ -415,7 +415,8 @@ porta speaks **two** transports, both plain UDP, and neither is a session:
 
 - **The exchange** (`:6969` by default, `internal/wire`). Two node-initiated,
   idempotent messages carrying CBOR: a **`pull`** that fetches the writes porta holds
-  for the node, and a **`push`** that delivers the node's entries. Framing is a pure
+  for the node, and a **`push`** that delivers the node's entries, each with its age
+  so a row is stored at its capture time, not its arrival (rete#444). Framing is a pure
   `Handle([]byte) []byte` under a thin UDP loop, so the protocol is testable without a
   socket. Both bounded by a **512 B batch and a 256 B value** — 6LoWPAN fragments above
   ~102 B and a datagram survives only if every fragment does, so these are radio

@@ -632,3 +632,40 @@ func TestPullWithoutACountIsRefused(t *testing.T) {
 		t.Fatalf("reply = %q, want an #err naming wak", msg)
 	}
 }
+
+// rete#444: a row is stamped when the node CAPTURED it, not when it arrived. Each
+// push entry carries its age, so a row held through an outage keeps its own time.
+func TestPushStampsCaptureTimeNotArrival(t *testing.T) {
+	srv, st := testServer(t)
+	req, _ := EncodePush("n1", 7, []space.Entry{
+		{Seq: 1, Path: "tel/log", Kind: cval.KindStream, Value: mustEnc(t, "held"), AgeMs: 60_000},
+		{Seq: 2, Path: "tel/log", Kind: cval.KindStream, Value: mustEnc(t, "fresh")},
+	})
+	if _, err := DecodeAck(srv.Handle(req)); err != nil {
+		t.Fatalf("DecodeAck: %v", err)
+	}
+	evs, err := st.Events("n1", 10, 0)
+	if err != nil {
+		t.Fatalf("Events: %v", err)
+	}
+	ts := map[int64]int64{}
+	for _, e := range evs {
+		ts[e.Seq] = e.TsMs
+	}
+	if got := ts[2] - ts[1]; got != 60_000 {
+		t.Fatalf("fresh - held = %d ms, want 60000 (ts %v)", got, ts)
+	}
+}
+
+// A negative age is refused: it would stamp a row in the future.
+func TestPushWithNegativeAgeIsRefused(t *testing.T) {
+	srv, _ := testServer(t)
+	req, _ := cval.Encode(cval.Record{Tag: "push", Fields: cval.Map{
+		{K: cval.Symbol("id"), V: "n1"},
+		{K: cval.Symbol("bid"), V: int64(7)},
+		{K: cval.Symbol("ent"), V: cval.List{cval.List{int64(1), "tel/log", int64(1), "x", int64(-5)}}},
+	}})
+	if _, err := DecodeAck(srv.Handle(req)); err == nil {
+		t.Fatalf("a push with a negative age was acked")
+	}
+}

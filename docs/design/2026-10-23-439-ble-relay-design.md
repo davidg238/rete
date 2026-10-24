@@ -116,3 +116,10 @@ reflash, the held boot reaches custos whole, and a `goal/profile` window (`OEVM_
 The ACC01 reports to production porta :6969 via the Pixel; `PortaBridgeNodeBle.nsl` points there. Production and
 test porta run the same binary and manifest, so the move needed no gateway restart. Each check-in pushes at most
 `maxRows`/`maxBatchBytes`, so after a boot an event row waits behind the span cells for a few ticks.
+
+## Addendum — capture time on the wire (2026-10-24, #444)
+
+Rows the ACC01 held through a phone outage reached porta stamped at arrival. Each push entry now carries
+`ageMs` (capture → this push, recomputed every push; 0 for a cell) and porta stamps arrival − age, which
+is G6 as written. Chosen over the push's `#now` + each entry's `monoMs`: same answer, and the worst-case
+steady frame grows 8 B (407 → 415) instead of 51 B. Recorded in PROTOCOL-NSL §5 and RECORDS §3.
