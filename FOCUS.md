@@ -10,7 +10,7 @@ blocks are in `docs/status/focus-history.md`; live state is in the issues and `d
 - **Awaiting David:** chair trials (attachment under the seat pan); #368's history rewrite; #201/#202 for 0.1; #396; paper E draft 6 and L (#429); #175;
   #413/#424 designs; bands #294/#295. Delayed by David: #427 (dongle RAM). Not yet shown for #439: a second central refused.
 - **Bench:** ACC01 (`d9885967b66d`) on msi's J-Link (S/N 260115156), bonded to the Pixel, reports to production porta :6969; image `build-acc01-motion`
-  (debug logs, RTT console). App, overlay, flash/RTT scripts, viewer: `~/workspace/acc01-backup-2026-10-23/bench-439/` (`AccMotionBle.nsl`, `capview.py`;
+  (debug logs, RTT console). App, overlay, flash/RTT scripts, viewer: `~/workspace/ttgm/bench/439-ble-spike/` (davidg238/ttgm) (`AccMotionBle.nsl`, `capview.py`;
   `flashkeep.jlink` keeps the bond). Viewer runs on gw (`~/capview`, :6972, read-only). The node arms 30 s after boot: a sensor touched earlier dies (#436).
 - **Decided — do not re-litigate:** the ACC01 is mounted on the chair, not worn (David); BLE mainline + pair-once + production porta; power bar = months on 2× AA,
   measured; no version byte in the frame (rule 4); re-pair = flash erase (rule 5) — #439; ACC01 on BLE (#437); ACC01 board lives in ttgm (#438);
