@@ -82,3 +82,16 @@ the spike into the mainline mechanism.
 Frame contract (4) → pairing (5) on the DK and Pixel → no IP stack (2) + tee through the seam (3) →
 production porta (8) → power on the ACC01. Promotion at close-out: `protocol/RELAY-BLE.md` is the
 mainline record; `porta/docs/ARCHITECTURE.md` gains one line on the relay path.
+
+## Addendum — pairing measured on the ACC01 (2026-10-23 evening)
+
+Bonded link works: ACC01 ↔ Pixel ↔ test porta :6979, encrypted, paired once, bond survives a reflash that
+skips the settings partition (`9f9c62d4`, `c5296ee6`). Three corrections to rule 5, each from the console:
+
+- **`CONFIG_BT_SMP_ENFORCE_MITM=n`.** Zephyr's default demands MITM protection; Just Works cannot give it,
+  and every pairing failed with error 9.
+- **`CONFIG_BT_LONG_WQ_PRIO=0`** (the Kconfig floor). The pairing key agreement runs on that queue; at 10
+  it starved behind the VM, which busy-polls in `awaitReply:` (#440), missed SMP's 30 s timeout, and stayed
+  pending so every later pairing failed. A workaround: #440 removes the cause, then this line goes.
+- **The link drops with its channel.** A link left up without a channel holds the node's one connection and
+  stops advertising, so the relay scans forever.
