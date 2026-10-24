@@ -5,7 +5,7 @@ blocks are in `docs/status/focus-history.md`; live state is in the issues and `d
 
 - **Two live threads.** msi: **#437** (P0): the ACC01 on a chair, wake on motion, then "got out of the chair". #444 is merged to master, not deployed.
   opti7040: **#432** (P1, 0.1's last verb, patch through porta) on `432-patch-porta`; its FOCUS lines live there.
-- **Next session (msi) starts with:** branch `444-capture-time` (master + this conclude). Read ttgm's webcam join (`~/workspace/ttgm/bench/webcam-watcher/join.py` against
+- **Next session (msi) starts with:** branch `master`. Read ttgm's webcam join (`~/workspace/ttgm/bench/webcam-watcher/join.py` against
   `http://gw85224-01:6972/captures.json`), pick the got-up rule from the matched episodes, and build it into the ttgm app; then measure current (#440 gates it).
 - **Awaiting David:** a time to deploy #444 (restart porta-398 from master + reflash the ACC01 together, then capview `--time-basis capture`); chair trials;
   #368's history rewrite; #201/#202 for 0.1; #396; paper E draft 6 and L (#429); #175; #413/#424 designs; bands #294/#295. Delayed by David: #427.
