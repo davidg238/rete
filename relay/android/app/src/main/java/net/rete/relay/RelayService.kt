@@ -91,7 +91,7 @@ class RelayService : Service() {
             } catch (e: SecurityException) {
                 setState("missing Bluetooth permission"); log("permission: $e"); sleep(10_000)
             } catch (e: Exception) {
-                log("link: $e"); lastState = "link error: $e"
+                fail("link: $e")
             } finally {
                 session?.close(); session = null
             }
@@ -106,14 +106,14 @@ class RelayService : Service() {
         if (dev.bondState == BluetoothDevice.BOND_BONDED) return true
         setState("pairing ${dev.address}")
         if (dev.bondState == BluetoothDevice.BOND_NONE && !dev.createBond()) {
-            log("createBond refused"); return false
+            fail("createBond refused"); return false
         }
         repeat(60) {
             if (dev.bondState == BluetoothDevice.BOND_BONDED) return true
-            if (dev.bondState == BluetoothDevice.BOND_NONE && it > 0) { log("pairing failed"); return false }
+            if (dev.bondState == BluetoothDevice.BOND_NONE && it > 0) { fail("pairing failed"); return false }
             sleep(500)
         }
-        log("pairing timed out"); return false
+        fail("pairing timed out"); return false
     }
 
     @Suppress("MissingPermission")
@@ -172,7 +172,7 @@ class RelayService : Service() {
                     bump(down)
                 }
             } catch (e: Exception) {
-                if (!s.isClosed) { log("udp $lport: $e"); close() }
+                if (!s.isClosed) { fail("udp $lport: $e"); close() }
             }
         }
 
@@ -207,11 +207,18 @@ class RelayService : Service() {
     }
 
     private fun log(s: String) = Log.i(TAG, s)
+    /** Kept apart from the state, which the retry loop overwrites within seconds: the
+     *  status screen shows the last failure until the next one (no adb on this phone). */
+    private fun fail(s: String) {
+        lastError = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.US).format(java.util.Date()) + " " + s
+        log(s)
+    }
     private fun sleep(ms: Long) = try { Thread.sleep(ms) } catch (_: InterruptedException) {}
 
     companion object {
         /** Read by MainActivity's status line (same process). */
         @Volatile var lastState = "not started"
+        @Volatile var lastError = "none"
         @Volatile var upCount = 0L
         @Volatile var downCount = 0L
         const val TAG = "oevmrelay"

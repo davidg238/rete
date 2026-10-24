@@ -73,6 +73,7 @@ class MainActivity : Activity() {
     private fun refresh() {
         val pm = getSystemService(POWER_SERVICE) as PowerManager
         status.text = "\nRelay: " + RelayService.lastState +
+            "\nLast error: " + RelayService.lastError +
             "\nup ${RelayService.upCount} · down ${RelayService.downCount} datagrams" +
             "\nBattery unrestricted: " + pm.isIgnoringBatteryOptimizations(packageName)
         tick.postDelayed({ refresh() }, 1000)

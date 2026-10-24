@@ -85,10 +85,13 @@ static void connected_cb(struct bt_l2cap_chan *chan) {
            BT_L2CAP_LE_CHAN(chan)->tx.mtu, BT_L2CAP_LE_CHAN(chan)->rx.mtu);
     chan_up = true;
 }
+/* The channel is the only reason the link exists: when it closes, drop the link too,
+   so the node advertises again. Left up, a link without a channel holds the node's one
+   connection and the relay, scanning for an advertiser, never finds it (ACC01, 2026-10-23). */
 static void disconnected_cb(struct bt_l2cap_chan *chan) {
-    (void)chan;
     chan_up = false;
     printk("ble: relay channel down\n");
+    if (chan->conn) (void)bt_conn_disconnect(chan->conn, BT_HCI_ERR_REMOTE_USER_TERM_CONN);
 }
 
 static const struct bt_l2cap_chan_ops chan_ops = {
@@ -131,7 +134,19 @@ static void adv_start(void) {
 /* A connection consumes the advertiser; start it again once the connection object is
    free, so the relay can always find the node after a drop. */
 static void recycled_cb(void) { adv_start(); }
-BT_CONN_CB_DEFINE(conn_cbs) = { .recycled = recycled_cb };
+static void conn_connected(struct bt_conn *conn, uint8_t err) {
+    (void)conn;
+    printk("ble: link up (err %u)\n", err);
+}
+static void conn_disconnected(struct bt_conn *conn, uint8_t reason) {
+    (void)conn;
+    printk("ble: link down (reason 0x%02x)\n", reason);
+}
+BT_CONN_CB_DEFINE(conn_cbs) = {
+    .connected = conn_connected,
+    .disconnected = conn_disconnected,
+    .recycled = recycled_cb,
+};
 
 static void count_bond(const struct bt_bond_info *info, void *n) {
     (void)info;
