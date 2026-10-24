@@ -50,7 +50,11 @@ class RelayService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == ACTION_STOP) { stopSelf(); return START_NOT_STICKY }
-        startForeground(NOTIF_ID, notification(), ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE)
+        try {
+            startForeground(NOTIF_ID, notification(), ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE)
+        } catch (e: Exception) {
+            lastState = "could not go foreground: $e"; log(lastState); stopSelf(); return START_NOT_STICKY
+        }
         if (!running) {
             running = true
             // A partial wake lock keeps the CPU forwarding while the screen is off. Its
@@ -86,7 +90,7 @@ class RelayService : Service() {
             } catch (e: SecurityException) {
                 setState("missing Bluetooth permission"); log("permission: $e"); sleep(10_000)
             } catch (e: Exception) {
-                log("link: $e")
+                log("link: $e"); lastState = "link error: $e"
             } finally {
                 session?.close(); session = null
             }
@@ -162,8 +166,12 @@ class RelayService : Service() {
 
     // ---- the notification is the status display ----
 
-    private fun bump(c: AtomicLong) { if (c.incrementAndGet() % 25 == 0L) refresh() }
-    private fun setState(s: String) { state = s; log(s); refresh() }
+    private fun bump(c: AtomicLong) {
+        val n = c.incrementAndGet()
+        if (c === up) upCount = n else downCount = n
+        if (n % 25 == 0L) refresh()
+    }
+    private fun setState(s: String) { state = s; lastState = s; log(s); refresh() }
     private fun refresh() =
         (getSystemService(NOTIFICATION_SERVICE) as NotificationManager).notify(NOTIF_ID, notification())
 
@@ -184,6 +192,10 @@ class RelayService : Service() {
     private fun sleep(ms: Long) = try { Thread.sleep(ms) } catch (_: InterruptedException) {}
 
     companion object {
+        /** Read by MainActivity's status line (same process). */
+        @Volatile var lastState = "not started"
+        @Volatile var upCount = 0L
+        @Volatile var downCount = 0L
         const val TAG = "oevmrelay"
         const val ACTION_STOP = "net.rete.relay.STOP"
         const val PSM = 0x80
