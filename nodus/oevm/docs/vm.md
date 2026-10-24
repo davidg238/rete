@@ -101,6 +101,12 @@ restarts or quarantines the job (Milestone D, `nodus/oevm/docs/MILESTONE_D.md`).
 - **Timers** post to a **pulse mailbox** from the ISR; `pumpEvents` blocks on it and
   `drain` runs the reactions. On the host the timer backend bypasses the mailbox, which
   is why some gates need a board.
+- **Sensors** (`src/backend/zephyr/sensor_zephyr.c`, rete#436/#437): a kind's device is the
+  devicetree alias `<kind>0`; `sensorRead:` answers milli-SI, `sensorArm:post:on:threshold:`
+  posts through the same pulse mailbox. A board that cannot answer at boot marks its sensor
+  `zephyr,deferred-init`, and nothing may touch it before it answers — a failed Zephyr init
+  is final. Any-motion compares high-passed acceleration. Record:
+  `docs/design/2026-10-23-sensor-seam-design.md` (addendum: measured on the ACC01).
 - **Liveness** (`nodus/oevm/zephyr/src/observer.c`, rete#215/#231): a C thread judges
   the reactor's **progress** against the shortest declared timer period; the kernel
   owns a base tick so a deadline always exists; a wedge dumps, reboots and leaves a
