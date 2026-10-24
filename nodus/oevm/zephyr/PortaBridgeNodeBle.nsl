@@ -1,11 +1,11 @@
 (*
-PortaBridgeNodeBle — SPIKE rete#439: PortaBridgeNodeNrf with exactly two differences,
+PortaBridgeNodeBle — rete#439: PortaBridgeNodeNrf with exactly two differences,
 for a build whose datagram seam rides Bluetooth LE to David's phone, which relays each
 datagram as UDP over Tailscale (src/backend/zephyr/udp_ble.c, prj_dk_ble.conf):
   1. gwAddr is gw85224-01's TAILSCALE IPv6, not its Thread mesh-local EID — the phone
      sends from the tailnet, not the mesh;
-  2. gwPort is the bench's TEST porta (~/porta-415, :6979), so the spike never writes
-     into the production soak database on :6969.
+  2. gwPort is production porta :6969 (design rule 8): a Bluetooth node is an ordinary
+     porta node. The ACC01 reported there through the Pixel on 2026-10-23.
 The rest of this header is PortaBridgeNodeNrf's, unchanged.
 
 PortaBridgeNodeNrf — PortaBridgeNode, on the nRF52840, over the same real Thread
@@ -81,7 +81,7 @@ class PortaBridgeNodeBle usingPlatform: platform net: net = (
      and an MTD child never SLAAC-configures an OMR address, so a send to the OMR
      prefix fails SILENTLY — the rung-7 lesson, and it cost a bench session. *)
   gwAddr    = ( ^ 'fd7a:115c:a1e0::bf01:d921' )   (* rete#439: gw's Tailscale IPv6 *)
-  gwPort    = ( ^ 6979 )                         (* rete#439: the test porta *)
+  gwPort    = ( ^ 6969 )                         (* rete#439 rule 8: production porta *)
   (* 16970 — see difference 3 in the header. The host twin's 16979 exists only
      because porta serve and the node share one machine under
      tests/porta_sync_host.sh; here they do not. *)

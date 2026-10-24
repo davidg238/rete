@@ -110,3 +110,9 @@ reflash, the held boot reaches custos whole, and a `goal/profile` window (`OEVM_
   logged 420 send errors and 71 dropped chars with every row arriving. A third buffer is earned if rows go missing.
 - Profile on the nRF is a build knob (`OEVM_METHOD_PROFILE`, run.sh's C6-only default); whether the ACC01 image
   carries it by default is open.
+
+## Addendum — rule 8 done (2026-10-23)
+
+The ACC01 reports to production porta :6969 via the Pixel; `PortaBridgeNodeBle.nsl` points there. Production and
+test porta run the same binary and manifest, so the move needed no gateway restart. Each check-in pushes at most
+`maxRows`/`maxBatchBytes`, so after a boot an event row waits behind the span cells for a few ticks.

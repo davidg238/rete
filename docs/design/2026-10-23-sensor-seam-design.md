@@ -61,3 +61,14 @@ board's counted paths; no OTA stack where no program slot exists) restore ~10 KB
 
 #436 (seam + host gate + nRF compile with a lis2dh overlay) → #438 (external board root / overlay, so ttgm
 builds) → #437 (arm + SED config + current measured on ttgm's board).
+
+## Addendum — any-motion measured on the ACC01 (2026-10-23, #437)
+
+- **First use must come after the part answers.** `zephyr,deferred-init` initialises at first use, so an arm
+  from `main:` (≈ boot + ms) fails exactly like the boot probe, and Zephyr makes it final. The node arms from its
+  first tick; a seam-level fix (retry, or a board-declared settle time) waits for a second board that needs it.
+- **The comparator sees gravity.** Any-motion compares raw acceleration, so a threshold under 1 g fires forever.
+  `arm_cfg` writes CTRL2 HPIS1|HPIS2 (`CONFIG_LIS2DH_ACCEL_HP_FILTERS`); reads still see gravity (2b9171af).
+- **The armed trigger lives in the kind**, not on `sensor_arm`'s stack: the driver keeps the pointer (2b9171af).
+- Measured: armed at 1.5 m/s², episodes reach production porta :6969 over BLE. On a still desk, about one stray
+  single-interrupt episode a minute (`int2_src` 0x65/0x69), cause not found.
