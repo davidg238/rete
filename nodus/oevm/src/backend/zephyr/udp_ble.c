@@ -4,19 +4,21 @@
    Tailscale to porta. Linked instead of udp_zephyr.c when the build has CONFIG_BT:
    the backend follows the radio. nsl, the kernel and porta see the same seam.
 
-   THE WIRE (one L2CAP SDU = one datagram, both directions, all integers big-endian):
-       u8  version            1
-       u16 local_port         the node's bound port (its "socket")
-       u16 remote_port        node->relay: destination; relay->node: sender
-       u8  host_len           then host_len bytes of the remote host as TEXT,
-                              exactly the string the seam carries (IPv6 or IPv4)
-       ... payload
-   The relay is a dumb forwarder: it keeps one UDP socket per (node, local_port), so
+   THE WIRE is protocol/RELAY-BLE.md: one L2CAP SDU = one datagram, the local port,
+   the remote port and the remote host as TEXT before the payload; the codec is
+   relay_frame.h. The relay is a dumb forwarder: it keeps one UDP socket per (node, local_port), so
    porta sees a distinct source port per node socket and answers it as usual.
+
+   PAIR ONCE (David, 2026-10-23): the channel needs an encrypted link (BT_SECURITY_L2,
+   LE Secure Connections, Just Works), so the phone must bond before it can talk. The
+   bond is kept in settings; once one exists every new pairing is refused, and a phone
+   without the keys can connect but never open the channel. A full flash erase drops
+   the bond, which is how a lost phone is replaced.
 
    One phone, one channel: a second connection is refused. While no channel is up,
    a send answers -1 and is dropped — UDP's own semantics, and porta already retries. */
 #include "udp_backend.h"
+#include "relay_frame.h"
 #include <string.h>
 #include <zephyr/kernel.h>
 #include <zephyr/sys/byteorder.h>
@@ -24,11 +26,10 @@
 #include <zephyr/bluetooth/conn.h>
 #include <zephyr/bluetooth/l2cap.h>
 #include <zephyr/bluetooth/uuid.h>
+#include <zephyr/settings/settings.h>
 
-#define RELAY_VERSION   1
 #define RELAY_PSM       0x0080          /* fixed for the spike; the relay dials it */
-#define HDR_MAX         (1 + 2 + 2 + 1 + 255)
-#define SDU_MTU         (HDR_MAX + 2048)    /* udp.c reads into a 2048 B buffer */
+#define SDU_MTU         (RELAY_FRAME_HDR_MAX + 2048)    /* udp.c reads into a 2048 B buffer */
 #define MAX_SOCKS       4
 #define EPHEMERAL_BASE  49152
 #define RING_BYTES      4096
@@ -68,7 +69,9 @@ static int recv_cb(struct bt_l2cap_chan *chan, struct net_buf *buf) {
     (void)chan;
     uint16_t len = buf->len;
     k_mutex_lock(&ring_lock, K_FOREVER);
-    if (len >= 6 && r_used + 2 + len <= RING_BYTES) {     /* full ring: drop, as UDP would */
+    struct relay_frame f;
+    /* malformed or a full ring: drop, as UDP would */
+    if (relay_frame_parse(buf->data, len, &f) == 0 && r_used + 2 + len <= RING_BYTES) {
         uint8_t l[2]; sys_put_be16(len, l);
         ring_put(l, 2);
         ring_put(buf->data, len);
@@ -108,7 +111,7 @@ static int accept_cb(struct bt_conn *conn, struct bt_l2cap_server *server,
 
 static struct bt_l2cap_server server = {
     .psm = RELAY_PSM,
-    .sec_level = BT_SECURITY_L1,                          /* spike: no pairing yet */
+    .sec_level = BT_SECURITY_L2,                          /* encrypted: bonded phones only */
     .accept = accept_cb,
 };
 
@@ -130,11 +133,49 @@ static void adv_start(void) {
 static void recycled_cb(void) { adv_start(); }
 BT_CONN_CB_DEFINE(conn_cbs) = { .recycled = recycled_cb };
 
+static void count_bond(const struct bt_bond_info *info, void *n) {
+    (void)info;
+    (*(int *)n)++;
+}
+
+/* Pair once: the first phone bonds, every later pairing is refused. */
+static enum bt_security_err pairing_accept(struct bt_conn *conn,
+                                           const struct bt_conn_pairing_feat *feat) {
+    (void)conn; (void)feat;
+    int bonds = 0;
+    bt_foreach_bond(BT_ID_DEFAULT, count_bond, &bonds);
+    if (bonds > 0) {
+        printk("ble: pairing refused, already bonded\n");
+        return BT_SECURITY_ERR_PAIR_NOT_ALLOWED;
+    }
+    return BT_SECURITY_ERR_SUCCESS;
+}
+
+static void pairing_complete(struct bt_conn *conn, bool bonded) {
+    (void)conn;
+    printk("ble: paired, %s\n", bonded ? "bonded" : "NOT bonded");
+}
+
+static void pairing_failed(struct bt_conn *conn, enum bt_security_err reason) {
+    (void)conn;
+    printk("ble: pairing failed (%d)\n", reason);
+}
+
+static struct bt_conn_auth_cb auth_cb = { .pairing_accept = pairing_accept };
+static struct bt_conn_auth_info_cb auth_info_cb = {
+    .pairing_complete = pairing_complete,
+    .pairing_failed = pairing_failed,
+};
+
 void udp_open(void) {
     if (inited) return;
     inited = true;
     int err = bt_enable(NULL);
     if (err) { printk("ble: bt_enable failed (%d)\n", err); return; }
+    (void)settings_subsys_init();                         /* idempotent; platform_zephyr.c calls it too */
+    (void)settings_load_subtree("bt");                    /* the bond, if there is one */
+    bt_conn_auth_cb_register(&auth_cb);
+    bt_conn_auth_info_cb_register(&auth_info_cb);
     err = bt_l2cap_server_register(&server);
     if (err) { printk("ble: l2cap server failed (%d)\n", err); return; }
     adv_start();
@@ -155,15 +196,14 @@ int udp_socket_bind(int port) {
 int udp_send(int sock, const char *host, int port, const uint8_t *data, int len) {
     if (sock < 0 || sock >= MAX_SOCKS || sock_port[sock] == 0 || !chan_up) return -1;
     size_t hl = strlen(host);
-    if (hl > 255 || len < 0 || 6 + hl + (size_t)len > SDU_MTU) return -1;
+    if (len < 0 || RELAY_FRAME_HDR + hl + (size_t)len > SDU_MTU) return -1;
     struct net_buf *buf = net_buf_alloc(&tx_pool, K_NO_WAIT);
     if (buf == NULL) return -1;                           /* both in flight: drop */
     net_buf_reserve(buf, BT_L2CAP_SDU_CHAN_SEND_RESERVE);
-    net_buf_add_u8(buf, RELAY_VERSION);
-    net_buf_add_be16(buf, (uint16_t)sock_port[sock]);
-    net_buf_add_be16(buf, (uint16_t)port);
-    net_buf_add_u8(buf, (uint8_t)hl);
-    net_buf_add_mem(buf, host, hl);
+    int h = relay_frame_put_header(net_buf_tail(buf), net_buf_tailroom(buf),
+                                   (uint16_t)sock_port[sock], (uint16_t)port, host, hl);
+    if (h < 0) { net_buf_unref(buf); return -1; }
+    net_buf_add(buf, (size_t)h);
     net_buf_add_mem(buf, data, (size_t)len);
     int err = bt_l2cap_chan_send(&le_chan.chan, buf);
     if (err < 0) { net_buf_unref(buf); return -1; }
@@ -183,25 +223,24 @@ int udp_receive(int sock, uint8_t *buf, int buf_cap,
     int n = -1;
     k_mutex_lock(&ring_lock, K_FOREVER);
     while (r_used > 0) {
-        uint8_t h[8];
-        ring_peek(0, h, 8);
-        uint16_t flen = sys_get_be16(h);
-        uint16_t lport = sys_get_be16(h + 3), rport = sys_get_be16(h + 5);
-        uint8_t hl = h[7];
-        size_t plen = (flen >= 6u + hl) ? flen - 6u - hl : 0;
-        if (h[2] != RELAY_VERSION || flen < 6u + hl || !bound(lport)) {
-            ring_drop(2 + flen);                          /* malformed or unbound */
+        uint8_t l[2], h[RELAY_FRAME_HDR_MAX];
+        struct relay_frame f;
+        ring_peek(0, l, 2);
+        uint16_t flen = sys_get_be16(l);
+        ring_peek(2, h, flen < sizeof h ? flen : sizeof h);
+        if (relay_frame_parse(h, flen, &f) != 0 || !bound(f.local_port)) {
+            ring_drop(2 + flen);                          /* malformed, or for an unbound port */
             continue;
         }
-        if (lport != sock_port[sock]) break;              /* another socket's */
+        if (f.local_port != sock_port[sock]) break;       /* another socket's */
         if (host_cap > 0) {
-            size_t c = hl < (size_t)host_cap - 1 ? hl : (size_t)host_cap - 1;
-            ring_peek(8, (uint8_t *)host_out, c);
+            size_t c = f.host_len < (size_t)host_cap - 1 ? f.host_len : (size_t)host_cap - 1;
+            memcpy(host_out, h + f.host_off, c);
             host_out[c] = '\0';
         }
-        *sender_port = rport;
-        size_t c = plen < (size_t)buf_cap ? plen : (size_t)buf_cap;
-        ring_peek(8 + hl, buf, c);
+        *sender_port = f.remote_port;
+        size_t c = f.payload_len < (size_t)buf_cap ? f.payload_len : (size_t)buf_cap;
+        ring_peek(2 + f.payload_off, buf, c);
         ring_drop(2 + flen);
         n = (int)c;
         break;

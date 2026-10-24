@@ -269,6 +269,9 @@ C_UNIT_TESTS = [
     # and carries the pre-#269 predicate in-file, requiring THAT to false-fire — so
     # this gate has teeth rather than being a tautology written after the fix.
     ("test_observer_core",    [], ["-Wextra"], None),
+    # rete#439: the relay frame codec against protocol/fixtures/relay/frame.hex, the
+    # golden vector the relay app's FrameTest.kt also reads.
+    ("test_relay_frame",      [], ["-Wextra"], None),
 
     # --- Pre-existing breakage, excluded rather than silently dropped ---
     ("test_solidified",       ENG_A, [],

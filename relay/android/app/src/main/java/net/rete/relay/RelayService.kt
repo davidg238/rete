@@ -29,8 +29,8 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicLong
 
 /**
- * The porta relay (rete#439, SPIKE). Finds the node by its service UUID, opens the
- * L2CAP channel on PSM 0x80, and forwards: each frame up becomes a UDP datagram from a
+ * The porta relay (rete#439; the contract is protocol/RELAY-BLE.md). Finds the node by
+ * its service UUID, bonds once, opens the encrypted L2CAP channel on PSM 0x80, and forwards: each frame up becomes a UDP datagram from a
  * socket kept per node port; each datagram back on that socket becomes a frame down.
  * Tailscale carries the UDP — nothing here knows about it.
  *
@@ -83,8 +83,9 @@ class RelayService : Service() {
             try {
                 setState("scanning")
                 val dev = scan() ?: continue
+                if (!bond(dev)) continue
                 setState("connecting ${dev.address}")
-                val sock = dev.createInsecureL2capChannel(PSM)
+                val sock = dev.createL2capChannel(PSM)
                 sock.connect()
                 Session(sock).also { session = it }.run()
             } catch (e: SecurityException) {
@@ -96,6 +97,23 @@ class RelayService : Service() {
             }
             if (running) { setState("link down; retrying"); sleep(2_000) }
         }
+    }
+
+    /** The node opens its channel to a bonded phone only (protocol/RELAY-BLE.md): bond
+     *  first, once (LE Secure Connections, Just Works — Android asks David to confirm). */
+    @Suppress("MissingPermission")
+    private fun bond(dev: BluetoothDevice): Boolean {
+        if (dev.bondState == BluetoothDevice.BOND_BONDED) return true
+        setState("pairing ${dev.address}")
+        if (dev.bondState == BluetoothDevice.BOND_NONE && !dev.createBond()) {
+            log("createBond refused"); return false
+        }
+        repeat(60) {
+            if (dev.bondState == BluetoothDevice.BOND_BONDED) return true
+            if (dev.bondState == BluetoothDevice.BOND_NONE && it > 0) { log("pairing failed"); return false }
+            sleep(500)
+        }
+        log("pairing timed out"); return false
     }
 
     @Suppress("MissingPermission")

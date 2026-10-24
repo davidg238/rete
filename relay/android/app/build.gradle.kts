@@ -21,3 +21,8 @@ android {
 dependencies {
     testImplementation("junit:junit:4.13.2")
 }
+// FrameTest reads the golden vector from protocol/ (rete#439). Without this input Gradle
+// calls the test task up to date after the vector changes, and a broken vector reads green.
+tasks.withType<Test>().configureEach {
+    inputs.file(rootProject.file("../../protocol/fixtures/relay/frame.hex"))
+}
