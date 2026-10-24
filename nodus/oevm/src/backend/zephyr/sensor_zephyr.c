@@ -69,14 +69,18 @@ static struct sensor_kind *find_kind(const char *kind, int len)
     return NULL;
 }
 
-/* DEVICE_DT_GET is a compile-time pointer, so nothing is probed here. Readiness is
-   re-checked every call on purpose: a sensor that is not ready at boot (slow
-   power-up, bus contention) can become ready later, and answering "not ready" until
-   then makes the prim answer nil, which a sampler already handles by keeping its
-   last good reading. */
+/* DEVICE_DT_GET is a compile-time pointer, so nothing is probed here. A Zephyr init
+   that fails is final: device_is_ready never turns true afterwards. A board whose
+   sensor cannot answer at boot marks its node `zephyr,deferred-init`, and the first
+   use initialises it here (on the ACC01 the LSM303AGR does not answer at 6.8 ms
+   after reset, the moment a Bluetooth image probes it, rete#436). device_init is a
+   no-op (-EALREADY) on a device that was initialised at boot. Not ready answers nil,
+   which a sampler already handles by keeping its last good reading. */
 static const struct device *ready_dev(const struct sensor_kind *k)
 {
-    return (k->dev && device_is_ready(k->dev)) ? k->dev : NULL;
+    if (k->dev == NULL) return NULL;
+    if (!device_is_ready(k->dev)) (void)device_init(k->dev);
+    return device_is_ready(k->dev) ? k->dev : NULL;
 }
 
 int sensor_read(const char *kind, int len, int32_t *out)
