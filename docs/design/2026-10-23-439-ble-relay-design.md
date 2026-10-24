@@ -95,3 +95,18 @@ skips the settings partition (`9f9c62d4`, `c5296ee6`). Three corrections to rule
   pending so every later pairing failed. A workaround: #440 removes the cause, then this line goes.
 - **The link drops with its channel.** A link left up without a channel holds the node's one connection and
   stops advertising, so the relay scans forever.
+
+## Addendum — step 3 measured (2026-10-23, late)
+
+No IP stack + the tee through the seam (rules 2–3). DK image (`PortaBridgeNodeBle`): RAM 252,800 → 240,512 B
+(−12,288), FLASH 447,700 → 405,764 B. On the ACC01 via the Pixel to test porta :6979: the bond survives the
+reflash, the held boot reaches custos whole, and a `goal/profile` window (`OEVM_METHOD_PROFILE=1`, +6,144 B,
+247,936 B total) comes back as 220 methods + 75 alloc rows. Costs found:
+
+- **The tee's socket is bound, so it drains it** each pass: on `udp_ble.c` an unread datagram would sit at the head
+  of the one receive ring, in front of the VM's replies.
+- **An address is no longer refused at `goal/console`**: it is text to the seam; a bad one shows as send errors.
+- **The dump costs send errors**: `tx_pool` holds 2 SDUs, so the tee hits `EAGAIN` and backs off `BUSY_MS`; one dump
+  logged 420 send errors and 71 dropped chars with every row arriving. A third buffer is earned if rows go missing.
+- Profile on the nRF is a build knob (`OEVM_METHOD_PROFILE`, run.sh's C6-only default); whether the ACC01 image
+  carries it by default is open.

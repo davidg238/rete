@@ -17,6 +17,9 @@
       explicitly for zsock_fcntl(). */
 #include "http_backend.h"
 #include <zephyr/kernel.h>       /* k_yield / k_msleep, printk */
+
+#ifdef CONFIG_NET_SOCKETS
+
 #include <zephyr/net/socket.h>
 #include <zephyr/net/net_ip.h>
 #include <zephyr/posix/fcntl.h>  /* F_SETFL, O_NONBLOCK (not pulled in by net/socket.h) */
@@ -181,3 +184,19 @@ void http_poll(void) {
     if (!http_parse_reqline(buf, method, HTTP_METHOD_MAX, path, HTTP_PATH_MAX)) { zsock_close(fd); return; }
     http_accept_request(fd, method, (int)strlen(method), path, (int)strlen(path));
 }
+
+#else  /* !CONFIG_NET_SOCKETS */
+
+/* No IP stack in this image (a Bluetooth build, rete#439): nothing can connect, so
+   there is no listener. http_listen answers -1, as a failed bind would. */
+int http_write(int fd, const char *buf, int len) { (void)fd; (void)buf; (void)len; return -1; }
+void http_close(int fd) { (void)fd; }
+void http_emit(int fd, const char *hdr, int hlen, const char *body, int body_len) {
+    (void)fd; (void)hdr; (void)hlen; (void)body; (void)body_len;
+}
+int http_listen(int port) { (void)port; return -1; }
+uint32_t http_accept_failures(void) { return 0; }
+int http_is_listening(void) { return 0; }
+void http_poll(void) {}
+
+#endif /* CONFIG_NET_SOCKETS */

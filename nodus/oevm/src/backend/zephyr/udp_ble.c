@@ -16,9 +16,15 @@
    the bond, which is how a lost phone is replaced.
 
    One phone, one channel: a second connection is refused. While no channel is up,
-   a send answers -1 and is dropped — UDP's own semantics, and porta already retries. */
+   a send answers -1 and is dropped — UDP's own semantics, and porta already retries.
+   A refused send sets errno as the socket backend's sendto would: ENOTCONN (no
+   channel) or EAGAIN (no buffer), so the console tee can tell dead from busy.
+
+   TWO CALLERS: the VM thread and the console tee's thread (log_udp.c) both use the
+   seam, so the socket table and the transmit path are under sock_lock. */
 #include "udp_backend.h"
 #include "relay_frame.h"
+#include <errno.h>
 #include <string.h>
 #include <zephyr/kernel.h>
 #include <zephyr/sys/byteorder.h>
@@ -43,7 +49,8 @@ NET_BUF_POOL_DEFINE(rx_pool, 1, BT_L2CAP_SDU_BUF_SIZE(SDU_MTU), 8, NULL);
 static struct bt_l2cap_le_chan le_chan;
 static volatile bool chan_up;
 static bool inited;
-static int sock_port[MAX_SOCKS];      /* 0 = free */
+static int sock_port[MAX_SOCKS];      /* 0 = free; under sock_lock */
+static K_MUTEX_DEFINE(sock_lock);
 
 /* Received datagrams, whole frames, each stored as [u16 len][frame]. Written by the BT
    RX thread, read by the VM thread polling udp_receive. */
@@ -182,7 +189,7 @@ static struct bt_conn_auth_info_cb auth_info_cb = {
     .pairing_failed = pairing_failed,
 };
 
-void udp_open(void) {
+static void open_locked(void) {
     if (inited) return;
     inited = true;
     int err = bt_enable(NULL);
@@ -197,32 +204,52 @@ void udp_open(void) {
     printk("ble: advertising as \"%s\", relay psm 0x%04x\n", CONFIG_BT_DEVICE_NAME, RELAY_PSM);
 }
 
+void udp_open(void) {
+    k_mutex_lock(&sock_lock, K_FOREVER);
+    open_locked();
+    k_mutex_unlock(&sock_lock);
+}
+
 int udp_socket_bind(int port) {
-    udp_open();
+    int fd = -1;
+    k_mutex_lock(&sock_lock, K_FOREVER);
+    open_locked();
     for (int i = 0; i < MAX_SOCKS; i++) {
         if (sock_port[i] == 0) {
             sock_port[i] = port ? port : EPHEMERAL_BASE + i;
-            return i;
+            fd = i;
+            break;
         }
     }
-    return -1;
+    k_mutex_unlock(&sock_lock);
+    return fd;
 }
 
-int udp_send(int sock, const char *host, int port, const uint8_t *data, int len) {
-    if (sock < 0 || sock >= MAX_SOCKS || sock_port[sock] == 0 || !chan_up) return -1;
+static int send_locked(int sock, const char *host, int port, const uint8_t *data, int len) {
+    if (sock < 0 || sock >= MAX_SOCKS || sock_port[sock] == 0) { errno = EBADF; return -1; }
+    if (!chan_up) { errno = ENOTCONN; return -1; }
     size_t hl = strlen(host);
-    if (len < 0 || RELAY_FRAME_HDR + hl + (size_t)len > SDU_MTU) return -1;
+    if (len < 0 || RELAY_FRAME_HDR + hl + (size_t)len > SDU_MTU) { errno = EMSGSIZE; return -1; }
     struct net_buf *buf = net_buf_alloc(&tx_pool, K_NO_WAIT);
-    if (buf == NULL) return -1;                           /* both in flight: drop */
+    if (buf == NULL) { errno = EAGAIN; return -1; }       /* both in flight: drop */
     net_buf_reserve(buf, BT_L2CAP_SDU_CHAN_SEND_RESERVE);
     int h = relay_frame_put_header(net_buf_tail(buf), net_buf_tailroom(buf),
                                    (uint16_t)sock_port[sock], (uint16_t)port, host, hl);
-    if (h < 0) { net_buf_unref(buf); return -1; }
+    if (h < 0) { net_buf_unref(buf); errno = EMSGSIZE; return -1; }
     net_buf_add(buf, (size_t)h);
     net_buf_add_mem(buf, data, (size_t)len);
     int err = bt_l2cap_chan_send(&le_chan.chan, buf);
-    if (err < 0) { net_buf_unref(buf); return -1; }
+    if (err < 0) { net_buf_unref(buf); errno = -err; return -1; }
     return len;
+}
+
+int udp_send(int sock, const char *host, int port, const uint8_t *data, int len) {
+    k_mutex_lock(&sock_lock, K_FOREVER);
+    int n = send_locked(sock, host, port, data, len);
+    int e = errno;
+    k_mutex_unlock(&sock_lock);
+    errno = e;
+    return n;
 }
 
 static bool bound(int port) {
@@ -234,8 +261,9 @@ static bool bound(int port) {
    dropped; one for another bound socket waits for that socket's poll. */
 int udp_receive(int sock, uint8_t *buf, int buf_cap,
                 char *host_out, int host_cap, int *sender_port) {
-    if (sock < 0 || sock >= MAX_SOCKS || sock_port[sock] == 0) return -1;
     int n = -1;
+    k_mutex_lock(&sock_lock, K_FOREVER);                  /* then ring_lock; recv_cb takes only ring_lock */
+    if (sock < 0 || sock >= MAX_SOCKS || sock_port[sock] == 0) { k_mutex_unlock(&sock_lock); return -1; }
     k_mutex_lock(&ring_lock, K_FOREVER);
     while (r_used > 0) {
         uint8_t l[2], h[RELAY_FRAME_HDR_MAX];
@@ -261,9 +289,12 @@ int udp_receive(int sock, uint8_t *buf, int buf_cap,
         break;
     }
     k_mutex_unlock(&ring_lock);
+    k_mutex_unlock(&sock_lock);
     return n;
 }
 
 void udp_close(int sock) {
+    k_mutex_lock(&sock_lock, K_FOREVER);
     if (sock >= 0 && sock < MAX_SOCKS) sock_port[sock] = 0;
+    k_mutex_unlock(&sock_lock);
 }
