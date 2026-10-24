@@ -37,9 +37,14 @@ struct sensor_kind {
        with no trigger has trig == SENSOR_TRIG_COMMON_COUNT and refuses to arm. */
     enum sensor_trigger_type trig;
     enum sensor_attribute thr_attr;
+    /* SENSOR_ATTR_CONFIGURATION written before the threshold, or -1 for none. */
+    int32_t arm_cfg;
     /* The armed event: one per kind. handle_idx is the caller's pin, -1 until the
        first arm; sensor_arm hands the superseded one back for the caller to free. */
     int chan_id, handle_idx;
+    /* The driver keeps this pointer and hands it back to on_trigger, so it lives
+       here, not on sensor_arm's stack (lis2dh stores trig_anymotion = trig). */
+    struct sensor_trigger armed;
 };
 
 static struct sensor_kind kinds[] = {
@@ -49,7 +54,7 @@ static struct sensor_kind kinds[] = {
 #endif
         .chan = SENSOR_CHAN_AMBIENT_TEMP, .n = 64,
         /* #58: the AMG8833 threshold trigger is deferred (WROOM-32 DRAM ceiling). */
-        .trig = SENSOR_TRIG_COMMON_COUNT, .handle_idx = -1 },
+        .trig = SENSOR_TRIG_COMMON_COUNT, .arm_cfg = -1, .handle_idx = -1 },
     {   .name = "accel",
 #if DT_NODE_EXISTS(ACCEL_NODE)
         .dev = DEVICE_DT_GET(ACCEL_NODE),
@@ -57,8 +62,18 @@ static struct sensor_kind kinds[] = {
         .chan = SENSOR_CHAN_ACCEL_XYZ, .n = 3,
         /* lis2dh any-motion: SLOPE_TH is the INTx_THS register, SENSOR_TRIG_DELTA
            arms INTx_CFG. Which pin (anym-on-int1) and which mode (anym-mode: OR
-           any-motion vs 6D position) are devicetree properties of the board. */
-        .trig = SENSOR_TRIG_DELTA, .thr_attr = SENSOR_ATTR_SLOPE_TH, .handle_idx = -1 },
+           any-motion vs 6D position) are devicetree properties of the board.
+           The comparator sees raw acceleration, gravity included, so without the
+           high-pass filter any threshold under 1 g fires forever and any over it
+           misses all but a jolt. arm_cfg is CTRL2's HPIS1|HPIS2: the filter feeds
+           the interrupt comparators only, so a sensorRead: still sees gravity. */
+        .trig = SENSOR_TRIG_DELTA, .thr_attr = SENSOR_ATTR_SLOPE_TH,
+#ifdef CONFIG_LIS2DH_ACCEL_HP_FILTERS
+        .arm_cfg = 0x03,
+#else
+        .arm_cfg = -1,
+#endif
+        .handle_idx = -1 },
 };
 
 static struct sensor_kind *find_kind(const char *kind, int len)
@@ -123,6 +138,10 @@ int sensor_arm(const char *kind, int len, int chan_id, int handle_idx, int32_t t
         .val1 = threshold_milli / 1000,
         .val2 = (threshold_milli % 1000) * 1000,
     };
+    if (k->arm_cfg >= 0) {
+        struct sensor_value cfg = { .val1 = k->arm_cfg };
+        if (sensor_attr_set(dev, k->chan, SENSOR_ATTR_CONFIGURATION, &cfg) != 0) return -3;
+    }
     if (sensor_attr_set(dev, k->chan, k->thr_attr, &thr) != 0) return -3;
 
     /* Publish the destination BEFORE the trigger can fire. A re-arm replaces the
@@ -131,8 +150,8 @@ int sensor_arm(const char *kind, int len, int chan_id, int handle_idx, int32_t t
     int prev = k->handle_idx;
     k->chan_id = chan_id;
     k->handle_idx = handle_idx;
-    struct sensor_trigger t = { .type = k->trig, .chan = k->chan };
-    if (sensor_trigger_set(dev, &t, on_trigger) != 0) {
+    k->armed = (struct sensor_trigger){ .type = k->trig, .chan = k->chan };
+    if (sensor_trigger_set(dev, &k->armed, on_trigger) != 0) {
         /* Not armed after all: the caller frees handle_idx, so stop naming it.
            The old pin stays the kind's — if the driver kept the earlier trigger,
            it still posts there; if it dropped it, the stale pin is harmless. */
