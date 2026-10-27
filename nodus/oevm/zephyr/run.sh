@@ -7,7 +7,7 @@
 # solidified_image.c.
 set -euo pipefail
 
-MODEL=B NODE=TimerNode.nsl DO_FLASH=0 CAPTURE=0 PRISTINE=0 BUILD_DIR="" BOARD_ID=esp32c6 CONF_EXTRA="" DTC_OVERLAY="" CONF_OVERRIDE=""
+MODEL=B NODE=TimerNode.nsl DO_FLASH=0 CAPTURE=0 PRISTINE=0 BUILD_DIR="" BOARD_ID=esp32c6 CONF_EXTRA="" DTC_OVERLAY="" EXTRA_MODULE="" CONF_OVERRIDE=""
 # Which chip's ROM ld the setjmp/longjmp patch targets. Only meaningful when a
 # profile sets ROM_PATCH=1; the esp32 profile leaves this default.
 ROM_PATCH_CHIP=esp32
@@ -22,6 +22,7 @@ while [ $# -gt 0 ]; do
     --board)      BOARD_ID="$2"; shift 2 ;;
     --conf-extra) CONF_EXTRA="$2"; shift 2 ;;
     --dtc-overlay) DTC_OVERLAY="$2"; shift 2 ;;
+    --extra-module) EXTRA_MODULE="$2"; shift 2 ;;
     --conf)       CONF_OVERRIDE="$2"; shift 2 ;;
     *) echo "unknown arg: $1" >&2; exit 2 ;;
   esac
@@ -655,6 +656,17 @@ if [ -n "$DTC_OVERLAY" ]; then
   DTC_OVERLAY="$(cd "$(dirname "$DTC_OVERLAY")" && pwd)/$(basename "$DTC_OVERLAY")"
   EXTRA_CONF_ARG+=(-DEXTRA_DTC_OVERLAY_FILE="$DTC_OVERLAY")
   echo "[extra] dtc overlay -> $DTC_OVERLAY"
+fi
+# --extra-module (rete#438): a caller-supplied Zephyr module, for drivers rete does not
+# carry (ttgm's OCM.1 PIR and thermopile, rete#447) — the driver half of the line
+# --dtc-overlay draws for the board. The module's own zephyr/module.yml says what it
+# adds (Kconfig, CMake, dts bindings). A directory without one is fatal here: Zephyr
+# would otherwise build without it and the sensor would read nil forever.
+if [ -n "$EXTRA_MODULE" ]; then
+  [ -f "$EXTRA_MODULE/zephyr/module.yml" ] || { echo "--extra-module: no zephyr/module.yml under: $EXTRA_MODULE" >&2; exit 2; }
+  EXTRA_MODULE="$(cd "$EXTRA_MODULE" && pwd)"
+  EXTRA_CONF_ARG+=(-DZEPHYR_EXTRA_MODULES="$EXTRA_MODULE")
+  echo "[extra] zephyr module -> $EXTRA_MODULE"
 fi
 # ROM setjmp/longjmp/ungetc fault under Zephyr+picolibc (same forced-ROM-newlib
 # family as fflush); patch the vendored SDK ld to use picolibc's. Idempotent; a
