@@ -41,3 +41,19 @@ profiler compiled in) that is their shipped image.
   15:05 UTC comments); paper E §9 and Appendix B carry the numbers.
 - The three defects the MagTag run found and fixed (a WiFi node's reply socket #390, the VM's thread priority
   against the WiFi driver, boot id 0 on a cold boot) are on rete#379.
+
+## Addendum 2026-10-27 — a third board, over Bluetooth LE (rete#450)
+
+The same mechanism, unchanged, on an nRF52840 (ttgm's OCM.1) whose only link is the BLE phone relay (#439), with
+production porta :6969 on #444. Image: AccMotionBle, `OEVM_DEBUG_HOOKS=1`, no method profiler (+768 B RAM, 92.82%
+of 256 KB). The console is RTT and the chosen console UART is disabled, so the cable read answers EOF and porta is
+the only debug link; the image printed `dbg:ready` and ran on.
+
+| | OCM.1, nRF52840, BLE via the Pixel relay, always on |
+|---|---|
+| how the break arrived | the cell rode the next check-in; `tick` (30 s cadence) stopped 48 s after the write |
+| `dbg:backtrace` / `dbg:inspect` / `dbg:step` | 381 / 495 / 515 ms |
+| release | the empty set → `dbg:ok clear` in 959 ms; `obs/debug` held false; ticks resumed, `misses 0` |
+
+Commands are `dbg:`-prefixed lines; a bare `backtrace` is not the debugger's and goes to the space as an ordinary
+row (cost a 60 s timeout per command to learn). Driving it from custos is rete#453.
