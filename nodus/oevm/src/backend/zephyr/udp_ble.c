@@ -52,20 +52,29 @@ static bool inited;
 static int sock_port[MAX_SOCKS];      /* 0 = free; under sock_lock */
 static K_MUTEX_DEFINE(sock_lock);
 
-/* Received datagrams, whole frames, each stored as [u16 len][frame]. Written by the BT
-   RX thread, read by the VM thread polling udp_receive. */
-static uint8_t ring[RING_BYTES];
-static size_t r_head, r_tail, r_used;
+/* Received datagrams, whole frames, each stored as [u16 len][frame], ONE RING PER SOCKET,
+   as UDP keeps one queue per socket. Written by the BT RX thread, read by whichever thread
+   polls that socket. rete#449: it was one ring for all sockets, and a socket took a
+   datagram only when the head was its own, so the OTA fetch thread and the VM's porta
+   socket each waited behind the other's reply: the fetch timed out at block 105 while the
+   check-in counted misses. 1 KB a socket (the same 4 KB) holds a whole 512 B batch or three
+   OTA blocks, and both are stop-and-wait. */
+#define RING_PER_SOCK   (RING_BYTES / MAX_SOCKS)
+static struct { uint8_t b[RING_PER_SOCK]; size_t head, tail, used; } rings[MAX_SOCKS];
 static K_MUTEX_DEFINE(ring_lock);
 
-static void ring_put(const uint8_t *p, size_t n) {
-    for (size_t i = 0; i < n; i++) { ring[r_tail] = p[i]; r_tail = (r_tail + 1) % RING_BYTES; }
-    r_used += n;
+static void ring_put(int s, const uint8_t *p, size_t n) {
+    for (size_t i = 0; i < n; i++) {
+        rings[s].b[rings[s].tail] = p[i]; rings[s].tail = (rings[s].tail + 1) % RING_PER_SOCK;
+    }
+    rings[s].used += n;
 }
-static void ring_peek(size_t off, uint8_t *p, size_t n) {
-    for (size_t i = 0; i < n; i++) p[i] = ring[(r_head + off + i) % RING_BYTES];
+static void ring_peek(int s, size_t off, uint8_t *p, size_t n) {
+    for (size_t i = 0; i < n; i++) p[i] = rings[s].b[(rings[s].head + off + i) % RING_PER_SOCK];
 }
-static void ring_drop(size_t n) { r_head = (r_head + n) % RING_BYTES; r_used -= n; }
+static void ring_drop(int s, size_t n) {
+    rings[s].head = (rings[s].head + n) % RING_PER_SOCK; rings[s].used -= n;
+}
 
 static struct net_buf *alloc_buf_cb(struct bt_l2cap_chan *chan) {
     (void)chan;
@@ -77,11 +86,16 @@ static int recv_cb(struct bt_l2cap_chan *chan, struct net_buf *buf) {
     uint16_t len = buf->len;
     k_mutex_lock(&ring_lock, K_FOREVER);
     struct relay_frame f;
-    /* malformed or a full ring: drop, as UDP would */
-    if (relay_frame_parse(buf->data, len, &f) == 0 && r_used + 2 + len <= RING_BYTES) {
+    /* malformed, for an unbound port, or a full ring: drop, as UDP would. sock_port is
+       read without sock_lock (udp_receive takes sock_lock then ring_lock; this takes
+       only ring_lock): a socket bound or closed mid-frame costs that one datagram. */
+    int s = -1;
+    if (relay_frame_parse(buf->data, len, &f) == 0)
+        for (int i = 0; i < MAX_SOCKS; i++) if (sock_port[i] == f.local_port) { s = i; break; }
+    if (s >= 0 && rings[s].used + 2 + len <= RING_PER_SOCK) {
         uint8_t l[2]; sys_put_be16(len, l);
-        ring_put(l, 2);
-        ring_put(buf->data, len);
+        ring_put(s, l, 2);
+        ring_put(s, buf->data, len);
     }
     k_mutex_unlock(&ring_lock);
     return 0;                                             /* the stack frees buf */
@@ -252,30 +266,23 @@ int udp_send(int sock, const char *host, int port, const uint8_t *data, int len)
     return n;
 }
 
-static bool bound(int port) {
-    for (int i = 0; i < MAX_SOCKS; i++) if (sock_port[i] == port) return true;
-    return false;
-}
-
-/* Pops the oldest datagram if it is for this socket. One for an unbound port is
-   dropped; one for another bound socket waits for that socket's poll. */
+/* Pops this socket's oldest datagram. */
 int udp_receive(int sock, uint8_t *buf, int buf_cap,
                 char *host_out, int host_cap, int *sender_port) {
     int n = -1;
     k_mutex_lock(&sock_lock, K_FOREVER);                  /* then ring_lock; recv_cb takes only ring_lock */
     if (sock < 0 || sock >= MAX_SOCKS || sock_port[sock] == 0) { k_mutex_unlock(&sock_lock); return -1; }
     k_mutex_lock(&ring_lock, K_FOREVER);
-    while (r_used > 0) {
+    while (rings[sock].used > 0) {
         uint8_t l[2], h[RELAY_FRAME_HDR_MAX];
         struct relay_frame f;
-        ring_peek(0, l, 2);
+        ring_peek(sock, 0, l, 2);
         uint16_t flen = sys_get_be16(l);
-        ring_peek(2, h, flen < sizeof h ? flen : sizeof h);
-        if (relay_frame_parse(h, flen, &f) != 0 || !bound(f.local_port)) {
-            ring_drop(2 + flen);                          /* malformed, or for an unbound port */
+        ring_peek(sock, 2, h, flen < sizeof h ? flen : sizeof h);
+        if (relay_frame_parse(h, flen, &f) != 0 || f.local_port != sock_port[sock]) {
+            ring_drop(sock, 2 + flen);                    /* a previous binding's, or malformed */
             continue;
         }
-        if (f.local_port != sock_port[sock]) break;       /* another socket's */
         if (host_cap > 0) {
             size_t c = f.host_len < (size_t)host_cap - 1 ? f.host_len : (size_t)host_cap - 1;
             memcpy(host_out, h + f.host_off, c);
@@ -283,8 +290,8 @@ int udp_receive(int sock, uint8_t *buf, int buf_cap,
         }
         *sender_port = f.remote_port;
         size_t c = f.payload_len < (size_t)buf_cap ? f.payload_len : (size_t)buf_cap;
-        ring_peek(2 + f.payload_off, buf, c);
-        ring_drop(2 + flen);
+        ring_peek(sock, 2 + f.payload_off, buf, c);
+        ring_drop(sock, 2 + flen);
         n = (int)c;
         break;
     }
@@ -295,6 +302,11 @@ int udp_receive(int sock, uint8_t *buf, int buf_cap,
 
 void udp_close(int sock) {
     k_mutex_lock(&sock_lock, K_FOREVER);
-    if (sock >= 0 && sock < MAX_SOCKS) sock_port[sock] = 0;
+    if (sock >= 0 && sock < MAX_SOCKS) {
+        sock_port[sock] = 0;
+        k_mutex_lock(&ring_lock, K_FOREVER);          /* the next binding starts empty */
+        rings[sock].head = rings[sock].tail = rings[sock].used = 0;
+        k_mutex_unlock(&ring_lock);
+    }
     k_mutex_unlock(&sock_lock);
 }

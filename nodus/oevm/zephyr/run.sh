@@ -334,8 +334,15 @@ case "$BOARD_ID" in
     # because OT/mbedTLS/the 802.15.4 driver and the 32 KB system heap are static here
     # too, and on this part VM_STACK_INIT_WORDS (4096 words = 16 KB) sits INSIDE the
     # arena. Re-measure if any of those move; do not carry this number to another node.
-    : "${OEVM_HEAP_SIZE:=114688}"
+    # rete#449 moved one: the program slots bring the OTA fetch stack (2.5 KB), and at
+    # 114688 the Thread image overflowed RAM by 1,764 B. 98304 (96 KB) is the host sweep
+    # of 2026-10-27 (PortaBridgeNodeNrf, -m32, this profile's cache/stack/mark sizes,
+    # 120 s against a loopback porta): 22 collections at 112 KB, 27 at 96, 82 at 48,
+    # out of memory at 40. NOT yet run on a board (David: test it, next session).
+    : "${OEVM_HEAP_SIZE:=98304}"
     : "${BUILD_DIR:=build-nrf52840dk-$MODEL}"
+    # rete#449: the two program slots, so a program can arrive over the air as on the C6.
+    PM_STATIC_ARG=(-DPM_STATIC_YML_FILE=pm_static_dk.yml)
     # ONE cable, unlike the C6: the DK's on-board SEGGER J-Link carries both the flash
     # channel (west flash --runner jlink) and the console VCOM. Same zero/one/many
     # discipline as the ESP32 profiles, for the same reason — this bench has had more
@@ -760,6 +767,10 @@ if [ "$BUILD_RC" = 0 ]; then
     # is the writer; this is a reader, not a copy).
     PROG_REG=$(awk '/program_a: partition@/{f=1} f && /reg = </{gsub(/[<>;]/,""); print $3, $4; exit}' \
                  "$ZDIR/$BUILD_DIR/zephyr/zephyr.dts" 2>/dev/null || true)
+    # rete#449: under the NCS partition manager the slots are PM partitions, and the
+    # build's partitions.yml is where PM wrote them (pm_static_dk.yml is the writer).
+    [ -n "$PROG_REG" ] || PROG_REG=$(awk '/^program_a:/{f=1;next} f&&/^  address:/{a=$2} f&&/^  size:/{s=$2}
+                 /^[a-z]/{f=0} END{if (a != "") print a, s}' "$ZDIR/$BUILD_DIR/partitions.yml" 2>/dev/null || true)
     if [ -n "$PROG_REG" ]; then
       read -r PROG_OFF PROG_SIZE <<< "$PROG_REG"
       OIMG_SIZE=$(stat -c %s "$OIMG")
@@ -927,8 +938,27 @@ if [ "$DO_FLASH" = 1 ]; then
     # SEGGER J-Link. --skip-rebuild for the SAME reason the esptool branch does not
     # call `west flash` bare — a rebuild here would run under a different resolved
     # environment than the one that produced the artifact just built.
-    echo "[flash] west flash --runner jlink -d $BUILD_DIR"
-    ( ncs_env && cd "$ZDIR" && west flash --skip-rebuild --runner jlink -d "$BUILD_DIR" )
+    # rete#449: with program slots no program is linked, so the .oimg goes into program_a
+    # beside the firmware: one hex, one load, overlap refused (a slot over the app is a
+    # layout error, not a flash to attempt).
+    FILE_ARG=()
+    if [ -n "${PROG_OFF:-}" ]; then
+      PROG_HEX="$ZDIR/$BUILD_DIR/merged_program.hex"
+      ( ncs_env && python3 - "$ZDIR/$BUILD_DIR/merged.hex" "$OIMG" "$PROG_OFF" "$PROG_HEX" <<'PY'
+import sys
+from intelhex import IntelHex
+fw, oimg, off, out = sys.argv[1], sys.argv[2], int(sys.argv[3], 0), sys.argv[4]
+ih = IntelHex(fw)
+p = IntelHex(); p.frombytes(open(oimg, "rb").read(), offset=off)
+ih.merge(p, overlap="error")
+ih.write_hex_file(out)
+PY
+      )
+      FILE_ARG=(--file "$PROG_HEX")
+      echo "[flash] $(basename "$OIMG") -> program_a $PROG_OFF, merged into $(basename "$PROG_HEX")"
+    fi
+    echo "[flash] west flash --runner jlink -d $BUILD_DIR ${FILE_ARG[*]}"
+    ( ncs_env && cd "$ZDIR" && west flash --skip-rebuild --runner jlink -d "$BUILD_DIR" "${FILE_ARG[@]}" )
   else
   echo "[flash] esptool $ESPTOOL_CHIP @ $ESPTOOL_OFFSET -> $ESPTOOL_PORT"
   # NOT `west flash` — that would rebuild.
