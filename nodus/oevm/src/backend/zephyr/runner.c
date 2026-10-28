@@ -28,8 +28,14 @@
 
 #if FIXED_PARTITION_EXISTS(program_a) && FIXED_PARTITION_EXISTS(program_b) && defined(CONFIG_SETTINGS)
 #include <zephyr/settings/settings.h>
+#ifndef CONFIG_SOC_FAMILY_NORDIC_NRF
 #include <spi_flash_mmap.h>
+#endif
 #include "curve25519.h"   /* ED25519_verify — MCUboot's, vendored (src/ed25519/README.md) */
+/* The vendored header declares no ED25519_verify (MCUboot declares it elsewhere), so the
+   call was implicit on every board until rete#449's build printed it. Its definition: */
+int ED25519_verify(const uint8_t *message, size_t message_len,
+                   const uint8_t signature[64], const uint8_t public_key[32]);
 
 #define SLOT_A    0
 #define SLOT_B    1
@@ -126,17 +132,22 @@ static void m_load(void) {
 }
 
 /* ---- the slots --------------------------------------------------------------------- */
-static spi_flash_mmap_handle_t handles[2];
 static const uint8_t *bases[2];
 
 static int map_slot(int s, const uint8_t **base, size_t *size) {
     if (!bases[s]) {
+#ifdef CONFIG_SOC_FAMILY_NORDIC_NRF
+        /* rete#449: internal flash is on the bus at its own offset; nothing to map. */
+        bases[s] = (const uint8_t *)(CONFIG_FLASH_BASE_ADDRESS + slots[s].off);
+#else
+        static spi_flash_mmap_handle_t handles[2];
         const void *p;
         if (spi_flash_mmap(slots[s].off, slots[s].size, SPI_FLASH_MMAP_DATA, &p, &handles[s]) != 0) {
             printk("runner: slot %c at 0x%x would not map\n", slots[s].name, (unsigned)slots[s].off);
             return 0;
         }
         bases[s] = p;
+#endif
     }
     uint32_t n;
     memcpy(&n, bases[s] + 12, 4);          /* blob_size, IMAGE-ARTIFACTS.md §2 */
