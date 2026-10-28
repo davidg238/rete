@@ -429,3 +429,13 @@ slot `b`, staged over Thread from the gateway's porta — the fetch time; (S2) t
 `main.c` with T3–T6 and the verify cost; (S3) the host gate's four scenarios by hand on the
 board: clean, reset mid-fetch, flipped sig byte, an image that never checks in; then the
 MagTag, the bell, and paper E §9's OTA line. All done 2026-10-12; the front is rete#398.
+
+## Addendum 2026-10-27 — the nRF52840 DK profile gets the same two slots (rete#449)
+
+Internal flash, the C6's mechanism unchanged (David chose it over staging in the ACC01/OCM.1 external NOR, which is
+held back until an image outgrows internal flash). Under the NCS partition manager the slots are PM partitions
+(`nodus/oevm/zephyr/pm_static_dk.yml`: app 512 KB, two 252 KB slots, settings 8 KB). `flash_map_pm.h` maps
+`FIXED_PARTITION_*` onto them, so `runner.c`, `ota_zephyr.c` and `main.c` read them through the same macros; the runner
+addresses a slot directly (internal flash is memory-mapped); `blob.S` reads `pm_config.h`; `run.sh` merges the .oimg into
+the flashed hex. Measured on OCM.1 over BLE: 164,000 B in 143 s, slot erase 7.7 s, trial → confirmed. Cost: the OTA
+fetch stack, which overflowed the DK Thread profile, so its arena went 112 → 96 KB (host sweep on rete#449; board test pending).
