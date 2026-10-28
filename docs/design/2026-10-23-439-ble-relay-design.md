@@ -123,3 +123,10 @@ Rows the ACC01 held through a phone outage reached porta stamped at arrival. Eac
 `ageMs` (capture → this push, recomputed every push; 0 for a cell) and porta stamps arrival − age, which
 is G6 as written. Chosen over the push's `#now` + each entry's `monoMs`: same answer, and the worst-case
 steady frame grows 8 B (407 → 415) instead of 51 B. Recorded in PROTOCOL-NSL §5 and RECORDS §3.
+
+## Addendum 2026-10-27 — one receive ring per socket (rete#449)
+
+`udp_ble.c` kept one receive ring for every socket and popped only a head addressed to the caller. Two sockets polled from
+two threads (the OTA fetch and the porta exchange) then each waited behind the other's reply: the fetch timed out at the
+same block every minute while check-ins counted misses. UDP keeps a queue per socket, so the ring is now split four ways
+(1 KB each, the same 4 KB), routed by `local_port` on receipt and cleared when a socket closes.
