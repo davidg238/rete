@@ -5,7 +5,7 @@ blocks are in `docs/status/focus-history.md`; live state is in the issues and `d
 
 - **Two live threads.** msi: **#449** (P1, OTA nsl on the nRF52840 DK profile) on `449-ota-nrf` (19fce2aa+conclude), pushed, not merged.
   Shown on OCM.1 over BLE through production porta: 164,000 B in 143 s, trial b confirmed. opti7040: **#432** (P1) on `432-patch-porta`; its FOCUS lines live there.
-- **Next session (msi) starts with:** branch `449-ota-nrf`. Rebuild OCM.1 on the DK profile's new 96 KB arena (David: be aggressive; host sweep on #449),
+- **Next session (msi) starts with:** FIRST, read David the "Awaiting David" list below (he asked, 2026-10-28). Then branch `449-ota-nrf`. Rebuild OCM.1 on the DK profile's new 96 KB arena (David: be aggressive; host sweep on #449),
   re-attach the J-Link (David) and flash it, push a program with `porta blob put` + `goal/apps/main`, and watch `sys/metrics` and the console. If it holds, merge to master.
   OCM.1 build: ttgm `firmware/boards/ocm1.overlay` + `--extra-module ~/workspace/ttgm/firmware`, `prj_dk_ble.conf`, rtt_console + lis2dh confs, `OEVM_OTA_PUBKEY` = gw `~/porta-v2/porta.pub`.
 - **Awaiting David:** the ACC01 reflash from master (production porta refuses its pre-#444 image); #368's history rewrite;
