@@ -803,6 +803,9 @@ if [ "$BUILD_RC" = 0 ]; then
   # on the RP2350, with nothing in the diff to point at (docs/ZEPHYR_LESSONS.md §11). oevm.h
   # OEVM_HOT routes them into RAM; this line says, after every build, whether it did. Read
   # from the ELF with the build's own nm (the compiler path from compile_commands.json).
+  # Only on the XIP boards: an nRF build is sysbuild, its compile_commands.json is one level
+  # down, and the failed grep under set -e ended the script before --flash (rete#448).
+  case "$BOARD_ID" in rpi_pico2|weact_rp2350b|feather_rp2040|esp32*)
   HOT_SYM_ADDR=$(CCPATH=$(grep -o -m1 '[^" ]*-gcc' "$ZDIR/$BUILD_DIR/compile_commands.json" | head -1); \
     [ -n "$CCPATH" ] && "${CCPATH%-gcc}-nm" "$ZDIR/$BUILD_DIR/zephyr/zephyr.elf" 2>/dev/null | awk '$3=="run_interpreter"{print $1}')
   case "$BOARD_ID:${HOT_SYM_ADDR:0:4}" in
@@ -810,8 +813,8 @@ if [ "$BUILD_RC" = 0 ]; then
       echo "[build] hot path: SRAM (run_interpreter @ 0x$HOT_SYM_ADDR)" ;;
     rpi_pico2:*|weact_rp2350b:*|feather_rp2040:*|esp32*:*)
       echo "[build] hot path: FLASH (run_interpreter @ 0x${HOT_SYM_ADDR:-?}) — the XIP cache cliff, ZEPHYR_LESSONS §11; OEVM_HOT is not landing in RAM" >&2 ;;
-    *) : ;;   # nRF52840: internal flash, not XIP; nothing to say
-  esac
+  esac ;;
+  esac   # nRF52840: internal flash, not XIP; nothing to say
 
   # WHERE THIS IMAGE PUT ITS SETTINGS PARTITION — a dongle-only check, and it is here
   # because the assertions above would have passed the image that went dark on
