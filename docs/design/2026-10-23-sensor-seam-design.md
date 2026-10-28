@@ -72,3 +72,12 @@ builds) → #437 (arm + SED config + current measured on ttgm's board).
 - **The armed trigger lives in the kind**, not on `sensor_arm`'s stack: the driver keeps the pointer (2b9171af).
 - Measured: armed at 1.5 m/s², episodes reach production porta :6969 over BLE. On a still desk, about one stray
   single-interrupt episode a minute (`int2_src` 0x65/0x69), cause not found.
+
+## Addendum — out-of-tree drivers, and two more kinds (2026-10-27, #438, #447)
+
+- **A driver rete does not carry comes in as a Zephyr module:** `run.sh --extra-module DIR` (a467903c), the
+  driver half of the line `--dtc-overlay` draws for the board. Any project, not only ttgm (David). Shown by ttgm on OCM.1.
+- **#447, ttgm's OCM.1:** `'motion'` (PIR) reads `SENSOR_CHAN_PROX`, 1 value, arms `SENSOR_TRIG_MOTION`; `'ir'`
+  (thermopile) reads object temperature on `SENSOR_CHAN_AMBIENT_TEMP` (the tmp007/amg88xx precedent; not
+  `SENSOR_CHAN_IR`, which is lux), 1 value, arms `SENSOR_TRIG_THRESHOLD`. Both are table rows, no new mechanism.
+  The thermopile's own temperature as a 2nd value is earned when a presence rule measured on OCM.1 needs it.
