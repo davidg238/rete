@@ -2,7 +2,7 @@
 
 # Ecosystem map — the language/VM/fleet constellation
 
-> **Purpose.** A workspace-wide map of the related repos under `/home/david/workspace/`,
+> **Purpose.** A workspace-wide map of the related repos under `~/workspace/`,
 > what each represents, and how the story evolved to the current committed direction:
 > **Newspeak on the oevm substrate, under a nodus-style keeper, over the porta fleet plane.**
 > This is the single place to orient before touching any one repo. It lives in **`oevm/docs`**

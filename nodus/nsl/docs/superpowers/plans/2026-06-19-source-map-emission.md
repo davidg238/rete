@@ -76,7 +76,7 @@ def test_build_stmap_multiple_functions_preserve_order():
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `cd /home/david/workspace/ns-oevm && python3 -m pytest tools/test_stmap.py -v`
+Run: `cd ~/workspace/ns-oevm && python3 -m pytest tools/test_stmap.py -v`
 Expected: FAIL — `ModuleNotFoundError: No module named 'stmap'`.
 
 - [ ] **Step 3: Write minimal implementation**
@@ -113,13 +113,13 @@ def build_stmap(source_filename, source_maps):
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `cd /home/david/workspace/ns-oevm && python3 -m pytest tools/test_stmap.py -v`
+Run: `cd ~/workspace/ns-oevm && python3 -m pytest tools/test_stmap.py -v`
 Expected: PASS (3 passed).
 
 - [ ] **Step 5: Commit**
 
 ```bash
-cd /home/david/workspace/ns-oevm
+cd ~/workspace/ns-oevm
 git add tools/stmap.py tools/test_stmap.py
 git commit -m "feat(stmap): pure .stmap serializer matching the st-berry contract"
 ```
@@ -208,7 +208,7 @@ def test_compiler_collects_per_method_source_maps(tmp_path):
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `cd /home/david/workspace/ns-oevm && python3 -m pytest tools/test_source_map.py::test_compiler_collects_per_method_source_maps -v`
+Run: `cd ~/workspace/ns-oevm && python3 -m pytest tools/test_source_map.py::test_compiler_collects_per_method_source_maps -v`
 Expected: FAIL — `AttributeError: 'OevmCompiler' object has no attribute 'source_maps'`.
 
 - [ ] **Step 3: Add `source_map` to `MethodCompiler.__init__`**
@@ -286,13 +286,13 @@ In the class-side-method loop, after its `self.solidify.add_method(...)` (follow
 
 - [ ] **Step 7: Run test to verify it passes**
 
-Run: `cd /home/david/workspace/ns-oevm && python3 -m pytest tools/test_source_map.py::test_compiler_collects_per_method_source_maps -v`
+Run: `cd ~/workspace/ns-oevm && python3 -m pytest tools/test_source_map.py::test_compiler_collects_per_method_source_maps -v`
 Expected: PASS.
 
 - [ ] **Step 8: Prove the image is byte-identical (no-op)**
 
 ```bash
-cd /home/david/workspace/ns-oevm
+cd ~/workspace/ns-oevm
 rm -rf /tmp/sm_before /tmp/sm_after
 git stash                       # park the Task 2 edits
 python3 tools/snapshot_images.py /tmp/sm_before
@@ -304,13 +304,13 @@ Expected: no diff, then `NO-OP CONFIRMED`. (Task 2 writes no `.stmap` yet, so th
 
 - [ ] **Step 9: Conformance unchanged**
 
-Run: `cd /home/david/workspace/ns-oevm && python3 tools/run_tests_oevm.py 2>&1 | tail -4`
+Run: `cd ~/workspace/ns-oevm && python3 tools/run_tests_oevm.py 2>&1 | tail -4`
 Expected: `Passed: 47, Failed: 0, Skipped: 1`.
 
 - [ ] **Step 10: Commit**
 
 ```bash
-cd /home/david/workspace/ns-oevm
+cd ~/workspace/ns-oevm
 git add tools/ns_compile_oevm.py tools/test_source_map.py
 git commit -m "feat(stmap): collect per-method (offset, line) maps during compile (no-op for images)"
 ```
@@ -358,7 +358,7 @@ def test_stmap_sidecar_written_path_a(tmp_path):
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `cd /home/david/workspace/ns-oevm && python3 -m pytest tools/test_source_map.py::test_stmap_sidecar_written_path_a -v`
+Run: `cd ~/workspace/ns-oevm && python3 -m pytest tools/test_source_map.py::test_stmap_sidecar_written_path_a -v`
 Expected: FAIL — `AssertionError: expected a .stmap sidecar next to the image`.
 
 - [ ] **Step 3: Add the `build_stmap` import**
@@ -388,13 +388,13 @@ In `main()`, immediately after `compiler.compile()` (line 1686) and before the `
 
 - [ ] **Step 5: Run test to verify it passes**
 
-Run: `cd /home/david/workspace/ns-oevm && python3 -m pytest tools/test_source_map.py -v`
+Run: `cd ~/workspace/ns-oevm && python3 -m pytest tools/test_source_map.py -v`
 Expected: PASS (both tests).
 
 - [ ] **Step 6: Verify the `.oimg` path also emits a sidecar**
 
 ```bash
-cd /home/david/workspace/ns-oevm
+cd ~/workspace/ns-oevm
 gcc -std=c99 -I../oevm/src ../oevm/tools/dump_layout.c -o /tmp/dl
 /tmp/dl > /tmp/layout.json
 python3 tools/ns_compile_oevm.py ../ns-tests/04_somns_basic/01_method_call.ns /tmp/app.oimg \
@@ -406,7 +406,7 @@ Expected: prints the list of qualified method names — confirms the sidecar is 
 - [ ] **Step 7: Prove images are still byte-identical**
 
 ```bash
-cd /home/david/workspace/ns-oevm
+cd ~/workspace/ns-oevm
 rm -rf /tmp/sm_before /tmp/sm_after
 git stash
 python3 tools/snapshot_images.py /tmp/sm_before
@@ -418,18 +418,18 @@ Expected: no diff among `.c` files, then `IMAGES UNCHANGED`. (The `.stmap` sidec
 
 - [ ] **Step 8: Conformance unchanged**
 
-Run: `cd /home/david/workspace/ns-oevm && python3 tools/run_tests_oevm.py 2>&1 | tail -4`
+Run: `cd ~/workspace/ns-oevm && python3 tools/run_tests_oevm.py 2>&1 | tail -4`
 Expected: `Passed: 47, Failed: 0, Skipped: 1`.
 
 - [ ] **Step 9: Full python test suite green**
 
-Run: `cd /home/david/workspace/ns-oevm && python3 -m pytest tools/ -q`
+Run: `cd ~/workspace/ns-oevm && python3 -m pytest tools/ -q`
 Expected: all pass (new `test_stmap.py` + `test_source_map.py` plus the existing `test_*` suite).
 
 - [ ] **Step 10: Commit**
 
 ```bash
-cd /home/david/workspace/ns-oevm
+cd ~/workspace/ns-oevm
 git add tools/ns_compile_oevm.py tools/test_source_map.py
 git commit -m "feat(stmap): write .stmap sidecar next to the image for both backends"
 ```
@@ -455,7 +455,7 @@ In `docs/design/2026-06-19-next-phase-stdlib-and-debug.md`, under Item 2's concr
 - [ ] **Step 3: Commit**
 
 ```bash
-cd /home/david/workspace/ns-oevm
+cd ~/workspace/ns-oevm
 git add docs/compiler.md docs/design/2026-06-19-next-phase-stdlib-and-debug.md
 git commit -m "docs(stmap): document source-map emission; mark roadmap step done"
 ```

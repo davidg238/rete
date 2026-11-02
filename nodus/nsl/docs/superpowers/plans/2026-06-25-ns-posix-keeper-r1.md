@@ -20,13 +20,13 @@
 - **CRC32-IEEE:** polynomial `0xEDB88320`, init/xor-out `0xFFFFFFFF`, test vector `"123456789" → 0xCBF43926`. Porta computes it server-side on upload; the keeper re-verifies on download (existing `keeper.c` code).
 - **Image size cap:** the reused keeper buffers images in a static array sized for tiny Berry `.bec` (8 KB); a real `.oimg` is ~34–47 KB (R0 measurements). Raise the cap to `131072` (128 KB).
 - **Repos / paths (absolute):**
-  - new: `/home/david/workspace/ns-posix`
-  - reuse source: `/home/david/workspace/nodus-st`
-  - VM build: `/home/david/workspace/oevm`
-  - compiler tool: `/home/david/workspace/ns-oevm/tools/ns_compile_oevm.py`
-  - test program: `/home/david/workspace/ns-tests/04_somns_basic/01_method_call.ns` (prints `42`)
-  - gateway: `/home/david/workspace/porta`
-- **oevm Model B build line** (produces `oevm_img`; run from `/home/david/workspace/oevm`):
+  - new: `~/workspace/ns-posix`
+  - reuse source: `~/workspace/nodus-st`
+  - VM build: `~/workspace/oevm`
+  - compiler tool: `~/workspace/ns-oevm/tools/ns_compile_oevm.py`
+  - test program: `~/workspace/ns-tests/04_somns_basic/01_method_call.ns` (prints `42`)
+  - gateway: `~/workspace/porta`
+- **oevm Model B build line** (produces `oevm_img`; run from `~/workspace/oevm`):
   ```bash
   TARGET=posix
   gcc -Wall -std=c99 -Isrc \
@@ -58,10 +58,10 @@
 ## Task 1: Scaffold `ns-posix` + vendor the VM-neutral keeper core
 
 **Files:**
-- Create: `/home/david/workspace/ns-posix/keeper/{keeper,cmd,tftp,report,crc32}.{c,h}`, `keeper/seam.h` (copied)
-- Create: `/home/david/workspace/ns-posix/tests/{fake_seam.c,fake_seam.h,test_cmd.c,test_crc32.c,test_keeper.c,test_report.c,test_tftp.c}` (copied)
-- Create: `/home/david/workspace/ns-posix/Makefile`
-- Create: `/home/david/workspace/ns-posix/README.md`
+- Create: `~/workspace/ns-posix/keeper/{keeper,cmd,tftp,report,crc32}.{c,h}`, `keeper/seam.h` (copied)
+- Create: `~/workspace/ns-posix/tests/{fake_seam.c,fake_seam.h,test_cmd.c,test_crc32.c,test_keeper.c,test_report.c,test_tftp.c}` (copied)
+- Create: `~/workspace/ns-posix/Makefile`
+- Create: `~/workspace/ns-posix/README.md`
 
 **Interfaces:**
 - Produces: the seam contract `seam.h` (`struct transport`/`struct store`/`struct vm`/`struct keeper_config`) and `keeper.h` (`keeper_init`, `keeper_poll_once`) that all later tasks consume.
@@ -69,29 +69,29 @@
 - [ ] **Step 1: Create the repo and vendor the core + tests**
 
 ```bash
-mkdir -p /home/david/workspace/ns-posix/keeper /home/david/workspace/ns-posix/posix \
-         /home/david/workspace/ns-posix/tool /home/david/workspace/ns-posix/tests
-cd /home/david/workspace/ns-posix
+mkdir -p ~/workspace/ns-posix/keeper ~/workspace/ns-posix/posix \
+         ~/workspace/ns-posix/tool ~/workspace/ns-posix/tests
+cd ~/workspace/ns-posix
 git init -q
-cp /home/david/workspace/nodus-st/src/keeper.c   keeper/
-cp /home/david/workspace/nodus-st/src/keeper.h   keeper/
-cp /home/david/workspace/nodus-st/src/cmd.c      keeper/
-cp /home/david/workspace/nodus-st/src/cmd.h      keeper/
-cp /home/david/workspace/nodus-st/src/tftp.c     keeper/
-cp /home/david/workspace/nodus-st/src/tftp.h     keeper/
-cp /home/david/workspace/nodus-st/src/report.c   keeper/
-cp /home/david/workspace/nodus-st/src/report.h   keeper/
-cp /home/david/workspace/nodus-st/src/crc32.c    keeper/
-cp /home/david/workspace/nodus-st/src/crc32.h    keeper/
-cp /home/david/workspace/nodus-st/src/seam.h     keeper/
-cp /home/david/workspace/nodus-st/tests/*.c      tests/
-cp /home/david/workspace/nodus-st/tests/*.h      tests/
+cp ~/workspace/nodus-st/src/keeper.c   keeper/
+cp ~/workspace/nodus-st/src/keeper.h   keeper/
+cp ~/workspace/nodus-st/src/cmd.c      keeper/
+cp ~/workspace/nodus-st/src/cmd.h      keeper/
+cp ~/workspace/nodus-st/src/tftp.c     keeper/
+cp ~/workspace/nodus-st/src/tftp.h     keeper/
+cp ~/workspace/nodus-st/src/report.c   keeper/
+cp ~/workspace/nodus-st/src/report.h   keeper/
+cp ~/workspace/nodus-st/src/crc32.c    keeper/
+cp ~/workspace/nodus-st/src/crc32.h    keeper/
+cp ~/workspace/nodus-st/src/seam.h     keeper/
+cp ~/workspace/nodus-st/tests/*.c      tests/
+cp ~/workspace/nodus-st/tests/*.h      tests/
 # (only *.c/*.h are vendored; porta_integration.sh is rewritten fresh in Task 5)
 ```
 
 - [ ] **Step 2: Write the Makefile (test target only for now)**
 
-Create `/home/david/workspace/ns-posix/Makefile`:
+Create `~/workspace/ns-posix/Makefile`:
 
 ```make
 CC      ?= cc
@@ -114,7 +114,7 @@ clean:
 
 - [ ] **Step 3: Write a README stub**
 
-Create `/home/david/workspace/ns-posix/README.md`:
+Create `~/workspace/ns-posix/README.md`:
 
 ```markdown
 # ns-posix
@@ -137,13 +137,13 @@ a tracked follow-up.
 
 - [ ] **Step 4: Run the vendored unit suite to verify it builds + passes unchanged**
 
-Run: `cd /home/david/workspace/ns-posix && make test`
+Run: `cd ~/workspace/ns-posix && make test`
 Expected: each `== build/test_*` line runs, ending with `ALL TESTS PASSED`. (Proves the vendored VM-neutral core compiles and its unit suite passes verbatim under the new layout.)
 
 - [ ] **Step 5: Commit**
 
 ```bash
-cd /home/david/workspace/ns-posix
+cd ~/workspace/ns-posix
 git add -A
 git commit -q -m "feat(ns-posix): scaffold repo + vendor VM-neutral keeper core (from nodus-st)"
 ```
@@ -153,17 +153,17 @@ git commit -q -m "feat(ns-posix): scaffold repo + vendor VM-neutral keeper core 
 ## Task 2: Raise the image-size caps for `.oimg`
 
 **Files:**
-- Modify: `/home/david/workspace/ns-posix/keeper/keeper.h` (add `KEEPER_MAX_IMAGE`)
-- Modify: `/home/david/workspace/ns-posix/keeper/keeper.c` (two `img[8192]` sites)
-- Modify: `/home/david/workspace/ns-posix/keeper/tftp.c` (block size)
-- Test: `/home/david/workspace/ns-posix/tests/test_keeper.c` (add a static-assert)
+- Modify: `~/workspace/ns-posix/keeper/keeper.h` (add `KEEPER_MAX_IMAGE`)
+- Modify: `~/workspace/ns-posix/keeper/keeper.c` (two `img[8192]` sites)
+- Modify: `~/workspace/ns-posix/keeper/tftp.c` (block size)
+- Test: `~/workspace/ns-posix/tests/test_keeper.c` (add a static-assert)
 
 **Interfaces:**
 - Produces: `KEEPER_MAX_IMAGE` (128 KB) — the per-image buffer/transfer ceiling consumed by `keeper.c`. Real-capacity proof is deferred to Task 5's integration gate (the unit fakes only carry tiny images).
 
 - [ ] **Step 1: Add the cap constant to `keeper.h`**
 
-In `/home/david/workspace/ns-posix/keeper/keeper.h`, after `#define KEEPER_MAX_APPS 4`, add:
+In `~/workspace/ns-posix/keeper/keeper.h`, after `#define KEEPER_MAX_APPS 4`, add:
 
 ```c
 /* Max .oimg image the keeper buffers/transfers in one shot. Berry .bec were
@@ -173,7 +173,7 @@ In `/home/david/workspace/ns-posix/keeper/keeper.h`, after `#define KEEPER_MAX_A
 
 - [ ] **Step 2: Use the cap in `keeper.c`**
 
-In `/home/david/workspace/ns-posix/keeper/keeper.c`, replace BOTH occurrences of:
+In `~/workspace/ns-posix/keeper/keeper.c`, replace BOTH occurrences of:
 
 ```c
     static uint8_t img[8192];
@@ -189,7 +189,7 @@ with:
 
 - [ ] **Step 3: Widen the TFTP block size**
 
-In `/home/david/workspace/ns-posix/keeper/tftp.c`, change:
+In `~/workspace/ns-posix/keeper/tftp.c`, change:
 
 ```c
 #define TFTP_BLOCK_SIZE 64
@@ -205,7 +205,7 @@ to:
 
 - [ ] **Step 4: Add a compile-time guard in the keeper test**
 
-At the top of `/home/david/workspace/ns-posix/tests/test_keeper.c`, after the `#include` lines, add:
+At the top of `~/workspace/ns-posix/tests/test_keeper.c`, after the `#include` lines, add:
 
 ```c
 /* R1: the keeper must buffer a full .oimg (~34-47 KB), not just a Berry .bec. */
@@ -214,13 +214,13 @@ _Static_assert(KEEPER_MAX_IMAGE >= 64 * 1024, "image cap too small for .oimg");
 
 - [ ] **Step 5: Verify no regression**
 
-Run: `cd /home/david/workspace/ns-posix && make clean && make test`
+Run: `cd ~/workspace/ns-posix && make clean && make test`
 Expected: `ALL TESTS PASSED` (the `_Static_assert` compiles; existing unit tests still pass — they carry small images, so the larger buffer changes nothing behaviorally).
 
 - [ ] **Step 6: Commit**
 
 ```bash
-cd /home/david/workspace/ns-posix
+cd ~/workspace/ns-posix
 git add -A
 git commit -q -m "feat(ns-posix): raise image cap to 128KB + TFTP blksize 512 for .oimg"
 ```
@@ -230,12 +230,12 @@ git commit -q -m "feat(ns-posix): raise image cap to 128KB + TFTP blksize 512 fo
 ## Task 3: Posix seams — vendor transport/store, write the oevm vm-seam + daemon
 
 **Files:**
-- Create: `/home/david/workspace/ns-posix/posix/udp_transport.c` (copied verbatim)
-- Create: `/home/david/workspace/ns-posix/posix/file_store.c` (copied; image filename `.bec`→`.oimg`)
-- Create: `/home/david/workspace/ns-posix/posix/oimg_vm.c` (**new**)
-- Create: `/home/david/workspace/ns-posix/posix/keeperd.c` (adapted)
-- Modify: `/home/david/workspace/ns-posix/Makefile` (add `keeperd` target)
-- Test: `/home/david/workspace/ns-posix/tests/test_oimg_vm.sh` (**new** smoke test)
+- Create: `~/workspace/ns-posix/posix/udp_transport.c` (copied verbatim)
+- Create: `~/workspace/ns-posix/posix/file_store.c` (copied; image filename `.bec`→`.oimg`)
+- Create: `~/workspace/ns-posix/posix/oimg_vm.c` (**new**)
+- Create: `~/workspace/ns-posix/posix/keeperd.c` (adapted)
+- Modify: `~/workspace/ns-posix/Makefile` (add `keeperd` target)
+- Test: `~/workspace/ns-posix/tests/test_oimg_vm.sh` (**new** smoke test)
 
 **Interfaces:**
 - Consumes: `seam.h` (`struct transport`/`struct store`/`struct vm`), `keeper.h`.
@@ -244,11 +244,11 @@ git commit -q -m "feat(ns-posix): raise image cap to 128KB + TFTP blksize 512 fo
 - [ ] **Step 1: Vendor the posix transport + store**
 
 ```bash
-cp /home/david/workspace/nodus-st/host/udp_transport.c /home/david/workspace/ns-posix/posix/
-cp /home/david/workspace/nodus-st/host/file_store.c    /home/david/workspace/ns-posix/posix/
+cp ~/workspace/nodus-st/host/udp_transport.c ~/workspace/ns-posix/posix/
+cp ~/workspace/nodus-st/host/file_store.c    ~/workspace/ns-posix/posix/
 ```
 
-Then in `/home/david/workspace/ns-posix/posix/file_store.c`, change the image cache filename from Berry's `.bec` to `.oimg` (cosmetic; the cache is crc-keyed). Replace all THREE occurrences of:
+Then in `~/workspace/ns-posix/posix/file_store.c`, change the image cache filename from Berry's `.bec` to `.oimg` (cosmetic; the cache is crc-keyed). Replace all THREE occurrences of:
 
 ```c
     snprintf(path, sizeof(path), "%s/img-%08x.bec", s->dir, crc);
@@ -264,7 +264,7 @@ with:
 
 - [ ] **Step 2: Write the oevm vm-seam `posix/oimg_vm.c`**
 
-Create `/home/david/workspace/ns-posix/posix/oimg_vm.c`:
+Create `~/workspace/ns-posix/posix/oimg_vm.c`:
 
 ```c
 // posix/oimg_vm.c — struct vm that execs the resident oevm VM (`oevm_img
@@ -345,7 +345,7 @@ struct vm host_vm(void) {
 
 - [ ] **Step 3: Write the daemon `posix/keeperd.c`**
 
-Create `/home/david/workspace/ns-posix/posix/keeperd.c`:
+Create `~/workspace/ns-posix/posix/keeperd.c`:
 
 ```c
 // posix/keeperd.c — main() wiring the host seam and running the keeper loop.
@@ -384,7 +384,7 @@ int main(int argc, char **argv) {
 
 - [ ] **Step 4: Add the `keeperd` target to the Makefile**
 
-In `/home/david/workspace/ns-posix/Makefile`, add after the `test:` rule (and add `keeperd` to `.PHONY`):
+In `~/workspace/ns-posix/Makefile`, add after the `test:` rule (and add `keeperd` to `.PHONY`):
 
 ```make
 keeperd: posix/keeperd.c posix/udp_transport.c posix/file_store.c posix/oimg_vm.c $(CORE)
@@ -396,7 +396,7 @@ Change the last line to: `.PHONY: test clean keeperd`
 
 - [ ] **Step 5: Write the vm-seam smoke test `tests/test_oimg_vm.sh`**
 
-Create `/home/david/workspace/ns-posix/tests/test_oimg_vm.sh`:
+Create `~/workspace/ns-posix/tests/test_oimg_vm.sh`:
 
 ```bash
 #!/usr/bin/env bash
@@ -404,9 +404,9 @@ Create `/home/david/workspace/ns-posix/tests/test_oimg_vm.sh`:
 # call host_vm().run() on its bytes, assert captured stdout == "42".
 set -euo pipefail
 cd "$(dirname "$0")/.."
-OEVM=/home/david/workspace/oevm
-NSOEVM=/home/david/workspace/ns-oevm
-SRC=/home/david/workspace/ns-tests/04_somns_basic/01_method_call.ns
+OEVM=~/workspace/oevm
+NSOEVM=~/workspace/ns-oevm
+SRC=~/workspace/ns-tests/04_somns_basic/01_method_call.ns
 
 # 1) Build oevm_img (Model B) if absent.
 if [ ! -x "$OEVM/oevm_img" ]; then
@@ -447,17 +447,17 @@ cc -std=c11 -Ikeeper /tmp/ns-posix-vmharness.c posix/oimg_vm.c -o /tmp/ns-posix-
 echo "PASS: vm-seam ran .oimg and captured 42"
 ```
 
-Make it executable: `chmod +x /home/david/workspace/ns-posix/tests/test_oimg_vm.sh`
+Make it executable: `chmod +x ~/workspace/ns-posix/tests/test_oimg_vm.sh`
 
 - [ ] **Step 6: Build the daemon and run the smoke test**
 
-Run: `cd /home/david/workspace/ns-posix && make keeperd && bash tests/test_oimg_vm.sh`
+Run: `cd ~/workspace/ns-posix && make keeperd && bash tests/test_oimg_vm.sh`
 Expected: `make` links `build/keeperd`; the smoke test prints `rc=0 out=42 ...` then `PASS: vm-seam ran .oimg and captured 42`.
 
 - [ ] **Step 7: Commit**
 
 ```bash
-cd /home/david/workspace/ns-posix
+cd ~/workspace/ns-posix
 git add -A
 git commit -q -m "feat(ns-posix): posix seams + oevm vm-seam (popen oevm_img) + keeperd"
 ```
@@ -467,14 +467,14 @@ git commit -q -m "feat(ns-posix): posix seams + oevm vm-seam (popen oevm_img) + 
 ## Task 4: `deploy.py` — compile `.ns`→`.oimg` and push to porta
 
 **Files:**
-- Create: `/home/david/workspace/ns-posix/tool/deploy.py`
+- Create: `~/workspace/ns-posix/tool/deploy.py`
 
 **Interfaces:**
 - Produces: `python3 tool/deploy.py <app.ns> --to <id> --name <app> [--server URL] [--dry-run]` — compiles a host-ABI `.oimg` and (unless `--dry-run`) `POST`s it multipart to porta's `/api/nodes/<id>/containers`, which stores the payload, computes its CRC32-IEEE, and enqueues a `run` command.
 
 - [ ] **Step 1: Write `tool/deploy.py`**
 
-Create `/home/david/workspace/ns-posix/tool/deploy.py`:
+Create `~/workspace/ns-posix/tool/deploy.py`:
 
 ```python
 #!/usr/bin/env python3
@@ -487,8 +487,8 @@ verifies, and runs it on the resident oevm VM.
 """
 import argparse, subprocess, sys, os
 
-OEVM = "/home/david/workspace/oevm"
-NSOEVM = "/home/david/workspace/ns-oevm"
+OEVM = "~/workspace/oevm"
+NSOEVM = "~/workspace/ns-oevm"
 
 
 def compile_oimg(src, out):
@@ -544,8 +544,8 @@ if __name__ == "__main__":
 
 Run:
 ```bash
-cd /home/david/workspace/ns-posix
-python3 tool/deploy.py /home/david/workspace/ns-tests/04_somns_basic/01_method_call.ns \
+cd ~/workspace/ns-posix
+python3 tool/deploy.py ~/workspace/ns-tests/04_somns_basic/01_method_call.ns \
     --to 686f73740000f0a1 --name mcall --dry-run
 ```
 Expected: prints `compiled .../01_method_call.ns -> /tmp/ns-posix-deploy-mcall.oimg (NNNNN bytes)` with no error (the `assert ... == b"OIMG"` passes).
@@ -553,7 +553,7 @@ Expected: prints `compiled .../01_method_call.ns -> /tmp/ns-posix-deploy-mcall.o
 - [ ] **Step 3: Commit**
 
 ```bash
-cd /home/david/workspace/ns-posix
+cd ~/workspace/ns-posix
 git add -A
 git commit -q -m "feat(ns-posix): deploy.py — compile .ns to .oimg + push to porta"
 ```
@@ -563,8 +563,8 @@ git commit -q -m "feat(ns-posix): deploy.py — compile .ns to .oimg + push to p
 ## Task 5: `porta_integration.sh` — the R1 acceptance gate
 
 **Files:**
-- Create: `/home/david/workspace/ns-posix/tests/porta_integration.sh`
-- Modify: `/home/david/workspace/ns-posix/README.md` (document the gate + deps)
+- Create: `~/workspace/ns-posix/tests/porta_integration.sh`
+- Modify: `~/workspace/ns-posix/README.md` (document the gate + deps)
 
 **Interfaces:**
 - Consumes: `build/keeperd`, `tool/deploy.py`, `oevm_img`, a `porta` build.
@@ -572,7 +572,7 @@ git commit -q -m "feat(ns-posix): deploy.py — compile .ns to .oimg + push to p
 
 - [ ] **Step 1: Write the integration gate `tests/porta_integration.sh`**
 
-Create `/home/david/workspace/ns-posix/tests/porta_integration.sh`:
+Create `~/workspace/ns-posix/tests/porta_integration.sh`:
 
 ```bash
 #!/usr/bin/env bash
@@ -585,10 +585,10 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 ID="686f73740000f0a1"
 NAME="mcall"
-PORTA_DIR=/home/david/workspace/porta
+PORTA_DIR=~/workspace/porta
 SERVER="http://localhost:6970"
-SRC=/home/david/workspace/ns-tests/04_somns_basic/01_method_call.ns
-OEVM=/home/david/workspace/oevm
+SRC=~/workspace/ns-tests/04_somns_basic/01_method_call.ns
+OEVM=~/workspace/oevm
 export OEVM_IMG="$OEVM/oevm_img"
 
 # 1) Build oevm_img (Model B) + keeperd.
@@ -628,18 +628,18 @@ grep -q "42" /tmp/ns-posix-keeperd.log \
 echo "PASS: deployed $NAME via porta; keeper ran it on oevm; report + stdout(42) verified"
 ```
 
-Make it executable: `chmod +x /home/david/workspace/ns-posix/tests/porta_integration.sh`
+Make it executable: `chmod +x ~/workspace/ns-posix/tests/porta_integration.sh`
 
 - [ ] **Step 2: Run the acceptance gate**
 
-Run: `cd /home/david/workspace/ns-posix && NS_POSIX_IT=1 bash tests/porta_integration.sh`
+Run: `cd ~/workspace/ns-posix && NS_POSIX_IT=1 bash tests/porta_integration.sh`
 Expected: ends with `PASS: deployed mcall via porta; keeper ran it on oevm; report + stdout(42) verified`.
 
 (Prereqs: Go toolchain for `porta`; `$OEVM_IMG` builds; `ns_compile_oevm.py` works; ports 6969/6970 free. If `/api/nodes/$ID` returns a different shape, adjust the grep in step 6 to the node-detail route of the current porta build — confirm against `curl $SERVER/api/nodes/$ID`.)
 
 - [ ] **Step 3: Finalize the README (gate + deps + follow-up)**
 
-Append to `/home/david/workspace/ns-posix/README.md`:
+Append to `~/workspace/ns-posix/README.md`:
 
 ```markdown
 ## Integration (R1 acceptance gate)
@@ -663,7 +663,7 @@ build), and `ns_compile_oevm.py` (`ns-oevm/tools`).
 - [ ] **Step 4: Commit**
 
 ```bash
-cd /home/david/workspace/ns-posix
+cd ~/workspace/ns-posix
 git add -A
 git commit -q -m "test(ns-posix): porta integration gate (deploy->run->report, asserts 42)"
 ```

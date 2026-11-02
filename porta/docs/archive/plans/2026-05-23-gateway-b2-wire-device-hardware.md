@@ -122,7 +122,7 @@ Append under `dependencies:` in `gateway/package.yaml` (keep the existing `sqlit
 
 ```yaml
   tftp:
-    path: /home/david/workspaceToit/tftp
+    path: ~/workspaceToit/tftp
 ```
 
 - [ ] **Step 2: Verify the package still resolves and existing tests still pass**
@@ -1142,7 +1142,7 @@ import .transport show WifiTransport GatewayClient
 import .schedule_store show ScheduleStore clock-us
 
 /** Gateway LAN address. Adjust to the host running `gateway serve`. */
-GATEWAY-HOST ::= "192.168.0.175"
+GATEWAY-HOST ::= "192.0.2.75"
 GATEWAY-PORT ::= 6969
 
 /** Fallback poll cadence (seconds) before the node has been told otherwise. */

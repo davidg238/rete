@@ -177,8 +177,8 @@ Expected: `get_self_reg` (Step 6 site) emits `OP_LD_SELF`; the only remaining `O
 - [ ] **Step 9: Commit (both repos)**
 
 ```bash
-git -C /home/david/workspace/oevm add src/oevm.h src/dispatch.c src/vm.c
-git -C /home/david/workspace/oevm commit -m "feat(derecursify): snapshot self onto Closure + OP_LD_SELF (Phase 2 self-migration)
+git -C ~/workspace/oevm add src/oevm.h src/dispatch.c src/vm.c
+git -C ~/workspace/oevm commit -m "feat(derecursify): snapshot self onto Closure + OP_LD_SELF (Phase 2 self-migration)
 
 A block's enclosing self is now read fiber-independently from the closure's
 captured_self (set O(1) in make_closure) via OP_LD_SELF=0x1A, instead of
@@ -187,8 +187,8 @@ for relativizing home_ctx (Task 2). 84/0/6 both paths + 5 gates.
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_013RNThyg4MgNJD33fbSSv4h"
-git -C /home/david/workspace/ns-oevm add tools/ns_compile_oevm.py
-git -C /home/david/workspace/ns-oevm commit -m "feat(derecursify): compiler emits OP_LD_SELF for block self-reads (Phase 2 self-migration)
+git -C ~/workspace/ns-oevm add tools/ns_compile_oevm.py
+git -C ~/workspace/ns-oevm commit -m "feat(derecursify): compiler emits OP_LD_SELF for block self-reads (Phase 2 self-migration)
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_013RNThyg4MgNJD33fbSSv4h"
@@ -332,8 +332,8 @@ Confirm the reified-guard `abort()` never fired during the suite (no "reified ho
 - [ ] **Step 7: Commit (both repos)**
 
 ```bash
-git -C /home/david/workspace/ns-oevm add tools/ns_compile_oevm.py
-git -C /home/david/workspace/ns-oevm commit -m "feat(derecursify): complete self-migration — explicit varRef self -> OP_LD_SELF
+git -C ~/workspace/ns-oevm add tools/ns_compile_oevm.py
+git -C ~/workspace/ns-oevm commit -m "feat(derecursify): complete self-migration — explicit varRef self -> OP_LD_SELF
 
 get_self_reg (Task 1) covered the implicit self path; this covers explicit
 self used as a value/receiver (resolve_name -> lexical, e.g. 'self complete').
@@ -341,8 +341,8 @@ Both paths now emit OP_LD_SELF so no self read walks home_ctx cross-fiber.
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_013RNThyg4MgNJD33fbSSv4h"
-git -C /home/david/workspace/oevm add src/vm.c src/dispatch.c src/gc.c
-git -C /home/david/workspace/oevm commit -m "feat(derecursify): relativize home_ctx (Phase 2 the flip)
+git -C ~/workspace/oevm add src/vm.c src/dispatch.c src/gc.c
+git -C ~/workspace/oevm commit -m "feat(derecursify): relativize home_ctx (Phase 2 the flip)
 
 All 4 home_ctx encode sites store home_link_encode_relative; home_ctx_frame
 fail-fasts on a (not-yet-produced) reified Context. Safe now that BOTH self
@@ -373,8 +373,8 @@ Claude-Session: https://claude.ai/code/session_013RNThyg4MgNJD33fbSSv4h"
 - [ ] **Step 4: Commit**
 
 ```bash
-git -C /home/david/workspace/oevm add src/frame_abi.h docs/design/2026-07-02-derecursify-phase2-self-migration-design.md docs/design/2026-07-01-derecursify-deferred-lift-growable-stacks-upward-closures-design.md
-git -C /home/david/workspace/oevm commit -m "docs(derecursify): Phase 2 self-migration + flip DONE + ABI status
+git -C ~/workspace/oevm add src/frame_abi.h docs/design/2026-07-02-derecursify-phase2-self-migration-design.md docs/design/2026-07-01-derecursify-deferred-lift-growable-stacks-upward-closures-design.md
+git -C ~/workspace/oevm commit -m "docs(derecursify): Phase 2 self-migration + flip DONE + ABI status
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_013RNThyg4MgNJD33fbSSv4h"

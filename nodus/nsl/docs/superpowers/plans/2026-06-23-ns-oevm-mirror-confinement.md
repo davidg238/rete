@@ -89,7 +89,7 @@ The probe ran during planning (the stratify-execution step already replaced ever
 
 Run (from `ns-oevm` cwd):
 ```bash
-cd /home/david/workspace/ns-oevm && OEVM_PATH=AB python3 tools/run_tests_oevm.py 2>&1 | tail -20
+cd ~/workspace/ns-oevm && OEVM_PATH=AB python3 tools/run_tests_oevm.py 2>&1 | tail -20
 ```
 Expected: a pass/fail/skip summary (memory predicts **68/0/3** both paths). Record the exact numbers — call it **BASELINE**.
 
@@ -97,8 +97,8 @@ Expected: a pass/fail/skip summary (memory predicts **68/0/3** both paths). Reco
 
 Run:
 ```bash
-git -C /home/david/workspace/oevm checkout src/solidified_image.c src/solidified_image.stmap
-git -C /home/david/workspace/oevm status --short
+git -C ~/workspace/oevm checkout src/solidified_image.c src/solidified_image.stmap
+git -C ~/workspace/oevm status --short
 ```
 Expected: clean working tree in `../oevm` (no diff).
 
@@ -123,15 +123,15 @@ Replace with:
 
 Run:
 ```bash
-cd /home/david/workspace/ns-oevm && OEVM_PATH=A python3 tools/run_tests_oevm.py 2>&1 | tail -5
-git -C /home/david/workspace/oevm checkout src/solidified_image.c src/solidified_image.stmap
+cd ~/workspace/ns-oevm && OEVM_PATH=A python3 tools/run_tests_oevm.py 2>&1 | tail -5
+git -C ~/workspace/oevm checkout src/solidified_image.c src/solidified_image.stmap
 ```
 Expected: Path A count unchanged from BASELINE; `../oevm` clean after checkout.
 
 - [ ] **Step 5: Commit**
 
 ```bash
-cd /home/david/workspace/oevm
+cd ~/workspace/oevm
 git add src/dispatch.c
 git commit -m "docs(mirror): breadcrumb above switch(pid) for reflection confinement
 
@@ -269,22 +269,22 @@ Replace `src/serial.c "src/backend/$TARGET/serial_$TARGET.c"` with `src/serial.c
 
 Run:
 ```bash
-cd /home/david/workspace/ns-oevm && OEVM_PATH=AB python3 tools/run_tests_oevm.py 2>&1 | tail -5
-git -C /home/david/workspace/oevm checkout src/solidified_image.c src/solidified_image.stmap
+cd ~/workspace/ns-oevm && OEVM_PATH=AB python3 tools/run_tests_oevm.py 2>&1 | tail -5
+git -C ~/workspace/oevm checkout src/solidified_image.c src/solidified_image.stmap
 ```
 Expected: count == BASELINE (mirror.c compiles but is dead code — `mirror_object`/`mirror_dispatch` unreferenced is fine for a non-`-Werror` build; the conformance build uses `-Wall -Wextra` without `-Werror`, so an unused-function warning does not fail it). If it *does* fail on an unused-function error, proceed to Task 3 which references both symbols.
 
 - [ ] **Step 6: Commit (per repo)**
 
 ```bash
-cd /home/david/workspace/oevm
+cd ~/workspace/oevm
 git add src/mirror.h src/mirror.c tests/test_load_run.sh tests/test_portability_32.sh
 git commit -m "feat(mirror): mirror.c capability module shimming reflective prims
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_01AK6gyZpVqgoWnzDG6CvHz4"
 
-cd /home/david/workspace/ns-oevm
+cd ~/workspace/ns-oevm
 git add tools/run_tests_oevm.py
 git commit -m "build(mirror): link src/mirror.c into Path A and Path B
 
@@ -330,7 +330,7 @@ echo "OK: no ambient reflective cases in dispatch.c switch(pid)"
 
 Run:
 ```bash
-cd /home/david/workspace/oevm && chmod +x tools/check_no_ambient_reflection.sh && sh tools/check_no_ambient_reflection.sh
+cd ~/workspace/oevm && chmod +x tools/check_no_ambient_reflection.sh && sh tools/check_no_ambient_reflection.sh
 ```
 Expected: `FAIL: ambient reflective case(s) still present...` listing all 12 cases, exit 1.
 
@@ -434,7 +434,7 @@ Replace with (keeping `PRIM_createClosure`):
 
 Run:
 ```bash
-cd /home/david/workspace/oevm && sh tools/check_no_ambient_reflection.sh
+cd ~/workspace/oevm && sh tools/check_no_ambient_reflection.sh
 ```
 Expected: `OK: no ambient reflective cases in dispatch.c switch(pid)`, exit 0.
 
@@ -442,15 +442,15 @@ Expected: `OK: no ambient reflective cases in dispatch.c switch(pid)`, exit 0.
 
 Run:
 ```bash
-cd /home/david/workspace/ns-oevm && OEVM_PATH=AB python3 tools/run_tests_oevm.py 2>&1 | tail -8
-git -C /home/david/workspace/oevm checkout src/solidified_image.c src/solidified_image.stmap
+cd ~/workspace/ns-oevm && OEVM_PATH=AB python3 tools/run_tests_oevm.py 2>&1 | tail -8
+git -C ~/workspace/oevm checkout src/solidified_image.c src/solidified_image.stmap
 ```
 Expected: count == BASELINE both paths (e.g. 68/0/3). **If any test regresses, a load-bearing prim was confined** — STOP, use systematic-debugging, and re-check the classification (default-to-universal). Do not proceed.
 
 - [ ] **Step 8: Commit**
 
 ```bash
-cd /home/david/workspace/oevm
+cd ~/workspace/oevm
 git add src/dispatch.c tools/check_no_ambient_reflection.sh
 git commit -m "feat(mirror): confine reflection behind mirror capability
 
@@ -537,12 +537,12 @@ Add `#include "../src/mirror.h"` after `#include "../src/oevm.h"`. Use whatever 
 
 Run (the phase3 link line augmented with the current capability deps + mirror.c):
 ```bash
-cd /home/david/workspace/oevm && TARGET=posix \
+cd ~/workspace/oevm && TARGET=posix \
 gcc -Wall -Wextra -std=c99 -Isrc tests/test_mirrors.c src/solidified_image.c \
   src/dispatch.c src/vm.c src/gc.c src/platform.c "src/backend/posix/platform_posix.c" \
   src/serial.c "src/backend/posix/serial_posix.c" src/mirror.c \
   -lm -o /tmp/test_mirrors && /tmp/test_mirrors; echo "exit=$?"
-git -C /home/david/workspace/oevm checkout src/solidified_image.c src/solidified_image.stmap
+git -C ~/workspace/oevm checkout src/solidified_image.c src/solidified_image.stmap
 ```
 Expected: the stack/vtable reflection output prints and the test asserts pass (`exit=0`). If it fails to **link** for reasons unrelated to confinement (missing solidified symbols per ROADMAP:214), record that in the commit message / a tracking issue and continue — the conformance + negative pin carry the shipped proof.
 
@@ -550,19 +550,19 @@ Expected: the stack/vtable reflection output prints and the test asserts pass (`
 
 Run:
 ```bash
-cd /home/david/workspace/oevm && TARGET=posix \
+cd ~/workspace/oevm && TARGET=posix \
 gcc -Wall -Wextra -std=c99 -Isrc tests/test_debugger.c src/solidified_image.c \
   src/dispatch.c src/vm.c src/gc.c src/platform.c "src/backend/posix/platform_posix.c" \
   src/serial.c "src/backend/posix/serial_posix.c" src/mirror.c \
   -lm -o /tmp/test_debugger && /tmp/test_debugger; echo "exit=$?"
-git -C /home/david/workspace/oevm checkout src/solidified_image.c src/solidified_image.stmap
+git -C ~/workspace/oevm checkout src/solidified_image.c src/solidified_image.stmap
 ```
 Expected: `exit=0` (or pre-existing unrelated failure recorded per the scope note — e.g. oevm#12 already tracks a `test_debugger` Test 2 single-step issue).
 
 - [ ] **Step 5: Commit**
 
 ```bash
-cd /home/david/workspace/oevm
+cd ~/workspace/oevm
 git add tests/test_mirrors.c tests/test_debugger.c
 git commit -m "test(mirror): rewrite C reflection tests mirror-mediated
 
@@ -615,8 +615,8 @@ class MirrorConfinedTest usingPlatform: platform = () (
 
 Run:
 ```bash
-cd /home/david/workspace/ns-oevm && OEVM_PATH=AB python3 tools/run_tests_oevm.py 2>&1 | tail -10
-git -C /home/david/workspace/oevm checkout src/solidified_image.c src/solidified_image.stmap
+cd ~/workspace/ns-oevm && OEVM_PATH=AB python3 tools/run_tests_oevm.py 2>&1 | tail -10
+git -C ~/workspace/oevm checkout src/solidified_image.c src/solidified_image.stmap
 ```
 Expected: total count == **BASELINE + 1** both paths (the new file passes via `expect-runtime-fail`). Confirm the runner reports `40_mirror_confined.ns` as passing (the abort message matches `Message 'sender' not understood by receiver`).
 
@@ -635,25 +635,25 @@ In `docs/NEWSPEAK_DIALECT.md` (ns-oevm), find the last table row (entry **#14**,
 
 Run:
 ```bash
-cd /home/david/workspace/ns-oevm && OEVM_PATH=AB python3 tools/run_tests_oevm.py 2>&1 | tail -8
-sh /home/david/workspace/oevm/tools/check_no_ambient_reflection.sh
-git -C /home/david/workspace/oevm checkout src/solidified_image.c src/solidified_image.stmap
-git -C /home/david/workspace/oevm status --short
-git -C /home/david/workspace/ns-tests status --short
+cd ~/workspace/ns-oevm && OEVM_PATH=AB python3 tools/run_tests_oevm.py 2>&1 | tail -8
+sh ~/workspace/oevm/tools/check_no_ambient_reflection.sh
+git -C ~/workspace/oevm checkout src/solidified_image.c src/solidified_image.stmap
+git -C ~/workspace/oevm status --short
+git -C ~/workspace/ns-tests status --short
 ```
 Expected: suite == **BASELINE + 1** both paths; guard prints `OK`; `../oevm` clean after checkout; `../ns-tests` shows only the new untracked test file.
 
 - [ ] **Step 5: Commit (per repo)**
 
 ```bash
-cd /home/david/workspace/ns-tests
+cd ~/workspace/ns-tests
 git add 04_somns_basic/40_mirror_confined.ns
 git commit -m "test(mirror): 40_mirror_confined.ns -- reflection DNUs without a mirror
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_01AK6gyZpVqgoWnzDG6CvHz4"
 
-cd /home/david/workspace/ns-oevm
+cd ~/workspace/ns-oevm
 git add docs/NEWSPEAK_DIALECT.md docs/superpowers/plans/2026-06-23-ns-oevm-mirror-confinement.md
 git commit -m "docs(mirror): dialect #15 (reflection confined) + implementation plan
 

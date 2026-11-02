@@ -375,7 +375,7 @@ Add to `internal/web/web_test.go`:
 ```go
 func TestNodeRecentCommandsBadges(t *testing.T) {
 	st := testStore(t)
-	st.TouchNode("aabbccddeeff", "192.168.1.9", 1000)
+	st.TouchNode("aabbccddeeff", "192.0.2.9", 1000)
 	// A delivered set whose observed config matches → converged.
 	id, err := control.Set(st, "aabbccddeeff", "demo", "gain", int64(2), "cli", 1000)
 	if err != nil {
@@ -660,7 +660,7 @@ Add to `internal/web/web_test.go`:
 ```go
 func TestTelemetryPageMetricsOnly(t *testing.T) {
 	st := testStore(t)
-	st.TouchNode("aabbccddeeff", "192.168.1.9", 1000)
+	st.TouchNode("aabbccddeeff", "192.0.2.9", 1000)
 	st.InsertData("aabbccddeeff", 1001, 1, "metric", "pm25", int64(7), "", "int")
 	st.InsertData("aabbccddeeff", 1001, 0, "log", "", nil, "vin: pm25=7 (olympic)", "")
 	srv := serve(t, st)
@@ -895,7 +895,7 @@ Add to `internal/web/web_test.go`:
 ```go
 func TestBannerGatewaySettingsToggle(t *testing.T) {
 	st := testStore(t)
-	st.TouchNode("aabbccddeeff", "192.168.1.9", 1000)
+	st.TouchNode("aabbccddeeff", "192.0.2.9", 1000)
 	srv := serve(t, st)
 
 	body := readBody(t, mustGet(t, srv.URL+"/n/aabbccddeeff"))

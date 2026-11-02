@@ -284,7 +284,7 @@ int main(void) {
 - [x] **Step 2: Run it and watch it fail to compile** (no `app_cad_ms`, no `fed_at_ms`, no `OBS_COND_APP_STALE`):
 
 ```bash
-cd /home/david/workspace/rete/nodus/oevm && gcc -Wall -Wextra -std=c99 -Isrc tests/test_observer_core.c -o /tmp/claude-1000/test_observer_core && /tmp/claude-1000/test_observer_core
+cd ~/workspace/rete/nodus/oevm && gcc -Wall -Wextra -std=c99 -Isrc tests/test_observer_core.c -o /tmp/claude-1000/test_observer_core && /tmp/claude-1000/test_observer_core
 ```
 Expected: compile errors naming those three identifiers.
 
@@ -380,14 +380,14 @@ Also edit the header's top comment (lines 5–31): replace the paragraph beginni
 - [x] **Step 4: Run the test; all nine properties pass.**
 
 ```bash
-cd /home/david/workspace/rete/nodus/oevm && gcc -Wall -Wextra -std=c99 -Isrc tests/test_observer_core.c -o /tmp/claude-1000/test_observer_core && /tmp/claude-1000/test_observer_core
+cd ~/workspace/rete/nodus/oevm && gcc -Wall -Wextra -std=c99 -Isrc tests/test_observer_core.c -o /tmp/claude-1000/test_observer_core && /tmp/claude-1000/test_observer_core
 ```
 Expected: nine `OK` lines then `all properties OK`. Property 8 must print a non-zero legacy fire time with `deadline=800`.
 
 - [x] **Step 5: Commit.**
 
 ```bash
-cd /home/david/workspace/rete && git add nodus/oevm/src/observer_core.h nodus/oevm/tests/test_observer_core.c && git commit -m "fix(#273): §3.2 judges feed age against a DECLARED appCad; the shortest-period inference is deleted
+cd ~/workspace/rete && git add nodus/oevm/src/observer_core.h nodus/oevm/tests/test_observer_core.c && git commit -m "fix(#273): §3.2 judges feed age against a DECLARED appCad; the shortest-period inference is deleted
 
 Property 8 reproduces the fast-poll false trip on the old rule (800 ms deadline
 against a 1.5 s reaction) and shows the declared rule quiet; property 9 shows a
@@ -414,7 +414,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - [x] **Step 1: Count, then append the name.** 
 
 ```bash
-cd /home/david/workspace/rete/nodus/oevm && grep -c '^PRIM_NAME(' src/prim_names.def
+cd ~/workspace/rete/nodus/oevm && grep -c '^PRIM_NAME(' src/prim_names.def
 ```
 Expected: `157`. The new entry is therefore id **158**. Append to `src/prim_names.def` as the LAST line:
 
@@ -504,14 +504,14 @@ uint32_t platform_app_cad_ms(void) { return s_app_cad_ms; }
 - [x] **Step 6: Host compile check of the C side (the parity guard is the test).**
 
 ```bash
-cd /home/david/workspace/rete/nodus/nsl && python3 tools/run_tests_oevm.py 2>&1 | tail -6
+cd ~/workspace/rete/nodus/nsl && python3 tools/run_tests_oevm.py 2>&1 | tail -6
 ```
 Expected: `Passed: N / Failed: 0`, aux line shows `c-units: ok`. (nsl tests that send `liveness:budget:` still pass here — Task 3 changes them.) If `c-units` is red, the parity guard or the case is wrong; read the compiler line.
 
 - [x] **Step 7: Zephyr compile check** — no host gate compiles `observer.c`. Replay the last board build's compile command:
 
 ```bash
-cd /home/david/workspace/rete/nodus/oevm/zephyr && f=$(ls -t build-*/compile_commands.json 2>/dev/null | head -1); echo "$f"; python3 -c "
+cd ~/workspace/rete/nodus/oevm/zephyr && f=$(ls -t build-*/compile_commands.json 2>/dev/null | head -1); echo "$f"; python3 -c "
 import json,sys,subprocess,shlex
 cc=json.load(open('$f'))
 for e in cc:
@@ -525,7 +525,7 @@ Expected: `0`. If no build dir exists, this check moves to Task 8 Step 3 (the fi
 - [x] **Step 8: Commit.**
 
 ```bash
-cd /home/david/workspace/rete && git add nodus/oevm/src/prim_names.def nodus/oevm/src/dispatch.c nodus/oevm/src/prim_ids.h nodus/oevm/src/platform.c nodus/oevm/zephyr/src/observer.c && git commit -m "feat(#273): platform appLiveness: — the declared appCad reaches the observer (prim 158)
+cd ~/workspace/rete && git add nodus/oevm/src/prim_names.def nodus/oevm/src/dispatch.c nodus/oevm/src/prim_ids.h nodus/oevm/src/platform.c nodus/oevm/zephyr/src/observer.c && git commit -m "feat(#273): platform appLiveness: — the declared appCad reaches the observer (prim 158)
 
 Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 ```
@@ -633,7 +633,7 @@ class LivenessAppCad packageUsing: manifest = () (
 - [x] **Step 2: Run 17 and 24 to see them fail.**
 
 ```bash
-cd /home/david/workspace/rete/nodus/nsl && python3 tools/run-one.py ../tests/22_spacesync/17_liveness_declared.nsl B; python3 tools/run-one.py ../tests/22_spacesync/24_liveness_app_cad.nsl B
+cd ~/workspace/rete/nodus/nsl && python3 tools/run-one.py ../tests/22_spacesync/17_liveness_declared.nsl B; python3 tools/run-one.py ../tests/22_spacesync/24_liveness_app_cad.nsl B
 ```
 Expected: 17 prints `telCad -1`; 24 fails on `liveness:misses:` (does not understand).
 
@@ -760,21 +760,21 @@ Expected: 17 prints `telCad -1`; 24 fails on `liveness:misses:` (does not unders
 - [x] **Step 4: Run the seven tests one by one; then measure 20.**
 
 ```bash
-cd /home/david/workspace/rete/nodus/nsl && for t in 17_liveness_declared 18_liveness_grid 19_liveness_goal 21_liveness_goal_stream 22_kernel_tick 23_liveness_cad_rearm 24_liveness_app_cad; do python3 tools/run-one.py ../tests/22_spacesync/$t.nsl B 2>&1 | tail -2; done; python3 tools/run-one.py ../tests/22_spacesync/20_liveness_size.nsl B 2>&1 | grep -i "liveness"
+cd ~/workspace/rete/nodus/nsl && for t in 17_liveness_declared 18_liveness_grid 19_liveness_goal 21_liveness_goal_stream 22_kernel_tick 23_liveness_cad_rearm 24_liveness_app_cad; do python3 tools/run-one.py ../tests/22_spacesync/$t.nsl B 2>&1 | tail -2; done; python3 tools/run-one.py ../tests/22_spacesync/20_liveness_size.nsl B 2>&1 | grep -i "liveness"
 ```
 Expected: six PASS lines; 20 prints `liveness <N>` where N is the measured size. Pin N in 20's expect block AND note it for Task 9 (RECORDS). N should be near 43 (two 6-char keys at 9 B each, two 5-byte uints, 11 B tag+name, 3 B framing); if it is far from that, the record is malformed — look before pinning.
 
 - [x] **Step 5: Full nsl suite.**
 
 ```bash
-cd /home/david/workspace/rete/nodus/nsl && python3 tools/run_tests_oevm.py 2>&1 | tail -6
+cd ~/workspace/rete/nodus/nsl && python3 tools/run_tests_oevm.py 2>&1 | tail -6
 ```
 Expected: `Passed: 280 / Failed: 0` (279 + test 24) and a green aux line EXCEPT `tutorial-porta`, which is expected RED until Task 6 changes porta and the tutorial page — note the failing line and move on.
 
 - [x] **Step 6: Commit.**
 
 ```bash
-cd /home/david/workspace/rete && git add nodus/nsl/lib/kernel.nsl nodus/tests/22_spacesync/ && git commit -m "feat(#273): the bridge declares telCad+misses on the wire and appCad to the observer
+cd ~/workspace/rete && git add nodus/nsl/lib/kernel.nsl nodus/tests/22_spacesync/ && git commit -m "feat(#273): the bridge declares telCad+misses on the wire and appCad to the observer
 
 Liveness { misses, telCad } replaces { cad, bud }; bud is telCad x misses by
 construction, so the grid snap and the bud < cad guard are deleted. appCad
@@ -795,7 +795,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - [x] **Step 1: List them, then edit each.**
 
 ```bash
-cd /home/david/workspace/rete && rg -n "liveness: .*budget:" nodus --glob '*.nsl' | grep -v "^nodus/tests/"
+cd ~/workspace/rete && rg -n "liveness: .*budget:" nodus --glob '*.nsl' | grep -v "^nodus/tests/"
 ```
 Expected: eleven lines (nine `self cadence * 8` + RearmProbe's two). Edit:
   - `PortaBridgeNodeC6.nsl:100`, `PortaBridgeNodeNrf.nsl:107`, `PortaBridgeNode.nsl:74` → `bridge liveness: self cadence misses: 16.` and replace the comment above each with:
@@ -820,21 +820,21 @@ Expected: eleven lines (nine `self cadence * 8` + RearmProbe's two). Edit:
 - [x] **Step 2: Nothing left behind.**
 
 ```bash
-cd /home/david/workspace/rete && rg -n "budget:|cadence \* 8|budMs|PULSE_UNDRAINED|pulse-undrained" nodus --glob '!*.md' --glob '!nodus/oevm/tests/target/test_observe.py' | grep -v "kernel.nsl.*public budMs\|tests/22_spacesync"
+cd ~/workspace/rete && rg -n "budget:|cadence \* 8|budMs|PULSE_UNDRAINED|pulse-undrained" nodus --glob '!*.md' --glob '!nodus/oevm/tests/target/test_observe.py' | grep -v "kernel.nsl.*public budMs\|tests/22_spacesync"
 ```
 Expected: no output. (`test_observe.py:192,205` keeps `pulse-undrained` — it is a synthetic log of a 2026-08-17 event and the assertion is that the runner NAMES the condition it finds.)
 
 - [x] **Step 3: Host node compiles.** The host `PortaBridgeNode.nsl` is what `porta_sync_host.sh` and the tutorial build; a quick bake proves the sites parse:
 
 ```bash
-cd /home/david/workspace/rete/nodus/oevm && bash tests/porta_sync_host.sh 2>&1 | tail -5
+cd ~/workspace/rete/nodus/oevm && bash tests/porta_sync_host.sh 2>&1 | tail -5
 ```
 Expected: FAIL at the `obs/liveness` grep (the script still greps `#cad: 2000`) — but AFTER a successful bake and boot. A failure before the node boots is a parse error in a site: read it.
 
 - [x] **Step 4: Commit.**
 
 ```bash
-cd /home/david/workspace/rete && git add nodus/oevm/zephyr/*.nsl && git commit -m "refactor(#273): every node declares liveness: telCad misses:; the wedge probe declares its app cadence
+cd ~/workspace/rete && git add nodus/oevm/zephyr/*.nsl && git commit -m "refactor(#273): every node declares liveness: telCad misses:; the wedge probe declares its app cadence
 
 The ten hand-written cadence * 8 sites are gone. Bench bridge nodes declare
 misses: 16 so a 2 s telCad clears porta's 30 s sweep tick (D2.1).
@@ -852,7 +852,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - [x] **Step 1: Edit.** In the field-key block (sorted alphabetically): delete `sym-bud` (line 69) and `sym-cad` (line 71) IF nothing else uses them — check first:
 
 ```bash
-cd /home/david/workspace/rete && grep -n "sym-bud\|sym-cad\b" protocol/MANIFEST.cddl
+cd ~/workspace/rete && grep -n "sym-bud\|sym-cad\b" protocol/MANIFEST.cddl
 ```
 If only the definitions and the liveness rule appear, delete the two definitions. Add, in alphabetical position:
 ```
@@ -874,21 +874,21 @@ gw-verdict = #6.39("live") / #6.39("silent") / #6.39("neverSeen") / #6.39("unkno
 - [x] **Step 2: Lint and gate.**
 
 ```bash
-cd /home/david/workspace/rete && python3 protocol/tools/manifest_lint.py protocol/MANIFEST.cddl && cd nodus/nsl && python3 -m pytest -q tools/test_manifest_gate.py ../../protocol/tools 2>&1 | tail -3
+cd ~/workspace/rete && python3 protocol/tools/manifest_lint.py protocol/MANIFEST.cddl && cd nodus/nsl && python3 -m pytest -q tools/test_manifest_gate.py ../../protocol/tools 2>&1 | tail -3
 ```
 Expected: lint clean; pytest green. `test_pin_manifest.py` computes the hash from the file, so it follows the edit.
 
 - [x] **Step 3: Record the new hash** (it is the `obs/build.man` pin every node built from here on carries, and the served-hash side on the gateway):
 
 ```bash
-cd /home/david/workspace/rete && sha256sum protocol/MANIFEST.cddl
+cd ~/workspace/rete && sha256sum protocol/MANIFEST.cddl
 ```
 Write the first 16 hex chars into the commit message.
 
 - [x] **Step 4: Commit.**
 
 ```bash
-cd /home/david/workspace/rete && git add protocol/MANIFEST.cddl && git commit -m "protocol(#273 #285): Liveness { misses, telCad }; gw-verdict names all four verdicts
+cd ~/workspace/rete && git add protocol/MANIFEST.cddl && git commit -m "protocol(#273 #285): Liveness { misses, telCad }; gw-verdict names all four verdicts
 
 MANIFEST.cddl sha256 now <first16>… — every node built from here pins it, and
 the gateway must be restarted with this file (Task 10) before those nodes are
@@ -1014,7 +1014,7 @@ func lastReason(t *testing.T, st *Store, node string) string {
 - [x] **Step 3: Run; expect compile failures naming `DeclaredLiveness`, `TelCadMs`, `Misses`.**
 
 ```bash
-cd /home/david/workspace/rete/porta && go test ./internal/space/ ./internal/portacli/ ./internal/cval/ 2>&1 | head -20
+cd ~/workspace/rete/porta && go test ./internal/space/ ./internal/portacli/ ./internal/cval/ 2>&1 | head -20
 ```
 
 - [x] **Step 4: Implement.** In `store.go` replace `DeclaredBudget` (and its comment) with:
@@ -1151,7 +1151,7 @@ Any other reader of `DeclaredBudget` or `BudgetMs` in `porta/`: `rg -n "Declared
 - [x] **Step 5: Run; pin the golden.**
 
 ```bash
-cd /home/david/workspace/rete/porta && gofmt -l . ; go test ./... 2>&1 | tail -15
+cd ~/workspace/rete/porta && gofmt -l . ; go test ./... 2>&1 | tail -15
 ```
 Expected: everything green except `TestGoalLivenessGoldenForTheHostGate`, whose failure prints `goal/liveness golden = <hex>`. Paste that hex into `want` AND into `GOAL_LIVENESS_HEX` in `porta_sync_host.sh`. Re-run: all green.
 
@@ -1161,14 +1161,14 @@ Expected: everything green except `TestGoalLivenessGoldenForTheHostGate`, whose 
   - `docs/tutorials/03-porta.md:196` → `  obs/liveness   seq=6   boot=1  #Liveness{#misses: 16, #telCad: 2000}` and read the surrounding prose for `bud`/`budget`/`16 s`: rewrite to say the node declares its cadence and a miss allowance and porta derives the 32 s budget.
 
 ```bash
-cd /home/david/workspace/rete/nodus/oevm && bash tests/porta_sync_host.sh 2>&1 | tail -4
+cd ~/workspace/rete/nodus/oevm && bash tests/porta_sync_host.sh 2>&1 | tail -4
 ```
 Expected: `PORTA SYNC OK`.
 
 - [x] **Step 7: Commit.**
 
 ```bash
-cd /home/david/workspace/rete && gofmt -l porta && git add porta nodus/oevm/tests/porta_sync_host.sh docs/tutorials/03-porta.md && git commit -m "feat(#273): porta derives bud = telCad x misses, refuses below its tick (D2.1), counts misses in the reason (D2.2)
+cd ~/workspace/rete && gofmt -l porta && git add porta nodus/oevm/tests/porta_sync_host.sh docs/tutorials/03-porta.md && git commit -m "feat(#273): porta derives bud = telCad x misses, refuses below its tick (D2.1), counts misses in the reason (D2.2)
 
 Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 ```
@@ -1180,9 +1180,9 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - [x] **Step 1: The three gates, in this order (never two nsl suites at once; porta_sync_host is standalone).**
 
 ```bash
-cd /home/david/workspace/rete/nodus/nsl && python3 tools/run_tests_oevm.py 2>&1 | tail -6
-cd /home/david/workspace/rete/porta && go test ./... 2>&1 | tail -3
-cd /home/david/workspace/rete/nodus/oevm && bash tests/porta_sync_host.sh 2>&1 | tail -2
+cd ~/workspace/rete/nodus/nsl && python3 tools/run_tests_oevm.py 2>&1 | tail -6
+cd ~/workspace/rete/porta && go test ./... 2>&1 | tail -3
+cd ~/workspace/rete/nodus/oevm && bash tests/porta_sync_host.sh 2>&1 | tail -2
 ```
 Expected: `Passed: 280 / Failed: 0` with EVERY aux entry green including `tutorial-porta` and `porta-cli`; `ok` for every Go package; `PORTA SYNC OK`. A SKIP on the aux line is a finding — read it.
 
@@ -1191,7 +1191,7 @@ Expected: `Passed: 280 / Failed: 0` with EVERY aux entry green including `tutori
 - [x] **Step 3: Commit.**
 
 ```bash
-cd /home/david/workspace/rete && git add CLAUDE.md && git commit -m "docs: gate count after #273's tests
+cd ~/workspace/rete && git add CLAUDE.md && git commit -m "docs: gate count after #273's tests
 
 Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 ```
@@ -1328,16 +1328,16 @@ OBSERVE_PROGRESS='^.*fastpoll tick [0-9]+'
 - [x] **Step 2: Run it on TODAY'S VM.** Check out the pre-Task-1 VM sources into the working tree for the build only:
 
 ```bash
-cd /home/david/workspace/rete && git stash -u -q 2>/dev/null; PRE=$(git log --format=%h --grep='fix(#273): §3.2' -1)^; echo "pre-fix commit: $PRE"; git checkout -q $PRE -- nodus/oevm/src nodus/oevm/zephyr/src nodus/nsl/lib/kernel.nsl && git stash pop -q 2>/dev/null; git status --short | head
+cd ~/workspace/rete && git stash -u -q 2>/dev/null; PRE=$(git log --format=%h --grep='fix(#273): §3.2' -1)^; echo "pre-fix commit: $PRE"; git checkout -q $PRE -- nodus/oevm/src nodus/oevm/zephyr/src nodus/nsl/lib/kernel.nsl && git stash pop -q 2>/dev/null; git status --short | head
 ```
 (The probe and env are untracked, so they survive the checkout.) Then:
 
 ```bash
-cd /home/david/workspace/rete/nodus/oevm/tests/target && ./run.sh liveness-fastpoll 2>&1 | tail -25
+cd ~/workspace/rete/nodus/oevm/tests/target && ./run.sh liveness-fastpoll 2>&1 | tail -25
 ```
 Expected: **FAIL** — the archive shows `oevm: WEDGE cond=pulse-undrained ... deadline=800ms` within the first two seconds, a reboot, and boot 2's `TAP fastpoll not ok 1 no reboot note`. Record the archive path. If it PASSES on the old build the probe does not reproduce the defect: raise `blockMs` toward 3000 and re-run before touching anything else.
 
-Restore the tree: `cd /home/david/workspace/rete && git checkout -q HEAD -- nodus/oevm/src nodus/oevm/zephyr/src nodus/nsl/lib/kernel.nsl && git status --short` (expected: only the two new files).
+Restore the tree: `cd ~/workspace/rete && git checkout -q HEAD -- nodus/oevm/src nodus/oevm/zephyr/src nodus/nsl/lib/kernel.nsl && git status --short` (expected: only the two new files).
 
 - [x] **Step 3: The run-once probe.** Create `nodus/oevm/zephyr/RunOnceProbeC6.nsl`:
 
@@ -1445,7 +1445,7 @@ OBSERVE_PROGRESS=none
 - [x] **Step 5: Run the five scenarios on the new build** (~25 min of board time; `run.sh` takes names):
 
 ```bash
-cd /home/david/workspace/rete/nodus/oevm/tests/target && for s in liveness-fastpoll liveness-runonce liveness-heartbeat liveness-noradio wedge-detect; do echo "=== $s"; ./run.sh $s 2>&1 | tail -8; done
+cd ~/workspace/rete/nodus/oevm/tests/target && for s in liveness-fastpoll liveness-runonce liveness-heartbeat liveness-noradio wedge-detect; do echo "=== $s"; ./run.sh $s 2>&1 | tail -8; done
 ```
 Expected, per scenario:
   - `liveness-fastpoll`: PASS, `pass=2 fail=0`, ≥20 `fastpoll tick` lines, no `WEDGE` line in the archive.
@@ -1465,7 +1465,7 @@ and update the `liveness-heartbeat` / `liveness-noradio` / `wedge-detect` rows' 
 - [x] **Step 7: Commit.**
 
 ```bash
-cd /home/david/workspace/rete && git add nodus/oevm/zephyr/FastPollProbeC6.nsl nodus/oevm/zephyr/RunOnceProbeC6.nsl nodus/oevm/tests/target/liveness-fastpoll.env nodus/oevm/tests/target/liveness-runonce.env CLAUDE.md && git commit -m "test(#273): liveness-fastpoll (red before, green after) and liveness-runonce on a board
+cd ~/workspace/rete && git add nodus/oevm/zephyr/FastPollProbeC6.nsl nodus/oevm/zephyr/RunOnceProbeC6.nsl nodus/oevm/tests/target/liveness-fastpoll.env nodus/oevm/tests/target/liveness-runonce.env CLAUDE.md && git commit -m "test(#273): liveness-fastpoll (red before, green after) and liveness-runonce on a board
 
 fastpoll false-rebooted on the pre-#273 build (deadline=800ms, archive <path>)
 and holds 20 slow ticks on the declared rule; runonce forms deadline=4000ms
@@ -1526,7 +1526,7 @@ differently on the first miss than on the fifth.
 - [x] **Step 8: Docmap and commit.**
 
 ```bash
-cd /home/david/workspace/rete && tools/docmap.sh >/dev/null 2>&1; git add -A protocol/*.md porta/docs/ARCHITECTURE.md review/tests/CLAIMS.md docs/design CLAUDE.md review/DOCMAP.md && git commit -m "docs(#273): promote D1/D2 to RECORDS, PROTOCOL-NSL, ARCHITECTURE, CLAIMS; the older records banner-superseded
+cd ~/workspace/rete && tools/docmap.sh >/dev/null 2>&1; git add -A protocol/*.md porta/docs/ARCHITECTURE.md review/tests/CLAIMS.md docs/design CLAUDE.md review/DOCMAP.md && git commit -m "docs(#273): promote D1/D2 to RECORDS, PROTOCOL-NSL, ARCHITECTURE, CLAIMS; the older records banner-superseded
 
 Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 ```

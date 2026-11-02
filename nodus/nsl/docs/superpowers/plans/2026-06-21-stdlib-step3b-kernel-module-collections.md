@@ -10,7 +10,7 @@
 
 ## Global Constraints
 
-- **Three sibling repos:** `ns-oevm` (compiler/harness/`lib`/`docs`; cwd `/home/david/workspace/ns-oevm`), `../oevm` (the C VM), `../ns-tests` (conformance tests). All paths are relative to the `ns-oevm` cwd.
+- **Three sibling repos:** `ns-oevm` (compiler/harness/`lib`/`docs`; cwd `~/workspace/ns-oevm`), `../oevm` (the C VM), `../ns-tests` (conformance tests). All paths are relative to the `ns-oevm` cwd.
 - **Run the conformance suite from the `ns-oevm` cwd:** `python3 tools/run_tests_oevm.py`. Path selection via the `OEVM_PATH` env var: `OEVM_PATH=A` (solidified-C only), `OEVM_PATH=B` (.oimg only), default `AB` (both). Wrong cwd silently reports 0 passes.
 - **Regression bar:** the suite is **51 pass / 3 skip** on `master`. "Green" = same counts. After Task 3 the bar is `OEVM_PATH=A` 51/3 (Path B is temporarily red until Task 4 finishes the loader); after Task 4 onward the bar is `OEVM_PATH=AB` 51/3.
 - **Capability-purity (preserve):** the app reaches library classes ONLY through the handed `platform` (now the Kernel instance). Kernel reaches native primitives ONLY through its injected `platform` param. No VM globals for classes.
@@ -116,9 +116,9 @@ with:
 - [ ] **Step 4: Commit (ns-oevm)**
 
 ```bash
-git -C /home/david/workspace/ns-oevm checkout -b feat/stdlib-step3b
-git -C /home/david/workspace/ns-oevm add docs/NEWSPEAK_DIALECT.md docs/design/2026-06-20-ns-oevm-stdlib-step3b-kernel-module-collections.md
-git -C /home/david/workspace/ns-oevm commit -m "docs(stdlib): Newspeak dialect reference (NEWSPEAK_DIALECT.md); step-3b Option C (Array not a Collection)"
+git -C ~/workspace/ns-oevm checkout -b feat/stdlib-step3b
+git -C ~/workspace/ns-oevm add docs/NEWSPEAK_DIALECT.md docs/design/2026-06-20-ns-oevm-stdlib-step3b-kernel-module-collections.md
+git -C ~/workspace/ns-oevm commit -m "docs(stdlib): Newspeak dialect reference (NEWSPEAK_DIALECT.md); step-3b Option C (Array not a Collection)"
 ```
 
 ---
@@ -160,7 +160,7 @@ class ClassSideOuter packageUsing: manifest = () (
 - [ ] **Step 2: Run the test to verify it fails**
 
 ```bash
-cd /home/david/workspace/ns-oevm
+cd ~/workspace/ns-oevm
 python3 tools/ns_compile_oevm.py ../ns-tests/04_somns_basic/28_class_side_outer.ns ../oevm/src/solidified_image.c
 (cd ../oevm && gcc -Wall -Wextra -std=c99 -DOEVM_APPLIANCE src/vm.c src/gc.c src/dispatch.c src/solidified_image.c src/oevm_main.c -o oevm_runner -lm && ./oevm_runner)
 ```
@@ -260,7 +260,7 @@ Replace the `else` branch's loop the same way:
 - [ ] **Step 5: Run the test to verify it passes**
 
 ```bash
-cd /home/david/workspace/ns-oevm
+cd ~/workspace/ns-oevm
 python3 tools/ns_compile_oevm.py ../ns-tests/04_somns_basic/28_class_side_outer.ns ../oevm/src/solidified_image.c
 (cd ../oevm && gcc -Wall -Wextra -std=c99 -DOEVM_APPLIANCE src/vm.c src/gc.c src/dispatch.c src/solidified_image.c src/oevm_main.c -o oevm_runner -lm && ./oevm_runner)
 ```
@@ -270,7 +270,7 @@ Expected: `42`.
 - [ ] **Step 6: Run the full suite (both paths) — confirm no regression**
 
 ```bash
-cd /home/david/workspace/ns-oevm
+cd ~/workspace/ns-oevm
 python3 tools/run_tests_oevm.py
 ```
 
@@ -279,11 +279,11 @@ Expected: 52 pass / 3 skip both paths (51 prior + the new `28_class_side_outer.n
 - [ ] **Step 7: Commit (ns-oevm + ns-tests)**
 
 ```bash
-git -C /home/david/workspace/ns-oevm add tools/ns_compile_oevm.py
-git -C /home/david/workspace/ns-oevm commit -m "fix(compiler): class-side slot-read/assign first hop reads BoundClass outer (slot 1)"
-git -C /home/david/workspace/ns-tests checkout -b feat/stdlib-step3b
-git -C /home/david/workspace/ns-tests add 04_somns_basic/28_class_side_outer.ns
-git -C /home/david/workspace/ns-tests commit -m "test(stdlib): class-side method reaching enclosing-instance slot"
+git -C ~/workspace/ns-oevm add tools/ns_compile_oevm.py
+git -C ~/workspace/ns-oevm commit -m "fix(compiler): class-side slot-read/assign first hop reads BoundClass outer (slot 1)"
+git -C ~/workspace/ns-tests checkout -b feat/stdlib-step3b
+git -C ~/workspace/ns-tests add 04_somns_basic/28_class_side_outer.ns
+git -C ~/workspace/ns-tests commit -m "test(stdlib): class-side method reaching enclosing-instance slot"
 ```
 
 ---
@@ -654,7 +654,7 @@ In `../oevm/src/oevm_main.c`, delete the wiring block (`:42-49`):
 - [ ] **Step 8: Build + run the module test (Path A)**
 
 ```bash
-cd /home/david/workspace/ns-oevm
+cd ~/workspace/ns-oevm
 python3 tools/ns_compile_oevm.py ../ns-tests/04_somns_basic/29_kernel_module.ns ../oevm/src/solidified_image.c
 (cd ../oevm && gcc -Wall -Wextra -std=c99 -DOEVM_APPLIANCE src/vm.c src/gc.c src/dispatch.c src/solidified_image.c src/oevm_main.c -o oevm_runner -lm && ./oevm_runner)
 ```
@@ -666,7 +666,7 @@ Expected: `3`, `10`, `20`, `30`, `an Object`. (Clean compile with no `kernel_arr
 The committed `../oevm/src/solidified_image.c` predates the Kernel module + two-stage boot, so a plain `make` would not define `Vtable_Kernel`/`init_platform:` and `oevm_main.c` would mis-link. Regenerate it through the new compiler from the canonical default source. First confirm the current default and that it lacks the Kernel:
 
 ```bash
-cd /home/david/workspace/ns-oevm
+cd ~/workspace/ns-oevm
 grep -m1 "Instantiate entry class" ../oevm/src/solidified_image.c   # shows the current default's entry class name
 grep -c "Vtable_Kernel" ../oevm/src/solidified_image.c              # expect 0 before regen
 ```
@@ -684,7 +684,7 @@ Expected: builds and runs (prints the `29_kernel_module.ns` expected output).
 - [ ] **Step 10: Run the suite, Path A only**
 
 ```bash
-cd /home/david/workspace/ns-oevm
+cd ~/workspace/ns-oevm
 OEVM_PATH=A python3 tools/run_tests_oevm.py
 ```
 
@@ -693,13 +693,13 @@ Expected: 53 pass / 3 skip on Path A (52 from Task 2 + the new `29_kernel_module
 - [ ] **Step 11: Commit (three repos)**
 
 ```bash
-git -C /home/david/workspace/ns-oevm add lib/kernel.ns tools/ns_compile_oevm.py
-git -C /home/david/workspace/ns-oevm commit -m "feat(stdlib): Kernel module foundation + two-stage boot (Path A); universal root -> Kernel.Object"
-git -C /home/david/workspace/oevm checkout -b feat/stdlib-step3b
-git -C /home/david/workspace/oevm add src/dispatch.c src/oevm.h src/gc.c src/oevm_main.c src/solidified_image.c
-git -C /home/david/workspace/oevm commit -m "feat(stdlib): basicNew:indexable: prim; retire kernel_array_vtable/PRIM_Array; two-stage boot (Path A)"
-git -C /home/david/workspace/ns-tests add 04_somns_basic/29_kernel_module.ns
-git -C /home/david/workspace/ns-tests commit -m "test(stdlib): Kernel module accessor + Array round-trip"
+git -C ~/workspace/ns-oevm add lib/kernel.ns tools/ns_compile_oevm.py
+git -C ~/workspace/ns-oevm commit -m "feat(stdlib): Kernel module foundation + two-stage boot (Path A); universal root -> Kernel.Object"
+git -C ~/workspace/oevm checkout -b feat/stdlib-step3b
+git -C ~/workspace/oevm add src/dispatch.c src/oevm.h src/gc.c src/oevm_main.c src/solidified_image.c
+git -C ~/workspace/oevm commit -m "feat(stdlib): basicNew:indexable: prim; retire kernel_array_vtable/PRIM_Array; two-stage boot (Path A)"
+git -C ~/workspace/ns-tests add 04_somns_basic/29_kernel_module.ns
+git -C ~/workspace/ns-tests commit -m "test(stdlib): Kernel module accessor + Array round-trip"
 ```
 
 ---
@@ -985,7 +985,7 @@ In `../oevm/oevm_image_main.c`, delete the wiring block (`:29-35`):
 - [ ] **Step 7: Build the image VM, then run the suite both paths**
 
 ```bash
-cd /home/david/workspace/ns-oevm
+cd ~/workspace/ns-oevm
 python3 tools/run_tests_oevm.py
 ```
 
@@ -996,10 +996,10 @@ Expected: 53 pass / 3 skip on **both** Path A and Path B (the harness rebuilds `
 - [ ] **Step 8: Commit (two repos)**
 
 ```bash
-git -C /home/david/workspace/ns-oevm add tools/oimg_serialize.py tools/ns_compile_oevm.py
-git -C /home/david/workspace/ns-oevm commit -m "feat(stdlib): .oimg Kernel descriptor (format_version 3); retire kernel_array_ref"
-git -C /home/david/workspace/oevm add src/oimg_loader.c oevm_image_main.c
-git -C /home/david/workspace/oevm commit -m "feat(stdlib): two-stage oimg_bootstrap (construct Kernel, hand to app); retire kernel_array_vtable"
+git -C ~/workspace/ns-oevm add tools/oimg_serialize.py tools/ns_compile_oevm.py
+git -C ~/workspace/ns-oevm commit -m "feat(stdlib): .oimg Kernel descriptor (format_version 3); retire kernel_array_ref"
+git -C ~/workspace/oevm add src/oimg_loader.c oevm_image_main.c
+git -C ~/workspace/oevm commit -m "feat(stdlib): two-stage oimg_bootstrap (construct Kernel, hand to app); retire kernel_array_vtable"
 ```
 
 ---
@@ -1073,7 +1073,7 @@ public main: platform args: args = (
 - [ ] **Step 2: Run to verify it fails**
 
 ```bash
-cd /home/david/workspace/ns-oevm
+cd ~/workspace/ns-oevm
 python3 tools/ns_compile_oevm.py ../ns-tests/04_somns_basic/30_collections.ns ../oevm/src/solidified_image.c
 (cd ../oevm && gcc -Wall -Wextra -std=c99 -DOEVM_APPLIANCE src/vm.c src/gc.c src/dispatch.c src/solidified_image.c src/oevm_main.c -o oevm_runner -lm && ./oevm_runner)
 ```
@@ -1133,7 +1133,7 @@ Then add the two accessors alongside the existing `Object`/`Array` accessors:
 - [ ] **Step 4: Build + run the test (Path A)**
 
 ```bash
-cd /home/david/workspace/ns-oevm
+cd ~/workspace/ns-oevm
 python3 tools/ns_compile_oevm.py ../ns-tests/04_somns_basic/30_collections.ns ../oevm/src/solidified_image.c
 (cd ../oevm && gcc -Wall -Wextra -std=c99 -DOEVM_APPLIANCE src/vm.c src/gc.c src/dispatch.c src/solidified_image.c src/oevm_main.c -o oevm_runner -lm && ./oevm_runner)
 ```
@@ -1143,7 +1143,7 @@ Expected: the exact `expect:` block (`0`, `true`, `1 2 3 4 5`, `5`, `false`, `2 
 - [ ] **Step 5: Run the full suite both paths**
 
 ```bash
-cd /home/david/workspace/ns-oevm
+cd ~/workspace/ns-oevm
 python3 tools/run_tests_oevm.py
 ```
 
@@ -1152,10 +1152,10 @@ Expected: 54 pass / 3 skip on both paths (53 from Task 4 + `30_collections.ns`).
 - [ ] **Step 6: Commit (two repos)**
 
 ```bash
-git -C /home/david/workspace/ns-oevm add lib/kernel.ns
-git -C /home/david/workspace/ns-oevm commit -m "feat(stdlib): Collection (abstract) + OrderedCollection (Array-backed, growable)"
-git -C /home/david/workspace/ns-tests add 04_somns_basic/30_collections.ns
-git -C /home/david/workspace/ns-tests commit -m "test(stdlib): Collection/OrderedCollection protocol, growth, detect: short-circuit"
+git -C ~/workspace/ns-oevm add lib/kernel.ns
+git -C ~/workspace/ns-oevm commit -m "feat(stdlib): Collection (abstract) + OrderedCollection (Array-backed, growable)"
+git -C ~/workspace/ns-tests add 04_somns_basic/30_collections.ns
+git -C ~/workspace/ns-tests commit -m "test(stdlib): Collection/OrderedCollection protocol, growth, detect: short-circuit"
 ```
 
 ---

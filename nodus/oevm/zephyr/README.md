@@ -67,11 +67,11 @@ is). Building this gate CLOBBERS them as a transient build step. Regenerate
 from `PulseNode.nsl` before every `west build`:
 
 ```bash
-source /home/david/workspace/ns-zephyr/tools/env.sh
-cd /home/david/workspace/nsl-tuvm
+source ~/workspace/ns-zephyr/tools/env.sh
+cd ~/workspace/nsl-tuvm
 python3 tools/ns_compile_oevm.py \
-  /home/david/workspace/tuvm/zephyr/PulseNode.nsl \
-  /home/david/workspace/tuvm/src/solidified_image.c
+  ~/workspace/tuvm/zephyr/PulseNode.nsl \
+  ~/workspace/tuvm/src/solidified_image.c
 ```
 
 After building (and BEFORE committing anything in `oevm`), restore the
@@ -79,15 +79,15 @@ checked-in `solidified_image.c` so the working tree stays clean for
 other tests that depend on them:
 
 ```bash
-cd /home/david/workspace/tuvm
+cd ~/workspace/tuvm
 git checkout -- src/solidified_image.c
 ```
 
 ## Build + run
 
 ```bash
-source /home/david/workspace/ns-zephyr/tools/env.sh
-cd /home/david/workspace/tuvm/zephyr
+source ~/workspace/ns-zephyr/tools/env.sh
+cd ~/workspace/tuvm/zephyr
 west build -b native_sim -p always .
 timeout 8 ./build/zephyr/zephyr.exe
 ```
@@ -167,7 +167,7 @@ stack).
 ## Build + flash + run
 
 ```bash
-source /home/david/workspace/ns-zephyr/tools/env.sh
+source ~/workspace/ns-zephyr/tools/env.sh
 # Config "D" is BAKED as the default for every nRF52840 build (CMakeLists.txt,
 # 2026-07-12) — no exports needed. It is load-bearing, not tuning: a 52840 build
 # without VM_STACK_INIT_WORDS=4096 allocates a 64 KB VM stack inside the 48 KB
@@ -178,18 +178,18 @@ source /home/david/workspace/ns-zephyr/tools/env.sh
 #   export VM_STACK_INIT_WORDS=4096 OEVM_MARK_STACK_SIZE=512
 
 # 1. bake the DK node into the solidified image (run from the nsl-tuvm repo)
-cd /home/david/workspace/nsl-tuvm
+cd ~/workspace/nsl-tuvm
 python3 tools/ns_compile_oevm.py \
-  /home/david/workspace/tuvm/zephyr/PulseNodeDK.nsl \
-  /home/david/workspace/tuvm/src/solidified_image.c
+  ~/workspace/tuvm/zephyr/PulseNodeDK.nsl \
+  ~/workspace/tuvm/src/solidified_image.c
 
 # 2. build + flash (skip-rebuild so the flash can't rebuild with a restored image)
-cd /home/david/workspace/tuvm/zephyr
+cd ~/workspace/tuvm/zephyr
 west build -b nrf52840dk/nrf52840 -p always . -- -DCONF_FILE=prj_dk.conf
 west flash --skip-rebuild --runner jlink
 
 # 3. restore the checked-in image BEFORE committing anything in oevm
-cd /home/david/workspace/tuvm
+cd ~/workspace/tuvm
 git checkout -- src/solidified_image.c
 ```
 
@@ -219,19 +219,19 @@ handles a `main:` that returns. (Payload migrated to an immutable `Bytes` in Lay
 ## Build + run
 
 ```bash
-source /home/david/workspace/ns-zephyr/tools/env.sh
+source ~/workspace/ns-zephyr/tools/env.sh
 # bake NetNode.nsl into the solidified image (from the nsl-tuvm repo)
-cd /home/david/workspace/nsl-tuvm
+cd ~/workspace/nsl-tuvm
 python3 tools/ns_compile_oevm.py \
-  /home/david/workspace/tuvm/zephyr/NetNode.nsl \
-  /home/david/workspace/tuvm/src/solidified_image.c
-cd /home/david/workspace/tuvm/zephyr
+  ~/workspace/tuvm/zephyr/NetNode.nsl \
+  ~/workspace/tuvm/src/solidified_image.c
+cd ~/workspace/tuvm/zephyr
 west build -b native_sim -p always .
 # NOTE: the current NCS/native_sim runner nests the executable one level deeper
 # than the older pulse recipe above — it is build/zephyr/zephyr/zephyr.exe.
 timeout 8 ./build/zephyr/zephyr/zephyr.exe   # expect a line: UDP OK
 # restore the generated image before committing anything in oevm
-cd /home/david/workspace/tuvm
+cd ~/workspace/tuvm
 git checkout -- src/solidified_image.c
 ```
 
@@ -254,17 +254,17 @@ reuses this directory's `main.c` / `CMakeLists.txt` / `prj.conf` UNCHANGED (no
 ## Build + run
 
 ```bash
-source /home/david/workspace/ns-zephyr/tools/env.sh
+source ~/workspace/ns-zephyr/tools/env.sh
 # bake NetBridgeNode.nsl into the solidified image (from the nsl-tuvm repo)
-cd /home/david/workspace/nsl-tuvm
+cd ~/workspace/nsl-tuvm
 python3 tools/ns_compile_oevm.py \
-  /home/david/workspace/tuvm/zephyr/NetBridgeNode.nsl \
-  /home/david/workspace/tuvm/src/solidified_image.c
-cd /home/david/workspace/tuvm/zephyr
+  ~/workspace/tuvm/zephyr/NetBridgeNode.nsl \
+  ~/workspace/tuvm/src/solidified_image.c
+cd ~/workspace/tuvm/zephyr
 west build -b native_sim -p always .
 timeout 8 ./build/zephyr/zephyr/zephyr.exe   # expect a line: BRIDGE OK
 # restore the generated image before committing anything in oevm
-cd /home/david/workspace/tuvm
+cd ~/workspace/tuvm
 git checkout -- src/solidified_image.c
 ```
 
@@ -286,23 +286,23 @@ only. Model A (baked image); **MTD, never FTD**. This is a **bench-verified manu
 ## Build + flash + run
 
 ```bash
-source /home/david/workspace/ns-zephyr/tools/env.sh
+source ~/workspace/ns-zephyr/tools/env.sh
 export OEVM_HEAP_SIZE=49152 METHOD_CACHE_SIZE=256 PRIM_CACHE_SIZE=256
 export VM_STACK_INIT_WORDS=4096 OEVM_MARK_STACK_SIZE=512
 
 # bake the Thread node into the solidified image (from the nsl-tuvm repo)
-cd /home/david/workspace/nsl-tuvm
+cd ~/workspace/nsl-tuvm
 python3 tools/ns_compile_oevm.py \
-  /home/david/workspace/tuvm/zephyr/ThreadEchoNodeDK.nsl \
-  /home/david/workspace/tuvm/src/solidified_image.c
+  ~/workspace/tuvm/zephyr/ThreadEchoNodeDK.nsl \
+  ~/workspace/tuvm/src/solidified_image.c
 
-cd /home/david/workspace/tuvm/zephyr
+cd ~/workspace/tuvm/zephyr
 west build -b nrf52840dk/nrf52840 -p always . -- \
   -DCONF_FILE=prj_dk_thread.conf -DEXTRA_CONF_FILE=prj_dk_thread_local.conf
 west flash --skip-rebuild --runner jlink
 
 # restore the generated image BEFORE committing anything in oevm
-cd /home/david/workspace/tuvm
+cd ~/workspace/tuvm
 git checkout -- src/solidified_image.c
 
 # console /dev/ttyACM0 @115200: wait for `thread: attached role=2` (and confirm the
@@ -350,15 +350,15 @@ tick lands in the pulse mailbox, `platform pumpEvents` (which blocks `K_FOREVER`
 
 ## Gate 1 — native_sim: the timer backend, with zero hardware
 
-    source /home/david/workspace/ns-zephyr/tools/env.sh
-    cd /home/david/workspace/nsl-tuvm
+    source ~/workspace/ns-zephyr/tools/env.sh
+    cd ~/workspace/nsl-tuvm
     python3 tools/ns_compile_oevm.py \
-      /home/david/workspace/tuvm/zephyr/TimerNode.nsl \
-      /home/david/workspace/tuvm/src/solidified_image.c
-    cd /home/david/workspace/tuvm/zephyr
+      ~/workspace/tuvm/zephyr/TimerNode.nsl \
+      ~/workspace/tuvm/src/solidified_image.c
+    cd ~/workspace/tuvm/zephyr
     west build -b native_sim -p always .
     timeout 10 ./build/zephyr/zephyr/zephyr.exe    # expect: TIMER OK  (3 ticks @200ms)
-    cd /home/david/workspace/tuvm && git checkout -- src/solidified_image.c
+    cd ~/workspace/tuvm && git checkout -- src/solidified_image.c
 
 ## Gate 2 — the DK: BRIDGE OK every 15 s, in lockstep with the gateway
 

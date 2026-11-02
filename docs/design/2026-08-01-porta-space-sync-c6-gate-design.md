@@ -38,7 +38,7 @@ whole reason plan 2 ran first, and the gate is written to preserve it.
 
 gw85224-01 runs `porta.service` **v1** (0.7.6, `ExecStart=/usr/bin/porta serve --db
 /var/lib/porta/porta.db`, up since 2026-06-26, bound `*:6969`), and it still has live
-LAN nodes checking in — 192.168.0.240 and .241, most recently 2026-07-30. Plan 1's
+LAN nodes checking in — 192.0.2.40 and .241, most recently 2026-07-30. Plan 1's
 `serve` is a rewrite of that same command with the same `--udp :6969` default, so the
 two collide on the port and on the binary name.
 
@@ -292,7 +292,7 @@ flakiness is what the contiguity assertion already tolerates.
 
 **Filed, not built:**
 
-- porta: the orphaned v1 LAN nodes at 192.168.0.240/.241 lose their gateway when v2 takes
+- porta: the orphaned v1 LAN nodes at 192.0.2.40/.241 lose their gateway when v2 takes
   :6969, with no migration between the wires (D1).
 - tuvm: the `awaitReply` reply-mismatch window (§3), filed whether or not it fires — it is
   a real narrowing of the bridge's assumptions that loopback could not have surfaced.

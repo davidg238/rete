@@ -606,7 +606,7 @@ actually exercises the new class, then run that:
 
 ```bash
 python3 - <<'EOF'
-p='/home/david/workspace/tuvm/zephyr/ThermalHttpNode.nsl'
+p='~/workspace/tuvm/zephyr/ThermalHttpNode.nsl'
 s=open(p).read()
 s = "(*\nexpect:\nroutes 2\nok\n*)\n" + s
 s = s.replace("""  public main: platform args: args = (

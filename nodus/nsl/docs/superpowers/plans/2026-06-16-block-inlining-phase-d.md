@@ -60,7 +60,7 @@ Add two optional parameters to `compile_inlined_block`. Defaults reproduce today
 - [ ] **Step 1: Snapshot the BEFORE images (no-op baseline)**
 
 ```bash
-cd /home/david/workspace/ns-oevm
+cd ~/workspace/ns-oevm
 rm -rf /tmp/img_before && python3 tools/snapshot_images.py /tmp/img_before
 ```
 Expected: `snapshot written to /tmp/img_before`.
@@ -110,7 +110,7 @@ Replace with:
 - [ ] **Step 3: Snapshot AFTER and prove byte-identical**
 
 ```bash
-cd /home/david/workspace/ns-oevm
+cd ~/workspace/ns-oevm
 rm -rf /tmp/img_after && python3 tools/snapshot_images.py /tmp/img_after
 diff -r /tmp/img_before /tmp/img_after && echo "NO-OP CONFIRMED"
 ```
@@ -119,14 +119,14 @@ Expected: no diff output, then `NO-OP CONFIRMED`. (No caller passes the new args
 - [ ] **Step 4: Run conformance — unchanged**
 
 ```bash
-cd /home/david/workspace/ns-oevm && python3 tools/run_tests_oevm.py 2>&1 | tail -4
+cd ~/workspace/ns-oevm && python3 tools/run_tests_oevm.py 2>&1 | tail -4
 ```
 Expected: `Passed: 21`, `Failed: 10`, `Skipped: 1`.
 
 - [ ] **Step 5: Commit**
 
 ```bash
-cd /home/david/workspace/ns-oevm
+cd ~/workspace/ns-oevm
 git add tools/ns_compile_oevm.py docs/superpowers/plans/2026-06-16-block-inlining-phase-d.md
 git commit -m "compiler: add param_regs/init_temps to compile_inlined_block (no-op; loop foundation)
 
@@ -190,7 +190,7 @@ Expected values: `testToDoSum` = 1+2+3 = **6**; `testToDoReturnsReceiver` return
 - [ ] **Step 2: Run it to confirm it PASSES via the primitive (pre-implementation reference)**
 
 ```bash
-cd /home/david/workspace/ns-oevm
+cd ~/workspace/ns-oevm
 python3 tools/run_tests_oevm.py 2>&1 | grep '11_loop_inlining'
 ```
 Expected: `... PASS`. (The primitive already implements `to:do:`; this confirms the *expected outputs are correct* before we change codegen. The real assertion that inlining happened is the structural check in Step 5.)
@@ -261,7 +261,7 @@ In `compile_expr`, `et == "send"` branch, immediately after the Phase C `and:`/`
 - [ ] **Step 5: Prove it inlined (no `to:do:` send, no closure for the body block)**
 
 ```bash
-cd /home/david/workspace/ns-oevm
+cd ~/workspace/ns-oevm
 python3 tools/ns_compile_oevm.py ../ns-tests/04_somns_basic/11_loop_inlining.ns /tmp/loop.c
 grep -c 'StaticSymbol_to_do_\|createClosure' /tmp/loop.c
 ```
@@ -270,7 +270,7 @@ Expected: `0` (no `to:do:` selector symbol emitted, no `createClosure:` for the 
 - [ ] **Step 6: Run conformance — still green, no regressions**
 
 ```bash
-cd /home/david/workspace/ns-oevm && python3 tools/run_tests_oevm.py 2>&1 | tail -4
+cd ~/workspace/ns-oevm && python3 tools/run_tests_oevm.py 2>&1 | tail -4
 ```
 Expected: `Passed: 22`, `Failed: 10`, `Skipped: 1` (the new `11_loop_inlining` test is the +1; everything else unchanged). Also confirm `queens` and `sieve` still PASS:
 ```bash
@@ -281,7 +281,7 @@ Expected: both `PASS`.
 - [ ] **Step 7: Prove no-op for if/and/or images**
 
 ```bash
-cd /home/david/workspace/ns-oevm
+cd ~/workspace/ns-oevm
 rm -rf /tmp/img_after && python3 tools/snapshot_images.py /tmp/img_after
 diff /tmp/img_before/04_somns_basic__09_if_inlining.ns.c /tmp/img_after/04_somns_basic__09_if_inlining.ns.c && \
 diff /tmp/img_before/04_somns_basic__10_and_or_inlining.ns.c /tmp/img_after/04_somns_basic__10_and_or_inlining.ns.c && echo "IF/AND/OR UNCHANGED"
@@ -291,12 +291,12 @@ Expected: no diff, then `IF/AND/OR UNCHANGED`. (Other images legitimately change
 - [ ] **Step 8: Commit (compiler + test, two repos)**
 
 ```bash
-cd /home/david/workspace/ns-tests
+cd ~/workspace/ns-tests
 git add 04_somns_basic/11_loop_inlining.ns
 git commit -m "test: add loop-inlining test (to:do: cases)
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
-cd /home/david/workspace/ns-oevm
+cd ~/workspace/ns-oevm
 git add tools/ns_compile_oevm.py
 git commit -m "compiler: inline to:do: (literal one-param block) into a jump loop
 
@@ -353,7 +353,7 @@ Values: `testToByDoUp` = 1+3+5+7+9 = **25**; `testToByDoDown` (step −1, 5→1)
 - [ ] **Step 2: Probe how the parser represents the step, then choose the test form**
 
 ```bash
-cd /home/david/workspace/ns-oevm
+cd ~/workspace/ns-oevm
 python3 - <<'PY'
 import subprocess, json, tempfile, os, sys
 # Compile a tiny probe and inspect: does `-1` parse as a literal int?
@@ -391,14 +391,14 @@ In `compile_expr`, `et == "send"`, immediately after the `to:do:` hook from Task
 - [ ] **Step 4: Run conformance**
 
 ```bash
-cd /home/david/workspace/ns-oevm && python3 tools/run_tests_oevm.py 2>&1 | grep '11_loop_inlining'
+cd ~/workspace/ns-oevm && python3 tools/run_tests_oevm.py 2>&1 | grep '11_loop_inlining'
 ```
 Expected: `... PASS`. Full summary still `Passed: 22, Failed: 10, Skipped: 1`.
 
 - [ ] **Step 5: Prove no-op for if/and/or images**
 
 ```bash
-cd /home/david/workspace/ns-oevm
+cd ~/workspace/ns-oevm
 rm -rf /tmp/img_after && python3 tools/snapshot_images.py /tmp/img_after
 diff /tmp/img_before/04_somns_basic__09_if_inlining.ns.c /tmp/img_after/04_somns_basic__09_if_inlining.ns.c && \
 diff /tmp/img_before/04_somns_basic__10_and_or_inlining.ns.c /tmp/img_after/04_somns_basic__10_and_or_inlining.ns.c && echo "IF/AND/OR UNCHANGED"
@@ -408,12 +408,12 @@ Expected: no diff, then `IF/AND/OR UNCHANGED`.
 - [ ] **Step 6: Commit**
 
 ```bash
-cd /home/david/workspace/ns-tests
+cd ~/workspace/ns-tests
 git add 04_somns_basic/11_loop_inlining.ns
 git commit -m "test: add to:by:do: ascending/descending loop cases
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
-cd /home/david/workspace/ns-oevm
+cd ~/workspace/ns-oevm
 git add tools/ns_compile_oevm.py
 git commit -m "compiler: inline to:by:do: with literal integer step
 
@@ -538,7 +538,7 @@ In `compile_expr`, `et == "send"`, after the `to:by:do:` hook, insert:
 - [ ] **Step 4: Probe the `[ true ]` receiver, then run the test**
 
 ```bash
-cd /home/david/workspace/ns-oevm
+cd ~/workspace/ns-oevm
 python3 tools/run_tests_oevm.py 2>&1 | grep '11_loop_inlining'
 ```
 Expected: `... PASS`. If it fails on the `testWhileEarlyReturn` row only, swap `[ true ]` → `[ 1 < 2 ]` in the fixture (per the Step 1 note) and re-run.
@@ -546,7 +546,7 @@ Expected: `... PASS`. If it fails on the `testWhileEarlyReturn` row only, swap `
 - [ ] **Step 5: Prove it inlined (no whileTrue:/whileFalse: send symbol)**
 
 ```bash
-cd /home/david/workspace/ns-oevm
+cd ~/workspace/ns-oevm
 python3 tools/ns_compile_oevm.py ../ns-tests/04_somns_basic/11_loop_inlining.ns /tmp/loop.c
 grep -c 'whileTrue\|whileFalse' /tmp/loop.c
 ```
@@ -555,7 +555,7 @@ Expected: `0`.
 - [ ] **Step 6: Conformance + no-op proof**
 
 ```bash
-cd /home/david/workspace/ns-oevm && python3 tools/run_tests_oevm.py 2>&1 | tail -4
+cd ~/workspace/ns-oevm && python3 tools/run_tests_oevm.py 2>&1 | tail -4
 rm -rf /tmp/img_after && python3 tools/snapshot_images.py /tmp/img_after
 diff /tmp/img_before/04_somns_basic__09_if_inlining.ns.c /tmp/img_after/04_somns_basic__09_if_inlining.ns.c && \
 diff /tmp/img_before/04_somns_basic__10_and_or_inlining.ns.c /tmp/img_after/04_somns_basic__10_and_or_inlining.ns.c && echo "IF/AND/OR UNCHANGED"
@@ -569,12 +569,12 @@ Expected: `PASS`.
 - [ ] **Step 7: Commit**
 
 ```bash
-cd /home/david/workspace/ns-tests
+cd ~/workspace/ns-tests
 git add 04_somns_basic/11_loop_inlining.ns
 git commit -m "test: add whileTrue:/whileFalse: inlining cases (incl. ^ from body)
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
-cd /home/david/workspace/ns-oevm
+cd ~/workspace/ns-oevm
 git add tools/ns_compile_oevm.py
 git commit -m "compiler: inline whileTrue:/whileFalse: (literal cond+body blocks)
 
@@ -590,14 +590,14 @@ Quantify the win (the benchmarks are sub-10ms, so measure *instruction-count* re
 **Files:**
 - Modify: `oevm/docs/optimizations.md` (append Phase D log entry)
 - Modify: `oevm/docs/topics.md` (extend the `block-inlining` topic with the loop lowering)
-- Modify (memory): `/home/david/.claude/projects/-home-david-workspace-oevm/memory/block-inlining-status.md` + `MEMORY.md` pointer
+- Modify (memory): `~/.claude/projects/-home-david-workspace-oevm/memory/block-inlining-status.md` + `MEMORY.md` pointer
 
 - [ ] **Step 1: Measure instruction-count reduction on a loop-heavy program**
 
 Compile `queens` (uses `to:do:`) before/after is not possible post-merge, so measure on a fixed probe: count emitted instructions for a `to:do:` loop with inlining ON vs the fallback (temporarily disable the `to:do:` hook). Simpler and durable — compare image sizes / send-count:
 
 ```bash
-cd /home/david/workspace/ns-oevm
+cd ~/workspace/ns-oevm
 python3 tools/ns_compile_oevm.py ../ns-tests/05_somns_benchmarks/01_queens.ns /tmp/queens.c
 echo "to:do: sends remaining:"; grep -c 'StaticSymbol_to_do_' /tmp/queens.c
 echo "createClosure sites:"; grep -c 'createClosure' /tmp/queens.c
@@ -615,7 +615,7 @@ In `oevm/docs/topics.md`, under the existing `block-inlining` topic, document th
 - [ ] **Step 4: Commit docs**
 
 ```bash
-cd /home/david/workspace/oevm
+cd ~/workspace/oevm
 git add nodus/oevm/docs/optimizations.md nodus/oevm/docs/topics.md
 git commit -m "docs: record block-inlining Phase D (loop inlining)
 
@@ -648,7 +648,7 @@ Flagged by the Phase C review: `compile_if_inline`, `compile_logic_inline`, `com
 - [ ] **Step 1: Snapshot BEFORE**
 
 ```bash
-cd /home/david/workspace/ns-oevm
+cd ~/workspace/ns-oevm
 rm -rf /tmp/img_before && python3 tools/snapshot_images.py /tmp/img_before
 ```
 
@@ -671,7 +671,7 @@ Then rewrite the two lines `self.compile_expr(receiver, cond_reg)` + `self.emit_
 - [ ] **Step 3: Prove byte-identical**
 
 ```bash
-cd /home/david/workspace/ns-oevm
+cd ~/workspace/ns-oevm
 rm -rf /tmp/img_after && python3 tools/snapshot_images.py /tmp/img_after
 diff -r /tmp/img_before /tmp/img_after && echo "NO-OP CONFIRMED"
 ```
@@ -680,7 +680,7 @@ Expected: no diff, then `NO-OP CONFIRMED`.
 - [ ] **Step 4: Conformance unchanged**
 
 ```bash
-cd /home/david/workspace/ns-oevm && python3 tools/run_tests_oevm.py 2>&1 | tail -4
+cd ~/workspace/ns-oevm && python3 tools/run_tests_oevm.py 2>&1 | tail -4
 ```
 Expected: conformance unchanged from the current baseline (at time of writing
 `Passed: 47, Failed: 0, Skipped: 1`). The refactor is a no-op, so whatever the
@@ -689,7 +689,7 @@ baseline is before the change must hold after it.
 - [ ] **Step 5: Commit**
 
 ```bash
-cd /home/david/workspace/ns-oevm
+cd ~/workspace/ns-oevm
 git add tools/ns_compile_oevm.py
 git commit -m "compiler: extract _emit_cond_jmp_false helper (no-op; single-source truthiness)
 

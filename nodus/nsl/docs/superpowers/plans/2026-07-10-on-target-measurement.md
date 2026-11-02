@@ -13,14 +13,14 @@
 - **Prim ids are append-only; COUNT `PRIM_NAMES`, never compute.** The last prim is 103 (`asSymbol:`); this plan adds exactly one: **104 `heapStats`**. `dispatch.c` enum, `dispatch.c` `PRIM_NAMES[]`, and `src/prim_ids.h` `#define` must all agree, and the id must be arrived at by counting `PRIM_NAMES` entries.
 - **GC is non-moving mark-sweep and does NOT scan the C stack.** Any heap oop held live across an allocation must be pinned via `gc_temp_root_push`/`gc_temp_roots_clear`. (Prim 104 avoids this: it reads the stats struct into C locals and does a single allocation with only SMI stores after it — no pin needed.)
 - **AB full-suite runs CLOBBER `tuvm/src/solidified_image.c` + `.stmap`.** Always `git checkout -- src/solidified_image.c src/solidified_image.stmap` in `tuvm` before committing there. Baking a DK node also clobbers them — restore before any tuvm commit.
-- **The controller owns full-suite runs:** `cd nsl-tuvm && OEVM_DIR=/home/david/workspace/tuvm OEVM_PATH=AB python3 tools/run_tests_oevm.py` (~10 min). Baseline before this rung is **178 passed / 0 failed / 12 skipped + 4 named gates**; this rung takes it to **179 / 0 / 12 + 5 named gates**.
+- **The controller owns full-suite runs:** `cd nsl-tuvm && OEVM_DIR=~/workspace/tuvm OEVM_PATH=AB python3 tools/run_tests_oevm.py` (~10 min). Baseline before this rung is **178 passed / 0 failed / 12 skipped + 4 named gates**; this rung takes it to **179 / 0 / 12 + 5 named gates**.
 - **Repo order: `tuvm` → `nsl-tuvm` → `nsl-tests`** (leaf prim before kernel class before test). All three are on branch `rung4-on-target-measurement` (create it in each repo if absent; it exists in `nsl-tuvm`).
 - **Commit trailers** (every commit):
   ```
   Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
   Claude-Session: https://claude.ai/code/session_015XawRA2Fw1zgPFQWCyXXmg
   ```
-- **Absolute paths:** tuvm = `/home/david/workspace/tuvm`, nsl-tuvm = `/home/david/workspace/nsl-tuvm`, nsl-tests = `/home/david/workspace/nsl-tests`.
+- **Absolute paths:** tuvm = `~/workspace/tuvm`, nsl-tuvm = `~/workspace/nsl-tuvm`, nsl-tests = `~/workspace/nsl-tests`.
 
 ---
 
@@ -47,9 +47,9 @@
 ## Task 1: Prim 104 `heapStats` C leaf (tuvm)
 
 **Files:**
-- Modify: `/home/david/workspace/tuvm/src/prim_ids.h:126` (append after)
-- Modify: `/home/david/workspace/tuvm/src/dispatch.c:704` (enum) and `:748` (`PRIM_NAMES`)
-- Modify: `/home/david/workspace/tuvm/src/platform.c:723` (append case after `PRIM_pf_asSymbol`)
+- Modify: `~/workspace/tuvm/src/prim_ids.h:126` (append after)
+- Modify: `~/workspace/tuvm/src/dispatch.c:704` (enum) and `:748` (`PRIM_NAMES`)
+- Modify: `~/workspace/tuvm/src/platform.c:723` (append case after `PRIM_pf_asSymbol`)
 
 **Interfaces:**
 - Consumes: `struct OevmHeapStats oevm_heap_stats(void)` (`src/oevm.h:414`, fields `heap_size, live_bytes, high_water, largest_free_block, gc_cycles`); `oop indexable_new(intptr_t n)` (non-static in `platform.c`; `slots[0]=TAG_SMI(n)`, values in `slots[1..n]`); `TAG_SMI`, `struct ObjectInstance`.
@@ -57,12 +57,12 @@
 
 - [ ] **Step 1: Verify the current prim count is 103**
 
-Run: `grep -c '"' /dev/null; awk '/static const char \*const PRIM_NAMES/,/^};/' /home/david/workspace/tuvm/src/dispatch.c | grep -o '"[^"]*"' | wc -l`
+Run: `grep -c '"' /dev/null; awk '/static const char \*const PRIM_NAMES/,/^};/' ~/workspace/tuvm/src/dispatch.c | grep -o '"[^"]*"' | wc -l`
 Expected: `103` (the number of `PRIM_NAMES` entries before this append; the new id is 103+the-count-confirms-104).
 
 - [ ] **Step 2: Add the `prim_ids.h` mirror define**
 
-In `/home/david/workspace/tuvm/src/prim_ids.h`, immediately after line 126 (`#define PRIM_pf_asSymbol         103`), add:
+In `~/workspace/tuvm/src/prim_ids.h`, immediately after line 126 (`#define PRIM_pf_asSymbol         103`), add:
 
 ```c
 /* Rung 4 (on-target measurement) Task 1: heap-telemetry leaf (`heapStats`),
@@ -77,7 +77,7 @@ In `/home/david/workspace/tuvm/src/prim_ids.h`, immediately after line 126 (`#de
 
 - [ ] **Step 3: Add the enum entry and `PRIM_NAMES` entry**
 
-In `/home/david/workspace/tuvm/src/dispatch.c`, after `    PRIM_pf_asSymbol,` (~line 704), add:
+In `~/workspace/tuvm/src/dispatch.c`, after `    PRIM_pf_asSymbol,` (~line 704), add:
 
 ```c
     /* Rung 4 (on-target measurement) Task 1: heap-telemetry leaf. Snapshots
@@ -95,7 +95,7 @@ In the same file, after `    "asSymbol:",` (~line 748, the last `PRIM_NAMES` ent
 
 - [ ] **Step 4: Add the `platform_dispatch` case**
 
-In `/home/david/workspace/tuvm/src/platform.c`, after the closing `}` of the `case PRIM_pf_asSymbol:` block (~line 723) and before `case PRIM_pf_pumpEvents:`, add:
+In `~/workspace/tuvm/src/platform.c`, after the closing `}` of the `case PRIM_pf_asSymbol:` block (~line 723) and before `case PRIM_pf_pumpEvents:`, add:
 
 ```c
     case PRIM_pf_heapStats: {
@@ -124,20 +124,20 @@ In `/home/david/workspace/tuvm/src/platform.c`, after the closing `}` of the `ca
 
 Run:
 ```bash
-cd /home/david/workspace/tuvm && gcc -std=c99 -Isrc -c src/platform.c src/dispatch.c -o /dev/null 2>&1 || \
+cd ~/workspace/tuvm && gcc -std=c99 -Isrc -c src/platform.c src/dispatch.c -o /dev/null 2>&1 || \
 gcc -std=c99 -Isrc -fsyntax-only src/platform.c src/dispatch.c
 ```
 Expected: no errors (clean compile). (The existing `test_heap_stats.c` already covers `oevm_heap_stats()` itself; the prim's Array mapping is verified end-to-end by the both-path test in Task 3, the project idiom for VM-dependent prims.)
 
 - [ ] **Step 6: Run the existing C heap-stats unit test to confirm no regression**
 
-Run: `cd /home/david/workspace/tuvm && bash tools/run_c_tests.sh 2>&1 | grep -E 'test_heap_stats|FAIL'`
+Run: `cd ~/workspace/tuvm && bash tools/run_c_tests.sh 2>&1 | grep -E 'test_heap_stats|FAIL'`
 Expected: `test_heap_stats` PASS, no `FAIL`.
 
 - [ ] **Step 7: Commit**
 
 ```bash
-cd /home/david/workspace/tuvm
+cd ~/workspace/tuvm
 git checkout -- src/solidified_image.c src/solidified_image.stmap 2>/dev/null || true
 git add src/prim_ids.h src/dispatch.c src/platform.c
 git commit -m "$(printf 'feat(oevm): heapStats prim 104 — GC heap telemetry to nsl\n\nAppend-only platform leaf 104: snapshots oevm_heap_stats() into a 5-slot\nArray [heapSize, liveBytes, highWater, largestFreeBlock, gcCycles]. Single\nalloc, SMI-only stores after it, no temp-root pin needed. Rung-4 Task 1.\n\nCo-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_015XawRA2Fw1zgPFQWCyXXmg')"
@@ -148,16 +148,16 @@ git commit -m "$(printf 'feat(oevm): heapStats prim 104 — GC heap telemetry to
 ## Task 2: MCU footprint ratchet + baseline (tuvm)
 
 **Files:**
-- Modify: `/home/david/workspace/tuvm/tools/footprint.sh:28-40` (MCU branch)
-- Create: `/home/david/workspace/tuvm/tools/footprint-mcu-baseline.txt`
+- Modify: `~/workspace/tuvm/tools/footprint.sh:28-40` (MCU branch)
+- Create: `~/workspace/tuvm/tools/footprint-mcu-baseline.txt`
 
 **Interfaces:**
-- Consumes: `arm-zephyr-eabi-gcc`/`arm-zephyr-eabi-size` (NCS SDK on PATH via `source /home/david/workspace/ns-zephyr/tools/env.sh`).
+- Consumes: `arm-zephyr-eabi-gcc`/`arm-zephyr-eabi-size` (NCS SDK on PATH via `source ~/workspace/ns-zephyr/tools/env.sh`).
 - Produces: `FOOTPRINT_CONFIG=mcu bash tools/footprint.sh` exit codes — **0** = within baseline (PASS), **77** = cross toolchain absent (SKIP), **1** = regression (FAIL). `FOOTPRINT_UPDATE_BASELINE=1` rewrites the baseline. Consumed by Task 4's named gate.
 
 - [ ] **Step 1: Replace the MCU branch with a skip-guard + ratchet**
 
-In `/home/david/workspace/tuvm/tools/footprint.sh`, replace the `if [ "${FOOTPRINT_CONFIG:-host}" = "mcu" ]; then` block (lines 28-40) with:
+In `~/workspace/tuvm/tools/footprint.sh`, replace the `if [ "${FOOTPRINT_CONFIG:-host}" = "mcu" ]; then` block (lines 28-40) with:
 
 ```bash
 if [ "${FOOTPRINT_CONFIG:-host}" = "mcu" ]; then
@@ -203,15 +203,15 @@ fi
 
 - [ ] **Step 2: Confirm the skip path works without the toolchain**
 
-Run: `cd /home/david/workspace/tuvm && FOOTPRINT_CONFIG=mcu bash tools/footprint.sh; echo "exit=$?"`
+Run: `cd ~/workspace/tuvm && FOOTPRINT_CONFIG=mcu bash tools/footprint.sh; echo "exit=$?"`
 Expected (no SDK sourced): `footprint(mcu): SKIP …` and `exit=77`. (If the SDK IS on PATH, expect either the FAIL-no-baseline message + `exit=1`, or a real size line — proceed to Step 3 to establish the baseline.)
 
 - [ ] **Step 3: Establish the baseline (requires the cross toolchain)**
 
 Run:
 ```bash
-source /home/david/workspace/ns-zephyr/tools/env.sh
-cd /home/david/workspace/tuvm
+source ~/workspace/ns-zephyr/tools/env.sh
+cd ~/workspace/tuvm
 FOOTPRINT_UPDATE_BASELINE=1 FOOTPRINT_CONFIG=mcu bash tools/footprint.sh
 cat tools/footprint-mcu-baseline.txt
 ```
@@ -221,8 +221,8 @@ Expected: prints `footprint(mcu): baseline updated -> text=<N> data+bss=<M>`, an
 
 Run:
 ```bash
-source /home/david/workspace/ns-zephyr/tools/env.sh
-cd /home/david/workspace/tuvm
+source ~/workspace/ns-zephyr/tools/env.sh
+cd ~/workspace/tuvm
 FOOTPRINT_CONFIG=mcu bash tools/footprint.sh; echo "pass_exit=$?"
 # temporarily lower the baseline text by 1 to simulate a regression
 awk '/^text /{print "text", $2-1; next} {print}' tools/footprint-mcu-baseline.txt > /tmp/bl && cp /tmp/bl tools/footprint-mcu-baseline.txt
@@ -234,7 +234,7 @@ Expected: `pass_exit=0` then a `FAIL text …` line with `fail_exit=1`; the `git
 - [ ] **Step 5: Commit**
 
 ```bash
-cd /home/david/workspace/tuvm
+cd ~/workspace/tuvm
 git add tools/footprint.sh tools/footprint-mcu-baseline.txt
 git commit -m "$(printf 'feat(footprint): MCU cross-size ratchet + baseline (tuvm#5)\n\nfootprint.sh mcu mode now SKIPs (exit 77) without the cross toolchain and\notherwise ratchets text + data+bss against tools/footprint-mcu-baseline.txt\n(regression = exit 1). FOOTPRINT_UPDATE_BASELINE=1 rebases. Rung-4 Task 2.\n\nCo-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_015XawRA2Fw1zgPFQWCyXXmg')"
 ```
@@ -244,8 +244,8 @@ git commit -m "$(printf 'feat(footprint): MCU cross-size ratchet + baseline (tuv
 ## Task 3: `HeapStats` class + both-path invariant test (nsl-tuvm + nsl-tests)
 
 **Files:**
-- Modify: `/home/david/workspace/nsl-tuvm/lib/kernel.ns` (add `class HeapStats` after the `Cbor` class ~line 565; add two accessors near ~line 1698)
-- Create: `/home/david/workspace/nsl-tests/15_heap_stats/01_invariants.ns`
+- Modify: `~/workspace/nsl-tuvm/lib/kernel.ns` (add `class HeapStats` after the `Cbor` class ~line 565; add two accessors near ~line 1698)
+- Create: `~/workspace/nsl-tests/15_heap_stats/01_invariants.ns`
 
 **Interfaces:**
 - Consumes: `platform heapStats` (prim 104 from Task 1) → 5-slot Array.
@@ -253,7 +253,7 @@ git commit -m "$(printf 'feat(footprint): MCU cross-size ratchet + baseline (tuv
 
 - [ ] **Step 1: Write the failing both-path test**
 
-Create `/home/david/workspace/nsl-tests/15_heap_stats/01_invariants.ns`:
+Create `~/workspace/nsl-tests/15_heap_stats/01_invariants.ns`:
 
 ```
 (*
@@ -286,14 +286,14 @@ public main: platform args: args = (
 
 Run:
 ```bash
-cd /home/david/workspace/nsl-tuvm
-OEVM_DIR=/home/david/workspace/tuvm OEVM_PATH=A python3 tools/run_tests_oevm.py 15_heap_stats/01_invariants 2>&1 | tail -20
+cd ~/workspace/nsl-tuvm
+OEVM_DIR=~/workspace/tuvm OEVM_PATH=A python3 tools/run_tests_oevm.py 15_heap_stats/01_invariants 2>&1 | tail -20
 ```
 Expected: FAIL — a DNU / does-not-understand on `heapStats` (the module accessor doesn't exist yet), or an output mismatch. (Exact harness single-test invocation: if the path filter differs, run the whole suite path `OEVM_PATH=A` and confirm `15_heap_stats` is red.)
 
 - [ ] **Step 3: Add the `HeapStats` class to `lib/kernel.ns`**
 
-In `/home/david/workspace/nsl-tuvm/lib/kernel.ns`, after the closing `)` of `class Cbor = () ( … )` (the Cbor class ends before the next `class …`; insert as a sibling class), add:
+In `~/workspace/nsl-tuvm/lib/kernel.ns`, after the closing `)` of `class Cbor = () ( … )` (the Cbor class ends before the next `class …`; insert as a sibling class), add:
 
 ```
   class HeapStats = ( | heapSize liveBytes highWater largestFreeBlock gcCycles | ) (
@@ -319,7 +319,7 @@ In `/home/david/workspace/nsl-tuvm/lib/kernel.ns`, after the closing `)` of `cla
 
 - [ ] **Step 4: Add the module accessors**
 
-In `/home/david/workspace/nsl-tuvm/lib/kernel.ns`, immediately after the `public Cbor              = ( ^ Cbor new )` line (~line 1698), add:
+In `~/workspace/nsl-tuvm/lib/kernel.ns`, immediately after the `public Cbor              = ( ^ Cbor new )` line (~line 1698), add:
 
 ```
   public HeapStats         = ( ^ HeapStats )
@@ -330,9 +330,9 @@ In `/home/david/workspace/nsl-tuvm/lib/kernel.ns`, immediately after the `public
 
 Run:
 ```bash
-cd /home/david/workspace/nsl-tuvm
-OEVM_DIR=/home/david/workspace/tuvm OEVM_PATH=A python3 tools/run_tests_oevm.py 15_heap_stats/01_invariants 2>&1 | tail -20
-git -C /home/david/workspace/tuvm checkout -- src/solidified_image.c src/solidified_image.stmap
+cd ~/workspace/nsl-tuvm
+OEVM_DIR=~/workspace/tuvm OEVM_PATH=A python3 tools/run_tests_oevm.py 15_heap_stats/01_invariants 2>&1 | tail -20
+git -C ~/workspace/tuvm checkout -- src/solidified_image.c src/solidified_image.stmap
 ```
 Expected: PASS — four `true` lines matching `expect:`.
 
@@ -340,20 +340,20 @@ Expected: PASS — four `true` lines matching `expect:`.
 
 Run:
 ```bash
-cd /home/david/workspace/nsl-tuvm
-OEVM_DIR=/home/david/workspace/tuvm OEVM_PATH=AB python3 tools/run_tests_oevm.py 15_heap_stats/01_invariants 2>&1 | tail -20
-git -C /home/david/workspace/tuvm checkout -- src/solidified_image.c src/solidified_image.stmap
+cd ~/workspace/nsl-tuvm
+OEVM_DIR=~/workspace/tuvm OEVM_PATH=AB python3 tools/run_tests_oevm.py 15_heap_stats/01_invariants 2>&1 | tail -20
+git -C ~/workspace/tuvm checkout -- src/solidified_image.c src/solidified_image.stmap
 ```
 Expected: PASS on both A and B (A==B agreement).
 
 - [ ] **Step 7: Commit (both repos)**
 
 ```bash
-cd /home/david/workspace/nsl-tuvm
+cd ~/workspace/nsl-tuvm
 git add lib/kernel.ns
 git commit -m "$(printf 'feat(kernel): HeapStats value class over platform heapStats (prim 104)\n\nNames the 5-slot heapStats Array [heapSize/liveBytes/highWater/\nlargestFreeBlock/gcCycles] + printString; module accessors HeapStats and\nheapStats (fresh snapshot). Rung-4 Task 3.\n\nCo-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_015XawRA2Fw1zgPFQWCyXXmg')"
 
-cd /home/david/workspace/nsl-tests
+cd ~/workspace/nsl-tests
 git checkout -b rung4-on-target-measurement 2>/dev/null || git checkout rung4-on-target-measurement
 git add 15_heap_stats/01_invariants.ns
 git commit -m "$(printf 'test(heap-stats): both-path heapStats invariants (15_heap_stats)\n\nStructural invariants that hold every run on A and B: heapSize>0,\nhighWater>=liveBytes, largestFreeBlock<=heapSize, gcCycles>=0. Rung-4 Task 3.\n\nCo-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_015XawRA2Fw1zgPFQWCyXXmg')"
@@ -364,7 +364,7 @@ git commit -m "$(printf 'test(heap-stats): both-path heapStats invariants (15_he
 ## Task 4: Footprint named gate in the harness (nsl-tuvm)
 
 **Files:**
-- Modify: `/home/david/workspace/nsl-tuvm/tools/run_tests_oevm.py` (add `run_footprint_gate` after `run_portability_gate` ~line 247; wire into `suite_ok` and the summary print ~line 618-627)
+- Modify: `~/workspace/nsl-tuvm/tools/run_tests_oevm.py` (add `run_footprint_gate` after `run_portability_gate` ~line 247; wire into `suite_ok` and the summary print ~line 618-627)
 
 **Interfaces:**
 - Consumes: `FOOTPRINT_CONFIG=mcu bash <OEVM_DIR>/tools/footprint.sh` (Task 2) — exit 0/77/1 = PASS/SKIP/FAIL.
@@ -372,7 +372,7 @@ git commit -m "$(printf 'test(heap-stats): both-path heapStats invariants (15_he
 
 - [ ] **Step 1: Add the gate runner**
 
-In `/home/david/workspace/nsl-tuvm/tools/run_tests_oevm.py`, after the end of `run_portability_gate()` (~line 247), add:
+In `~/workspace/nsl-tuvm/tools/run_tests_oevm.py`, after the end of `run_portability_gate()` (~line 247), add:
 
 ```python
 def run_footprint_gate() -> str:
@@ -405,12 +405,12 @@ def run_footprint_gate() -> str:
 
 - [ ] **Step 2: Confirm `os` is imported (the gate uses `os.environ`)**
 
-Run: `grep -n '^import os\|^import ' /home/david/workspace/nsl-tuvm/tools/run_tests_oevm.py | head`
+Run: `grep -n '^import os\|^import ' ~/workspace/nsl-tuvm/tools/run_tests_oevm.py | head`
 Expected: an `import os` line exists. If it does not, add `import os` near the other imports at the top of the file.
 
 - [ ] **Step 3: Wire the gate into the suite result and summary**
 
-In `/home/david/workspace/nsl-tuvm/tools/run_tests_oevm.py`, near where `portability = run_portability_gate()` is called (just before `suite_ok = …` ~line 618), add a call:
+In `~/workspace/nsl-tuvm/tools/run_tests_oevm.py`, near where `portability = run_portability_gate()` is called (just before `suite_ok = …` ~line 618), add a call:
 
 ```python
     footprint = run_footprint_gate()
@@ -439,13 +439,13 @@ And extend the summary print (~line 626-627) to include footprint:
 
 - [ ] **Step 4: Syntax-check and dry-run the harness gate wiring**
 
-Run: `cd /home/david/workspace/nsl-tuvm && python3 -c "import ast; ast.parse(open('tools/run_tests_oevm.py').read()); print('ok')"`
+Run: `cd ~/workspace/nsl-tuvm && python3 -c "import ast; ast.parse(open('tools/run_tests_oevm.py').read()); print('ok')"`
 Expected: `ok`.
 
 - [ ] **Step 5: Commit**
 
 ```bash
-cd /home/david/workspace/nsl-tuvm
+cd ~/workspace/nsl-tuvm
 git add tools/run_tests_oevm.py
 git commit -m "$(printf 'feat(harness): footprint named gate — MCU size ratchet in the suite\n\nrun_footprint_gate() runs FOOTPRINT_CONFIG=mcu footprint.sh; FAIL fails the\nsuite, SKIP tolerated (no cross toolchain), like portability-32. Reported in\nthe named-gate summary. Rung-4 Task 4.\n\nCo-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_015XawRA2Fw1zgPFQWCyXXmg')"
 ```
@@ -457,8 +457,8 @@ git commit -m "$(printf 'feat(harness): footprint named gate — MCU size ratche
 > This is the Task-8-style manual acceptance bar. It runs on the SDK-equipped host with the nRF52840-DK plugged in. If the DK's on-board J-Link enters a firmware-replace loop (no `/dev/ttyACM0`), power-cycle the on-board-debug USB (see `zephyr/README.md`).
 
 **Files:**
-- Create: `/home/david/workspace/tuvm/zephyr/MeasureNodeDK.ns`
-- Create: `/home/david/workspace/tuvm/zephyr/FOOTPRINT_DK.md`
+- Create: `~/workspace/tuvm/zephyr/MeasureNodeDK.ns`
+- Create: `~/workspace/tuvm/zephyr/FOOTPRINT_DK.md`
 
 **Interfaces:**
 - Consumes: prim 104 + `HeapStats` (Tasks 1, 3); the config-D env + west recipe from `zephyr/README.md`; `west build -t ram_report` / `-t rom_report`.
@@ -466,7 +466,7 @@ git commit -m "$(printf 'feat(harness): footprint named gate — MCU size ratche
 
 - [ ] **Step 1: Write the measurement node**
 
-Create `/home/david/workspace/tuvm/zephyr/MeasureNodeDK.ns` (mirrors `PulseNodeDK.ns`'s class/main shape; prints via `… out`, the DK serial sink):
+Create `~/workspace/tuvm/zephyr/MeasureNodeDK.ns` (mirrors `PulseNodeDK.ns`'s class/main shape; prints via `… out`, the DK serial sink):
 
 ```
 (*
@@ -476,8 +476,8 @@ cycles), then prints the heapStats snapshot over the DK console (uart0/VCOM) via
 `… out`, exactly as PulseNodeDK.ns emits its line. Baked into the DK boot image
 with (run from the nsl-tuvm repo):
   python3 tools/ns_compile_oevm.py \
-    /home/david/workspace/tuvm/zephyr/MeasureNodeDK.ns \
-    /home/david/workspace/tuvm/src/solidified_image.c
+    ~/workspace/tuvm/zephyr/MeasureNodeDK.ns \
+    ~/workspace/tuvm/src/solidified_image.c
 *)
 class MeasureNodeDK packageUsing: manifest = () (
   public main: platform args: args = (
@@ -494,14 +494,14 @@ class MeasureNodeDK packageUsing: manifest = () (
 
 Run:
 ```bash
-source /home/david/workspace/ns-zephyr/tools/env.sh
+source ~/workspace/ns-zephyr/tools/env.sh
 export OEVM_HEAP_SIZE=49152 METHOD_CACHE_SIZE=256 PRIM_CACHE_SIZE=256
 export VM_STACK_INIT_WORDS=4096 OEVM_MARK_STACK_SIZE=512
-cd /home/david/workspace/nsl-tuvm
+cd ~/workspace/nsl-tuvm
 python3 tools/ns_compile_oevm.py \
-  /home/david/workspace/tuvm/zephyr/MeasureNodeDK.ns \
-  /home/david/workspace/tuvm/src/solidified_image.c
-cd /home/david/workspace/tuvm/zephyr
+  ~/workspace/tuvm/zephyr/MeasureNodeDK.ns \
+  ~/workspace/tuvm/src/solidified_image.c
+cd ~/workspace/tuvm/zephyr
 west build -b nrf52840dk/nrf52840 -p always . -- -DCONF_FILE=prj_dk.conf
 west build -t ram_report 2>&1 | tee /tmp/dk_ram_report.txt
 west build -t rom_report 2>&1 | tee /tmp/dk_rom_report.txt
@@ -512,7 +512,7 @@ Expected: a successful build; `ram_report`/`rom_report` print the section tables
 
 Run:
 ```bash
-cd /home/david/workspace/tuvm/zephyr
+cd ~/workspace/tuvm/zephyr
 west flash --skip-rebuild --runner jlink
 # open the console (115200) and capture one boot's output:
 timeout 15 cat /dev/ttyACM0 | tee /tmp/dk_heapstats.txt
@@ -523,7 +523,7 @@ Expected: after the boot banner, a line `heapStats live <N> / hw <N> / free <N> 
 
 Run:
 ```bash
-cd /home/david/workspace/tuvm
+cd ~/workspace/tuvm
 git checkout -- src/solidified_image.c src/solidified_image.stmap
 git status --short src/
 ```
@@ -531,7 +531,7 @@ Expected: no `src/solidified_image.*` shown as modified.
 
 - [ ] **Step 5: Bank the numbers**
 
-Create `/home/david/workspace/tuvm/zephyr/FOOTPRINT_DK.md` filling in the captured values (this is a data-recording step — paste the real numbers from Steps 2-3, do not leave placeholders):
+Create `~/workspace/tuvm/zephyr/FOOTPRINT_DK.md` filling in the captured values (this is a data-recording step — paste the real numbers from Steps 2-3, do not leave placeholders):
 
 ```markdown
 # nRF52840-DK on-target footprint + heap telemetry (rung-4)
@@ -566,7 +566,7 @@ Invariants hold on hardware: `hw <= size`, `free <= size`, `gc >= 1`.
 - [ ] **Step 6: Commit**
 
 ```bash
-cd /home/david/workspace/tuvm
+cd ~/workspace/tuvm
 git add zephyr/MeasureNodeDK.ns zephyr/FOOTPRINT_DK.md
 git commit -m "$(printf 'feat(zephyr): DK on-target measurement node + banked footprint/heap telemetry\n\nMeasureNodeDK.ns runs an allocation soak then prints heapStats over VCOM.\nFOOTPRINT_DK.md banks real config-D ram_report/rom_report + the live under-load\nHeapStats line captured on the nRF52840-DK. Rung-4 Task 5.\n\nCo-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_015XawRA2Fw1zgPFQWCyXXmg')"
 ```
@@ -576,8 +576,8 @@ git commit -m "$(printf 'feat(zephyr): DK on-target measurement node + banked fo
 ## Task 6: Full-suite gate + footprint banking + docs reconcile (all repos)
 
 **Files:**
-- Modify: `/home/david/workspace/nsl-tests/00_perf/RESULTS.md` (cross-link `FOOTPRINT_DK.md`)
-- Modify: `/home/david/workspace/nsl-tuvm/docs/design/2026-07-10-on-target-measurement-design.md` (mark as-built if any deviations)
+- Modify: `~/workspace/nsl-tests/00_perf/RESULTS.md` (cross-link `FOOTPRINT_DK.md`)
+- Modify: `~/workspace/nsl-tuvm/docs/design/2026-07-10-on-target-measurement-design.md` (mark as-built if any deviations)
 
 **Interfaces:**
 - Consumes: everything from Tasks 1-5.
@@ -587,20 +587,20 @@ git commit -m "$(printf 'feat(zephyr): DK on-target measurement node + banked fo
 
 Run:
 ```bash
-cd /home/david/workspace/nsl-tuvm
-OEVM_DIR=/home/david/workspace/tuvm OEVM_PATH=AB python3 tools/run_tests_oevm.py 2>&1 | tail -30
-git -C /home/david/workspace/tuvm checkout -- src/solidified_image.c src/solidified_image.stmap
+cd ~/workspace/nsl-tuvm
+OEVM_DIR=~/workspace/tuvm OEVM_PATH=AB python3 tools/run_tests_oevm.py 2>&1 | tail -30
+git -C ~/workspace/tuvm checkout -- src/solidified_image.c src/solidified_image.stmap
 ```
 Expected: **179 passed / 0 failed / 12 skipped**; named-gate summary shows `grant: PASS  debugger-integration: PASS  portability-32: PASS|SKIP  boot-gc-asan: PASS  footprint: PASS|SKIP`. `footprint` may be SKIP if the cross toolchain isn't on this host's PATH — that is acceptable (it PASSes on the SDK host where Task 2/5 ran).
 
 - [ ] **Step 2: Run the C unit suite**
 
-Run: `cd /home/david/workspace/tuvm && bash tools/run_c_tests.sh 2>&1 | tail -15`
+Run: `cd ~/workspace/tuvm && bash tools/run_c_tests.sh 2>&1 | tail -15`
 Expected: 0 failures; `test_heap_stats` PASS.
 
 - [ ] **Step 3: Cross-link the DK footprint from RESULTS.md**
 
-In `/home/david/workspace/nsl-tests/00_perf/RESULTS.md`, add a one-line pointer near the DK config-D table:
+In `~/workspace/nsl-tests/00_perf/RESULTS.md`, add a one-line pointer near the DK config-D table:
 
 ```markdown
 > On-target static footprint + live heap telemetry (rung-4): see
@@ -609,24 +609,24 @@ In `/home/david/workspace/nsl-tests/00_perf/RESULTS.md`, add a one-line pointer 
 
 - [ ] **Step 4: Reconcile the design doc to as-built**
 
-Open `/home/david/workspace/nsl-tuvm/docs/design/2026-07-10-on-target-measurement-design.md`; if the implementation deviated (e.g. the both-path test lives at `15_heap_stats/01_invariants.ns`, no new C test since `test_heap_stats.c` already covered `oevm_heap_stats()`), add a short "As-built notes" section recording the final paths, the prim id (104), and the suite count (179/0/12 + 5 gates). If there were no deviations beyond these, record exactly that.
+Open `~/workspace/nsl-tuvm/docs/design/2026-07-10-on-target-measurement-design.md`; if the implementation deviated (e.g. the both-path test lives at `15_heap_stats/01_invariants.ns`, no new C test since `test_heap_stats.c` already covered `oevm_heap_stats()`), add a short "As-built notes" section recording the final paths, the prim id (104), and the suite count (179/0/12 + 5 gates). If there were no deviations beyond these, record exactly that.
 
 - [ ] **Step 5: Bank the footprint delta**
 
 Append to the design doc's as-built notes the engine size delta for prim 104 (from `size` before/after on `platform.o`+`dispatch.o`) and the kernel image delta (the `HeapStats` class lines are image/ROM only, no RAM/bss). Compute with:
 ```bash
-cd /home/david/workspace/tuvm && FOOTPRINT_CONFIG=host bash tools/footprint.sh
+cd ~/workspace/tuvm && FOOTPRINT_CONFIG=host bash tools/footprint.sh
 ```
 Record the numbers (this is a data-recording step, not a placeholder).
 
 - [ ] **Step 6: Commit the docs (both repos)**
 
 ```bash
-cd /home/david/workspace/nsl-tests
+cd ~/workspace/nsl-tests
 git add 00_perf/RESULTS.md
 git commit -m "$(printf 'docs(perf): cross-link DK on-target footprint + heap telemetry (rung-4)\n\nCo-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_015XawRA2Fw1zgPFQWCyXXmg')"
 
-cd /home/david/workspace/nsl-tuvm
+cd ~/workspace/nsl-tuvm
 git add docs/design/2026-07-10-on-target-measurement-design.md
 git commit -m "$(printf 'docs(rung4): reconcile on-target measurement design to as-built\n\nPrim 104, 15_heap_stats both-path test, 179/0/12 + 5 named gates, footprint\ndeltas banked. Rung-4 Task 6.\n\nCo-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_015XawRA2Fw1zgPFQWCyXXmg')"
 ```

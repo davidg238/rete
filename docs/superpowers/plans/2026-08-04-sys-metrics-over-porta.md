@@ -129,7 +129,7 @@ class SysCellsPush packageUsing: manifest = () (
 - [ ] **Step 2: Run it and confirm it fails for the right reason**
 
 ```bash
-cd /home/david/workspace/rete/nodus/nsl
+cd ~/workspace/rete/nodus/nsl
 python3 tools/run-one.py ../tests/22_spacesync/07_sys_cells_push.nsl
 ```
 
@@ -180,7 +180,7 @@ In `nodus/nsl/lib/kernel.nsl`, replace `collectOutbound` with:
 - [ ] **Step 4: Run the test and confirm it passes**
 
 ```bash
-cd /home/david/workspace/rete/nodus/nsl
+cd ~/workspace/rete/nodus/nsl
 python3 tools/run-one.py ../tests/22_spacesync/07_sys_cells_push.nsl
 ```
 
@@ -218,7 +218,7 @@ Replace with:
 - [ ] **Step 7: Restore build artifacts and commit**
 
 ```bash
-cd /home/david/workspace/rete
+cd ~/workspace/rete
 git checkout -- nodus/tuvm/src/solidified_image.c nodus/tuvm/src/solidified_image.stmap
 git add nodus/nsl/lib/kernel.nsl nodus/tests/22_spacesync/07_sys_cells_push.nsl protocol/PROTOCOL-NSL.md
 git commit -m "feat(#56): the cell scan reaches sys/, so a pinned record can finally be sent"
@@ -286,7 +286,7 @@ record through a cell.
 - [ ] **Step 2: Run it and confirm it fails**
 
 ```bash
-cd /home/david/workspace/rete/nodus/nsl
+cd ~/workspace/rete/nodus/nsl
 python3 tools/run-one.py ../tests/22_spacesync/08_metrics_on_checkin.nsl
 ```
 
@@ -333,7 +333,7 @@ Then in `checkIn`, publish AFTER the batch is applied and BEFORE the push:
 - [ ] **Step 4: Run the test and confirm it passes**
 
 ```bash
-cd /home/david/workspace/rete/nodus/nsl
+cd ~/workspace/rete/nodus/nsl
 python3 tools/run-one.py ../tests/22_spacesync/08_metrics_on_checkin.nsl
 ```
 
@@ -342,7 +342,7 @@ Expected: PASS.
 - [ ] **Step 5: Restore build artifacts and commit**
 
 ```bash
-cd /home/david/workspace/rete
+cd ~/workspace/rete
 git checkout -- nodus/tuvm/src/solidified_image.c nodus/tuvm/src/solidified_image.stmap
 git add nodus/nsl/lib/kernel.nsl nodus/tests/22_spacesync/08_metrics_on_checkin.nsl
 git commit -m "feat(#56): the bridge reports its own internals, every check-in"
@@ -410,7 +410,7 @@ and nothing downstream has ever used microseconds.
 - [ ] **Step 3: Run the whole suite — this changes a record two gates read**
 
 ```bash
-cd /home/david/workspace/rete/nodus/nsl && python3 tools/run_tests_oevm.py 2>&1 | tail -12
+cd ~/workspace/rete/nodus/nsl && python3 tools/run_tests_oevm.py 2>&1 | tail -12
 ```
 
 Expected: `Failed: 0`, and the aux-gate line all PASS except the expected
@@ -420,7 +420,7 @@ D9 says there is no compatibility to keep.
 - [ ] **Step 4: Restore build artifacts and commit**
 
 ```bash
-cd /home/david/workspace/rete
+cd ~/workspace/rete
 git checkout -- nodus/tuvm/src/solidified_image.c nodus/tuvm/src/solidified_image.stmap
 git add nodus/tuvm/zephyr/PortaBridgeNode.nsl nodus/tuvm/zephyr/PortaBridgeNodeC6.nsl protocol/
 git commit -m "feat(#56): obs/health is liveness again — the VM internals live at sys/metrics"
@@ -522,7 +522,7 @@ public main: platform args: args = (
 - [ ] **Step 2: Run it and confirm it passes first time**
 
 ```bash
-cd /home/david/workspace/rete/nodus/nsl
+cd ~/workspace/rete/nodus/nsl
 python3 tools/run-one.py ../tests/22_spacesync/09_batch_size.nsl
 ```
 
@@ -534,7 +534,7 @@ values to match. Find out what changed.
 - [ ] **Step 3: Restore build artifacts and commit**
 
 ```bash
-cd /home/david/workspace/rete
+cd ~/workspace/rete
 git checkout -- nodus/tuvm/src/solidified_image.c nodus/tuvm/src/solidified_image.stmap
 git add nodus/tests/22_spacesync/09_batch_size.nsl
 git commit -m "test(#56): the batch is 425 B of 512, and now something re-checks it"
@@ -592,7 +592,7 @@ mechanism after all. That is precisely why it is asserted rather than assumed.
 - [ ] **Step 3: Run the gate**
 
 ```bash
-cd /home/david/workspace/rete/nodus/tuvm && bash tests/porta_sync_host.sh
+cd ~/workspace/rete/nodus/tuvm && bash tests/porta_sync_host.sh
 ```
 
 Expected: `PORTA SYNC OK`, with the two new lines printed.
@@ -600,7 +600,7 @@ Expected: `PORTA SYNC OK`, with the two new lines printed.
 - [ ] **Step 4: Commit**
 
 ```bash
-cd /home/david/workspace/rete
+cd ~/workspace/rete
 git add nodus/tuvm/tests/porta_sync_host.sh
 git commit -m "test(#56): the gate witnesses metrics arriving, and the run-up accumulating"
 ```
@@ -615,9 +615,9 @@ Per CLAUDE.md's promotion rule, this is not closed until the durable knowledge l
 - [ ] **Step 1: Run all three gates from clean**
 
 ```bash
-cd /home/david/workspace/rete/nodus/nsl && python3 tools/run_tests_oevm.py 2>&1 | tail -12
-cd /home/david/workspace/rete/nodus/tuvm && bash tests/porta_sync_host.sh
-cd /home/david/workspace/rete/porta && go test ./...
+cd ~/workspace/rete/nodus/nsl && python3 tools/run_tests_oevm.py 2>&1 | tail -12
+cd ~/workspace/rete/nodus/tuvm && bash tests/porta_sync_host.sh
+cd ~/workspace/rete/porta && go test ./...
 ```
 
 Read the aux-gate line, not only the pass count.
@@ -639,7 +639,7 @@ that capability (4) — the device test harness — is now unblocked.
 - [ ] **Step 4: Commit**
 
 ```bash
-cd /home/david/workspace/rete
+cd ~/workspace/rete
 git add review/tests/CLAIMS.md
 git commit -m "docs(#56): promote the metrics claim to CLAIMS"
 ```

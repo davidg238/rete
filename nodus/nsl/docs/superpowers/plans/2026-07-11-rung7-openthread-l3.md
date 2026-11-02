@@ -16,18 +16,18 @@
 - **Three repos, separate commits.** `tuvm` (Zephyr config + node `.ns` + tuvm docs + footprint baseline), `nsl-tuvm` (docs/plan/spec only this rung), `nsl-tests` (only a *transient, uncommitted* pre-flight copy in Task 1). Never cross-commit; `cd` into the right repo before `git add`.
 - **`solidified_image.c` is a generated artifact** shared by other tests. Baking a node CLOBBERS `tuvm/src/solidified_image.c` + `.stmap`; ALWAYS restore before committing anything in tuvm:
   ```bash
-  git -C /home/david/workspace/tuvm checkout -- src/solidified_image.c src/solidified_image.stmap
+  git -C ~/workspace/tuvm checkout -- src/solidified_image.c src/solidified_image.stmap
   ```
 - **The proof is a bench-verified MANUAL gate** (live silicon + live gateway + radio), like Rung-4 Task-8's button press — NOT a `west build` CI gate. Tasks 3–4 are executed by the controller **with David at the bench** (flashing, pressing BUTTON1, reading `/dev/ttyACM0` and `ot-ctl`). A subagent runs Task 1 and the Task-2 *build*; it cannot flash or observe hardware.
 - **The Rung-6 host + native_sim floor stays green untouched** — full both-path suite `180/0/12` + the five named gates. No source edit should move them; confirm at close (Task 5).
-- **Zephyr build needs the SDK env** sourced each shell: `source /home/david/workspace/ns-zephyr/tools/env.sh`.
+- **Zephyr build needs the SDK env** sourced each shell: `source ~/workspace/ns-zephyr/tools/env.sh`.
 - **DK build config-D env** (RAM-tuned, from `tuvm/zephyr/FOOTPRINT_DK.md`), exported before any DK bake/build:
   ```bash
   export OEVM_HEAP_SIZE=49152 METHOD_CACHE_SIZE=256 PRIM_CACHE_SIZE=256
   export VM_STACK_INIT_WORDS=4096 OEVM_MARK_STACK_SIZE=512
   ```
   (OpenThread + mbedTLS eat SRAM the loopback build did not — if Task 2 does not RAM-fit, **shrink `OEVM_HEAP_SIZE` first**, e.g. 40960/32768, since it is the largest single knob.)
-- **Gateway facts** (verified 2026-07-11; see memory `rung7-gateway-thread-infra`): `gw85224-01` (Tailscale `100.87.217.33`, IPv6 `fd7a:115c:a1e0::bf01:d921`), OTBR **leader**, dataset == `ns-zephyr` overlay. Gateway **OMR** `fd77:9957:d9f3:1:2935:a821:1d56:c329`; **ML-EID** `fdc5:9109:9afe:97ea:9541:d963:f8d9:8567`. `udp-echo6.service` on **:7777** (opaque byte-verbatim reflect); porta on `:6969` (leave alone).
+- **Gateway facts** (verified 2026-07-11; see memory `rung7-gateway-thread-infra`): `gw85224-01` (Tailscale `<gw-tailscale-ip4>`, IPv6 `<gw-tailscale-ip6>`), OTBR **leader**, dataset == `ns-zephyr` overlay. Gateway **OMR** `fd77:9957:d9f3:1:2935:a821:1d56:c329`; **ML-EID** `fdc5:9109:9afe:97ea:9541:d963:f8d9:8567`. `udp-echo6.service` on **:7777** (opaque byte-verbatim reflect); porta on `:6969` (leave alone).
 - **Commit-message trailer** on every commit:
   ```
   Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
@@ -51,7 +51,7 @@
 
 ## Task 1: Pre-flight — host NetBridge client → live gw echo over Tailscale IPv6
 
-Prove the exact Layer-2 client round-trip (`Record → CBOR → sendTo: → real UDP/IPv6 → gw udp-echo6 → reflect → receive → decode → whenever:`) against the **live** echo server, with **no radio**. This de-risks the client stack and confirms the deployed echo is a valid peer for our NetBridge before any hardware. Runnable by a subagent (this machine is on Tailscale; raw-UDP reachability to `[fd7a:115c:a1e0::bf01:d921]:7777` already confirmed byte-exact).
+Prove the exact Layer-2 client round-trip (`Record → CBOR → sendTo: → real UDP/IPv6 → gw udp-echo6 → reflect → receive → decode → whenever:`) against the **live** echo server, with **no radio**. This de-risks the client stack and confirms the deployed echo is a valid peer for our NetBridge before any hardware. Runnable by a subagent (this machine is on Tailscale; raw-UDP reachability to `[<gw-tailscale-ip6>]:7777` already confirmed byte-exact).
 
 **Files:**
 - Create: `tuvm/zephyr/EchoClientHost.ns`
@@ -75,7 +75,7 @@ expect:
 ECHO OK
 *)
 class EchoClientHost usingPlatform: platform net: net = () (
-  gwAddr = ( ^ 'fd7a:115c:a1e0::bf01:d921' )   (* gw85224-01 Tailscale IPv6 *)
+  gwAddr = ( ^ '<gw-tailscale-ip6>' )   (* gw85224-01 Tailscale IPv6 *)
   echoPort = ( ^ 7777 )
   public main: platform2 args: args = (
     | space sock bridge got rec |
@@ -108,11 +108,11 @@ The conformance harness threads the `net` grant when the entry declares `net:` a
 **IMPORTANT — the harness has NO single-test filter.** `run_tests_oevm.py` (`main()`) globs and runs ALL `**/*.ns` regardless of any positional arg, so `run_tests_oevm.py 46_echo_client_live` silently runs the entire 193-test suite (both paths) — a `timeout` then kills it long before it reaches the file, which *looks* like a hang. For a single live-network node, build the Path-A runner directly (this is exactly `run_test_file()`'s recipe, minus the suite loop). `ns_compile_oevm.py` threads the `net` grant straight from the `.ns` class header (`... net: net`), so it compiles `tuvm/zephyr/EchoClientHost.ns` in place — **no `nsl-tests` copy is needed.**
 
 ```bash
-cd /home/david/workspace/nsl-tuvm
+cd ~/workspace/nsl-tuvm
 python3 tools/ns_compile_oevm.py \
-  /home/david/workspace/tuvm/zephyr/EchoClientHost.ns \
-  /home/david/workspace/tuvm/src/solidified_image.c
-cd /home/david/workspace/tuvm
+  ~/workspace/tuvm/zephyr/EchoClientHost.ns \
+  ~/workspace/tuvm/src/solidified_image.c
+cd ~/workspace/tuvm
 gcc -Wall -std=c99 -Isrc -DOEVM_APPLIANCE \
   src/vm.c src/gc.c src/dispatch.c src/platform.c src/space.c src/handles.c \
   src/serial.c src/udp.c src/mirror.c \
@@ -123,12 +123,12 @@ timeout 10 /tmp/echo_runner ; echo "exit: $?"
 git checkout -- src/solidified_image.c src/solidified_image.stmap   # restore the clobbered image
 ```
 
-Expected: `ECHO OK` and `exit: 0` within a second (Tailscale RTT is ~ms; the node busy-polls receive until the reflection arrives). On the gw, `ssh david@gw85224-01 'journalctl -u udp-echo6.service -n 3 -o cat'` shows a fresh `echo 32B <-> [fd7a:115c:a1e0::8733:894a%0]:54350` line — the 32-byte CBOR `Record` reflected back to the node's bound port 54350. If it instead spins to the 10 s cap: confirm `udp-echo6.service` is active and `python3 -c "import socket; s=socket.socket(10,2); s.setsockopt(41,27,0); s.bind(('::',54350)); s.settimeout(3); s.sendto(b'x',('fd7a:115c:a1e0::bf01:d921',7777)); print(s.recvfrom(64))"` still round-trips a *bound-socket* datagram from this host.
+Expected: `ECHO OK` and `exit: 0` within a second (Tailscale RTT is ~ms; the node busy-polls receive until the reflection arrives). On the gw, `ssh david@gw85224-01 'journalctl -u udp-echo6.service -n 3 -o cat'` shows a fresh `echo 32B <-> [fd7a:115c:a1e0::8733:894a%0]:54350` line — the 32-byte CBOR `Record` reflected back to the node's bound port 54350. If it instead spins to the 10 s cap: confirm `udp-echo6.service` is active and `python3 -c "import socket; s=socket.socket(10,2); s.setsockopt(41,27,0); s.bind(('::',54350)); s.settimeout(3); s.sendto(b'x',('<gw-tailscale-ip6>',7777)); print(s.recvfrom(64))"` still round-trips a *bound-socket* datagram from this host.
 
 - [ ] **Step 3: Commit the reusable host client (tuvm only)**
 
 ```bash
-cd /home/david/workspace/tuvm
+cd ~/workspace/tuvm
 git add zephyr/EchoClientHost.ns
 git commit -m "feat(rung7): host NetBridge echo client vs live gw (pre-flight)
 
@@ -218,8 +218,8 @@ class ThreadEchoNodeDK usingPlatform: platform net: net = () (
 Copy the real dataset from the existing `ns-zephyr` overlay (it already holds the live values and matches the gw's active dataset) and gitignore it BEFORE it can be staged:
 
 ```bash
-cd /home/david/workspace/tuvm
-cp /home/david/workspace/ns-zephyr/app/prj_thread_local.conf zephyr/prj_dk_thread_local.conf
+cd ~/workspace/tuvm
+cp ~/workspace/ns-zephyr/app/prj_thread_local.conf zephyr/prj_dk_thread_local.conf
 printf '\nzephyr/prj_dk_thread_local.conf\n' >> .gitignore
 git check-ignore zephyr/prj_dk_thread_local.conf   # MUST print the path (proves it is ignored)
 ```
@@ -306,14 +306,14 @@ CONFIG_OPENTHREAD_NETWORK_NAME="ot_zephyr"
 - [ ] **Step 4: Bake the node and build for the DK (do NOT flash yet)**
 
 ```bash
-source /home/david/workspace/ns-zephyr/tools/env.sh
+source ~/workspace/ns-zephyr/tools/env.sh
 export OEVM_HEAP_SIZE=49152 METHOD_CACHE_SIZE=256 PRIM_CACHE_SIZE=256
 export VM_STACK_INIT_WORDS=4096 OEVM_MARK_STACK_SIZE=512
-cd /home/david/workspace/nsl-tuvm
+cd ~/workspace/nsl-tuvm
 python3 tools/ns_compile_oevm.py \
-  /home/david/workspace/tuvm/zephyr/ThreadEchoNodeDK.ns \
-  /home/david/workspace/tuvm/src/solidified_image.c
-cd /home/david/workspace/tuvm/zephyr
+  ~/workspace/tuvm/zephyr/ThreadEchoNodeDK.ns \
+  ~/workspace/tuvm/src/solidified_image.c
+cd ~/workspace/tuvm/zephyr
 west build -b nrf52840dk/nrf52840 -p always . -- \
   -DCONF_FILE=prj_dk_thread.conf -DEXTRA_CONF_FILE=prj_dk_thread_local.conf \
   2>&1 | tee /tmp/rung7_dk_build.log | tail -25
@@ -324,7 +324,7 @@ Expected: `west build` completes and the linker's memory-region summary prints `
 - [ ] **Step 5: Confirm the RAM report fits (the config/RAM gate)**
 
 ```bash
-cd /home/david/workspace/tuvm/zephyr
+cd ~/workspace/tuvm/zephyr
 west build -t ram_report 2>&1 | tail -5
 grep -E "Used (RAM|FLASH)|region .* is used|Memory region" /tmp/rung7_dk_build.log | tail -6
 ```
@@ -334,7 +334,7 @@ Expected: RAM usage under the 256 KB part (the linker summary line `RAM: NNNNN B
 - [ ] **Step 6: Restore the clobbered image, then commit (config + node; NOT the local overlay)**
 
 ```bash
-cd /home/david/workspace/tuvm
+cd ~/workspace/tuvm
 git checkout -- src/solidified_image.c src/solidified_image.stmap
 git status --short   # expect: zephyr/ThreadEchoNodeDK.ns, zephyr/prj_dk_thread.conf, .gitignore
                      # (+ maybe udp_zephyr.c / CMakeLists.txt if a build fix was needed)
@@ -364,18 +364,18 @@ Flash the built image and prove the node **joins the mesh as an MTD child** — 
 - [ ] **Step 1: Re-bake + flash the DK (skip-rebuild so the flash uses the built image)**
 
 ```bash
-source /home/david/workspace/ns-zephyr/tools/env.sh
+source ~/workspace/ns-zephyr/tools/env.sh
 export OEVM_HEAP_SIZE=49152 METHOD_CACHE_SIZE=256 PRIM_CACHE_SIZE=256   # or the trimmed value from Task 2 Step 5
 export VM_STACK_INIT_WORDS=4096 OEVM_MARK_STACK_SIZE=512
-cd /home/david/workspace/nsl-tuvm
+cd ~/workspace/nsl-tuvm
 python3 tools/ns_compile_oevm.py \
-  /home/david/workspace/tuvm/zephyr/ThreadEchoNodeDK.ns \
-  /home/david/workspace/tuvm/src/solidified_image.c
-cd /home/david/workspace/tuvm/zephyr
+  ~/workspace/tuvm/zephyr/ThreadEchoNodeDK.ns \
+  ~/workspace/tuvm/src/solidified_image.c
+cd ~/workspace/tuvm/zephyr
 west build -b nrf52840dk/nrf52840 -p always . -- \
   -DCONF_FILE=prj_dk_thread.conf -DEXTRA_CONF_FILE=prj_dk_thread_local.conf
 west flash --skip-rebuild --runner jlink
-cd /home/david/workspace/tuvm && git checkout -- src/solidified_image.c src/solidified_image.stmap
+cd ~/workspace/tuvm && git checkout -- src/solidified_image.c src/solidified_image.stmap
 ```
 
 Expected: `west flash` programs the DK. (J-Link note from the DK README: if `/dev/ttyACM0` is missing / connect times out, power-cycle the on-board-debug USB; healthy it enumerates as `1366:1025 SEGGER J-Link`.)
@@ -455,7 +455,7 @@ Save the DK console `BRIDGE OK` line + the gw `echo` log line (with timestamps) 
 - [ ] **Step 1: Confirm the host + native_sim floor is still green (controller-owned)**
 
 ```bash
-cd /home/david/workspace/nsl-tuvm && OEVM_PATH=AB python3 tools/run_tests_oevm.py 2>&1 | tail -5
+cd ~/workspace/nsl-tuvm && OEVM_PATH=AB python3 tools/run_tests_oevm.py 2>&1 | tail -5
 ```
 
 Expected: `180/0/12` (unchanged from Rung 6 — no source edit this rung), both paths. Then run the five named gates (grant / debugger-integration / portability-32 / boot-gc-asan / mcu-footprint) per the standard recipe (`.superpowers/sdd/progress.md` gate lines); all PASS. The **mcu-footprint** gate measures the *host/native_sim* engine, which did not change — it should be unmoved; the **DK** footprint (a separate figure) is what moved and is re-banked in Step 2.
@@ -463,8 +463,8 @@ Expected: `180/0/12` (unchanged from Rung 6 — no source edit this rung), both 
 - [ ] **Step 2: Re-measure + re-bank the DK footprint (no silent ratchet)**
 
 ```bash
-cd /home/david/workspace/tuvm/zephyr
-source /home/david/workspace/ns-zephyr/tools/env.sh
+cd ~/workspace/tuvm/zephyr
+source ~/workspace/ns-zephyr/tools/env.sh
 export OEVM_HEAP_SIZE=49152 METHOD_CACHE_SIZE=256 PRIM_CACHE_SIZE=256 VM_STACK_INIT_WORDS=4096 OEVM_MARK_STACK_SIZE=512
 # (use the same OEVM_HEAP_SIZE the round-trip actually ran with)
 west build -t ram_report 2>&1 | tail -3 ; west build -t rom_report 2>&1 | tail -3
@@ -487,18 +487,18 @@ gate** (live silicon + live gateway + radio), not a `west build` CI gate.
 
 ## Build + flash + run
 
-    source /home/david/workspace/ns-zephyr/tools/env.sh
+    source ~/workspace/ns-zephyr/tools/env.sh
     export OEVM_HEAP_SIZE=49152 METHOD_CACHE_SIZE=256 PRIM_CACHE_SIZE=256
     export VM_STACK_INIT_WORDS=4096 OEVM_MARK_STACK_SIZE=512
-    cd /home/david/workspace/nsl-tuvm
+    cd ~/workspace/nsl-tuvm
     python3 tools/ns_compile_oevm.py \
-      /home/david/workspace/tuvm/zephyr/ThreadEchoNodeDK.ns \
-      /home/david/workspace/tuvm/src/solidified_image.c
-    cd /home/david/workspace/tuvm/zephyr
+      ~/workspace/tuvm/zephyr/ThreadEchoNodeDK.ns \
+      ~/workspace/tuvm/src/solidified_image.c
+    cd ~/workspace/tuvm/zephyr
     west build -b nrf52840dk/nrf52840 -p always . -- \
       -DCONF_FILE=prj_dk_thread.conf -DEXTRA_CONF_FILE=prj_dk_thread_local.conf
     west flash --skip-rebuild --runner jlink
-    cd /home/david/workspace/tuvm && git checkout -- src/solidified_image.c src/solidified_image.stmap
+    cd ~/workspace/tuvm && git checkout -- src/solidified_image.c src/solidified_image.stmap
     # console /dev/ttyACM0 @115200: wait for attach (ot-ctl child table on the gw),
     # then press BUTTON1 -> expect: BRIDGE OK
 
@@ -520,8 +520,8 @@ bench-verified). The three-layer UDP arc is complete.
 - [ ] **Step 5: Dialect note + retire the skipped mesh tests**
 
 ```bash
-grep -rln 'net' /home/david/workspace/nsl-tuvm/docs/NEWSPEAK_DIALECT.md 2>/dev/null
-grep -rln '43_udp_mesh\|44_udp_thread' /home/david/workspace/nsl-tests 2>/dev/null
+grep -rln 'net' ~/workspace/nsl-tuvm/docs/NEWSPEAK_DIALECT.md 2>/dev/null
+grep -rln '43_udp_mesh\|44_udp_thread' ~/workspace/nsl-tests 2>/dev/null
 ```
 
 - If `NEWSPEAK_DIALECT.md` owns the `net`/`NetBridge` vocabulary, add a one-line "Layer 3: NetBridge runs over real OpenThread (MTD child), bench-verified" note. Otherwise the tests README net line. Do NOT invent a doc.
@@ -532,7 +532,7 @@ grep -rln '43_udp_mesh\|44_udp_thread' /home/david/workspace/nsl-tests 2>/dev/nu
 Update the `milestone-status` memory (Rung-7 done: MTD child on porta mesh, BRIDGE OK bench-verified, DK footprint re-banked to <new>) and `rung7-gateway-thread-infra` if any address/port changed.
 
 ```bash
-cd /home/david/workspace/tuvm
+cd ~/workspace/tuvm
 git add zephyr/README.md zephyr/FOOTPRINT_DK.md review/program-sequence.md
 # add tools/footprint-* only if that baseline moved
 git commit -m "docs(rung7): close — Layer 3 done (NetBridge over real OpenThread, MTD child)
@@ -545,7 +545,7 @@ footprint re-banked (OpenThread L2 + mbedTLS delta). Host/native_sim floor
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 
 # nsl-tests, only if the skipped mesh tests were retired there:
-cd /home/david/workspace/nsl-tests && git add -A && git commit -m "test(rung7): retire skipped 43_udp_mesh/44_udp_thread — superseded by the DK bench gate
+cd ~/workspace/nsl-tests && git add -A && git commit -m "test(rung7): retire skipped 43_udp_mesh/44_udp_thread — superseded by the DK bench gate
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 ```

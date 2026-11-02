@@ -175,7 +175,7 @@ def make_handler(store, mirror, node_default):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--db", default="porta-lite.db")
-    ap.add_argument("--node", default="192.168.0.240")
+    ap.add_argument("--node", default="192.0.2.40")
     args = ap.parse_args()
     store = Store(args.db)
     mirror = Mirror(store)

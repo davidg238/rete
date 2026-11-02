@@ -117,7 +117,7 @@ int main(void) {
 
 Run:
 ```bash
-cd /home/david/workspace/oevm
+cd ~/workspace/oevm
 gcc -std=c99 -Isrc tests/test_float_gc.c \
     src/vm.c src/gc.c src/dispatch.c src/oimg_loader.c src/solidified_image.c \
     -lm -o /tmp/tfgc 2>&1 | head
@@ -207,7 +207,7 @@ Ensure `<string.h>` is included for `memset` (check the top of `src/gc.c`; add `
 
 Run:
 ```bash
-cd /home/david/workspace/oevm
+cd ~/workspace/oevm
 gcc -std=c99 -Isrc tests/test_float_gc.c \
     src/vm.c src/gc.c src/dispatch.c src/oimg_loader.c src/solidified_image.c \
     -lm -o /tmp/tfgc && /tmp/tfgc
@@ -218,7 +218,7 @@ Expected: prints `test_float_gc: hooks basic OK` then `ALL TESTS PASSED`.
 
 Run:
 ```bash
-cd /home/david/workspace/oevm
+cd ~/workspace/oevm
 gcc -std=c99 -Isrc tests/test_float_arena.c \
     src/vm.c src/gc.c src/dispatch.c src/oimg_loader.c src/solidified_image.c \
     -lm -o /tmp/tfa && /tmp/tfa
@@ -228,7 +228,7 @@ Expected: `test_float_arena: OK (10000 cells across slab boundaries)`.
 - [ ] **Step 6: Commit**
 
 ```bash
-cd /home/david/workspace/oevm
+cd ~/workspace/oevm
 git restore src/solidified_image.c 2>/dev/null
 git add src/gc.c tests/test_float_gc.c
 git commit -m "feat(gc): float-arena bitmap + free-list + introspection hooks (W2a step 1)
@@ -330,7 +330,7 @@ And in `main`, after `test_hooks_basic();`, add:
 
 Run:
 ```bash
-cd /home/david/workspace/oevm
+cd ~/workspace/oevm
 gcc -std=c99 -Isrc tests/test_float_gc.c \
     src/vm.c src/gc.c src/dispatch.c src/oimg_loader.c src/solidified_image.c \
     -lm -o /tmp/tfgc && /tmp/tfgc
@@ -418,7 +418,7 @@ At the very end of `gc_collect` (after the main-heap sweep loop closes, ~line 51
 
 Run:
 ```bash
-cd /home/david/workspace/oevm
+cd ~/workspace/oevm
 gcc -std=c99 -Isrc tests/test_float_gc.c \
     src/vm.c src/gc.c src/dispatch.c src/oimg_loader.c src/solidified_image.c \
     -lm -o /tmp/tfgc && /tmp/tfgc
@@ -436,7 +436,7 @@ ALL TESTS PASSED
 
 Run:
 ```bash
-cd /home/david/workspace/oevm
+cd ~/workspace/oevm
 gcc -std=c99 -Isrc -DOEVM_HEAP_SIZE=65536 tests/test_gc_trigger.c \
     src/vm.c src/gc.c src/dispatch.c src/oimg_loader.c src/solidified_image.c \
     -lm -o /tmp/tgct && /tmp/tgct
@@ -449,7 +449,7 @@ Expected: `ALL TESTS PASSED` (test_gc_trigger) and `test_float_arena: OK`.
 - [ ] **Step 8: Commit**
 
 ```bash
-cd /home/david/workspace/oevm
+cd ~/workspace/oevm
 git restore src/solidified_image.c 2>/dev/null
 git add src/gc.c tests/test_float_gc.c
 git commit -m "feat(gc): float-arena mark + sweep reclaim wired into gc_collect (W2a step 2)
@@ -507,7 +507,7 @@ Add `test_bounded_churn();` in `main` before `printf("ALL TESTS PASSED\n");`.
 
 Run:
 ```bash
-cd /home/david/workspace/oevm
+cd ~/workspace/oevm
 gcc -std=c99 -Isrc tests/test_float_gc.c \
     src/vm.c src/gc.c src/dispatch.c src/oimg_loader.c src/solidified_image.c \
     -lm -o /tmp/tfgc && /tmp/tfgc
@@ -518,7 +518,7 @@ Expected: all `test_float_gc:` lines print, ending with `bounded churn OK (stead
 
 Run:
 ```bash
-cd /home/david/workspace/oevm
+cd ~/workspace/oevm
 bash tests/test_portability_32.sh
 ```
 Expected: passes as before. (If the script does not already build `test_float_gc`, additionally run the build below with `-m32`; install `gcc-multilib` if missing.)
@@ -534,7 +534,7 @@ Expected: `ALL TESTS PASSED` under `-m32` (validates byte-indexed bitmap + `size
 
 Run:
 ```bash
-cd /home/david/workspace/ns-oevm
+cd ~/workspace/ns-oevm
 OEVM_PATH=AB python3 tools/run_tests_oevm.py 2>&1 | grep -E "Passed|Failed|Skipped"
 ```
 Expected: `Passed: 47`, `Failed: 0`, `Skipped: 1`.
@@ -550,7 +550,7 @@ Mark **W2a (float-arena reclaim) complete** and set **W2b (float unboxing)** as 
 - [ ] **Step 7: Commit**
 
 ```bash
-cd /home/david/workspace/oevm
+cd ~/workspace/oevm
 git restore src/solidified_image.c 2>/dev/null
 git add tests/test_float_gc.c nodus/oevm/docs/optimizations.md nodus/oevm/docs/archive/ROADMAP.md
 git commit -m "test+docs(gp0): W2a float-arena reclaim done; bounded under sustained churn (W2a step 3)

@@ -78,15 +78,15 @@ MethodContext >> unwindTo: targetHome value: rVal [
 ## Proposed Changes for Phase 5
 
 ### 1. VM Runtime
-* #### [MODIFY] [vm.c](file:///home/david/workspace/oevm/src/vm.c)
+* #### [MODIFY] [vm.c](file://~/workspace/oevm/src/vm.c)
   - Remove C-level recursive stack walking inside `primitive_unwind_to_value`.
   - Implement a simple `primitive_method_context_resume` C-primitive to handle the final context resumption stage.
   - Implement a bytecode helper or primitive for `executeCleanup` to trigger block cleans.
 
 ### 2. Solidification Pipeline
-* #### [MODIFY] [tools/solidify.py](file:///home/david/workspace/oevm/tools/solidify.py)
+* #### [MODIFY] [tools/solidify.py](file://~/workspace/oevm/tools/solidify.py)
   - Compile the `unwindTo:value:` bytecode method and associate it with the static `MethodContextVtable` in the generated Flash ROM image (`src/solidified_image.c`).
 
 ### 3. Verification
-* #### [NEW] [tests/test_nlr.c](file:///home/david/workspace/oevm/tests/test_nlr.c)
+* #### [NEW] [tests/test_nlr.c](file://~/workspace/oevm/tests/test_nlr.c)
   - Verify deep lexical unwinding across multiple frames, demonstrating that cleanup closures are run sequentially, and execution resumes at the proper caller site with the correct return value.

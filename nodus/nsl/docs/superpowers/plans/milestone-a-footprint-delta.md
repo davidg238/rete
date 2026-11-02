@@ -12,7 +12,7 @@ of Task 10c the script also totals `data+bss` from the same `size -t` output
 The banked Task-1 baseline (`tuvm/tools/footprint-baseline.txt`, text=39148)
 predates the RAM line, so the seed was re-measured with the *current*
 footprint.sh for an apples-to-apples RAM figure. Method: `git -C
-/home/david/workspace/tuvm worktree add /tmp/tuvm-seed fa301d3`, copy the current
+~/workspace/tuvm worktree add /tmp/tuvm-seed fa301d3`, copy the current
 `tools/footprint.sh` into the worktree, run it there against the seed's own
 sources (same file set: vm.c, dispatch.c, gc.c, kernel_boot.c, platform.c,
 serial.c, udp.c, mirror.c, oimg_loader.c, backend/posix/*.c — unchanged since the

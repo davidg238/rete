@@ -63,7 +63,7 @@ if __name__ == "__main__":
 
 Run:
 ```bash
-cd /home/david/workspace/ns-oevm
+cd ~/workspace/ns-oevm
 python3 tools/snapshot_images.py /tmp/img_before
 ```
 Expected: `snapshot written to /tmp/img_before`, directory holds one `.c` per test.
@@ -71,7 +71,7 @@ Expected: `snapshot written to /tmp/img_before`, directory holds one `.c` per te
 - [ ] **Step 3: Commit the harness**
 
 ```bash
-cd /home/david/workspace/ns-oevm
+cd ~/workspace/ns-oevm
 git add tools/snapshot_images.py
 git commit -m "test: add solidified-image snapshot harness for no-op proofs"
 ```
@@ -121,7 +121,7 @@ Replace the `OP_JMP_IF_FALSE` case body in `oevm/src/vm.c` (currently jumps on `
 
 Run:
 ```bash
-cd /home/david/workspace/oevm
+cd ~/workspace/oevm
 gcc -Wall -Wextra -std=c99 -c src/dispatch.c -o /tmp/d.o && gcc -Wall -Wextra -std=c99 -c src/vm.c -o /tmp/v.o && echo BUILD_OK
 ```
 Expected: `BUILD_OK` with no warnings.
@@ -130,7 +130,7 @@ Expected: `BUILD_OK` with no warnings.
 
 Run:
 ```bash
-cd /home/david/workspace/ns-oevm
+cd ~/workspace/ns-oevm
 python3 tools/run_tests_oevm.py 2>&1 | tail -4
 ```
 Expected: `Passed: 19`, `Failed: 10`, `Skipped: 1` (unchanged — the opcode is not emitted by codegen yet).
@@ -138,7 +138,7 @@ Expected: `Passed: 19`, `Failed: 10`, `Skipped: 1` (unchanged — the opcode is 
 - [ ] **Step 6: Commit (oevm repo)**
 
 ```bash
-cd /home/david/workspace/oevm
+cd ~/workspace/oevm
 git add src/dispatch.c src/oevm.h src/vm.c
 git commit -m "oevm: OP_JMP_IF_FALSE uses is_truthy (fixes false-symbol truthiness)
 
@@ -190,7 +190,7 @@ class Scope:
 
 Run:
 ```bash
-cd /home/david/workspace/ns-oevm
+cd ~/workspace/ns-oevm
 python3 -c "import importlib.util,sys; spec=importlib.util.spec_from_file_location('c','tools/ns_compile_oevm.py'); m=importlib.util.module_from_spec(spec); spec.loader.exec_module(m); print('IMPORT_OK')"
 ```
 Expected: `IMPORT_OK` (module parses and the `Scope` class loads).
@@ -198,7 +198,7 @@ Expected: `IMPORT_OK` (module parses and the `Scope` class loads).
 - [ ] **Step 3: Commit**
 
 ```bash
-cd /home/david/workspace/ns-oevm
+cd ~/workspace/ns-oevm
 git add tools/ns_compile_oevm.py
 git commit -m "compiler: add standalone Scope class (unused)"
 ```
@@ -259,7 +259,7 @@ Leave the slot / nested_class / implicit_send blocks that follow unchanged.
 
 Run:
 ```bash
-cd /home/david/workspace/ns-oevm
+cd ~/workspace/ns-oevm
 python3 tools/snapshot_images.py /tmp/img_after
 ```
 Expected: `snapshot written to /tmp/img_after`.
@@ -277,7 +277,7 @@ resolution refactor changed codegen — stop and reconcile before continuing.
 
 Run:
 ```bash
-cd /home/david/workspace/ns-oevm
+cd ~/workspace/ns-oevm
 python3 tools/run_tests_oevm.py 2>&1 | tail -4
 ```
 Expected: `Passed: 19`, `Failed: 10`, `Skipped: 1`.
@@ -285,7 +285,7 @@ Expected: `Passed: 19`, `Failed: 10`, `Skipped: 1`.
 - [ ] **Step 6: Commit**
 
 ```bash
-cd /home/david/workspace/ns-oevm
+cd ~/workspace/ns-oevm
 git add tools/ns_compile_oevm.py
 git commit -m "compiler: resolve variables via Scope (no-op; byte-identical images)"
 ```
@@ -366,7 +366,7 @@ There are two places a frame's body finishes being emitted. Find them and add a
 
 Run:
 ```bash
-cd /home/david/workspace/ns-oevm
+cd ~/workspace/ns-oevm
 python3 tools/snapshot_images.py /tmp/img_after2
 diff -r /tmp/img_before /tmp/img_after2 && echo NO_OP_CONFIRMED
 ```
@@ -376,7 +376,7 @@ Expected: `NO_OP_CONFIRMED`.
 
 Run:
 ```bash
-cd /home/david/workspace/ns-oevm
+cd ~/workspace/ns-oevm
 python3 tools/run_tests_oevm.py 2>&1 | tail -4
 ```
 Expected: `Passed: 19`, `Failed: 10`, `Skipped: 1`.
@@ -384,7 +384,7 @@ Expected: `Passed: 19`, `Failed: 10`, `Skipped: 1`.
 - [ ] **Step 6: Commit**
 
 ```bash
-cd /home/david/workspace/ns-oevm
+cd ~/workspace/ns-oevm
 git add tools/ns_compile_oevm.py
 git commit -m "compiler: add label/backpatch jump helpers (unused; no-op)"
 ```
@@ -413,7 +413,7 @@ inlining).
 - [ ] **Step 2: Commit (oevm repo)**
 
 ```bash
-cd /home/david/workspace/oevm
+cd ~/workspace/oevm
 git add nodus/oevm/docs/optimizations.md
 git commit -m "docs: record block-inlining Phase A (foundation, no-op)
 

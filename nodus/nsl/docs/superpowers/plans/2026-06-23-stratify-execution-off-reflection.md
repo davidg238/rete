@@ -38,7 +38,7 @@
 
 Run and read, to know what the 63 tests already exercise:
 ```bash
-cd /home/david/workspace/ns-tests && grep -rln '\[.*:.*\]\|whileTrue\|ensure:\|do:\|inject:into:' 04_somns_basic | sort
+cd ~/workspace/ns-tests && grep -rln '\[.*:.*\]\|whileTrue\|ensure:\|do:\|inject:into:' 04_somns_basic | sort
 ```
 Write a 5-line note in the PR/commit body listing which corners (capture-write-shared, escaping closure, multi-frame NLR+ensure:) are NOT covered. This justifies the new tests.
 
@@ -129,7 +129,7 @@ class Main usingPlatform: platform = () (
 
 - [ ] **Step 3: Confirm the battery passes on master (the oracle gate)**
 
-Run: `cd /home/david/workspace/ns-oevm && OEVM_PATH=AB python3 tools/run_tests_oevm.py`
+Run: `cd ~/workspace/ns-oevm && OEVM_PATH=AB python3 tools/run_tests_oevm.py`
 Expected: **68 pass / 0 fail / 3 skip** both paths (63 baseline + 5 new). If any new test FAILS on master, the test is wrong (or describes behavior the old code doesn't have) — fix the test until green on master. A test that can't pass on the old code is not a valid oracle.
 
 - [ ] **Step 4: Write the differential harness**
@@ -143,7 +143,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 MASTER_WT="/tmp/stratify-master-oevm"
 # oevm sibling worktree at master for the OLD VM:
-git -C /home/david/workspace/oevm worktree add -f "$MASTER_WT" master 2>/dev/null || true
+git -C ~/workspace/oevm worktree add -f "$MASTER_WT" master 2>/dev/null || true
 echo "Run suite on master oevm and branch oevm; compare /tmp dumps."
 # Path A+B suite already compares against expected; the STRONGER check is that
 # master and branch produce the SAME stdout for every test. Implementation:
@@ -157,11 +157,11 @@ In `run_tests_oevm.py` the oevm dir is resolved relative to the script; add an `
 - [ ] **Step 6: Commit (all three repos as needed)**
 
 ```bash
-cd /home/david/workspace/ns-tests && git add 04_somns_basic/4*.ns && git commit -m "test(stratify): capture/NLR corner battery (oracle, green on master)
+cd ~/workspace/ns-tests && git add 04_somns_basic/4*.ns && git commit -m "test(stratify): capture/NLR corner battery (oracle, green on master)
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_016R9ztgZMd1VS31fe1T8pHh"
-cd /home/david/workspace/ns-oevm && git add tools/diff_lowering.sh && git commit -m "test(stratify): master-vs-branch differential harness + GC-stress knob
+cd ~/workspace/ns-oevm && git add tools/diff_lowering.sh && git commit -m "test(stratify): master-vs-branch differential harness + GC-stress knob
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_016R9ztgZMd1VS31fe1T8pHh"
@@ -279,7 +279,7 @@ Then find the sibling **read** path in the same lexical-resolution area (the one
 - [ ] **Step 6: Build + run the suite (both paths) + differential + GC-stress**
 
 ```bash
-cd /home/david/workspace/ns-oevm
+cd ~/workspace/ns-oevm
 OEVM_PATH=AB python3 tools/run_tests_oevm.py            # expect 68/0/3
 OEVM_GC_STRESS=1 OEVM_PATH=AB python3 tools/run_tests_oevm.py   # expect 68/0/3
 bash tools/diff_lowering.sh                              # expect: empty diff
@@ -289,11 +289,11 @@ Expected: 68/0/3 both paths, all three runs; differential diff empty. If `41/42/
 - [ ] **Step 7: Commit (oevm + ns-oevm)**
 
 ```bash
-cd /home/david/workspace/oevm && git add src/oevm.h src/vm.c && git commit -m "feat(vm): OP_LD_LEXICAL/OP_ST_LEXICAL — lexical access via opcode, reusing prims
+cd ~/workspace/oevm && git add src/oevm.h src/vm.c && git commit -m "feat(vm): OP_LD_LEXICAL/OP_ST_LEXICAL — lexical access via opcode, reusing prims
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_016R9ztgZMd1VS31fe1T8pHh"
-cd /home/david/workspace/ns-oevm && git add tools/ns_compile_oevm.py && git commit -m "feat(compiler): emit OP_LD_LEXICAL/OP_ST_LEXICAL for block self + captured vars
+cd ~/workspace/ns-oevm && git add tools/ns_compile_oevm.py && git commit -m "feat(compiler): emit OP_LD_LEXICAL/OP_ST_LEXICAL for block self + captured vars
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_016R9ztgZMd1VS31fe1T8pHh"
@@ -376,7 +376,7 @@ Replace with:
 - [ ] **Step 5: Build + suite + differential + GC-stress**
 
 ```bash
-cd /home/david/workspace/ns-oevm
+cd ~/workspace/ns-oevm
 OEVM_PATH=AB python3 tools/run_tests_oevm.py             # 68/0/3
 OEVM_GC_STRESS=1 OEVM_PATH=AB python3 tools/run_tests_oevm.py  # 68/0/3
 bash tools/diff_lowering.sh                               # empty diff
@@ -442,7 +442,7 @@ Apply the SAME transform: drop `(oop)&KSym_sender` from `__consts` (now 5 entrie
 - [ ] **Step 4: Build + suite + differential (NLR is the focus)**
 
 ```bash
-cd /home/david/workspace/ns-oevm
+cd ~/workspace/ns-oevm
 OEVM_PATH=AB python3 tools/run_tests_oevm.py     # 68/0/3 — 44_nlr + deltablue are the gates
 bash tools/diff_lowering.sh                       # empty diff
 ```
@@ -481,7 +481,7 @@ Run: `bash tools/check_no_reflective_emit.sh` → expect `OK`.
 - [ ] **Step 2: Benchmarks before/after**
 
 ```bash
-cd /home/david/workspace/ns-tests && python3 run_benchmarks.py | tee /tmp/bench_branch.txt
+cd ~/workspace/ns-tests && python3 run_benchmarks.py | tee /tmp/bench_branch.txt
 # compare to a master-worktree run captured the same way
 ```
 Record both numbers in the commit body. Substantiate the perf claim, or state plainly "no measurable change" — no silent claim.
@@ -489,7 +489,7 @@ Record both numbers in the commit body. Substantiate the perf claim, or state pl
 - [ ] **Step 3: C-prim unit test still green**
 
 ```bash
-cd /home/david/workspace/oevm
+cd ~/workspace/oevm
 gcc -std=c99 -Isrc tests/test_debugger.c src/vm.c src/gc.c src/dispatch.c src/platform.c src/serial.c src/backend/posix/platform_posix.c src/backend/posix/serial_posix.c -o /tmp/test_debugger -lm && /tmp/test_debugger
 ```
 Expected: test passes (prims unchanged). If the build needs more units, add per the linker errors.
@@ -501,11 +501,11 @@ Append to `ns-oevm/docs/NEWSPEAK_DIALECT.md`: base-level execution (block `self`
 - [ ] **Step 5: Regenerate the committed default image + final differential**
 
 ```bash
-cd /home/david/workspace/ns-oevm
+cd ~/workspace/ns-oevm
 # regenerate solidified_image.c per the project's image-regen step, then:
 OEVM_PATH=AB python3 tools/run_tests_oevm.py   # 68/0/3
 bash tools/diff_lowering.sh                     # empty diff (final whole-suite proof)
-git -C /home/david/workspace/oevm worktree remove /tmp/stratify-master-oevm --force
+git -C ~/workspace/oevm worktree remove /tmp/stratify-master-oevm --force
 ```
 
 - [ ] **Step 6: Commit (all repos), clean up worktree**

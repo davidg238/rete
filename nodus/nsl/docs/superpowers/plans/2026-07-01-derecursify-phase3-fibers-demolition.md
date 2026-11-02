@@ -133,7 +133,7 @@ Also delete the now-orphaned POSIX field seeds earlier in the function (`new_fib
 - [ ] **Step 4: Build the runner (Path A).** Run:
 
 ```bash
-cd /home/david/workspace/oevm && rm -f oevm_runner && \
+cd ~/workspace/oevm && rm -f oevm_runner && \
 gcc -Wall -Wextra -std=c99 src/vm.c src/gc.c src/dispatch.c src/platform.c src/solidified_image.c src/oevm_main.c -o oevm_runner
 ```
 Expected: compiles clean (warnings about now-unused `fiber_trampoline`/ucontext fields are acceptable this task; they are removed in Task 2).
@@ -141,25 +141,25 @@ Expected: compiles clean (warnings about now-unused `fiber_trampoline`/ucontext 
 - [ ] **Step 5: Run the fiber unit test + suite both paths.** Run serially:
 
 ```bash
-cd /home/david/workspace/oevm && python3 tools/run_tests_oevm.py
+cd ~/workspace/oevm && python3 tools/run_tests_oevm.py
 ```
 Then the Path-B / `OEVM_PATH=AB` suite per the established gate recipe (design doc §6), and the C fiber unit test:
 ```bash
-cd /home/david/workspace/oevm && gcc -Wall -Wextra -std=c99 -DOEVM_UNIT_TEST tests/test_fibers.c src/vm.c src/gc.c src/dispatch.c src/platform.c src/solidified_image.c -o /tmp/test_fibers 2>/dev/null && /tmp/test_fibers; echo "exit=$?"
+cd ~/workspace/oevm && gcc -Wall -Wextra -std=c99 -DOEVM_UNIT_TEST tests/test_fibers.c src/vm.c src/gc.c src/dispatch.c src/platform.c src/solidified_image.c -o /tmp/test_fibers 2>/dev/null && /tmp/test_fibers; echo "exit=$?"
 ```
 Expected: suite green both paths (baseline 81/0/6); `45_fibers.ns` PASS; `test_fibers` PASS. If `test_fibers.c`'s exact build recipe differs, use the one embedded in its header comment.
 
 - [ ] **Step 6: `-D__ZEPHYR__` host syntax build.** The Zephyr path is now the universal path, so this must stay clean:
 
 ```bash
-cd /home/david/workspace/oevm && gcc -D__ZEPHYR__ -Wall -Wextra -std=c99 -fsyntax-only src/vm.c src/gc.c src/dispatch.c && echo "ZEPHYR-SYNTAX-OK"
+cd ~/workspace/oevm && gcc -D__ZEPHYR__ -Wall -Wextra -std=c99 -fsyntax-only src/vm.c src/gc.c src/dispatch.c && echo "ZEPHYR-SYNTAX-OK"
 ```
 Expected: `ZEPHYR-SYNTAX-OK` (unused-`fiber_trampoline` warnings acceptable; `-fsyntax-only` won't error on them).
 
 - [ ] **Step 7: Commit.**
 
 ```bash
-cd /home/david/workspace/oevm && git add -A && git commit -m "$(cat <<'EOF'
+cd ~/workspace/oevm && git add -A && git commit -m "$(cat <<'EOF'
 feat(derecursify): universal single-stack fiber switch (Phase 3 core)
 
 Make the flat-loop reload mechanism universal: reload blocks always
@@ -266,7 +266,7 @@ The entry closure is now reachable via `mark(fib->stack_obj)` (it lives in `regs
 - [ ] **Step 8: Structural intent gate — grep-clean the live artifacts.**
 
 ```bash
-cd /home/david/workspace/oevm && \
+cd ~/workspace/oevm && \
 ! grep -rnE 'ucontext|swapcontext|makecontext|getcontext|fiber_trampoline|g_fiber_registry|reg_next|c_stack_sp|OEVM_FIBER_CSTACK_SIZE|fiber_c_stack_top|entry_closure|entry_receiver' src/ \
 && echo "DEMOLITION-CLEAN"
 ```
@@ -275,7 +275,7 @@ Expected: `DEMOLITION-CLEAN` (no matches in `src/`).
 - [ ] **Step 9: Commit.**
 
 ```bash
-cd /home/david/workspace/oevm && git add -A && git commit -m "$(cat <<'EOF'
+cd ~/workspace/oevm && git add -A && git commit -m "$(cat <<'EOF'
 refactor(derecursify): demolish ucontext/trampoline/fiber-registry (Phase 3)
 
 Delete the per-fiber C-stack machinery made dead by the universal
@@ -345,19 +345,19 @@ gc_set_stack_base(&oevm_stack_anchor);
 - [ ] **Step 5: GC-stress + ASan gate (the risk gate).** Build with GC-on-every-allocation and ASan, run the gc-stress test and the fiber tests, both paths:
 
 ```bash
-cd /home/david/workspace/oevm && \
+cd ~/workspace/oevm && \
 gcc -DOEVM_GC_STRESS=1 -fsanitize=address -g -Wall -Wextra -std=c99 \
   src/vm.c src/gc.c src/dispatch.c src/platform.c src/solidified_image.c src/oevm_main.c -o /tmp/oevm_gcstress_asan && \
 OEVM_GC_STRESS=1 /tmp/oevm_gcstress_asan; echo "runner exit=$?"
 ```
 Then run `ns-tests/06_limit_tests/05_gc_stress.ns` and `ns-tests/04_somns_basic/45_fibers.ns` through the harness under the GC-stress/ASan build (use the established `fibers-gc-stress` and `boot-gc-asan` gate recipes named in design doc §6). Expected: **no ASan report, no use-after-free, suite green.** If ASan flags a freed oop, that is a newly-exposed bare-C-local root — handlerize it with `gc_temp_root_push` at the allocation site (same pattern as Step 1), re-run until clean. Record every site fixed in the commit message.
 
-- [ ] **Step 6: `-D__ZEPHYR__` host build.** `cd /home/david/workspace/oevm && gcc -D__ZEPHYR__ -Wall -Wextra -std=c99 -fsyntax-only src/vm.c src/gc.c src/dispatch.c && echo ZEPHYR-SYNTAX-OK`. Expected: `ZEPHYR-SYNTAX-OK`.
+- [ ] **Step 6: `-D__ZEPHYR__` host build.** `cd ~/workspace/oevm && gcc -D__ZEPHYR__ -Wall -Wextra -std=c99 -fsyntax-only src/vm.c src/gc.c src/dispatch.c && echo ZEPHYR-SYNTAX-OK`. Expected: `ZEPHYR-SYNTAX-OK`.
 
 - [ ] **Step 7: Structural intent gate.**
 
 ```bash
-cd /home/david/workspace/oevm && \
+cd ~/workspace/oevm && \
 ! grep -rnE 'scan_c_stack|vm_c_stack_base|gc_set_stack_base|setjmp|jmp_buf' src/ \
 && echo "CONSERVATIVE-SCAN-GONE"
 ```
@@ -366,7 +366,7 @@ Expected: `CONSERVATIVE-SCAN-GONE`. (If `scan_c_range` was kept for another call
 - [ ] **Step 8: Commit.**
 
 ```bash
-cd /home/david/workspace/oevm && git add -A && git commit -m "$(cat <<'EOF'
+cd ~/workspace/oevm && git add -A && git commit -m "$(cat <<'EOF'
 refactor(derecursify): delete conservative C-stack scan; precise roots only (Phase 3)
 
 Flat dispatch + first-class Stacks make every fiber activation a precise
@@ -396,7 +396,7 @@ EOF
 
 - [ ] **Step 1: Confirm no live user.** Run:
 ```bash
-cd /home/david/workspace && grep -rn "cleanup_cl\|execute_cleanup\|executeCleanup\|ifCurtailed\|ensure:" oevm/src ns-oevm/lib ns-oevm/tools ns-tests | grep -v "\.md:" 
+cd ~/workspace && grep -rn "cleanup_cl\|execute_cleanup\|executeCleanup\|ifCurtailed\|ensure:" oevm/src ns-oevm/lib ns-oevm/tools ns-tests | grep -v "\.md:" 
 ```
 Expected: matches only in `oevm/src` (the dead C path) — **no** `.ns` (kernel/compiler) or test user. If a `.ns` user appears, STOP and escalate ([[escalate-design-reversals]]) — the delete premise is wrong.
 
@@ -412,13 +412,13 @@ Expected: matches only in `oevm/src` (the dead C path) — **no** `.ns` (kernel/
 
 - [ ] **Step 7: Structural intent gate.**
 ```bash
-cd /home/david/workspace/oevm && ! grep -rn "cleanup_cl\|execute_cleanup" src/ && echo "CLEANUP-DEAD-PATH-GONE"
+cd ~/workspace/oevm && ! grep -rn "cleanup_cl\|execute_cleanup" src/ && echo "CLEANUP-DEAD-PATH-GONE"
 ```
 Expected: `CLEANUP-DEAD-PATH-GONE`.
 
 - [ ] **Step 8: Commit.**
 ```bash
-cd /home/david/workspace/oevm && git add -A && git commit -m "$(cat <<'EOF'
+cd ~/workspace/oevm && git add -A && git commit -m "$(cat <<'EOF'
 refactor(derecursify): delete dead cleanup_cl / ensure: path (Phase 3, oevm#25)
 
 cleanup_cl was only ever NULL with no kernel/compiler user. Delete the
@@ -465,13 +465,13 @@ c run.
 
 - [ ] **Step 2: Run it both paths — verify it passes (proving correct interleave).**
 ```bash
-cd /home/david/workspace/oevm && python3 tools/run_tests_oevm.py 2>&1 | grep -i fiber
+cd ~/workspace/oevm && python3 tools/run_tests_oevm.py 2>&1 | grep -i fiber
 ```
 Then the Path-B run. Expected: the interleave test PASSes both paths with the `ABABAB`-style order. If it produces `ABBBAA`-style output, the mechanism is wrong — STOP and debug ([[superpowers:systematic-debugging]]) before proceeding.
 
 - [ ] **Step 3: Prove it on the `-D__ZEPHYR__` host build.** Build the host `.oimg` image runner with the Zephyr flag and run the fiber image (per `oevm/docs/archive/fiber_implementation.md:30`, `gcc -D__ZEPHYR__ … oevm_image_main.c`):
 ```bash
-cd /home/david/workspace/oevm && \
+cd ~/workspace/oevm && \
 gcc -D__ZEPHYR__ -Wall -Wextra -std=c99 src/vm.c src/gc.c src/dispatch.c src/platform.c oevm_image_main.c -o /tmp/oevm_zephyr_host 2>&1 | tail -5
 ```
 Run the fiber interleave `.oimg` under `/tmp/oevm_zephyr_host` (use the image the harness builds for `45_fibers.ns`, or the `test_fibers.c` `-D__ZEPHYR__` build). Expected: `ABABAB`-style order — the historically-broken case is now correct on the exact mechanism the hardware executes.
@@ -482,7 +482,7 @@ Run the fiber interleave `.oimg` under `/tmp/oevm_zephyr_host` (use the image th
 
 - [ ] **Step 6: Commit.**
 ```bash
-cd /home/david/workspace && git -C oevm add -A && git -C ns-tests add -A && \
+cd ~/workspace && git -C oevm add -A && git -C ns-tests add -A && \
 git -C ns-tests commit -m "$(cat <<'EOF'
 test(derecursify): ABBBAA->ABABAB fiber interleave proof + home_ctx-across-stacks (Phase 3)
 
@@ -528,7 +528,7 @@ Run the complete per-phase gate matrix, refresh the design doc and roadmap, conf
 
 - [ ] **Step 6: Commit docs.**
 ```bash
-cd /home/david/workspace && git -C oevm add -A && git -C ns-oevm add -A && \
+cd ~/workspace && git -C oevm add -A && git -C ns-oevm add -A && \
 git -C oevm commit -m "docs(derecursify): mark Phase 3 (fibers + demolition) DONE
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>

@@ -185,7 +185,7 @@ moved**.
 - [ ] **Step 2: Run it and watch it fail**
 
 ```bash
-cd /home/david/workspace/rete/nodus/nsl && python3 tools/run-one.py ../tests/22_spacesync/09_batch_size.nsl
+cd ~/workspace/rete/nodus/nsl && python3 tools/run-one.py ../tests/22_spacesync/09_batch_size.nsl
 ```
 
 Expected: FAIL, printing `health 91 / metrics 195 / cheap 79 / batch 529` against the new
@@ -243,7 +243,7 @@ if that number changes you have edited something you should not have.
 - [ ] **Step 7: Prove no long name survives in code**
 
 ```bash
-cd /home/david/workspace/rete
+cd ~/workspace/rete
 rg -n "#(uptimeMs|bootId|wakes|pollTimeouts|streamDropped|heapSize|liveBytes|heapHighWater|largestFreeBlock|gcCycles|handlesLive|handlesHighWater|queueHighWater|overruns|pulseDrops|pulseCoalesced|outBytes|outHigh|allocs|frees|level)\b" --glob '*.nsl' --glob '*.tmpl' nodus/
 ```
 
@@ -255,8 +255,8 @@ historical record of what was measured then.
 - [ ] **Step 8: Run the guard, then the whole suite**
 
 ```bash
-cd /home/david/workspace/rete/nodus/nsl && python3 tools/run-one.py ../tests/22_spacesync/09_batch_size.nsl
-cd /home/david/workspace/rete/nodus/nsl && python3 tools/run_tests_oevm.py
+cd ~/workspace/rete/nodus/nsl && python3 tools/run-one.py ../tests/22_spacesync/09_batch_size.nsl
+cd ~/workspace/rete/nodus/nsl && python3 tools/run_tests_oevm.py
 ```
 
 Expected: the guard passes at the Step 1 numbers; the suite prints `Failed: 0` **and** a clean
@@ -266,7 +266,7 @@ background it and wait forever.
 - [ ] **Step 9: Commit**
 
 ```bash
-cd /home/david/workspace/rete
+cd ~/workspace/rete
 git add -A nodus/
 git commit -m "$(cat <<'EOF'
 feat(#197): one naming rule for the frame's record labels
@@ -309,7 +309,7 @@ from `386` to `378` and leave the other three alone — the envelope carries no 
 - [ ] **Step 2: Run it and watch it fail**
 
 ```bash
-cd /home/david/workspace/rete/nodus/nsl && python3 tools/run-one.py ../tests/22_spacesync/09_batch_size.nsl
+cd ~/workspace/rete/nodus/nsl && python3 tools/run-one.py ../tests/22_spacesync/09_batch_size.nsl
 ```
 
 Expected: FAIL at `batch 386`.
@@ -345,7 +345,7 @@ named `entries`/`bootID` are locals and do not change — only the quoted wire s
 - [ ] **Step 6: Prove the vocabulary is now uniform**
 
 ```bash
-cd /home/david/workspace/rete
+cd ~/workspace/rete
 rg -n '#(bootId|entries)\b' --glob '*.nsl' --glob '*.tmpl' nodus/
 rg -n '"bootId"|"entries"' --glob '*.go' porta/
 ```
@@ -356,9 +356,9 @@ where they are *describing* the mechanism — read each hit rather than deleting
 - [ ] **Step 7: Run all three gates**
 
 ```bash
-cd /home/david/workspace/rete/porta && gofmt -l . && go test ./...
-cd /home/david/workspace/rete/nodus/nsl && python3 tools/run_tests_oevm.py
-cd /home/david/workspace/rete/nodus/tuvm && bash tests/porta_sync_host.sh
+cd ~/workspace/rete/porta && gofmt -l . && go test ./...
+cd ~/workspace/rete/nodus/nsl && python3 tools/run_tests_oevm.py
+cd ~/workspace/rete/nodus/tuvm && bash tests/porta_sync_host.sh
 ```
 
 Expected: `gofmt -l .` prints nothing; Go tests pass; suite `Failed: 0` with a clean aux line;
@@ -369,7 +369,7 @@ whole reason the envelope gets its own commit.
 - [ ] **Step 8: Commit**
 
 ```bash
-cd /home/david/workspace/rete
+cd ~/workspace/rete
 git add -A nodus/ porta/
 git commit -m "$(cat <<'EOF'
 fix(#197): the envelope's labels too — and porta parses these by name
@@ -468,7 +468,7 @@ protocol, and a one-dict alias here is the smaller mechanism than re-encoding ol
 - [ ] **Step 6: Commit**
 
 ```bash
-cd /home/david/workspace/rete
+cd ~/workspace/rete
 git add -A protocol/ review/ tools/ nodus/
 git commit -m "$(cat <<'EOF'
 docs(#197): re-pin every figure the rename moved

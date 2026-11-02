@@ -2,7 +2,7 @@
 # run_all.sh — rete#37 cross-VM summary on c6spare: nsl (rete 37-dispatch-head-nofwd), Toit v2.0.0-alpha.194,
 # MicroPython v1.29.0; STIC, Richards, DeltaBlue. Run under `newgrp uucp`. S = the scratch dir holding the images.
 set -u
-S=/tmp/claude-1000/-home-david-workspace-rete/c5dabc79-5acf-4ea5-88fb-f294bc120f3b/scratchpad/c6sum; D=/home/david/workspace/rete/docs/results/2026-10-12-37-c6-cross-vm; PY=$S/venv/bin/python; export ESPTOOL=$S/venv/bin/esptool
+S=<scratchpad>/c6sum; D=~/workspace/rete/docs/results/2026-10-12-37-c6-cross-vm; PY=$S/venv/bin/python; export ESPTOOL=$S/venv/bin/esptool
 cd $D
 echo "[c6] nsl"
 $PY c6run.py logs/nsl-perf-1.log done 0x0 $S/c6-nsl-perf.bin 0x220000 $S/c6-nsl-perf.oimg; echo rc $?

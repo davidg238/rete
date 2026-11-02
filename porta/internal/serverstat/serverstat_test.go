@@ -6,7 +6,7 @@ import "testing"
 
 func TestTransportOfClassifiesByAddressFamily(t *testing.T) {
 	cases := map[string]Transport{
-		"192.168.0.240:64058":          WiFi,   // ESP32/Toit over WiFi (IPv4)
+		"192.0.2.40:64058":          WiFi,   // ESP32/Toit over WiFi (IPv4)
 		"10.0.0.5:6969":                WiFi,   // any IPv4 LAN
 		"[fd77:9957:d9f3:1::1]:6969":   Thread, // nRF52840 over Thread (IPv6 OMR/mesh)
 		"[fe80::c816:2b36:2337:69c]:5": Thread, // link-local IPv6 still Thread

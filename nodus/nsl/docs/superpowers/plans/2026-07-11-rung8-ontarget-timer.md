@@ -18,10 +18,10 @@
 - **The Thread network key is a SECRET.** It lives ONLY in the gitignored `prj_dk_thread_local.conf` / `prj_dongle_thread_local.conf`. Never write it into a committed file, this plan, a commit message, or a log paste.
 - **`solidified_image.c` is a generated artifact.** Baking a node CLOBBERS `tuvm/src/solidified_image.c` + `.stmap`. ALWAYS restore before committing anything in tuvm:
   ```bash
-  git -C /home/david/workspace/tuvm checkout -- src/solidified_image.c src/solidified_image.stmap
+  git -C ~/workspace/tuvm checkout -- src/solidified_image.c src/solidified_image.stmap
   ```
   **Never** run a bake concurrently with the conformance suite — `run_tests_oevm.py` regenerates the same file per test and the two will clobber each other.
-- **Zephyr build needs the SDK env** sourced in each shell: `source /home/david/workspace/ns-zephyr/tools/env.sh`
+- **Zephyr build needs the SDK env** sourced in each shell: `source ~/workspace/ns-zephyr/tools/env.sh`
 - **DK/dongle build config-D env**, exported before any bake/build:
   ```bash
   export OEVM_HEAP_SIZE=49152 METHOD_CACHE_SIZE=256 PRIM_CACHE_SIZE=256
@@ -248,8 +248,8 @@ OEVM_BACKEND = [f"src/backend/{OEVM_TARGET}/platform_{OEVM_TARGET}.c",
 - [ ] **Step 5: Run the C tests + the full both-path suite (Gate 0, part 1)**
 
 ```bash
-cd /home/david/workspace/tuvm && bash tools/run_c_tests.sh 2>&1 | tail -5
-cd /home/david/workspace/nsl-tuvm && OEVM_PATH=AB python3 tools/run_tests_oevm.py 2>&1 | tail -5
+cd ~/workspace/tuvm && bash tools/run_c_tests.sh 2>&1 | tail -5
+cd ~/workspace/nsl-tuvm && OEVM_PATH=AB python3 tools/run_tests_oevm.py 2>&1 | tail -5
 ```
 
 Expected: C tests all PASS; suite **`180 passed / 0 failed / 10 skipped`** (10, not 12 — rung 7's close retired `43_udp_mesh`/`44_udp_thread`). The five timer tests (`11_supervision/06_timers`, `07_event_seam`, `08_timer_zero_interval`, `09_demo_node_integration`, `02_crash_at_depth`) are the ones that prove the lift was faithful. **A failure here means the lift was not verbatim — diff `timer_posix.c` against the deleted block before doing anything else.**
@@ -257,10 +257,10 @@ Expected: C tests all PASS; suite **`180 passed / 0 failed / 10 skipped`** (10, 
 - [ ] **Step 6: Run the five named gates (Gate 0, part 2)**
 
 ```bash
-cd /home/david/workspace/nsl-tuvm
+cd ~/workspace/nsl-tuvm
 python3 tools/test_supervisor_grant.py        # grant
 python3 tools/test_debugger_integration.py    # debugger-integration
-cd /home/david/workspace/tuvm
+cd ~/workspace/tuvm
 bash tests/test_portability_32.sh             # portability-32  <- the build-list trap
 bash tools/footprint.sh                       # mcu-footprint
 ```
@@ -271,7 +271,7 @@ Expected: all five PASS. `portability-32` failing to **link** (`undefined refere
 - [ ] **Step 7: Commit (tuvm + nsl-tuvm, separately)**
 
 ```bash
-cd /home/david/workspace/tuvm
+cd ~/workspace/tuvm
 git add src/timer_backend.h src/backend/posix/timer_posix.c src/platform.c \
         tools/run_c_tests.sh tools/footprint.sh tests/test_portability_32.sh \
         tests/test_oimg_blob.sh zephyr/CMakeLists.txt
@@ -285,7 +285,7 @@ unchanged: 180/0/10 both paths + all five named gates green.
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 
-cd /home/david/workspace/nsl-tuvm
+cd ~/workspace/nsl-tuvm
 git add tools/run_tests_oevm.py tools/test_supervisor_grant.py tools/test_debugger_integration.py
 git commit -m "build(rung8): link timer_\$TARGET.c into the host build lists
 
@@ -433,16 +433,16 @@ class TimerNode usingPlatform: platform = ( | ticks ::= 0. | ) (
 - [ ] **Step 3: Bake + build + run on native_sim**
 
 ```bash
-source /home/david/workspace/ns-zephyr/tools/env.sh
-cd /home/david/workspace/nsl-tuvm
+source ~/workspace/ns-zephyr/tools/env.sh
+cd ~/workspace/nsl-tuvm
 python3 tools/ns_compile_oevm.py \
-  /home/david/workspace/tuvm/zephyr/TimerNode.ns \
-  /home/david/workspace/tuvm/src/solidified_image.c
-cd /home/david/workspace/tuvm/zephyr
+  ~/workspace/tuvm/zephyr/TimerNode.ns \
+  ~/workspace/tuvm/src/solidified_image.c
+cd ~/workspace/tuvm/zephyr
 west build -b native_sim -p always . 2>&1 | tail -5
 timeout 10 ./build/zephyr/zephyr/zephyr.exe > /tmp/rung8_timer.log 2>&1
 cat /tmp/rung8_timer.log
-cd /home/david/workspace/tuvm && git checkout -- src/solidified_image.c src/solidified_image.stmap
+cd ~/workspace/tuvm && git checkout -- src/solidified_image.c src/solidified_image.stmap
 ```
 
 Expected: `TIMER OK` in the log, within ~1 s (3 × 200 ms). Capture to a **file**, never `| head` — a pipe artifact has faked "no output" before (SDD ledger line 114).
@@ -451,7 +451,7 @@ If it hangs with no `TIMER OK`: the timer never posted. Check (a) `timer_zephyr.
 - [ ] **Step 4: Commit**
 
 ```bash
-cd /home/david/workspace/tuvm
+cd ~/workspace/tuvm
 git add src/backend/zephyr/timer_zephyr.c zephyr/TimerNode.ns
 git commit -m "feat(rung8): real Zephyr k_timer backend for the Timers seam
 
@@ -576,18 +576,18 @@ class ThreadTimerNode usingPlatform: platform net: net = (
 - [ ] **Step 2: Bake, build, and flash the DK (David pre-approved flashing)**
 
 ```bash
-source /home/david/workspace/ns-zephyr/tools/env.sh
+source ~/workspace/ns-zephyr/tools/env.sh
 export OEVM_HEAP_SIZE=49152 METHOD_CACHE_SIZE=256 PRIM_CACHE_SIZE=256
 export VM_STACK_INIT_WORDS=4096 OEVM_MARK_STACK_SIZE=512
-cd /home/david/workspace/nsl-tuvm
+cd ~/workspace/nsl-tuvm
 python3 tools/ns_compile_oevm.py \
-  /home/david/workspace/tuvm/zephyr/ThreadTimerNode.ns \
-  /home/david/workspace/tuvm/src/solidified_image.c
-cd /home/david/workspace/tuvm/zephyr
+  ~/workspace/tuvm/zephyr/ThreadTimerNode.ns \
+  ~/workspace/tuvm/src/solidified_image.c
+cd ~/workspace/tuvm/zephyr
 west build -b nrf52840dk/nrf52840 -p always . -- \
   -DCONF_FILE=prj_dk_thread.conf -DEXTRA_CONF_FILE=prj_dk_thread_local.conf 2>&1 | tail -12
 west flash --skip-rebuild --runner jlink 2>&1 | tail -5
-cd /home/david/workspace/tuvm && git checkout -- src/solidified_image.c src/solidified_image.stmap
+cd ~/workspace/tuvm && git checkout -- src/solidified_image.c src/solidified_image.stmap
 ```
 
 Expected: build RAM/FLASH well under 100 %, flash programs the DK. Record the RAM/ROM figures for Task 5. (If `/dev/ttyACM0` is missing or J-Link times out, power-cycle the debug USB; healthy it enumerates as `1366:1025 SEGGER J-Link`.)
@@ -616,7 +616,7 @@ Troubleshooting: only ONE gateway line then silence ⇒ the inbound leg is broke
 - [ ] **Step 4: Commit**
 
 ```bash
-cd /home/david/workspace/tuvm
+cd ~/workspace/tuvm
 git status --short   # ThreadTimerNode.ns ONLY; solidified_image.* must NOT appear
 git add zephyr/ThreadTimerNode.ns
 git commit -m "feat(rung8): ThreadTimerNode — 15s autonomous self-gating round-trip
@@ -645,17 +645,17 @@ Same image, same node, no console. The gateway is the only witness, and Task 3 j
 - [ ] **Step 1: Bake + build for the dongle**
 
 ```bash
-source /home/david/workspace/ns-zephyr/tools/env.sh
+source ~/workspace/ns-zephyr/tools/env.sh
 export OEVM_HEAP_SIZE=49152 METHOD_CACHE_SIZE=256 PRIM_CACHE_SIZE=256
 export VM_STACK_INIT_WORDS=4096 OEVM_MARK_STACK_SIZE=512
-cd /home/david/workspace/nsl-tuvm
+cd ~/workspace/nsl-tuvm
 python3 tools/ns_compile_oevm.py \
-  /home/david/workspace/tuvm/zephyr/ThreadTimerNode.ns \
-  /home/david/workspace/tuvm/src/solidified_image.c
-cd /home/david/workspace/tuvm/zephyr
+  ~/workspace/tuvm/zephyr/ThreadTimerNode.ns \
+  ~/workspace/tuvm/src/solidified_image.c
+cd ~/workspace/tuvm/zephyr
 west build -b nrf52840dongle/nrf52840 -p always . -- \
   -DCONF_FILE=prj_dongle_thread.conf -DEXTRA_CONF_FILE=prj_dongle_thread_local.conf 2>&1 | tail -12
-cd /home/david/workspace/tuvm && git checkout -- src/solidified_image.c src/solidified_image.stmap
+cd ~/workspace/tuvm && git checkout -- src/solidified_image.c src/solidified_image.stmap
 ```
 
 Expected: builds; RAM/FLASH under 100 % (rung 7 measured FLASH 42.55 % / RAM 74.83 % for the button node — the timer node is within noise of that). Record for Task 5.
@@ -665,7 +665,7 @@ Expected: builds; RAM/FLASH under 100 % (rung 7 measured FLASH 42.55 % / RAM 74.
 Put it in DFU mode (hold RESET while inserting; it enumerates as `1915:521f`), then:
 
 ```bash
-cd /home/david/workspace/tuvm/zephyr
+cd ~/workspace/tuvm/zephyr
 west flash --skip-rebuild --runner nrfutil 2>&1 | tail -5
 ```
 
@@ -703,7 +703,7 @@ Save the child-table row + the timestamped train lines to the SDD ledger. No rep
 - [ ] **Step 1: Re-bank the footprints — and be honest about the engine-core drop**
 
 ```bash
-cd /home/david/workspace/tuvm && bash tools/footprint.sh 2>&1 | tail -5
+cd ~/workspace/tuvm && bash tools/footprint.sh 2>&1 | tail -5
 ```
 
 The engine-core figure **drops** by roughly the size of the lifted virtual clock. This is **not a real win** and must not be recorded as one: `tools/footprint.sh` deliberately excludes every `src/backend/*` TU, so moving the timer code from `platform.c` (measured) into `timer_posix.c` (excluded) shrinks the *measurement* while the on-target image does not shrink at all — `timer_zephyr.c` takes its place. Re-bank the baseline with exactly that explanation in the commit message.
@@ -727,7 +727,7 @@ Update `milestone-status` (rung 8 done: real k_timer backend behind `timer_backe
 - [ ] **Step 5: Commit + push all three repos (David's call on the push)**
 
 ```bash
-cd /home/david/workspace/tuvm
+cd ~/workspace/tuvm
 git add zephyr/README.md zephyr/FOOTPRINT_DK.md zephyr/docs/BOARD_PORTS.md \
         review/program-sequence.md tools/footprint-baseline.txt
 git commit -m "docs(rung8): close — real on-target timer + headless dongle verified

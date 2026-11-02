@@ -32,8 +32,8 @@ than folded into the table as if it were the same claim).
 First failing diagnostic, probe 57344 (next grain step above the ceiling):
 
 ```
-/home/david/zephyr-sdk-0.17.4/xtensa-espressif_esp32_zephyr-elf/bin/../lib/gcc/xtensa-espressif_esp32_zephyr-elf/12.2.0/../../../../xtensa-espressif_esp32_zephyr-elf/bin/ld.bfd: zephyr/zephyr_pre0.elf section `.dram0.noinit' will not fit in region `dram0_0_seg'
-/home/david/zephyr-sdk-0.17.4/xtensa-espressif_esp32_zephyr-elf/bin/../lib/gcc/xtensa-espressif_esp32_zephyr-elf/12.2.0/../../../../xtensa-espressif_esp32_zephyr-elf/bin/ld.bfd: region `dram0_0_seg' overflowed by 3408 bytes
+~/zephyr-sdk-0.17.4/xtensa-espressif_esp32_zephyr-elf/bin/../lib/gcc/xtensa-espressif_esp32_zephyr-elf/12.2.0/../../../../xtensa-espressif_esp32_zephyr-elf/bin/ld.bfd: zephyr/zephyr_pre0.elf section `.dram0.noinit' will not fit in region `dram0_0_seg'
+~/zephyr-sdk-0.17.4/xtensa-espressif_esp32_zephyr-elf/bin/../lib/gcc/xtensa-espressif_esp32_zephyr-elf/12.2.0/../../../../xtensa-espressif_esp32_zephyr-elf/bin/ld.bfd: region `dram0_0_seg' overflowed by 3408 bytes
 ```
 
 **Sanity check:** this is the documented, hardware-verified WROOM-32 ceiling
@@ -60,8 +60,8 @@ else touched); it is not a shipping configuration.
 First failing diagnostic, probe 110592:
 
 ```
-/home/david/zephyr-sdk-0.17.4/xtensa-espressif_esp32_zephyr-elf/bin/../lib/gcc/xtensa-espressif_esp32_zephyr-elf/12.2.0/../../../../xtensa-espressif_esp32_zephyr-elf/bin/ld.bfd: zephyr/zephyr_pre0.elf section `.dram0.noinit' will not fit in region `dram0_0_seg'
-/home/david/zephyr-sdk-0.17.4/xtensa-espressif_esp32_zephyr-elf/bin/../lib/gcc/xtensa-espressif_esp32_zephyr-elf/12.2.0/../../../../xtensa-espressif_esp32_zephyr-elf/bin/ld.bfd: region `dram0_0_seg' overflowed by 1272 bytes
+~/zephyr-sdk-0.17.4/xtensa-espressif_esp32_zephyr-elf/bin/../lib/gcc/xtensa-espressif_esp32_zephyr-elf/12.2.0/../../../../xtensa-espressif_esp32_zephyr-elf/bin/ld.bfd: zephyr/zephyr_pre0.elf section `.dram0.noinit' will not fit in region `dram0_0_seg'
+~/zephyr-sdk-0.17.4/xtensa-espressif_esp32_zephyr-elf/bin/../lib/gcc/xtensa-espressif_esp32_zephyr-elf/12.2.0/../../../../xtensa-espressif_esp32_zephyr-elf/bin/ld.bfd: region `dram0_0_seg' overflowed by 1272 bytes
 ```
 
 Gain over cell (a): 106496 − 53248 = 53248 B — coincidentally exactly double 53248 (not
@@ -83,8 +83,8 @@ bash tools/heap-ceiling.sh --board esp32c6
 First failing diagnostic, probe 323584 (next grain step above the ceiling):
 
 ```
-/home/david/zephyr-sdk-0.17.4/riscv64-zephyr-elf/bin/../lib/gcc/riscv64-zephyr-elf/12.2.0/../../../../riscv64-zephyr-elf/bin/ld.bfd: zephyr/zephyr_pre0.elf section `.dram0.bss' will not fit in region `sram0_0_seg'
-/home/david/zephyr-sdk-0.17.4/riscv64-zephyr-elf/bin/../lib/gcc/riscv64-zephyr-elf/12.2.0/../../../../riscv64-zephyr-elf/bin/ld.bfd: region `sram0_0_seg' overflowed by 4216 bytes
+~/zephyr-sdk-0.17.4/riscv64-zephyr-elf/bin/../lib/gcc/riscv64-zephyr-elf/12.2.0/../../../../riscv64-zephyr-elf/bin/ld.bfd: zephyr/zephyr_pre0.elf section `.dram0.bss' will not fit in region `sram0_0_seg'
+~/zephyr-sdk-0.17.4/riscv64-zephyr-elf/bin/../lib/gcc/riscv64-zephyr-elf/12.2.0/../../../../riscv64-zephyr-elf/bin/ld.bfd: region `sram0_0_seg' overflowed by 4216 bytes
 ```
 
 **Sanity check:** 319488 is large enough on a 512 KB-SRAM part to be worth distrusting
@@ -341,8 +341,8 @@ RESULT board=esp32c6 node=TimerNode.nsl conf-extra=prj_esp32c6_thread.conf max-l
 First failing diagnostic, probe 266240 (next grain step above the ceiling):
 
 ```
-/home/david/zephyr-sdk-0.17.4/riscv64-zephyr-elf/bin/../lib/gcc/riscv64-zephyr-elf/12.2.0/../../../../riscv64-zephyr-elf/bin/ld.bfd: zephyr/zephyr_pre0.elf section `.dram0.bss' will not fit in region `sram0_0_seg'
-/home/david/zephyr-sdk-0.17.4/riscv64-zephyr-elf/bin/../lib/gcc/riscv64-zephyr-elf/12.2.0/../../../../riscv64-zephyr-elf/bin/ld.bfd: region `sram0_0_seg' overflowed by 3208 bytes
+~/zephyr-sdk-0.17.4/riscv64-zephyr-elf/bin/../lib/gcc/riscv64-zephyr-elf/12.2.0/../../../../riscv64-zephyr-elf/bin/ld.bfd: zephyr/zephyr_pre0.elf section `.dram0.bss' will not fit in region `sram0_0_seg'
+~/zephyr-sdk-0.17.4/riscv64-zephyr-elf/bin/../lib/gcc/riscv64-zephyr-elf/12.2.0/../../../../riscv64-zephyr-elf/bin/ld.bfd: region `sram0_0_seg' overflowed by 3208 bytes
 ```
 
 Both ends were actually probed, not inferred: LO=262144 is the last probe that

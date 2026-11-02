@@ -6,7 +6,7 @@
 
 **Architecture:** Factor the transport-agnostic HTTP logic (framing, request ring, bounded in-flight table + G2 shed) out of the posix backend into a shared `src/http_core.c`, leaving only three per-target transport hooks (`http_listen`, `http_poll`, `http_emit`). Unify both posix and device on the **non-blocking poll** model (mirroring `udp_zephyr.c`'s `DONTWAIT` idiom): `http_poll()` accepts+reads one connection each `pumpEvents` tick on the single VM thread, so the pthread accept-thread and its ring mutex disappear. Add a Zephyr `zsock_*` transport (`http_zephyr.c`), a WiFi+TCP+DHCPv4 Kconfig, and a WiFi-associate boot hook, then flash and view.
 
-**Tech Stack:** C99 (VM core + posix/zephyr backends), Zephyr/upstream-ESP32 (`~/zephyr-esp32` workspace, `west`), Newspeak-dialect "nsl" (frozen node), the live Path-B (`.oimg`) host harness at `/home/david/workspace/nsl-tuvm/tools/run_tests_oevm.py`, `curl` + a browser for the WiFi transport check.
+**Tech Stack:** C99 (VM core + posix/zephyr backends), Zephyr/upstream-ESP32 (`~/zephyr-esp32` workspace, `west`), Newspeak-dialect "nsl" (frozen node), the live Path-B (`.oimg`) host harness at `~/workspace/nsl-tuvm/tools/run_tests_oevm.py`, `curl` + a browser for the WiFi transport check.
 
 ## Global Constraints
 
@@ -38,7 +38,7 @@ Design record: `docs/design/2026-07-18-esp32-wifi-http-last-mile-design.md`. Pre
 - `zephyr/prj_esp32.conf` — **modify.** WiFi + TCP + DHCPv4/IPv4; drop the loopback `::1` block.
 - `zephyr/Kconfig` — **new.** App Kconfig defining `TUVM_WIFI_SSID` / `TUVM_WIFI_PSK` (string).
 - `zephyr/CMakeLists.txt` — **modify.** Link `src/http.c`, `src/http_core.c`, `src/backend/zephyr/http_zephyr.c` (none are linked on Zephyr today).
-- Host build glue — **modify.** `tools/run_c_tests.sh`, `/home/david/workspace/nsl-tuvm/tools/run_tests_oevm.py`, `bench.sh`: add `src/http_core.c` to the http link sets; drop the http-justified `-lpthread`.
+- Host build glue — **modify.** `tools/run_c_tests.sh`, `~/workspace/nsl-tuvm/tools/run_tests_oevm.py`, `bench.sh`: add `src/http_core.c` to the http link sets; drop the http-justified `-lpthread`.
 - `review/model-capability-findings.md`, `review/program-sequence.md` — **modify.** On-device close-out + the cross-source scheduling design point (Task 4).
 
 ---
@@ -50,8 +50,8 @@ Extract the transport-agnostic core, reduce both future backends to three hooks,
 **Files:**
 - Create: `src/http_core.c`
 - Modify: `src/http_backend.h`, `src/backend/posix/http_posix.c`, `src/platform.c:763`
-- Modify (build glue): `tools/run_c_tests.sh:78`, `tools/run_c_tests.sh:26`, `/home/david/workspace/nsl-tuvm/tools/run_tests_oevm.py`, `bench.sh:9`
-- Test (existing, must stay green): `tests/test_http.c`, `tests/http_roundtrip_host.sh`, `/home/david/workspace/nsl-tests/14_http/0{1,2,3}_*.nsl`
+- Modify (build glue): `tools/run_c_tests.sh:78`, `tools/run_c_tests.sh:26`, `~/workspace/nsl-tuvm/tools/run_tests_oevm.py`, `bench.sh:9`
+- Test (existing, must stay green): `tests/test_http.c`, `tests/http_roundtrip_host.sh`, `~/workspace/nsl-tests/14_http/0{1,2,3}_*.nsl`
 
 **Interfaces:**
 - Produces (in `src/http_backend.h`), unchanged signatures kept: `http_frame_response`, `http_accept_request`, `http_take_request`, `http_respond`, `http_inflight_count`, `http_backend_reset`, `http_listen`.
@@ -325,18 +325,18 @@ run test_http   "src/http_core.c src/backend/posix/http_posix.c"
 ```
 (Leave the unrelated `-lpthread` on line 97's `test_gc_mark_iterative` alone.)
 
-`/home/david/workspace/nsl-tuvm/tools/run_tests_oevm.py`: in every fixed VM source list where `"src/http.c"` appears (grep shows lines ~93, 124, 174, 433), add `"src/http_core.c"` immediately after it. Remove the two http-justified `-lpthread` entries (lines ~100 and ~439, each commented `# http accept thread`).
+`~/workspace/nsl-tuvm/tools/run_tests_oevm.py`: in every fixed VM source list where `"src/http.c"` appears (grep shows lines ~93, 124, 174, 433), add `"src/http_core.c"` immediately after it. Remove the two http-justified `-lpthread` entries (lines ~100 and ~439, each commented `# http accept thread`).
 
 `bench.sh` line 9: after `src/http.c "src/backend/$TARGET/http_$TARGET.c"` add `src/http_core.c`; remove the trailing `-lpthread`.
 
 - [ ] **Step 6: Run the C unit test — framing/ring/in-flight still pass through the core**
 
-Run: `cd /home/david/workspace/tuvm && bash tools/run_c_tests.sh test_http`
+Run: `cd ~/workspace/tuvm && bash tools/run_c_tests.sh test_http`
 Expected: `test_http OK` (test_http.c is unchanged; `http_accept_request`/`take`/`respond`/`inflight_count`/`backend_reset`/`http_frame_response` now resolve from `http_core.c`, `http_emit` from `http_posix.c`).
 
 - [ ] **Step 7: Run the curl integration test — the poll transport serves and sheds**
 
-Run: `cd /home/david/workspace/tuvm && bash tests/http_roundtrip_host.sh`
+Run: `cd ~/workspace/tuvm && bash tests/http_roundtrip_host.sh`
 Expected: `http_roundtrip OK` — `/thermal` → 200 with `rgb(`, `/nope` → 404, the 8-way burst shows a 200/503 mix. (This now exercises `http_poll` on the reactor thread instead of the retired accept thread.)
 
 - [ ] **Step 8: Run the nsl conformance tests — the injected (fd == -1) path is intact**
@@ -344,7 +344,7 @@ Expected: `http_roundtrip OK` — `/thermal` → 200 with `rgb(`, `/nope` → 40
 Run:
 ```bash
 for t in 01_hello_roundtrip 02_thermal_render 03_backpressure; do
-  python3 /home/david/workspace/nsl-tuvm/tools/run-one.py /home/david/workspace/nsl-tests/14_http/$t.nsl
+  python3 ~/workspace/nsl-tuvm/tools/run-one.py ~/workspace/nsl-tests/14_http/$t.nsl
 done
 ```
 Expected: each PASS. (`httpInject:path:` still calls `http_accept_request` directly; `http_respond` → `core_emit` → `http_emit(fd=-1)` reproduces the old stdout framing byte-for-byte: header, body, newline, flush.)
@@ -352,7 +352,7 @@ Expected: each PASS. (`httpInject:path:` still calls `http_accept_request` direc
 - [ ] **Step 9: Commit**
 
 ```bash
-cd /home/david/workspace/tuvm
+cd ~/workspace/tuvm
 git add src/http_core.c src/http_backend.h src/backend/posix/http_posix.c src/platform.c \
         tools/run_c_tests.sh bench.sh
 git commit -m "refactor(http): extract src/http_core.c; unify posix+device on non-blocking poll
@@ -365,8 +365,8 @@ Prep for the Zephyr transport (#46).
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_015er6825Dm9pSqPucVEemNY"
 # nsl-tuvm harness change is a separate repo:
-git -C /home/david/workspace/nsl-tuvm add tools/run_tests_oevm.py
-git -C /home/david/workspace/nsl-tuvm commit -m "test(http): link src/http_core.c; drop http accept-thread -lpthread
+git -C ~/workspace/nsl-tuvm add tools/run_tests_oevm.py
+git -C ~/workspace/nsl-tuvm commit -m "test(http): link src/http_core.c; drop http accept-thread -lpthread
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_015er6825Dm9pSqPucVEemNY"
@@ -576,7 +576,7 @@ In `zephyr/CMakeLists.txt`, in the `target_sources(app PRIVATE ...)` block (the 
 
 Run:
 ```bash
-cd /home/david/workspace/tuvm/zephyr
+cd ~/workspace/tuvm/zephyr
 west build -b esp32_devkitc/esp32/procpu -p auto . -- \
   -DCONF_FILE=prj_esp32.conf \
   -DEXTRA_CONF_FILE=prj_esp32_wifi.local.conf \
@@ -587,7 +587,7 @@ Expected: a clean build producing `build/zephyr/zephyr.bin`. If a `CONFIG_WIFI_E
 - [ ] **Step 7: Commit**
 
 ```bash
-cd /home/david/workspace/tuvm
+cd ~/workspace/tuvm
 git add src/backend/zephyr/http_zephyr.c zephyr/Kconfig zephyr/prj_esp32.conf \
         zephyr/src/main.c zephyr/CMakeLists.txt
 git commit -m "feat(http): Zephyr zsock transport + ESP32 WiFi/TCP/DHCPv4 Kconfig + associate hook (#46)
@@ -616,9 +616,9 @@ Flash the ESP32 on `/dev/ttyUSB0`, watch it join WiFi and print its DHCP IP, the
 
 Use the project's `run.sh` recipe if it bakes+flashes, else bake the `.oimg` and build explicitly:
 ```bash
-cd /home/david/workspace/tuvm/zephyr
+cd ~/workspace/tuvm/zephyr
 # Bake HttpServerNode.oimg from the frozen node (same tool run.sh uses):
-python3 /home/david/workspace/nsl-tuvm/tools/ns_compile_oevm.py \
+python3 ~/workspace/nsl-tuvm/tools/ns_compile_oevm.py \
   --oimg HttpServerNode.nsl -o HttpServerNode.oimg   # confirm exact flags via `run.sh`/existing *.oimg recipe
 west build -b esp32_devkitc/esp32/procpu -p auto . -- \
   -DCONF_FILE=prj_esp32.conf \
@@ -630,7 +630,7 @@ Expected: clean build with `HttpServerNode.oimg` embedded. (If `run.sh <node>` a
 - [ ] **Step 2: Flash the device on `/dev/ttyUSB0`**
 
 ```bash
-cd /home/david/workspace/tuvm/zephyr
+cd ~/workspace/tuvm/zephyr
 west flash --esp-device /dev/ttyUSB0
 ```
 Expected: esptool writes the image and resets the board. (Per memory `tuvm-esp32-port`: esptool defaults to USB0; the bench WROOM-32 is on USB0. If two identical WROOM boards are attached, confirm the jag board is not on USB0.)
@@ -665,7 +665,7 @@ Open `http://<A.B.C.D>:18080/thermal` in a browser. Expected: the 8×8 heat-grid
 
 No source changes to commit here. Capture the observed IP, the five HTTP codes, the burst 200/503 split, and (optionally) a browser screenshot into the Task 4 findings write-up. If `HttpServerNode.oimg` was (re)baked and is tracked, commit it:
 ```bash
-cd /home/david/workspace/tuvm
+cd ~/workspace/tuvm
 git add zephyr/HttpServerNode.oimg 2>/dev/null && \
   git commit -m "chore(http): refresh HttpServerNode.oimg for the esp32 wifi run (#46)
 
@@ -700,7 +700,7 @@ Under the Addendum where spike #1 was noted, add one line that the #46 on-device
 - [ ] **Step 3: Commit**
 
 ```bash
-cd /home/david/workspace/tuvm
+cd ~/workspace/tuvm
 git add review/model-capability-findings.md review/program-sequence.md
 git commit -m "docs(review): #46 on-device close-out — ESP32 serves /thermal over WiFi
 

@@ -12,8 +12,8 @@
 
 ## Global Constraints
 
-- **Repos & cwd:** VM edits in `/home/david/workspace/oevm/src`. Compiler/generator/plan edits in `/home/david/workspace/ns-oevm`. Suite runs from the `ns-oevm` cwd.
-- **Behavior-equivalence is the oracle.** The flip changes the *mechanism*, not observable behavior. The gate at EVERY task: `cd /home/david/workspace/ns-oevm && OEVM_PATH=AB python3 tools/run_tests_oevm.py` passes with **no new failures** vs. the Phase-1 baseline (**78/0/6 both paths**) AND all 5 gates PASS (grant, debugger-integration, portability-32, fibers-gc-stress, boot-gc-asan). The suite already exercises NLR, `ensure:`/`ifCurtailed:`, deep recursion, and fiber interleaving — it is the behavior oracle for the flip.
+- **Repos & cwd:** VM edits in `~/workspace/oevm/src`. Compiler/generator/plan edits in `~/workspace/ns-oevm`. Suite runs from the `ns-oevm` cwd.
+- **Behavior-equivalence is the oracle.** The flip changes the *mechanism*, not observable behavior. The gate at EVERY task: `cd ~/workspace/ns-oevm && OEVM_PATH=AB python3 tools/run_tests_oevm.py` passes with **no new failures** vs. the Phase-1 baseline (**78/0/6 both paths**) AND all 5 gates PASS (grant, debugger-integration, portability-32, fibers-gc-stress, boot-gc-asan). The suite already exercises NLR, `ensure:`/`ifCurtailed:`, deep recursion, and fiber interleaving — it is the behavior oracle for the flip.
 - **Extra flip gates (run at every flip task):** `OEVM_GC_STRESS=1` clean + ASan clean (the flip changes frame lifetime); `vm.c` must stay `-D__ZEPHYR__` syntax-clean (`gcc -fsyntax-only -D__ZEPHYR__ -Isrc src/vm.c`).
 - **`home_ctx` stays ABSOLUTE.** Do NOT relativize `home_ctx` in this phase (that is the deferred L4 heap-closure/temp-vector lift). It is safe as an absolute pointer because stacks are FIXED (no growth in Phase 2).
 - **No growth.** Do NOT add stack growth. `VM_STACK_MAX_WORDS` overflow stays a hard `abort()` as today.
@@ -88,7 +88,7 @@ public main: platform args: args = (
 
 - [ ] **Step 2: Run the suite to confirm the new test PASSES today (via PRIM_timesRepeat, non-vacuous guard)**
 
-Run: `cd /home/david/workspace/ns-oevm && OEVM_PATH=AB python3 tools/run_tests_oevm.py 2>&1 | grep -iE 'timesrepeat|FAIL' | tail -5`
+Run: `cd ~/workspace/ns-oevm && OEVM_PATH=AB python3 tools/run_tests_oevm.py 2>&1 | grep -iE 'timesrepeat|FAIL' | tail -5`
 Expected: PASSES today (routes through `PRIM_timesRepeat`, which recursively invokes `body`).
 
 - [ ] **Step 3: Add the `timesRepeat:` lowering to the compiler**
@@ -149,7 +149,7 @@ In `oevm/src/dispatch.c`, delete the `case PRIM_timesRepeat:` block (the C loop 
 
 - [ ] **Step 6: Rebuild + suite**
 
-Run: `cd /home/david/workspace/ns-oevm && OEVM_PATH=AB python3 tools/run_tests_oevm.py 2>&1 | tail -6`
+Run: `cd ~/workspace/ns-oevm && OEVM_PATH=AB python3 tools/run_tests_oevm.py 2>&1 | tail -6`
 Expected: 79/0/6 both paths (baseline 78 + new test), all 5 gates PASS. Watch for any existing suite test using `timesRepeat:` — it now takes the lowered path.
 
 - [ ] **Step 7: Commit** (oevm dispatch.c; ns-oevm compiler; ns-tests test — three commits, trailer each; messages naming `timesRepeat:` lowering + `PRIM_timesRepeat` deletion).
@@ -196,7 +196,7 @@ public main: platform args: args = (
 
 - [ ] **Step 3: Run the suite to confirm it PASSES today (via the intercept)**
 
-Run: `cd /home/david/workspace/ns-oevm && OEVM_PATH=AB python3 tools/run_tests_oevm.py 2>&1 | grep -iE 'while_unary|FAIL' | tail -5`
+Run: `cd ~/workspace/ns-oevm && OEVM_PATH=AB python3 tools/run_tests_oevm.py 2>&1 | grep -iE 'while_unary|FAIL' | tail -5`
 Expected: PASSES today (unary-while intercept loops the block).
 
 - [ ] **Step 4: Lower unary while in the compiler**
@@ -242,7 +242,7 @@ In `oevm/src/dispatch.c`, inside `if (receiver_vtable == BytecodeClosureVtable)`
 
 - [ ] **Step 6: Rebuild + suite**
 
-Run: `cd /home/david/workspace/ns-oevm && OEVM_PATH=AB python3 tools/run_tests_oevm.py 2>&1 | tail -6`
+Run: `cd ~/workspace/ns-oevm && OEVM_PATH=AB python3 tools/run_tests_oevm.py 2>&1 | tail -6`
 Expected: 80/0/6 both paths (78 + Task 1 + Task 2 tests), all 5 gates PASS.
 
 - [ ] **Step 7: Commit** (oevm + ns-oevm + ns-tests; trailer each).
@@ -271,7 +271,7 @@ Expected: 80/0/6 both paths (78 + Task 1 + Task 2 tests), all 5 gates PASS.
 
 - [ ] **Step 6: Rebuild + suite + syntax-check under Zephyr**
 
-Run: `cd /home/david/workspace/ns-oevm && OEVM_PATH=AB python3 tools/run_tests_oevm.py 2>&1 | tail -6` (expect 80/0/6 both paths) and `cd /home/david/workspace/oevm && gcc -fsyntax-only -D__ZEPHYR__ -Isrc src/vm.c && echo OK`.
+Run: `cd ~/workspace/ns-oevm && OEVM_PATH=AB python3 tools/run_tests_oevm.py 2>&1 | tail -6` (expect 80/0/6 both paths) and `cd ~/workspace/oevm && gcc -fsyntax-only -D__ZEPHYR__ -Isrc src/vm.c && echo OK`.
 
 - [ ] **Step 7: Commit** (oevm; trailer).
 
@@ -376,7 +376,7 @@ case OP_RET: {
 
 - [ ] **Step 2: Rewrite the unwind path** (OP_NLR + send-return unwind checks → loop-local unwind cursor honored by the single `OP_RET`/return path). Keep `unwindTo:value:`/`resumeWith:`/`executeCleanup` semantics.
 
-- [ ] **Step 3: Full behavior-equivalence gate.** Run: `cd /home/david/workspace/ns-oevm && OEVM_PATH=AB python3 tools/run_tests_oevm.py 2>&1 | tail -6` — expect 80/0/6 both paths + all 5 gates PASS. Then `OEVM_GC_STRESS=1` run + ASan run clean, and `gcc -fsyntax-only -D__ZEPHYR__ -Isrc src/vm.c`. The suite's NLR/`ensure:`/`ifCurtailed:`/deep-recursion/`45_fibers` tests are the oracle — every one must pass.
+- [ ] **Step 3: Full behavior-equivalence gate.** Run: `cd ~/workspace/ns-oevm && OEVM_PATH=AB python3 tools/run_tests_oevm.py 2>&1 | tail -6` — expect 80/0/6 both paths + all 5 gates PASS. Then `OEVM_GC_STRESS=1` run + ASan run clean, and `gcc -fsyntax-only -D__ZEPHYR__ -Isrc src/vm.c`. The suite's NLR/`ensure:`/`ifCurtailed:`/deep-recursion/`45_fibers` tests are the oracle — every one must pass.
 
 - [ ] **Step 4: Add a deep-recursion stress test** — a `.ns` test recursing ~50,000 deep (which the OLD recursive engine would stack-overflow the C stack on, but the flat engine handles within `VM_STACK_MAX_WORDS`). This is the positive proof the flip actually removed C recursion. Confirm it passes on the flat engine (and document that it would blow the C stack on the old one). If it exceeds `VM_STACK_MAX_WORDS`, size it to just under the limit.
 

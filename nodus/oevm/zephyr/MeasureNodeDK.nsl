@@ -5,8 +5,8 @@ cycles), then prints the heapStats snapshot over the DK console (uart0/VCOM) via
 `… out`, exactly as PulseNodeDK.ns emits its line. Baked into the DK boot image
 with (run from the nsl-tuvm repo):
   python3 tools/ns_compile_oevm.py \
-    /home/david/workspace/tuvm/zephyr/MeasureNodeDK.ns \
-    /home/david/workspace/tuvm/src/solidified_image.c
+    ~/workspace/tuvm/zephyr/MeasureNodeDK.ns \
+    ~/workspace/tuvm/src/solidified_image.c
 *)
 class MeasureNodeDK packageUsing: manifest = () (
   public main: platform args: args = (

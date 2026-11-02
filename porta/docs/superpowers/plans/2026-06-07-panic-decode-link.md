@@ -74,7 +74,7 @@ Append to `internal/web/web_test.go`:
 ```go
 func TestNodeLogsPanicDecodeLink(t *testing.T) {
 	st := testStore(t)
-	st.TouchNode("aabbccddeeff", "192.168.1.9", 1000)
+	st.TouchNode("aabbccddeeff", "192.0.2.9", 1000)
 	// A plain log row (no link) and a panic row (gets a decode link). The blob
 	// contains +, /, = on purpose so we exercise URL-encoding round-trip.
 	_ = st.InsertData("aabbccddeeff", 1002, 0, "log", "", nil, "plain log", "", "")

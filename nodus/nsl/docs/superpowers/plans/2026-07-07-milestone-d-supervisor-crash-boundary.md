@@ -6,7 +6,7 @@
 
 **Architecture:** A new C primitive `protectedFire:value:` wraps one reaction firing in `setjmp`; `self error:` (today `PRIM_error`, which `abort()`s) becomes the raise primitive that `longjmp`s to the nearest protection frame when one is active (else preserves today's print+abort). The nsl reactor loop (`Space>>drain`) fires each reaction protected and, on a caught fault, posts a first-class crash record (`Record tag: #crash`) onto the reserved `sys/crash` channel. A new nsl `Supervisor` class observes `sys/crash`, sweeps the crashed job's owner-tagged reactions (`spaceDropReactionsOwnedBy:`), and restarts or quarantines it. Timers land as a host virtual-clock event source posting onto `sys/timer`.
 
-**Tech Stack:** C11 (the tuvm VM in `/home/david/workspace/tuvm/src`), the nsl dialect (`/home/david/workspace/nsl-tuvm/lib/kernel.ns`), the Python test runner (`nsl-tuvm/tools/run_tests_oevm.py`), black-box `.ns` conformance tests (`/home/david/workspace/nsl-tests`).
+**Tech Stack:** C11 (the tuvm VM in `~/workspace/tuvm/src`), the nsl dialect (`~/workspace/nsl-tuvm/lib/kernel.ns`), the Python test runner (`nsl-tuvm/tools/run_tests_oevm.py`), black-box `.ns` conformance tests (`~/workspace/nsl-tests`).
 
 ## Global Constraints
 
@@ -17,7 +17,7 @@
 - **Crash-record shape is FROZEN:** `Record tag: #crash` with fields `#text` (String — the `self error:` argument) and `#channel` (String — the crashing reaction's channel path). `#job` and `#state` are forward-reserved (not built in D — a capability is valueRank −1 and cannot be a record field; the supervisor resolves the job by prefix-matching `#channel`).
 - **Owner-tag identity is a structural invariant** (spec §6; #9.2): the supervisor's grant-at-setup is the ONLY path by which a job obtains its root capability, and the registry holds that exact object; the sweep matches reactions by `==` (raw pointer identity) against it. D scopes the sweep to `owner == rootCap` (jobs register through their root capability, per demo-node / A1 discipline); prefix-tree sweep over attenuated sub-caps is deferred.
 - **Quarantine constant `K = 3`** consecutive crashes (spec §5), a single named ivar; reset on job progress.
-- **Tests run solo and foreground** (harness not concurrency-safe). Full-suite gate: `cd /home/david/workspace/nsl-tuvm && OEVM_PATH=AB python3 tools/run_tests_oevm.py`. New `.ns` files under `nsl-tests/` are auto-discovered by glob — no manifest edit. Both execution paths (A = solidified, B = `.oimg`) must be byte-identical green.
+- **Tests run solo and foreground** (harness not concurrency-safe). Full-suite gate: `cd ~/workspace/nsl-tuvm && OEVM_PATH=AB python3 tools/run_tests_oevm.py`. New `.ns` files under `nsl-tests/` are auto-discovered by glob — no manifest edit. Both execution paths (A = solidified, B = `.oimg`) must be byte-identical green.
 - **Precise non-moving GC, exhaustion-triggered:** a C local holding an oop across an allocation is NOT rooted unless explicitly rooted (`gc_temp_root_push` / a global marked in `gc_collect`). This is the recurring project bug; the crash boundary's saved oops and the raised condition MUST be rooted.
 
 ---
@@ -25,14 +25,14 @@
 ## Task 1: Raise + protected-fire C machinery
 
 **Files:**
-- Modify: `/home/david/workspace/tuvm/src/vm.c` (add `vm_protected_fire` + `vm_raise` + two globals near the other interpreter globals ~`vm.c:31-48`)
-- Modify: `/home/david/workspace/tuvm/src/oevm.h` (declare `vm_protected_fire`, `vm_raise`, `extern oop g_raised_condition`)
-- Modify: `/home/david/workspace/tuvm/src/gc.c` (root `g_raised_condition` in the root scan, beside the other singleton `mark()`s ~`gc.c:742`)
-- Modify: `/home/david/workspace/tuvm/src/dispatch.c` (rewrite the `PRIM_error` case body at `dispatch.c:998-1018` to call `vm_raise`; append `PRIM_pf_protectedFire` to the enum `~:640` and `PRIM_NAMES` `~:666`)
-- Modify: `/home/david/workspace/tuvm/src/prim_ids.h` (add `#define PRIM_pf_protectedFire 83` after `:55`)
-- Modify: `/home/david/workspace/tuvm/src/platform.c` (add `case PRIM_pf_protectedFire` in `platform_dispatch` before `default:` `~:275`)
-- Modify: `/home/david/workspace/nsl-tuvm/lib/kernel.ns` (add a Kernel-instance forwarder `protectedFire:value:` for direct testing; ~`kernel.ns:968` beside `readLine`)
-- Test: `/home/david/workspace/nsl-tests/11_supervision/00_protected_fire.ns`
+- Modify: `~/workspace/tuvm/src/vm.c` (add `vm_protected_fire` + `vm_raise` + two globals near the other interpreter globals ~`vm.c:31-48`)
+- Modify: `~/workspace/tuvm/src/oevm.h` (declare `vm_protected_fire`, `vm_raise`, `extern oop g_raised_condition`)
+- Modify: `~/workspace/tuvm/src/gc.c` (root `g_raised_condition` in the root scan, beside the other singleton `mark()`s ~`gc.c:742`)
+- Modify: `~/workspace/tuvm/src/dispatch.c` (rewrite the `PRIM_error` case body at `dispatch.c:998-1018` to call `vm_raise`; append `PRIM_pf_protectedFire` to the enum `~:640` and `PRIM_NAMES` `~:666`)
+- Modify: `~/workspace/tuvm/src/prim_ids.h` (add `#define PRIM_pf_protectedFire 83` after `:55`)
+- Modify: `~/workspace/tuvm/src/platform.c` (add `case PRIM_pf_protectedFire` in `platform_dispatch` before `default:` `~:275`)
+- Modify: `~/workspace/nsl-tuvm/lib/kernel.ns` (add a Kernel-instance forwarder `protectedFire:value:` for direct testing; ~`kernel.ns:968` beside `readLine`)
+- Test: `~/workspace/nsl-tests/11_supervision/00_protected_fire.ns`
 
 **Interfaces:**
 - Produces (C): `oop vm_protected_fire(oop block, oop value)` — runs `block value: value` to completion; returns `NIL_OOP` (the canonical nil) on clean return, or the raised condition oop (the `self error:` argument, a String) on a caught fault. `void vm_raise(oop condition)` — if a protection frame is active, stash `condition` and `longjmp`; else print `Error: <text>` and `abort()` (today's behavior). `extern oop g_raised_condition`.
@@ -40,7 +40,7 @@
 
 - [ ] **Step 1: Write the failing test**
 
-Create `/home/david/workspace/nsl-tests/11_supervision/00_protected_fire.ns`:
+Create `~/workspace/nsl-tests/11_supervision/00_protected_fire.ns`:
 
 ```
 (*
@@ -68,7 +68,7 @@ public main: platform args: args = (
 
 - [ ] **Step 2: Run it and confirm it fails**
 
-Run: `cd /home/david/workspace/nsl-tuvm && python3 -c "from pathlib import Path; import tools.run_tests_oevm as r; print(r.run_test_file(Path('../nsl-tests/11_supervision/00_protected_fire.ns')))"`
+Run: `cd ~/workspace/nsl-tuvm && python3 -c "from pathlib import Path; import tools.run_tests_oevm as r; print(r.run_test_file(Path('../nsl-tests/11_supervision/00_protected_fire.ns')))"`
 Expected: FAIL — `protectedFire:value:` is not understood (DNU) or `self error: 'boom'` aborts the process.
 
 - [ ] **Step 3: Add the two globals and `vm_raise`/`vm_protected_fire` in `vm.c`**
@@ -212,17 +212,17 @@ public protectedFire: aBlock value: v = ( ^ platform protectedFire: aBlock value
 
 - [ ] **Step 10: Run the test on both paths and confirm it passes**
 
-Run: `cd /home/david/workspace/nsl-tuvm && python3 -c "from pathlib import Path; import tools.run_tests_oevm as r; print(r.run_test_file(Path('../nsl-tests/11_supervision/00_protected_fire.ns'))); print(r.run_test_file_oimg(Path('../nsl-tests/11_supervision/00_protected_fire.ns')))"`
+Run: `cd ~/workspace/nsl-tuvm && python3 -c "from pathlib import Path; import tools.run_tests_oevm as r; print(r.run_test_file(Path('../nsl-tests/11_supervision/00_protected_fire.ns'))); print(r.run_test_file_oimg(Path('../nsl-tests/11_supervision/00_protected_fire.ns')))"`
 Expected: both print `('PASS', ...)`.
 
 - [ ] **Step 11: Commit**
 
 ```bash
-cd /home/david/workspace/tuvm && git add -A && git commit -m "feat(vm): crash boundary — self error: raises to a protectedFire setjmp frame (Milestone D)
+cd ~/workspace/tuvm && git add -A && git commit -m "feat(vm): crash boundary — self error: raises to a protectedFire setjmp frame (Milestone D)
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_01321g4tUk8eSfN4YT7Vgx5A"
-cd /home/david/workspace/nsl-tuvm && git add -A && git commit -m "feat(kernel): protectedFire:value: forwarder + 00_protected_fire test (Milestone D)
+cd ~/workspace/nsl-tuvm && git add -A && git commit -m "feat(kernel): protectedFire:value: forwarder + 00_protected_fire test (Milestone D)
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_01321g4tUk8eSfN4YT7Vgx5A"
@@ -233,9 +233,9 @@ Claude-Session: https://claude.ai/code/session_01321g4tUk8eSfN4YT7Vgx5A"
 ## Task 2: Protected reactor — drain wraps each firing and posts crash records
 
 **Files:**
-- Modify: `/home/david/workspace/tuvm/src/space.c` (`space_dequeue` `~:164-217` — add the channel path as a third slot of the result indexable)
-- Modify: `/home/david/workspace/nsl-tuvm/lib/kernel.ns` (`Space>>drain` `~:645-653` → protected firing + crash-record post; add a module-internal `Channel>>rootPath` accessor `~:598`)
-- Test: `/home/david/workspace/nsl-tests/11_supervision/01_containment.ns`
+- Modify: `~/workspace/tuvm/src/space.c` (`space_dequeue` `~:164-217` — add the channel path as a third slot of the result indexable)
+- Modify: `~/workspace/nsl-tuvm/lib/kernel.ns` (`Space>>drain` `~:645-653` → protected firing + crash-record post; add a module-internal `Channel>>rootPath` accessor `~:598`)
+- Test: `~/workspace/nsl-tests/11_supervision/01_containment.ns`
 
 **Interfaces:**
 - Consumes: `vm_protected_fire` via `platform protectedFire:value:` (Task 1); `Record tag:#... with:#k -> v ...` (kernel.ns:400-406); `Map`, `Association` `->` sugar.
@@ -243,7 +243,7 @@ Claude-Session: https://claude.ai/code/session_01321g4tUk8eSfN4YT7Vgx5A"
 
 - [ ] **Step 1: Write the failing test**
 
-Create `/home/david/workspace/nsl-tests/11_supervision/01_containment.ns`:
+Create `~/workspace/nsl-tests/11_supervision/01_containment.ns`:
 
 ```
 (*
@@ -283,7 +283,7 @@ class Containment packageUsing: manifest = () (
 
 - [ ] **Step 2: Run it and confirm it fails**
 
-Run: `cd /home/david/workspace/nsl-tuvm && python3 -c "from pathlib import Path; import tools.run_tests_oevm as r; print(r.run_test_file(Path('../nsl-tests/11_supervision/01_containment.ns')))"`
+Run: `cd ~/workspace/nsl-tuvm && python3 -c "from pathlib import Path; import tools.run_tests_oevm as r; print(r.run_test_file(Path('../nsl-tests/11_supervision/01_containment.ns')))"`
 Expected: FAIL — today `self error:` inside a firing aborts the process (drain is unprotected), so no output / crash.
 
 - [ ] **Step 3: Add the channel path to `space_dequeue`'s result**
@@ -339,22 +339,22 @@ Notes: `self out: 'sys/crash' value: ...` uses the existing `Channel>>out:value:
 
 - [ ] **Step 5: Run the containment test on both paths**
 
-Run: `cd /home/david/workspace/nsl-tuvm && python3 -c "from pathlib import Path; import tools.run_tests_oevm as r; print(r.run_test_file(Path('../nsl-tests/11_supervision/01_containment.ns'))); print(r.run_test_file_oimg(Path('../nsl-tests/11_supervision/01_containment.ns')))"`
+Run: `cd ~/workspace/nsl-tuvm && python3 -c "from pathlib import Path; import tools.run_tests_oevm as r; print(r.run_test_file(Path('../nsl-tests/11_supervision/01_containment.ns'))); print(r.run_test_file_oimg(Path('../nsl-tests/11_supervision/01_containment.ns')))"`
 Expected: both `('PASS', ...)`.
 
 - [ ] **Step 6: Run the FULL suite to confirm no Milestone-C regression**
 
-The `space_dequeue` shape changed (2→3 slots) and `drain` changed; the existing `09_channels/*` tests exercise `drain` heavily. Run: `cd /home/david/workspace/nsl-tuvm && OEVM_PATH=AB python3 tools/run_tests_oevm.py`
+The `space_dequeue` shape changed (2→3 slots) and `drain` changed; the existing `09_channels/*` tests exercise `drain` heavily. Run: `cd ~/workspace/nsl-tuvm && OEVM_PATH=AB python3 tools/run_tests_oevm.py`
 Expected: `Failed: 0`; the `grant`/`debugger-integration`/`portability-32`/`boot-gc-asan` gates all PASS; count is the prior baseline + the two new supervision tests.
 
 - [ ] **Step 7: Commit**
 
 ```bash
-cd /home/david/workspace/tuvm && git add -A && git commit -m "feat(space): expose channel path in space_dequeue for crash records (Milestone D)
+cd ~/workspace/tuvm && git add -A && git commit -m "feat(space): expose channel path in space_dequeue for crash records (Milestone D)
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_01321g4tUk8eSfN4YT7Vgx5A"
-cd /home/david/workspace/nsl-tuvm && git add -A && git commit -m "feat(kernel): protected reactor — drain contains crashes, posts sys/crash records (Milestone D)
+cd ~/workspace/nsl-tuvm && git add -A && git commit -m "feat(kernel): protected reactor — drain contains crashes, posts sys/crash records (Milestone D)
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_01321g4tUk8eSfN4YT7Vgx5A"
@@ -365,14 +365,14 @@ Claude-Session: https://claude.ai/code/session_01321g4tUk8eSfN4YT7Vgx5A"
 ## Task 3: Crash-at-depth and crash-mid-allocation (D.2/D.3, GC coherence)
 
 **Files:**
-- Test: `/home/david/workspace/nsl-tests/11_supervision/02_crash_at_depth.ns`
-- Test: `/home/david/workspace/nsl-tests/11_supervision/03_crash_mid_allocation.ns`
+- Test: `~/workspace/nsl-tests/11_supervision/02_crash_at_depth.ns`
+- Test: `~/workspace/nsl-tests/11_supervision/03_crash_mid_allocation.ns`
 
 **Interfaces:** Consumes only the protected reactor (Task 2). No new production code — these tests prove the boundary is clean from any stack shape and that the GC and the `setjmp` unwind agree (the likeliest bug-nest; spec §9). If either fails, the defect is in Task 1's scalar/temp-root restore or Task 2's `space_dequeue` rooting — fix there.
 
 - [ ] **Step 1: Write the crash-at-depth test**
 
-Create `/home/david/workspace/nsl-tests/11_supervision/02_crash_at_depth.ns`:
+Create `~/workspace/nsl-tests/11_supervision/02_crash_at_depth.ns`:
 
 ```
 (*
@@ -413,7 +413,7 @@ class CrashAtDepth packageUsing: manifest = () (
 
 - [ ] **Step 2: Write the crash-mid-allocation test**
 
-Create `/home/david/workspace/nsl-tests/11_supervision/03_crash_mid_allocation.ns`:
+Create `~/workspace/nsl-tests/11_supervision/03_crash_mid_allocation.ns`:
 
 ```
 (*
@@ -460,18 +460,18 @@ Note: confirm `List with:with:` nesting is legal within the depth bound (≤32; 
 
 - [ ] **Step 3: Run both tests, both paths**
 
-Run: `cd /home/david/workspace/nsl-tuvm && python3 -c "from pathlib import Path; import tools.run_tests_oevm as r;\nfor f in ['02_crash_at_depth.ns','03_crash_mid_allocation.ns']:\n  p=Path('../nsl-tests/11_supervision/'+f); print(f, r.run_test_file(p), r.run_test_file_oimg(p))"`
+Run: `cd ~/workspace/nsl-tuvm && python3 -c "from pathlib import Path; import tools.run_tests_oevm as r;\nfor f in ['02_crash_at_depth.ns','03_crash_mid_allocation.ns']:\n  p=Path('../nsl-tests/11_supervision/'+f); print(f, r.run_test_file(p), r.run_test_file_oimg(p))"`
 Expected: both PASS on both paths.
 
 - [ ] **Step 4: Run the boot-gc-asan gate explicitly**
 
-Run the full suite (which includes the ASAN gate): `cd /home/david/workspace/nsl-tuvm && OEVM_PATH=AB python3 tools/run_tests_oevm.py`
+Run the full suite (which includes the ASAN gate): `cd ~/workspace/nsl-tuvm && OEVM_PATH=AB python3 tools/run_tests_oevm.py`
 Expected: `boot-gc-asan: PASS`, `Failed: 0`. If ASAN reports a use-after-free or leak around the crash path, revisit Task 1 Step 3 (scalar/temp-root restore) and Task 2 Step 3 (path-String rooting).
 
 - [ ] **Step 5: Commit**
 
 ```bash
-cd /home/david/workspace/nsl-tuvm && git add -A && git commit -m "test(supervision): crash-at-depth + crash-mid-allocation (D.2/D.3, GC coherence)
+cd ~/workspace/nsl-tuvm && git add -A && git commit -m "test(supervision): crash-at-depth + crash-mid-allocation (D.2/D.3, GC coherence)
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_01321g4tUk8eSfN4YT7Vgx5A"
@@ -482,13 +482,13 @@ Claude-Session: https://claude.ai/code/session_01321g4tUk8eSfN4YT7Vgx5A"
 ## Task 4: Owner-sweep verb — `spaceDropReactionsOwnedBy:`
 
 **Files:**
-- Modify: `/home/david/workspace/tuvm/src/space.h` (declare `void space_drop_reactions_owned_by(oop owner);`)
-- Modify: `/home/david/workspace/tuvm/src/space.c` (implement it — in-place compaction of each channel's `reactions[]`)
-- Modify: `/home/david/workspace/tuvm/src/dispatch.c` (enum + `PRIM_NAMES` append)
-- Modify: `/home/david/workspace/tuvm/src/prim_ids.h` (`#define PRIM_pf_spaceDropReactionsOwnedBy 84`)
-- Modify: `/home/david/workspace/tuvm/src/platform.c` (`case`)
-- Modify: `/home/david/workspace/nsl-tuvm/lib/kernel.ns` (module-internal forwarder — used by the Supervisor, Task 5)
-- Test: `/home/david/workspace/nsl-tests/11_supervision/04_owner_sweep.ns`
+- Modify: `~/workspace/tuvm/src/space.h` (declare `void space_drop_reactions_owned_by(oop owner);`)
+- Modify: `~/workspace/tuvm/src/space.c` (implement it — in-place compaction of each channel's `reactions[]`)
+- Modify: `~/workspace/tuvm/src/dispatch.c` (enum + `PRIM_NAMES` append)
+- Modify: `~/workspace/tuvm/src/prim_ids.h` (`#define PRIM_pf_spaceDropReactionsOwnedBy 84`)
+- Modify: `~/workspace/tuvm/src/platform.c` (`case`)
+- Modify: `~/workspace/nsl-tuvm/lib/kernel.ns` (module-internal forwarder — used by the Supervisor, Task 5)
+- Test: `~/workspace/nsl-tests/11_supervision/04_owner_sweep.ns`
 
 **Interfaces:**
 - Produces (C): `void space_drop_reactions_owned_by(oop owner)` — for every channel, remove each reaction whose `owner == owner` (raw pointer identity), compacting `reactions[]` in place and decrementing `n_reactions`.
@@ -496,7 +496,7 @@ Claude-Session: https://claude.ai/code/session_01321g4tUk8eSfN4YT7Vgx5A"
 
 - [ ] **Step 1: Write the failing test**
 
-Create `/home/david/workspace/nsl-tests/11_supervision/04_owner_sweep.ns`:
+Create `~/workspace/nsl-tests/11_supervision/04_owner_sweep.ns`:
 
 ```
 (*
@@ -589,11 +589,11 @@ Single-file both paths (expect PASS), then `OEVM_PATH=AB python3 tools/run_tests
 - [ ] **Step 6: Commit**
 
 ```bash
-cd /home/david/workspace/tuvm && git add -A && git commit -m "feat(space): spaceDropReactionsOwnedBy: — the restart sweep verb (Milestone D)
+cd ~/workspace/tuvm && git add -A && git commit -m "feat(space): spaceDropReactionsOwnedBy: — the restart sweep verb (Milestone D)
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_01321g4tUk8eSfN4YT7Vgx5A"
-cd /home/david/workspace/nsl-tuvm && git add -A && git commit -m "test(supervision): owner sweep drops exactly one job's reactions (Milestone D)
+cd ~/workspace/nsl-tuvm && git add -A && git commit -m "test(supervision): owner sweep drops exactly one job's reactions (Milestone D)
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_01321g4tUk8eSfN4YT7Vgx5A"
@@ -604,8 +604,8 @@ Claude-Session: https://claude.ai/code/session_01321g4tUk8eSfN4YT7Vgx5A"
 ## Task 5: The Supervisor class — restart + quarantine
 
 **Files:**
-- Modify: `/home/david/workspace/nsl-tuvm/lib/kernel.ns` (add `class SupervisedJob` and `class Supervisor` as flat kernel-module siblings of `Space`, ~after `:654`; add a `Kernel>>supervisor` accessor beside `space` `~:990`)
-- Test: `/home/david/workspace/nsl-tests/11_supervision/05_restart_quarantine.ns`
+- Modify: `~/workspace/nsl-tuvm/lib/kernel.ns` (add `class SupervisedJob` and `class Supervisor` as flat kernel-module siblings of `Space`, ~after `:654`; add a `Kernel>>supervisor` accessor beside `space` `~:990`)
+- Test: `~/workspace/nsl-tests/11_supervision/05_restart_quarantine.ns`
 
 **Interfaces:**
 - Consumes: `platform spaceDropReactionsOwnedBy:` (Task 4); the protected reactor posting `Record tag:#crash` on `sys/crash` (Task 2); `Channel>>rootPath` (Task 2); Record field read (see Step 3 — confirm the accessor).
@@ -618,7 +618,7 @@ Claude-Session: https://claude.ai/code/session_01321g4tUk8eSfN4YT7Vgx5A"
 
 - [ ] **Step 1: Write the failing test**
 
-Create `/home/david/workspace/nsl-tests/11_supervision/05_restart_quarantine.ns`:
+Create `~/workspace/nsl-tests/11_supervision/05_restart_quarantine.ns`:
 
 ```
 (*
@@ -762,7 +762,7 @@ Run the single-file command, read the real `starts` count from the FAIL diff, se
 - [ ] **Step 7: Commit**
 
 ```bash
-cd /home/david/workspace/nsl-tuvm && git add -A && git commit -m "feat(kernel): Supervisor — restart + quarantine over the crash channel (Milestone D)
+cd ~/workspace/nsl-tuvm && git add -A && git commit -m "feat(kernel): Supervisor — restart + quarantine over the crash channel (Milestone D)
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_01321g4tUk8eSfN4YT7Vgx5A"
@@ -773,11 +773,11 @@ Claude-Session: https://claude.ai/code/session_01321g4tUk8eSfN4YT7Vgx5A"
 ## Task 6: Timers — host virtual-clock event source + land the Timers class
 
 **Files:**
-- Modify: `/home/david/workspace/tuvm/src/platform.c` (host virtual-clock state + `host_timer_after/every/cancel`, `host_monotonic_millis`, `host_advance`; and the prim cases)
-- Modify: `/home/david/workspace/tuvm/src/dispatch.c`, `prim_ids.h` (five new prims, ids 85–89)
-- Modify: `/home/david/workspace/nsl-tuvm/lib/kernel.ns` (Kernel-instance forwarders `timerAfter:token:`, `timerEvery:token:`, `timerCancel:`, `monotonicMillis`, `advanceMillis:`; land `class Timers` from `tuvm/review/lib/timers.ns`, respelling `%sys/timer` → `sys/timer`; add a `Kernel>>timers` accessor)
-- Test: `/home/david/workspace/nsl-tests/11_supervision/06_timers.ns`
-- Test: `/home/david/workspace/nsl-tests/11_supervision/07_event_seam.ns`
+- Modify: `~/workspace/tuvm/src/platform.c` (host virtual-clock state + `host_timer_after/every/cancel`, `host_monotonic_millis`, `host_advance`; and the prim cases)
+- Modify: `~/workspace/tuvm/src/dispatch.c`, `prim_ids.h` (five new prims, ids 85–89)
+- Modify: `~/workspace/nsl-tuvm/lib/kernel.ns` (Kernel-instance forwarders `timerAfter:token:`, `timerEvery:token:`, `timerCancel:`, `monotonicMillis`, `advanceMillis:`; land `class Timers` from `tuvm/review/lib/timers.ns`, respelling `%sys/timer` → `sys/timer`; add a `Kernel>>timers` accessor)
+- Test: `~/workspace/nsl-tests/11_supervision/06_timers.ns`
+- Test: `~/workspace/nsl-tests/11_supervision/07_event_seam.ns`
 
 **Interfaces:**
 - Produces (C, host): `void host_timer_after(int token, uint64_t ms)`, `host_timer_every(int token, uint64_t ms)`, `host_timer_cancel(int token)`, `uint64_t host_monotonic_millis(void)`, `int host_advance(uint64_t ms)` — advances the virtual clock and posts each due timer's token (as `TAG_SMI(token)`) onto `sys/timer` via `space_post`, rescheduling repeaters. Prims: `timerAfter:token:` (85), `timerEvery:token:` (86), `timerCancel:` (87), `monotonicMillis` (88), `advanceMillis:` (89).
@@ -785,7 +785,7 @@ Claude-Session: https://claude.ai/code/session_01321g4tUk8eSfN4YT7Vgx5A"
 
 - [ ] **Step 1: Write the failing timer test**
 
-Create `/home/david/workspace/nsl-tests/11_supervision/06_timers.ns`:
+Create `~/workspace/nsl-tests/11_supervision/06_timers.ns`:
 
 ```
 (*
@@ -908,11 +908,11 @@ public monotonicMillis = ( ^ platform monotonicMillis )
 public advanceMillis: ms = ( ^ platform advanceMillis: ms )
 ```
 
-Land `class Timers` from `/home/david/workspace/tuvm/review/lib/timers.ns` into `kernel.ns` as a flat kernel-module sibling (the staged file's `class Timers` body is final nsl; paste `class Timers` and its nested `class Pending`, keeping the public surface `usingSpace:seam:`, `after:post:on:`, `every:post:on:`, `cancel:`, `now`, `dispatch:`). The staged file already targets the seam selectors added in Step 4. One respell: the staged SYNC NOTE and wiring reference `%sys/timer` — this plan's wiring uses `sys/timer` (Global Constraints); the `Timers` class body itself does not name the reserved channel (the wiring line `space whenever: 'sys/timer' do:` lives in the test/supervisor), so no change inside the class — but grep the pasted block for any `%sys` literal and drop the `%`.
+Land `class Timers` from `~/workspace/tuvm/review/lib/timers.ns` into `kernel.ns` as a flat kernel-module sibling (the staged file's `class Timers` body is final nsl; paste `class Timers` and its nested `class Pending`, keeping the public surface `usingSpace:seam:`, `after:post:on:`, `every:post:on:`, `cancel:`, `now`, `dispatch:`). The staged file already targets the seam selectors added in Step 4. One respell: the staged SYNC NOTE and wiring reference `%sys/timer` — this plan's wiring uses `sys/timer` (Global Constraints); the `Timers` class body itself does not name the reserved channel (the wiring line `space whenever: 'sys/timer' do:` lives in the test/supervisor), so no change inside the class — but grep the pasted block for any `%sys` literal and drop the `%`.
 
 - [ ] **Step 6: Write the event-seam test (D.6)**
 
-Create `/home/david/workspace/nsl-tests/11_supervision/07_event_seam.ns`:
+Create `~/workspace/nsl-tests/11_supervision/07_event_seam.ns`:
 
 ```
 (*
@@ -952,11 +952,11 @@ Single-file both new tests on A and B (expect PASS), then `OEVM_PATH=AB python3 
 - [ ] **Step 8: Commit**
 
 ```bash
-cd /home/david/workspace/tuvm && git add -A && git commit -m "feat(platform): host virtual-clock timer seam + monotonicMillis (Milestone D)
+cd ~/workspace/tuvm && git add -A && git commit -m "feat(platform): host virtual-clock timer seam + monotonicMillis (Milestone D)
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_01321g4tUk8eSfN4YT7Vgx5A"
-cd /home/david/workspace/nsl-tuvm && git add -A && git commit -m "feat(kernel): land Timers class + timer forwarders; event-seam test (Milestone D)
+cd ~/workspace/nsl-tuvm && git add -A && git commit -m "feat(kernel): land Timers class + timer forwarders; event-seam test (Milestone D)
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_01321g4tUk8eSfN4YT7Vgx5A"
@@ -967,13 +967,13 @@ Claude-Session: https://claude.ai/code/session_01321g4tUk8eSfN4YT7Vgx5A"
 ## Task 7: Demo-node-shaped integration test (D.7)
 
 **Files:**
-- Test: `/home/david/workspace/nsl-tests/11_supervision/08_demo_node_integration.ns`
+- Test: `~/workspace/nsl-tests/11_supervision/08_demo_node_integration.ns`
 
 **Interfaces:** Consumes everything prior: Protocol FSM (Milestone C, in `kernel.ns`), `Timers` (Task 6), the protected reactor (Task 2), the `Supervisor` (Task 5). No new production code — if this fails, the defect is in an earlier task's integration, not here.
 
 - [ ] **Step 1: Write the integration test**
 
-Create `/home/david/workspace/nsl-tests/11_supervision/08_demo_node_integration.ns`. A reduced `TempNode`: a real `Protocol` FSM (`idle`/`converting`) + real timers + publish via `out:value:` + crash on `#timeout`, driven by a mock sensor the test can silence. No i2c, no ISR (phase-2). The mock sensor is a plain nsl fixture: normally it posts `#done` (conversion complete) so the FSM publishes; when silenced, the `converting`-state timeout fires `#timeout` → `self error: 'tmp117 timeout'` → contained crash → supervisor restart; after K=3 silent cycles → quarantine. A healthy reading resets the counter (progress). Structure:
+Create `~/workspace/nsl-tests/11_supervision/08_demo_node_integration.ns`. A reduced `TempNode`: a real `Protocol` FSM (`idle`/`converting`) + real timers + publish via `out:value:` + crash on `#timeout`, driven by a mock sensor the test can silence. No i2c, no ISR (phase-2). The mock sensor is a plain nsl fixture: normally it posts `#done` (conversion complete) so the FSM publishes; when silenced, the `converting`-state timeout fires `#timeout` → `self error: 'tmp117 timeout'` → contained crash → supervisor restart; after K=3 silent cycles → quarantine. A healthy reading resets the counter (progress). Structure:
 
 ```
 (*
@@ -1014,26 +1014,26 @@ Single-file A and B. Read the actual output, set `expect:` to it, confirm A==B. 
 - [ ] **Step 4: Commit**
 
 ```bash
-cd /home/david/workspace/nsl-tests && git add -A 2>/dev/null; cd /home/david/workspace/nsl-tuvm && git add -A && git commit -m "test(supervision): demo-node-shaped integration — FSM+timers+crash+restart+resume (D.7)
+cd ~/workspace/nsl-tests && git add -A 2>/dev/null; cd ~/workspace/nsl-tuvm && git add -A && git commit -m "test(supervision): demo-node-shaped integration — FSM+timers+crash+restart+resume (D.7)
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_01321g4tUk8eSfN4YT7Vgx5A"
 ```
 
-(Confirm which repo the `nsl-tests/` tree is committed under — it is its own git repo at `/home/david/workspace/nsl-tests`; commit there. Adjust the commit block to `cd /home/david/workspace/nsl-tests && git add -A && git commit ...` if so. Verify with `git -C /home/david/workspace/nsl-tests rev-parse --show-toplevel`.)
+(Confirm which repo the `nsl-tests/` tree is committed under — it is its own git repo at `~/workspace/nsl-tests`; commit there. Adjust the commit block to `cd ~/workspace/nsl-tests && git add -A && git commit ...` if so. Verify with `git -C ~/workspace/nsl-tests rev-parse --show-toplevel`.)
 
 ---
 
 ## Task 8: Protocol snapshot/restore behavioral test (carry-forward #9.1)
 
 **Files:**
-- Test: `/home/david/workspace/nsl-tests/10_fsm/02_snapshot_restore.ns`
+- Test: `~/workspace/nsl-tests/10_fsm/02_snapshot_restore.ns`
 
 **Interfaces:** Consumes the landed `Protocol` (`snapshot` = `^ current`, `restore: s` = `current:: s`; `kernel.ns:722-723`). No production code.
 
 - [ ] **Step 1: Write the test**
 
-Create `/home/david/workspace/nsl-tests/10_fsm/02_snapshot_restore.ns`:
+Create `~/workspace/nsl-tests/10_fsm/02_snapshot_restore.ns`:
 
 ```
 (*
@@ -1072,10 +1072,10 @@ public main: platform args: args = (
 
 Note: verify whether `currentState` answers the symbol (so `, machine currentState` needs `printString`) — 10_fsm/01 prints `machine currentState printString`, so use `printString` consistently; adjust the first line's concatenation accordingly and fix `expect:` to match.
 
-- [ ] **Step 2: Run both paths** → PASS. **Step 3: Commit** (in `/home/david/workspace/nsl-tests`):
+- [ ] **Step 2: Run both paths** → PASS. **Step 3: Commit** (in `~/workspace/nsl-tests`):
 
 ```bash
-cd /home/david/workspace/nsl-tests && git add -A && git commit -m "test(fsm): direct Protocol snapshot/restore round-trip (Milestone D #9.1)
+cd ~/workspace/nsl-tests && git add -A && git commit -m "test(fsm): direct Protocol snapshot/restore round-trip (Milestone D #9.1)
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_01321g4tUk8eSfN4YT7Vgx5A"
@@ -1086,13 +1086,13 @@ Claude-Session: https://claude.ai/code/session_01321g4tUk8eSfN4YT7Vgx5A"
 ## Task 9: `channel path too long` end-to-end test (optional, carry-forward #9.3)
 
 **Files:**
-- Test: `/home/david/workspace/nsl-tests/09_channels/11_path_too_long.ns`
+- Test: `~/workspace/nsl-tests/09_channels/11_path_too_long.ns`
 
 **Interfaces:** Consumes the existing C cap `OEVM_SPACE_MAX_PATH = 64` and the frozen abort string `channel path too long` (`space.c:95`). The kernel→C route (a canonical path longer than the buffer reaching `space_intern` via `out:`/`whenever:`) is not covered by any `.ns` today; `test_space` property 8 covers only the C side.
 
 - [ ] **Step 1: Write the runtime-fail test**
 
-Create `/home/david/workspace/nsl-tests/09_channels/11_path_too_long.ns`:
+Create `~/workspace/nsl-tests/09_channels/11_path_too_long.ns`:
 
 ```
 (*
@@ -1115,26 +1115,26 @@ public main: platform args: args = (
 
 Note: confirm 72 chars exceeds the `-D`-configured `OEVM_SPACE_MAX_PATH` used by the test build (default 64). Confirm the path is a single canonical segment (no `/`, no empty/dot segments) so it passes `checkPath:` and reaches `space_intern`, where the length cap aborts. If `out:` validates length in nsl before reaching C, the abort string still matches (the constraint is that the process exits with `channel path too long` on stderr).
 
-- [ ] **Step 2: Run both paths** → PASS (runtime-fail matched). **Step 3: Commit** (in `/home/david/workspace/nsl-tests`).
+- [ ] **Step 2: Run both paths** → PASS (runtime-fail matched). **Step 3: Commit** (in `~/workspace/nsl-tests`).
 
 ---
 
 ## Task 10: Soak/leak plateau + docs + milestone close
 
 **Files:**
-- Test: `/home/david/workspace/nsl-tests/11_supervision/09_soak_leak.ns` (slow; milestone-gate only)
-- Modify: `/home/david/workspace/tuvm/review/tests/CLAIMS.md` (flip T-D rows `pending D` → DONE; point at landed paths)
-- Modify: `/home/david/workspace/tuvm/review/test-suites-spec.md` (ASSUMED API: `#error` → `#text`; note `%sys/*` → `sys/*`)
-- Modify: `/home/david/workspace/tuvm/review/lib/timers.ns` (respell `%sys/timer` → `sys/timer` in the wiring/SYNC NOTE)
-- Modify: `/home/david/workspace/tuvm/review/lib/exceptions.md` (respell `%sys/crash` → `sys/crash`)
-- Modify: `/home/david/workspace/tuvm/review/program-sequence.md` (Milestone D → DONE at the boundary; phase-1 complete)
-- Create: `/home/david/workspace/tuvm/docs/MILESTONE_D.md` (close-out: what landed, footprint delta, gate results — mirror `MILESTONE_A.md`)
+- Test: `~/workspace/nsl-tests/11_supervision/09_soak_leak.ns` (slow; milestone-gate only)
+- Modify: `~/workspace/tuvm/review/tests/CLAIMS.md` (flip T-D rows `pending D` → DONE; point at landed paths)
+- Modify: `~/workspace/tuvm/review/test-suites-spec.md` (ASSUMED API: `#error` → `#text`; note `%sys/*` → `sys/*`)
+- Modify: `~/workspace/tuvm/review/lib/timers.ns` (respell `%sys/timer` → `sys/timer` in the wiring/SYNC NOTE)
+- Modify: `~/workspace/tuvm/review/lib/exceptions.md` (respell `%sys/crash` → `sys/crash`)
+- Modify: `~/workspace/tuvm/review/program-sequence.md` (Milestone D → DONE at the boundary; phase-1 complete)
+- Create: `~/workspace/tuvm/docs/MILESTONE_D.md` (close-out: what landed, footprint delta, gate results — mirror `MILESTONE_A.md`)
 
 **Interfaces:** Consumes all prior tasks. The soak test is the standing leak detector (shared-heap tradeoff — a leaky job can't be evicted by restart, so creep must be caught in test).
 
 - [ ] **Step 1: Write the soak test**
 
-Create `/home/david/workspace/nsl-tests/11_supervision/09_soak_leak.ns`: ≥100k events through several handlers with periodic deliberate crashes, sampling a heap-usage proxy each 10k; assert the sampled usage plateaus (bounded variance after warm-up), not creeps. Use the VM's heap-introspection selector if one exists (grep `kernel.ns` for a `platform`-level heap/free-bytes accessor — the footprint tooling implies one; `oevm.h:396` mentions a "bytes free" total). If no nsl-visible heap gauge exists, assert the weaker invariant: 100k events with periodic crashes complete and the node is still responsive (a final healthy event fires), and mark the test `skip` for the strict-plateau assertion with a comment pointing at the missing gauge. Mark the file slow (leave it in the suite; the runner has no per-file slow-skip, so keep the event count high enough to be meaningful but not so high it dominates the gate — e.g. 100k — and note it in `MILESTONE_D.md`).
+Create `~/workspace/nsl-tests/11_supervision/09_soak_leak.ns`: ≥100k events through several handlers with periodic deliberate crashes, sampling a heap-usage proxy each 10k; assert the sampled usage plateaus (bounded variance after warm-up), not creeps. Use the VM's heap-introspection selector if one exists (grep `kernel.ns` for a `platform`-level heap/free-bytes accessor — the footprint tooling implies one; `oevm.h:396` mentions a "bytes free" total). If no nsl-visible heap gauge exists, assert the weaker invariant: 100k events with periodic crashes complete and the node is still responsive (a final healthy event fires), and mark the test `skip` for the strict-plateau assertion with a comment pointing at the missing gauge. Mark the file slow (leave it in the suite; the runner has no per-file slow-skip, so keep the event count high enough to be meaningful but not so high it dominates the gate — e.g. 100k — and note it in `MILESTONE_D.md`).
 
 - [ ] **Step 2: Run the soak test both paths** → PASS. Confirm the plateau (or the weaker invariant) holds.
 
@@ -1152,17 +1152,17 @@ Mark Milestone D DONE in the phase-1 list (`~"D — Supervisor + let-it-crash"`)
 
 - [ ] **Step 6: Final full-suite gate, both paths**
 
-Run: `cd /home/david/workspace/nsl-tuvm && OEVM_PATH=AB python3 tools/run_tests_oevm.py`
+Run: `cd ~/workspace/nsl-tuvm && OEVM_PATH=AB python3 tools/run_tests_oevm.py`
 Expected: `Failed: 0`; `grant: PASS  debugger-integration: PASS  portability-32: PASS  boot-gc-asan: PASS`. Record the counts in `MILESTONE_D.md`.
 
 - [ ] **Step 7: Commit (do NOT push — David merges/pushes on his word)**
 
 ```bash
-cd /home/david/workspace/tuvm && git add -A && git commit -m "docs: close Milestone D — CLAIMS/spec/program-sequence + MILESTONE_D.md; respell %sys/*→sys/*
+cd ~/workspace/tuvm && git add -A && git commit -m "docs: close Milestone D — CLAIMS/spec/program-sequence + MILESTONE_D.md; respell %sys/*→sys/*
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_01321g4tUk8eSfN4YT7Vgx5A"
-cd /home/david/workspace/nsl-tests && git add -A && git commit -m "test(supervision): soak/leak plateau (D.5, slow)
+cd ~/workspace/nsl-tests && git add -A && git commit -m "test(supervision): soak/leak plateau (D.5, slow)
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_01321g4tUk8eSfN4YT7Vgx5A"

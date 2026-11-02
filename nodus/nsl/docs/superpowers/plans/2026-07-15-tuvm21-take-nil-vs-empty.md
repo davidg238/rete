@@ -42,15 +42,15 @@ gcc -std=c99 -Isrc tests/test_space.c \
 **Single `.ns` (Path A), from `~/workspace/nsl-tuvm`:**
 ```bash
 python3 tools/ns_compile_oevm.py ../nsl-tests/09_channels/12_take_nil_vs_empty.ns \
-  /home/david/workspace/tuvm/src/solidified_image.c
-( cd /home/david/workspace/tuvm && gcc -Wall -std=c99 -Isrc -DOEVM_APPLIANCE \
+  ~/workspace/tuvm/src/solidified_image.c
+( cd ~/workspace/tuvm && gcc -Wall -std=c99 -Isrc -DOEVM_APPLIANCE \
   src/vm.c src/gc.c src/dispatch.c src/platform.c src/space.c src/handles.c \
   src/serial.c src/udp.c src/mirror.c \
   src/backend/posix/platform_posix.c src/backend/posix/serial_posix.c \
   src/backend/posix/udp_posix.c src/backend/posix/pulse_posix.c \
   src/backend/posix/timer_posix.c \
   src/solidified_image.c src/oevm_main.c -o /tmp/runner -lm && /tmp/runner ; echo "exit: $?" )
-( cd /home/david/workspace/tuvm && git checkout -- src/solidified_image.c src/solidified_image.stmap )
+( cd ~/workspace/tuvm && git checkout -- src/solidified_image.c src/solidified_image.stmap )
 ```
 
 **Full nsl suite (both paths), from `~/workspace/nsl-tuvm`:**

@@ -1104,7 +1104,7 @@ git commit -m "feat(portacli): porta profile start/stop/poll/get"
 // append to internal/web/web_test.go
 func TestNodePageStacksConsolesRight(t *testing.T) {
 	st := testStore(t)
-	st.TouchNode("aabbccddeeff", "192.168.1.9", 1000)
+	st.TouchNode("aabbccddeeff", "192.0.2.9", 1000)
 	srv := serve(t, st)
 	body := readBody(t, mustGet(t, srv.URL+"/n/aabbccddeeff/"))
 	// Both consoles now live in the right column, Prints after Logs.
@@ -1215,7 +1215,7 @@ import (
 
 func TestNodeProfilesPanelListsAndLinks(t *testing.T) {
 	st := testStore(t)
-	st.TouchNode("aabbccddeeff", "192.168.1.9", 1000)
+	st.TouchNode("aabbccddeeff", "192.0.2.9", 1000)
 	if _, err := st.InsertProfileResult("aabbccddeeff", "myapp", "run1", 1001, []byte{1, 2, 3, 4}); err != nil {
 		t.Fatal(err)
 	}
@@ -1356,7 +1356,7 @@ import (
 
 func TestProfileStartFormEnqueues(t *testing.T) {
 	st := testStore(t)
-	st.TouchNode("aabbccddeeff", "192.168.1.9", 1000)
+	st.TouchNode("aabbccddeeff", "192.0.2.9", 1000)
 	srv := serve(t, st)
 
 	form := url.Values{"app": {"myapp"}, "duration": {"30"}, "label": {"run1"}}

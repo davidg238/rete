@@ -144,7 +144,7 @@ func Debug(st *store.Store, id, name, action, issuedBy string, now int64) (int64
 
 - [ ] **Step 10: Commit**
 ```bash
-cd /home/david/workspace/porta
+cd ~/workspace/porta
 git add internal/command/command.go internal/command/command_test.go internal/apisrv/commands.go internal/apisrv/commands_test.go internal/control/control.go
 git commit -m "feat(command): add declarative debug verb (attach/detach) + API dispatch
 
@@ -327,7 +327,7 @@ func (s *Store) DebugResponsesAfter(deviceID string, after int64, limit int) ([]
 
 - [ ] **Step 6: Commit**
 ```bash
-cd /home/david/workspace/porta
+cd ~/workspace/porta
 git add internal/store/store.go internal/store/debug.go internal/store/debug_test.go
 git commit -m "feat(store): debug_request queue + debug_response log for debug?id=
 
@@ -470,7 +470,7 @@ func (h *Handler) writeDebug(id, peer string, data []byte) error {
 
 - [ ] **Step 9: Commit**
 ```bash
-cd /home/david/workspace/porta
+cd ~/workspace/porta
 git add internal/handler/handler.go internal/handler/handler_test.go
 git commit -m "feat(handler): debug?id= channel (RRQ drain requests, WRQ ingest responses)
 
@@ -732,7 +732,7 @@ func newDebugCmd() *cobra.Command {
 
 - [ ] **Step 11: Commit**
 ```bash
-cd /home/david/workspace/porta
+cd ~/workspace/porta
 git add internal/apisrv/debug.go internal/apisrv/apisrv.go internal/control/control.go devsdk/apiclient/client.go internal/portacli/debug.go internal/portacli/debug_test.go internal/portacli/root.go
 git commit -m "feat(api,cli): debug send/responses endpoints + porta debug CLI
 
@@ -790,7 +790,7 @@ and the field parse (add a case to the `switch (out->verb)`):
 
 - [ ] **Step 6: Commit**
 ```bash
-cd /home/david/workspace/ns-posix
+cd ~/workspace/ns-posix
 git add keeper/cmd.h keeper/cmd.c tests/test_cmd.c
 git commit -m "feat(cmd): parse the debug verb (name + attach/detach action)
 
@@ -1020,7 +1020,7 @@ and in `keeper_poll_once`:
 
 - [ ] **Step 12: Commit**
 ```bash
-cd /home/david/workspace/ns-posix
+cd ~/workspace/ns-posix
 git add keeper/seam.h keeper/keeper.h keeper/keeper.c tests/fake_seam.h tests/fake_seam.c tests/test_debug.c
 git commit -m "feat(keeper): debug_vm seam + session state + per-poll debug shuttle
 
@@ -1161,9 +1161,9 @@ keeperd: posix/keeperd.c posix/udp_transport.c posix/file_store.c posix/oimg_vm.
 # and a breakpoint pause come back over the pipe.
 set -euo pipefail
 cd "$(dirname "$0")/.."
-OEVM=/home/david/workspace/oevm
-NSOEVM=/home/david/workspace/ns-oevm
-SRC=/home/david/workspace/ns-tests/04_somns_basic/46_debug_target.ns
+OEVM=~/workspace/oevm
+NSOEVM=~/workspace/ns-oevm
+SRC=~/workspace/ns-tests/04_somns_basic/46_debug_target.ns
 
 if [ ! -x "$OEVM/oevm_img" ]; then
   TARGET=posix
@@ -1220,7 +1220,7 @@ cc -std=c11 -Ikeeper /tmp/ns-posix-dbgharness.c posix/oimg_debug_vm.c -o /tmp/ns
 
 - [ ] **Step 7: Commit**
 ```bash
-cd /home/david/workspace/ns-posix
+cd ~/workspace/ns-posix
 git add posix/oimg_debug_vm.c posix/keeperd.c Makefile tests/test_debug_vm.sh
 git commit -m "feat(posix): dual-pipe debug VM seam + keeperd wiring; real-oevm gate
 
@@ -1253,10 +1253,10 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 ID="686f73740000d3b6"
 NAME="dbgtgt"
-PORTA_DIR=/home/david/workspace/porta
+PORTA_DIR=~/workspace/porta
 SERVER="http://localhost:6970"
-SRC=/home/david/workspace/ns-tests/04_somns_basic/46_debug_target.ns
-OEVM=/home/david/workspace/oevm
+SRC=~/workspace/ns-tests/04_somns_basic/46_debug_target.ns
+OEVM=~/workspace/oevm
 export OEVM_IMG="$OEVM/oevm_img"
 
 # 1) build oevm_img + keeperd
@@ -1323,18 +1323,18 @@ echo "PASS: remote attach -> methods -> break -> paused -> inspect -> detach ove
 
 - [ ] **Step 4: Verify both repos' suites are green**
 ```bash
-cd /home/david/workspace/porta && go test ./...
-cd /home/david/workspace/ns-posix && make test
+cd ~/workspace/porta && go test ./...
+cd ~/workspace/ns-posix && make test
 ```
 
 - [ ] **Step 5: Commit (two repos)**
 ```bash
-cd /home/david/workspace/ns-posix
+cd ~/workspace/ns-posix
 git add tests/porta_debug_integration.sh
 git commit -m "test(ns-posix): R3 remote-debug-over-porta integration gate
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
-cd /home/david/workspace/porta
+cd ~/workspace/porta
 git add docs/PROTOCOL.md
 git commit -m "docs(protocol): document the debug verb + debug?id= channel (R3)
 

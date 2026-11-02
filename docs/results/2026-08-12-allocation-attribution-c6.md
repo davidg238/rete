@@ -195,7 +195,7 @@ gateway with the ordinary operator vocabulary — **`--kind stream`, explicitly*
 which is the whole lesson of §3:
 
 ```bash
-porta put --db /home/david/porta-v2/soak-2026-08-04.db --kind stream \
+porta put --db ~/porta-v2/soak-2026-08-04.db --kind stream \
   --actor claude --reason "rete#203: steady-state alloc window" \
   c6-bench dbg/req "profile 60000"
 # wrote dbg/req seq=5

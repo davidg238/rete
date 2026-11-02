@@ -51,7 +51,7 @@ Add to the end of `device/report_test.toit`'s `main` (after the existing empty-i
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `cd /home/david/workspaceToit/porta && toit run device/report_test.toit`
+Run: `cd ~/workspaceToit/porta && toit run device/report_test.toit`
 Expected: FAIL — `build-report` has no `--config` argument (compile error) / `config` key absent.
 
 - [ ] **Step 3: Add the `--config` parameter and emit it**
@@ -105,7 +105,7 @@ Builds the report body as a JSON object {"apps":{name:{crc,runlevel,triggers}},
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `cd /home/david/workspaceToit/porta && toit run device/report_test.toit`
+Run: `cd ~/workspaceToit/porta && toit run device/report_test.toit`
 Expected: PASS (no output / clean exit).
 
 - [ ] **Step 5: Wire the supervisor's report call**
@@ -124,13 +124,13 @@ Replace with (the supervisor already `import .config_store show load-config …`
 
 - [ ] **Step 6: Compile-gate the supervisor**
 
-Run: `cd /home/david/workspaceToit/porta && toit compile -s -o /tmp/sup.snapshot device/supervisor.toit`
+Run: `cd ~/workspaceToit/porta && toit compile -s -o /tmp/sup.snapshot device/supervisor.toit`
 Expected: exits 0, no errors (supervisor imports esp32/system, so it cannot `toit run`; compile is the gate).
 
 - [ ] **Step 7: Commit**
 
 ```bash
-cd /home/david/workspaceToit/porta
+cd ~/workspaceToit/porta
 git add device/report.toit device/report_test.toit device/supervisor.toit
 git commit -m "feat(device): build-report carries applied config blob (D5)
 
@@ -191,7 +191,7 @@ Then, just before `store2.close` in that block, add a second report with no `con
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `cd /home/david/workspaceToit/porta/gateway && ~/workspaceToit/sqlite/build/bin/toit-sqlite run handler_test.toit`
+Run: `cd ~/workspaceToit/porta/gateway && ~/workspaceToit/sqlite/build/bin/toit-sqlite run handler_test.toit`
 Expected: FAIL — `observed["config"]` is null (key absent from `observed_state`).
 
 - [ ] **Step 3: Fold config into the stored blob**
@@ -237,13 +237,13 @@ An $io.CloseableWriter that buffers a WRQ "report" body and, on close, splits it
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `cd /home/david/workspaceToit/porta/gateway && ~/workspaceToit/sqlite/build/bin/toit-sqlite run handler_test.toit`
+Run: `cd ~/workspaceToit/porta/gateway && ~/workspaceToit/sqlite/build/bin/toit-sqlite run handler_test.toit`
 Expected: PASS.
 
 - [ ] **Step 5: Commit**
 
 ```bash
-cd /home/david/workspaceToit/porta
+cd ~/workspaceToit/porta
 git add gateway/handler.toit gateway/handler_test.toit
 git commit -m "feat(gateway): report ingest folds observed config into observed_state (D5)
 
@@ -292,7 +292,7 @@ Append to the end of `gateway/command_test.toit`'s `main`:
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `cd /home/david/workspaceToit/porta/gateway && ~/workspaceToit/sqlite/build/bin/toit-sqlite run command_test.toit`
+Run: `cd ~/workspaceToit/porta/gateway && ~/workspaceToit/sqlite/build/bin/toit-sqlite run command_test.toit`
 Expected: FAIL — `config-marker` / `render-config-table` not defined.
 
 - [ ] **Step 3: Implement the helpers**
@@ -343,13 +343,13 @@ pad-col_ s/string width/int -> string:
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `cd /home/david/workspaceToit/porta/gateway && ~/workspaceToit/sqlite/build/bin/toit-sqlite run command_test.toit`
+Run: `cd ~/workspaceToit/porta/gateway && ~/workspaceToit/sqlite/build/bin/toit-sqlite run command_test.toit`
 Expected: PASS.
 
 - [ ] **Step 5: Commit**
 
 ```bash
-cd /home/david/workspaceToit/porta
+cd ~/workspaceToit/porta
 git add gateway/command.toit gateway/command_test.toit
 git commit -m "feat(gateway): desired-vs-observed config render helpers (D5)
 
@@ -399,12 +399,12 @@ cmd-device-get parsed/cli.Parsed -> none:
 
 - [ ] **Step 2: Confirm the command imports cover the new symbols**
 
-Run: `cd /home/david/workspaceToit/porta/gateway && grep -n "import .command\|decode-json_" gateway.toit | head`
+Run: `cd ~/workspaceToit/porta/gateway && grep -n "import .command\|decode-json_" gateway.toit | head`
 Expected: shows `import .command show *` (or an explicit list — if explicit, add `config-marker render-config-table`) and that `decode-json_` is already imported from `.store`.
 
 - [ ] **Step 3: Compile-gate the gateway**
 
-Run: `cd /home/david/workspaceToit/porta/gateway && ~/workspaceToit/sqlite/build/bin/toit-sqlite run integration_test.toit`
+Run: `cd ~/workspaceToit/porta/gateway && ~/workspaceToit/sqlite/build/bin/toit-sqlite run integration_test.toit`
 Expected: PASS — exercises the gateway end-to-end and confirms `gateway.toit` compiles with the rewritten command.
 
 - [ ] **Step 4: Manual verify the full path against a real store**
@@ -412,7 +412,7 @@ Expected: PASS — exercises the gateway end-to-end and confirms `gateway.toit` 
 This drives the actual stored `observed_state` blob (not a hand-built map) so it exercises Task 2 + Task 3 together: enqueue three sets, ingest a report whose observed config agrees on `setpoint`, drifts on `mode`, and omits `hyst`, then render exactly as `cmd-device-get` does.
 
 ```bash
-cd /home/david/workspaceToit/porta/gateway && cat > /tmp/d5_demo.toit <<'EOF'
+cd ~/workspaceToit/porta/gateway && cat > /tmp/d5_demo.toit <<'EOF'
 import .store show Store decode-json_
 import .handler show StoreBackedHandler
 import .command show Command project-config render-config-table
@@ -452,7 +452,7 @@ config for thermostat
 - [ ] **Step 5: Commit**
 
 ```bash
-cd /home/david/workspaceToit/porta
+cd ~/workspaceToit/porta
 git add gateway/gateway.toit
 git commit -m "feat(gateway): device get shows desired vs observed config (D5)
 
@@ -469,7 +469,7 @@ Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
 - [ ] **Step 1: Run every device + gateway host suite**
 
 ```bash
-cd /home/david/workspaceToit/porta
+cd ~/workspaceToit/porta
 for t in device/*_test.toit; do echo "== $t ==" ; toit run $t || echo "FAILED: $t" ; done
 cd gateway
 for t in *_test.toit; do echo "== $t ==" ; ~/workspaceToit/sqlite/build/bin/toit-sqlite run $t || echo "FAILED: $t" ; done
@@ -479,7 +479,7 @@ Expected: no `FAILED:` lines.
 
 - [ ] **Step 2: Re-run the supervisor compile gate**
 
-Run: `cd /home/david/workspaceToit/porta && toit compile -s -o /tmp/sup.snapshot device/supervisor.toit`
+Run: `cd ~/workspaceToit/porta && toit compile -s -o /tmp/sup.snapshot device/supervisor.toit`
 Expected: exits 0.
 
 - [ ] **Step 3: Mark the spec implemented (host-verified)**
@@ -494,7 +494,7 @@ pending a poll-wake on the device (observed config refreshes on the next report)
 - [ ] **Step 4: Commit**
 
 ```bash
-cd /home/david/workspaceToit/porta
+cd ~/workspaceToit/porta
 git add docs/specs/2026-05-24-d5-observed-config-echo-design.md
 git commit -m "docs(specs): D5 observed-config echo host-verified
 

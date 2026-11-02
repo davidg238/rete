@@ -112,7 +112,7 @@ Then change the grep target to `"$DISPATCH"` and remove any `|| true` that lets 
 
 ```bash
 cd ../oevm && bash tools/check_no_ambient_reflection.sh; echo "exit=$?"
-cd /tmp && bash /home/david/workspace/oevm/tools/check_no_ambient_reflection.sh; echo "exit=$?"
+cd /tmp && bash ~/workspace/oevm/tools/check_no_ambient_reflection.sh; echo "exit=$?"
 ```
 
 Expected: first run prints its OK message, `exit=0`; second run (different cwd) **also** `exit=0` now (path is script-relative), proving it no longer depends on cwd. Then temporarily rename `src/dispatch.c` and confirm `exit=2` (fails loud), then rename back.

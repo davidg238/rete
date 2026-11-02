@@ -1729,7 +1729,7 @@ step 1 reported.
 - [x] **Step 3: Build for the gateway and copy it up**
 
 ```bash
-cd /home/david/workspace/rete/porta
+cd ~/workspace/rete/porta
 ssh gw85224-01 'uname -m'            # confirm the arch before choosing GOARCH
 GOOS=linux GOARCH=<arch from above> go build -o /tmp/porta ./cmd/porta
 scp /tmp/porta gw85224-01:~/porta-v2/porta.new
@@ -1889,8 +1889,8 @@ bullet — it is discharged. Keep the ordering paragraph: the order was the argu
 - [x] **Step 8: Final gate and close-out commit**
 
 ```bash
-cd /home/david/workspace/rete/porta && gofmt -l . && go test ./...
-cd /home/david/workspace/rete/nodus/tuvm && bash tests/porta_sync_host.sh
+cd ~/workspace/rete/porta && gofmt -l . && go test ./...
+cd ~/workspace/rete/nodus/tuvm && bash tests/porta_sync_host.sh
 ```
 
 ```bash
