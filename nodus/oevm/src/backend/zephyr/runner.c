@@ -31,11 +31,7 @@
 #ifndef CONFIG_SOC_FAMILY_NORDIC_NRF
 #include <spi_flash_mmap.h>
 #endif
-#include "curve25519.h"   /* ED25519_verify — MCUboot's, vendored (src/ed25519/README.md) */
-/* The vendored header declares no ED25519_verify (MCUboot declares it elsewhere), so the
-   call was implicit on every board until rete#449's build printed it. Its definition: */
-int ED25519_verify(const uint8_t *message, size_t message_len,
-                   const uint8_t signature[64], const uint8_t public_key[32]);
+#include "ed25519.h"      /* ED25519_verify — MCUboot's, vendored; rete's prototype (rete#460) */
 
 #define SLOT_A    0
 #define SLOT_B    1
