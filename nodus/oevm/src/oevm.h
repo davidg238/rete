@@ -55,7 +55,7 @@
 
 /* 
  * oop: Object Oriented Pointer.
- * Under Piumarta's Open Extensible Object Model (COLA/Id style),
+ * Under Piumarta and Warth's Open Extensible Object Model (COLA/Id style),
  * every reference is an oop, which points to a struct Object.
  */
 typedef struct Object *oop;

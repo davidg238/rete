@@ -8,7 +8,7 @@ cannot be mistaken for the present. The historical genesis documents are in
 ## In one paragraph
 
 oevm is a small **register VM** in C (`nodus/oevm/src/`, ~27 k lines including the ports)
-built on Ian Piumarta's **Open Extensible Object Model**: three primitive kinds — object,
+built on Ian Piumarta and Alessandro Warth's **Open Extensible Object Model** ([paper](https://www.piumarta.com/software/cola/objmodel2.pdf)): three primitive kinds — object,
 symbol, vtable — and everything else, including arithmetic, is a late-bound message send
 that a vtable answers. It runs **nsl**, a Newspeak-derived dialect compiled on the host
 (`nodus/nsl/`) into an **`.oimg` object-graph image** that the resident VM loads and

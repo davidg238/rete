@@ -12,7 +12,7 @@ debug, patch, profile) is an HTTP JSON answer before it is an HTML page.
 
 ## The VM in five lines
 
-- **oevm** is a register VM in C on Piumarta's open object model: three primitive kinds,
+- **oevm** is a register VM in C on Piumarta and Warth's [open, extensible object model](https://www.piumarta.com/software/cola/objmodel2.pdf): three primitive kinds,
   everything else a late-bound message send.
 - It runs **nsl**, a Newspeak-derived dialect, compiled on the host into an `.oimg`
   image the flashed VM executes in place.
