@@ -644,7 +644,7 @@ func TestPushStampsCaptureTimeNotArrival(t *testing.T) {
 	if _, err := DecodeAck(srv.Handle(req)); err != nil {
 		t.Fatalf("DecodeAck: %v", err)
 	}
-	evs, err := st.Events("n1", 10, 0)
+	evs, err := st.Events("n1", space.EventFilter{Limit: 10})
 	if err != nil {
 		t.Fatalf("Events: %v", err)
 	}
