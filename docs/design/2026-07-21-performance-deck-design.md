@@ -290,3 +290,15 @@ Whether the deck should render the STIC table with a **normalised** column (e.g.
 to the fastest per row). It would make the shape legible at a glance, but normalisation
 is a rhetorical act and this deck's whole ethos is that raw numbers plus their constraint
 beat processed ones. Defer to build time; default to raw.
+
+---
+
+## 9. Addendum 2026-11-02 — figures revised from the records to hand
+
+The deck (`review/performance_slides.html`, `d166bedc`) now cites: the 2026-10-12 ESP32-C6 three-VM STIC
+table (Toit, MicroPython, rete; Richards 4.3× and DeltaBlue 4.4× behind Toit are the rows that hurt; collection
+iterate, July's 42× row, is now ahead of Toit); the design paper's token table (language ≈ 45k; whole system
+≈ 155k comment-free, ≈ 310k as written — the Act V "one window" claim holds only comment-free); one measured OTA
+cycle (#449: 164,000 B in 143 s over BLE through porta; the flash-cycle comparison, #67, still unmeasured); and a
+new Act I slide on the C6 check-in decomposition (2026-08-05/09). Act I's thermal figures are unchanged and marked
+"re-measure pending": the board must be located first (#455). Gate 3 (#68, build timing) still unmeasured.

@@ -62,7 +62,7 @@ In dependency order.
 4. **Done** (rete#312): profiling as a command and a page, with its cost measured on a real program and stated.
 5. **Done** (rete#313): stop, patch, restart, resume, on the desktop, then on the board.
 6. **Done** (rete#314, closed 2026-10-14): one surface for the loop, so the tool enforces what are conventions today. The surface is custos's HTTP; the CLI is shelved (David, 2026-10-06; peer design D12).
-7. (rete#368) The front door: a quickstart that is the first hour ([quickstart.md](quickstart.md)), a `LICENSE` at the repo root ([LICENSE](../LICENSE)), one honest page ([limits.md](limits.md)) — all three exist — and a check that no key or private hostname is in the git history, which waits on David.
+7. (rete#368) The front door: a quickstart that is the first hour ([quickstart.md](quickstart.md)), a `LICENSE` at the repo root ([LICENSE](../LICENSE)), one honest page ([limits.md](limits.md)) — all three exist — and a check that no key or private hostname is in the git history. **Done 2026-11-01:** the working tree scrubbed (`48d8ab30`), the history kept as it is (David: no rewrite), and the repository made public.
 
 The radio half has no numbered items of its own: load is #233 and #398 (closed), debug #375 (closed), #379 and #380, profile #415 (closed), patch #432.
 
