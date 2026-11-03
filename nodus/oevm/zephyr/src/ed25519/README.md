@@ -16,4 +16,6 @@ MCUboot's config headers and nothing in the file used it); the `MCUBOOT_USE_MBED
 branch is simply never defined, so the tinycrypt SHA-512 path is compiled.
 
 The one entry point the runner uses is `ED25519_verify(message, len, signature[64],
-public_key[32])`, over the 32 raw hash bytes porta signs (`blob.SignHash`).
+public_key[32])`, over the 32 raw hash bytes porta signs (`blob.SignHash`). The vendored
+`curve25519.h` declares no prototype for it; rete's own `ed25519.h` does (rete#460), so no
+vendored file is edited for it.
