@@ -171,7 +171,7 @@ class LivenessDeclared packageUsing: manifest = () (
 - [x] **Step 2: Run it and watch it fail**
 
 ```bash
-cd /home/david/workspace/rete/nodus/nsl && python3 tools/run-one.py ../tests/22_spacesync/17_liveness_declared.nsl B
+cd ~/workspace/rete/nodus/nsl && python3 tools/run-one.py ../tests/22_spacesync/17_liveness_declared.nsl B
 ```
 
 Expected: FAIL — `publishLiveness` does not exist (a `doesNotUnderstand`-class abort). Pass the
@@ -253,7 +253,7 @@ Add to the ordering comment already there (the one that explains `publishApps` b
 - [x] **Step 6: Run the test and watch it pass**
 
 ```bash
-cd /home/david/workspace/rete/nodus/nsl && python3 tools/run-one.py ../tests/22_spacesync/17_liveness_declared.nsl B
+cd ~/workspace/rete/nodus/nsl && python3 tools/run-one.py ../tests/22_spacesync/17_liveness_declared.nsl B
 ```
 
 Expected: PASS, all five lines matching the `expect:` block.
@@ -261,7 +261,7 @@ Expected: PASS, all five lines matching the `expect:` block.
 - [x] **Step 7: Run the full suite**
 
 ```bash
-cd /home/david/workspace/rete/nodus/nsl && python3 tools/run_tests_oevm.py
+cd ~/workspace/rete/nodus/nsl && python3 tools/run_tests_oevm.py
 ```
 
 Expected: `Failed: 0`, one more test than before, and the aux-gate line free of new red.
@@ -269,7 +269,7 @@ Expected: `Failed: 0`, one more test than before, and the aux-gate line free of 
 - [x] **Step 8: Commit**
 
 ```bash
-cd /home/david/workspace/rete
+cd ~/workspace/rete
 git add nodus/nsl/lib/kernel.nsl nodus/tests/22_spacesync/17_liveness_declared.nsl
 git commit -m "feat(#231): a node says how long its silence may last, from a default nothing reads yet
 
@@ -377,7 +377,7 @@ class LivenessGrid packageUsing: manifest = () (
 - [x] **Step 2: Run it and watch it fail**
 
 ```bash
-cd /home/david/workspace/rete/nodus/nsl && python3 tools/run-one.py ../tests/22_spacesync/18_liveness_grid.nsl B
+cd ~/workspace/rete/nodus/nsl && python3 tools/run-one.py ../tests/22_spacesync/18_liveness_grid.nsl B
 ```
 
 Expected: FAIL — `liveness:budget:` does not exist.
@@ -435,7 +435,7 @@ In `nodus/nsl/lib/kernel.nsl`, class `PortaBridge`, immediately before `publishL
 - [x] **Step 4: Run the test and watch it pass**
 
 ```bash
-cd /home/david/workspace/rete/nodus/nsl && python3 tools/run-one.py ../tests/22_spacesync/18_liveness_grid.nsl B
+cd ~/workspace/rete/nodus/nsl && python3 tools/run-one.py ../tests/22_spacesync/18_liveness_grid.nsl B
 ```
 
 Expected: PASS, six lines matching.
@@ -465,7 +465,7 @@ that timer's period; one that never checks in keeps the default. Add immediately
 - [x] **Step 6: Run the full suite**
 
 ```bash
-cd /home/david/workspace/rete/nodus/nsl && python3 tools/run_tests_oevm.py
+cd ~/workspace/rete/nodus/nsl && python3 tools/run_tests_oevm.py
 ```
 
 Expected: `Failed: 0`. The apps under `nodus/tuvm/zephyr/` are not compiled by this suite, so
@@ -475,7 +475,7 @@ otherwise invisible until then.
 - [x] **Step 7: Commit**
 
 ```bash
-cd /home/david/workspace/rete
+cd ~/workspace/rete
 git add nodus/nsl/lib/kernel.nsl nodus/tests/22_spacesync/18_liveness_grid.nsl nodus/tuvm/zephyr/
 git commit -m "feat(#231): the node adopts a budget on its own grid, and clamps rather than refuses
 
@@ -539,7 +539,7 @@ class LivenessSize packageUsing: manifest = () (
 - [x] **Step 2: Run it, read the number, pin it**
 
 ```bash
-cd /home/david/workspace/rete/nodus/nsl && python3 tools/run-one.py ../tests/22_spacesync/20_liveness_size.nsl B
+cd ~/workspace/rete/nodus/nsl && python3 tools/run-one.py ../tests/22_spacesync/20_liveness_size.nsl B
 ```
 
 It will FAIL with a diff naming the real byte count. Put that number in the `expect:` block and
@@ -581,8 +581,8 @@ Beside the `health` row in the path table:
 - [x] **Step 5: Suite, then commit**
 
 ```bash
-cd /home/david/workspace/rete/nodus/nsl && python3 tools/run_tests_oevm.py
-cd /home/david/workspace/rete
+cd ~/workspace/rete/nodus/nsl && python3 tools/run_tests_oevm.py
+cd ~/workspace/rete
 git add nodus/tests/22_spacesync/20_liveness_size.nsl protocol/PROTOCOL-NSL-RECORDS.md protocol/PROTOCOL-NSL.md
 git commit -m "docs(#231): the liveness record is pinned in the catalogue, with a measured size
 
@@ -676,7 +676,7 @@ func TestDeclaredBudgetSurvivesAGarbledDeclaration(t *testing.T) {
 path and this plan quotes it from memory:
 
 ```bash
-cd /home/david/workspace/rete/porta && grep -n "func (s \*Store) Ingest" internal/space/store.go
+cd ~/workspace/rete/porta && grep -n "func (s \*Store) Ingest" internal/space/store.go
 ```
 
 Adjust the two `Ingest` calls (and any `storeAtClock` helper name) to match what is actually
@@ -685,7 +685,7 @@ there; the rest of the test stands.
 - [x] **Step 2: Run it and watch it fail**
 
 ```bash
-cd /home/david/workspace/rete/porta && go test ./internal/space/ -run DeclaredBudget -v
+cd ~/workspace/rete/porta && go test ./internal/space/ -run DeclaredBudget -v
 ```
 
 Expected: FAIL to compile — `st.DeclaredBudget` undefined.
@@ -757,7 +757,7 @@ func (s *Store) DeclaredBudget(nodeID string) (int64, bool, error) {
 - [x] **Step 4: Run the tests and watch them pass**
 
 ```bash
-cd /home/david/workspace/rete/porta && go test ./internal/space/ -run DeclaredBudget -v
+cd ~/workspace/rete/porta && go test ./internal/space/ -run DeclaredBudget -v
 ```
 
 Expected: PASS, both tests and all five sub-tests.
@@ -765,8 +765,8 @@ Expected: PASS, both tests and all five sub-tests.
 - [x] **Step 5: Commit**
 
 ```bash
-cd /home/david/workspace/rete/porta && gofmt -l . && go test ./...
-cd /home/david/workspace/rete
+cd ~/workspace/rete/porta && gofmt -l . && go test ./...
+cd ~/workspace/rete
 git add porta/internal/space/store.go porta/internal/space/store_test.go
 git commit -m "feat(#231): porta can read the number the node declared
 
@@ -965,7 +965,7 @@ left behind is a compile error that reads like a regression.
 - [x] **Step 2: Run them and watch them fail**
 
 ```bash
-cd /home/david/workspace/rete/porta && go test ./internal/space/ -run Sweep -v
+cd ~/workspace/rete/porta && go test ./internal/space/ -run Sweep -v
 ```
 
 Expected: FAIL to compile — `changes[0].Verdict` and `st.EnsureNode` (check the real name with
@@ -1206,7 +1206,7 @@ In `sweep.go`'s doc comment, replace the I4/I5 block with:
 - [x] **Step 7: Run everything**
 
 ```bash
-cd /home/david/workspace/rete/porta && gofmt -l . && go test ./...
+cd ~/workspace/rete/porta && gofmt -l . && go test ./...
 ```
 
 Expected: PASS. `grep -rn "CadenceMs\|SilenceFactor\|MinExchanges\|cadence_ms" porta/` must
@@ -1215,14 +1215,14 @@ return nothing outside `docs/`.
 - [x] **Step 8: The host gate, then commit**
 
 ```bash
-cd /home/david/workspace/rete/nodus/tuvm && bash tests/porta_sync_host.sh
+cd ~/workspace/rete/nodus/tuvm && bash tests/porta_sync_host.sh
 ```
 
 Expected: `PORTA SYNC OK`. The store schema changed and the exchange path changed with it; this
 is the only host gate that runs a real node against a real `porta serve`.
 
 ```bash
-cd /home/david/workspace/rete
+cd ~/workspace/rete
 git add porta/
 git commit -m "feat(#231): porta judges the number the node declared, and infers nothing
 
@@ -1281,7 +1281,7 @@ Confirm the exact display form first — `porta get` formats a Record through `c
 this plan is guessing at `#cad: 2000`:
 
 ```bash
-cd /home/david/workspace/rete/porta && grep -n "Symbol" internal/cval/format.go
+cd ~/workspace/rete/porta && grep -n "Symbol" internal/cval/format.go
 ```
 
 Adjust both greps to whatever `Format` actually prints.
@@ -1312,7 +1312,7 @@ lands badly; record which you chose in the commit message.
 - [x] **Step 3: Run the gate**
 
 ```bash
-cd /home/david/workspace/rete/nodus/tuvm && bash tests/porta_sync_host.sh
+cd ~/workspace/rete/nodus/tuvm && bash tests/porta_sync_host.sh
 ```
 
 Expected: `PORTA SYNC OK`, with the two new lines printed.
@@ -1320,7 +1320,7 @@ Expected: `PORTA SYNC OK`, with the two new lines printed.
 - [x] **Step 4: Commit**
 
 ```bash
-cd /home/david/workspace/rete
+cd ~/workspace/rete
 git add nodus/tuvm/tests/porta_sync_host.sh
 git commit -m "test(#231): the declaration crosses the wire, and porta judges on it
 
@@ -1434,7 +1434,7 @@ If it does, give each sub-case its own path or reorder so the stream case runs l
 - [x] **Step 2: Run it and watch it fail**
 
 ```bash
-cd /home/david/workspace/rete/nodus/nsl && python3 tools/run-one.py ../tests/22_spacesync/19_liveness_goal.nsl B
+cd ~/workspace/rete/nodus/nsl && python3 tools/run-one.py ../tests/22_spacesync/19_liveness_goal.nsl B
 ```
 
 Expected: FAIL — `applyLivenessGoal` does not exist.
@@ -1493,8 +1493,8 @@ arriving on this tick is published on this tick rather than the next:
 - [x] **Step 4: Run the test and watch it pass**
 
 ```bash
-cd /home/david/workspace/rete/nodus/nsl && python3 tools/run-one.py ../tests/22_spacesync/19_liveness_goal.nsl B
-cd /home/david/workspace/rete/nodus/nsl && python3 tools/run_tests_oevm.py
+cd ~/workspace/rete/nodus/nsl && python3 tools/run-one.py ../tests/22_spacesync/19_liveness_goal.nsl B
+cd ~/workspace/rete/nodus/nsl && python3 tools/run_tests_oevm.py
 ```
 
 Expected: both PASS, `Failed: 0`.
@@ -1561,13 +1561,13 @@ porta's, and a node that "converged" by rewriting the goal would pass the first 
 - [x] **Step 7: Run the gate, then commit**
 
 ```bash
-cd /home/david/workspace/rete/nodus/tuvm && bash tests/porta_sync_host.sh
+cd ~/workspace/rete/nodus/tuvm && bash tests/porta_sync_host.sh
 ```
 
 Expected: `PORTA SYNC OK`.
 
 ```bash
-cd /home/david/workspace/rete
+cd ~/workspace/rete
 git add nodus/nsl/lib/kernel.nsl nodus/tests/22_spacesync/19_liveness_goal.nsl \
         nodus/tuvm/tests/porta_sync_host.sh porta/internal/cval/encode_test.go
 git commit -m "feat(#231): the operator asks, the node answers with what it adopted
@@ -1726,7 +1726,7 @@ func TestSweepAcrossAGatewayOutageIsUnknownAndNotSilent(t *testing.T) {
 - [x] **Step 2: Run them and watch them fail**
 
 ```bash
-cd /home/david/workspace/rete/porta && go test ./internal/space/ -run "WasDeaf|Outage" -v
+cd ~/workspace/rete/porta && go test ./internal/space/ -run "WasDeaf|Outage" -v
 ```
 
 Expected: FAIL to compile — `StartRun`, `MarkAlive`, `WasDeaf` undefined.
@@ -1906,8 +1906,8 @@ And in `sweepLiveness`, as the first statement of the `case <-t.C:` arm:
 - [x] **Step 7: Run everything**
 
 ```bash
-cd /home/david/workspace/rete/porta && gofmt -l . && go test ./...
-cd /home/david/workspace/rete/nodus/tuvm && bash tests/porta_sync_host.sh
+cd ~/workspace/rete/porta && gofmt -l . && go test ./...
+cd ~/workspace/rete/nodus/tuvm && bash tests/porta_sync_host.sh
 ```
 
 Expected: PASS, and `PORTA SYNC OK`.
@@ -1917,7 +1917,7 @@ Expected: PASS, and `PORTA SYNC OK`.
 The design names this scenario explicitly, and it has already happened once for real:
 
 ```bash
-cd /home/david/workspace/rete/porta
+cd ~/workspace/rete/porta
 rm -f /tmp/deaf.db
 go build -o /tmp/porta ./cmd/porta
 /tmp/porta serve --db /tmp/deaf.db --udp 127.0.0.1:16999 --http-port 0 &
@@ -1934,7 +1934,7 @@ same shape is provable with `porta put --raw` writing an `obs/liveness` and a ha
 - [x] **Step 9: Commit**
 
 ```bash
-cd /home/david/workspace/rete
+cd ~/workspace/rete
 git add porta/
 git commit -m "feat(#231,#225): the gateway records when it was not listening
 
@@ -2031,7 +2031,7 @@ kernel heartbeat and D3's coalescing are designed and unbuilt.** Name the plan f
 - [x] **Step 4: Close the issues, with evidence and with the deviations named**
 
 ```bash
-cd /home/david/workspace/rete
+cd ~/workspace/rete
 gh issue comment 220 --body "..."   # closed: the fast node's 3 x cadence deadline is gone with the inference
 gh issue comment 225 --body "..."   # gateway half closed by D6; node half needed nothing and never did
 gh issue comment 152 --body "..."   # a sink can now tell a dead node from a quiet one: the node says which
@@ -2105,8 +2105,8 @@ The bench changes between sessions. Confirm which boards are attached and which 
 `TARGET_DEFAULT_BOARD` **through the collector env files**, never from a table:
 
 ```bash
-ls /home/david/workspace/rete/nodus/tuvm/tests/target/*.env
-grep -rn "TARGET_DEFAULT_BOARD" /home/david/workspace/rete/nodus/tuvm/tests/target/lib/
+ls ~/workspace/rete/nodus/tuvm/tests/target/*.env
+grep -rn "TARGET_DEFAULT_BOARD" ~/workspace/rete/nodus/tuvm/tests/target/lib/
 ```
 
 `CLASS=disruptive` means a disposable board only. Do not point this at the bell.
@@ -2150,7 +2150,7 @@ window that reaches its verdict before the evidence arrives is #223's exact defe
 - [x] **Step 5: Run it on the board**
 
 ```bash
-cd /home/david/workspace/rete/nodus/tuvm/tests/target && ./run.sh liveness-heartbeat
+cd ~/workspace/rete/nodus/tuvm/tests/target && ./run.sh liveness-heartbeat
 ```
 
 Then run the two scenarios most likely to regress from a kernel-owned timer — `wedge-quiet`
@@ -2178,7 +2178,7 @@ the next session budgets board time from.
 - [x] **Step 7: Commit and close #231**
 
 ```bash
-cd /home/david/workspace/rete
+cd ~/workspace/rete
 git add nodus/ CLAUDE.md
 git commit -m "feat(#231): the kernel owns the heartbeat, so its absence means something
 

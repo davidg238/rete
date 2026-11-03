@@ -239,7 +239,7 @@ Model B bake — not at argument parsing.
 bash zephyr/run.sh --board esp32c6 --model B --node TimerNode.nsl 2>&1 | tail -3
 ```
 
-Expected: `missing /home/david/workspace/tuvm/zephyr/layout-esp32c6.json — run the layoutdump app (stage 0) for esp32c6`
+Expected: `missing ~/workspace/tuvm/zephyr/layout-esp32c6.json — run the layoutdump app (stage 0) for esp32c6`
 
 - [ ] **Step 7: Commit**
 

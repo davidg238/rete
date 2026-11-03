@@ -303,7 +303,7 @@ is ever wanted as universal Object protocol, carve out a documented read-only su
 All three reference systems were **source-verified** for this design: the Bracha & Ungar
 paper read in full (OOPSLA 2004, *"Mirrors: Design Principles for Meta-level Facilities of
 Object-Oriented Programming Languages"*; Most Influential Paper, OOPSLA 2014), and the SOMns
-(`/home/david/workspace/SOMns`) and PrimordialSoup (`/home/david/workspace/primordialsoup`)
+(`~/workspace/SOMns`) and PrimordialSoup (`~/workspace/primordialsoup`)
 reflection implementations read from their actual sources.
 
 ### 11.1 The three mirror principles vs. this design

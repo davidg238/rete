@@ -101,7 +101,7 @@ int main(void) {
 
 Run:
 ```bash
-cd /home/david/workspace/oevm
+cd ~/workspace/oevm
 gcc -std=c99 -Isrc -DOEVM_HEAP_SIZE=65536 tests/test_gc_trigger.c \
     src/vm.c src/gc.c src/dispatch.c src/oimg_loader.c src/solidified_image.c \
     -lm -o /tmp/tgct
@@ -173,7 +173,7 @@ add the conservative scan so it participates as a root source:
 
 Run:
 ```bash
-cd /home/david/workspace/oevm
+cd ~/workspace/oevm
 gcc -std=c99 -Isrc -DOEVM_HEAP_SIZE=65536 tests/test_gc_trigger.c \
     src/vm.c src/gc.c src/dispatch.c src/oimg_loader.c src/solidified_image.c \
     -lm -o /tmp/tgct && /tmp/tgct
@@ -187,7 +187,7 @@ ALL TESTS PASSED
 - [ ] **Step 5: Commit**
 
 ```bash
-cd /home/david/workspace/oevm
+cd ~/workspace/oevm
 git add src/gc.c tests/test_gc_trigger.c
 git commit -m "feat(gc): conservative C-stack scan as a GC root source (W1 step 1)"
 ```
@@ -252,7 +252,7 @@ Call it from `main` after the first assertion:
 
 Run:
 ```bash
-cd /home/david/workspace/oevm
+cd ~/workspace/oevm
 gcc -std=c99 -Isrc -DOEVM_HEAP_SIZE=65536 tests/test_gc_trigger.c \
     src/vm.c src/gc.c src/dispatch.c src/oimg_loader.c src/solidified_image.c \
     -lm -o /tmp/tgct && /tmp/tgct
@@ -339,7 +339,7 @@ oop gc_allocate(oop vtable, size_t size) {
 
 Run:
 ```bash
-cd /home/david/workspace/oevm
+cd ~/workspace/oevm
 gcc -std=c99 -Isrc -DOEVM_HEAP_SIZE=65536 tests/test_gc_trigger.c \
     src/vm.c src/gc.c src/dispatch.c src/oimg_loader.c src/solidified_image.c \
     -lm -o /tmp/tgct && /tmp/tgct
@@ -355,7 +355,7 @@ ALL TESTS PASSED
 
 Run:
 ```bash
-cd /home/david/workspace/oevm
+cd ~/workspace/oevm
 gcc -std=c99 -Isrc tests/test_arena.c \
     src/vm.c src/gc.c src/dispatch.c src/oimg_loader.c src/solidified_image.c \
     -lm -o /tmp/ta && /tmp/ta
@@ -367,7 +367,7 @@ reach it when the live set truly exceeds the arena).
 - [ ] **Step 6: Commit**
 
 ```bash
-cd /home/david/workspace/oevm
+cd ~/workspace/oevm
 git add src/gc.c tests/test_gc_trigger.c
 git commit -m "feat(gc): exhaustion-triggered collect-and-retry in gc_allocate (W1 step 2)"
 ```
@@ -420,7 +420,7 @@ As the FIRST statement inside `main` (line 18), before the `argc` check:
 
 Run:
 ```bash
-cd /home/david/workspace/oevm
+cd ~/workspace/oevm
 # Model A
 gcc -Wall -Wextra -std=c99 -DOEVM_APPLIANCE \
     src/vm.c src/gc.c src/dispatch.c src/solidified_image.c src/oevm_main.c \
@@ -436,7 +436,7 @@ Expected: both compile with no errors (warnings about the unused
 - [ ] **Step 4: Commit**
 
 ```bash
-cd /home/david/workspace/oevm
+cd ~/workspace/oevm
 git add src/oevm_main.c oevm_image_main.c
 git commit -m "feat(gc): capture C stack base at VM entry for conservative scan (W1 step 3)"
 ```
@@ -462,7 +462,7 @@ because the conservative C-stack scan already covers stack-resident locals.
 
 Run:
 ```bash
-cd /home/david/workspace/oevm
+cd ~/workspace/oevm
 grep -n "gc_allocate\|float_alloc" src/dispatch.c src/vm.c
 ```
 Expected: ~24 sites in `dispatch.c`, ~12 in `vm.c`. (The `oimg_loader.c` /
@@ -511,7 +511,7 @@ code changed, skip.
 - [ ] **Step 5: Commit**
 
 ```bash
-cd /home/david/workspace/oevm
+cd ~/workspace/oevm
 git add docs/superpowers/notes/2026-06-18-w1-rooting-audit.md
 # add src files only if a root was required:
 # git add src/dispatch.c src/vm.c
@@ -543,7 +543,7 @@ Run (cap the managed arena well below the no-GC churn ceiling so collection
 MUST trigger; 1 MB is comfortably above the live set but far below 100k arrays'
 cumulative size):
 ```bash
-cd /home/david/workspace/ns-oevm
+cd ~/workspace/ns-oevm
 OEVM_PATH=AB OEVM_EXTRA_CFLAGS="-DOEVM_HEAP_SIZE=1048576" \
   python3 tools/run_tests_oevm.py 06_limit_tests/05_gc_stress.ns
 ```
@@ -555,7 +555,7 @@ the cap and record the smallest cap that passes.
 
 Run:
 ```bash
-cd /home/david/workspace/ns-oevm
+cd ~/workspace/ns-oevm
 OEVM_PATH=AB python3 tools/run_tests_oevm.py
 ```
 Expected: **47 pass / 0 fail / 1 skip** on both Model A and Model B, unchanged.
@@ -564,7 +564,7 @@ Expected: **47 pass / 0 fail / 1 skip** on both Model A and Model B, unchanged.
 
 Run:
 ```bash
-cd /home/david/workspace/oevm
+cd ~/workspace/oevm
 bash tests/test_portability_32.sh
 ```
 Expected: passes as before (the conservative scan uses `sizeof(void*)` stride,
@@ -574,7 +574,7 @@ so it is pointer-width-correct under `-m32`).
 
 Run:
 ```bash
-cd /home/david/workspace/oevm
+cd ~/workspace/oevm
 gcc -std=c99 -Isrc -DOEVM_HEAP_SIZE=65536 tests/test_gc_trigger.c \
     src/vm.c src/gc.c src/dispatch.c src/oimg_loader.c src/solidified_image.c \
     -lm -o /tmp/tgct && /tmp/tgct
@@ -595,7 +595,7 @@ Use the smallest passing cap from Step 2 as `<cap>`.
 - [ ] **Step 7: Commit**
 
 ```bash
-cd /home/david/workspace/oevm
+cd ~/workspace/oevm
 git add nodus/oevm/docs/optimizations.md nodus/oevm/docs/archive/ROADMAP.md
 git commit -m "docs(gp0): W1 GC trigger + rooting done; gc_stress bounded under capped heap"
 ```

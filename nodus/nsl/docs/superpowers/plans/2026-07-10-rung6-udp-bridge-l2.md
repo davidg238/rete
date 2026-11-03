@@ -17,9 +17,9 @@
 - **Controller owns every full-suite run.** Implementers run single-file / host checks foreground only; the controller runs `OEVM_PATH=AB` and the five named gates.
 - **`solidified_image.c` is a generated artifact** shared by other tests. Baking a native_sim node CLOBBERS `tuvm/src/solidified_image.c` + `.stmap`; ALWAYS restore before committing anything in tuvm:
   ```bash
-  git -C /home/david/workspace/tuvm checkout -- src/solidified_image.c src/solidified_image.stmap
+  git -C ~/workspace/tuvm checkout -- src/solidified_image.c src/solidified_image.stmap
   ```
-- **Zephyr build needs the SDK env** sourced each shell: `source /home/david/workspace/ns-zephyr/tools/env.sh`. native_sim exe path is nested: `build/zephyr/zephyr.exe`.
+- **Zephyr build needs the SDK env** sourced each shell: `source ~/workspace/ns-zephyr/tools/env.sh`. native_sim exe path is nested: `build/zephyr/zephyr.exe`.
 - **Footprint moves this rung** (C changes — `udp.c`). Re-measure and **re-bank if it moved — no silent ratchet**. Baseline: `tuvm/tools/footprint-mcu-baseline.txt` (text 29182 / data_bss 69036).
 - **Commit-message trailer** on every commit:
   ```
@@ -102,7 +102,7 @@ class UdpTest usingPlatform: platform net: net = () (
 
 - [ ] **Step 2: Run it to verify it fails**
 
-Run: `cd /home/david/workspace/nsl-tuvm && OEVM_PATH=A python3 tools/run_tests_oevm.py 42_udp`
+Run: `cd ~/workspace/nsl-tuvm && OEVM_PATH=A python3 tools/run_tests_oevm.py 42_udp`
 Expected: FAIL — the send prim currently reads `args[3]` as bytes fine, but `Socket>>sendTo:` has not yet been changed to unwrap a `Bytes` (it forwards the `Bytes` *wrapper* to `basicSend:`, which mis-reads an `ObjectInstance` as `struct String`), and `dg data` is still a `String` from `basicReceive:` so `dg data = ping` (Bytes) is false. (Either symptom is an acceptable pre-implementation failure.)
 
 - [ ] **Step 3: Add `udp_make_bytes` and switch the data slot in `tuvm/src/udp.c`**
@@ -162,7 +162,7 @@ In `class Socket` (lines 980-991), change `sendTo:` to unwrap and `receive` to w
 
 - [ ] **Step 5: Run the migrated test to verify it passes (both paths)**
 
-Run: `cd /home/david/workspace/nsl-tuvm && OEVM_PATH=AB python3 tools/run_tests_oevm.py 42_udp`
+Run: `cd ~/workspace/nsl-tuvm && OEVM_PATH=AB python3 tools/run_tests_oevm.py 42_udp`
 Expected: PASS on Path A and Path B — `UDP OK`, both v4 and v6 loopback, `dg data = ping` true (Bytes value-equal). Also confirm `43_udp_confined.ns` still passes (it never reaches the send, so the new type is irrelevant):
 Run: `OEVM_PATH=AB python3 tools/run_tests_oevm.py 43_udp_confined`
 Expected: PASS both paths (runtime DNU on `net` as before).
@@ -170,7 +170,7 @@ Expected: PASS both paths (runtime DNU on `net` as before).
 - [ ] **Step 6: Commit (three repos)**
 
 ```bash
-cd /home/david/workspace/tuvm && git add src/udp.c && git commit -m "feat(rung6): UDP datagram payload = RawBytes leaf, not String
+cd ~/workspace/tuvm && git add src/udp.c && git commit -m "feat(rung6): UDP datagram payload = RawBytes leaf, not String
 
 basicReceive: builds its data slot as a RawBytes leaf (distinct vtable, same
 {length,bytes} layout) so a datagram reads back as an immutable Bytes in nsl —
@@ -179,7 +179,7 @@ layout). Host slot stays a String (the sender host IS text).
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 
-cd /home/david/workspace/nsl-tuvm && git add lib/kernel.ns && git commit -m "feat(rung6): Socket payload = immutable Bytes; Bytes>>rawLeaf send seam
+cd ~/workspace/nsl-tuvm && git add lib/kernel.ns && git commit -m "feat(rung6): Socket payload = immutable Bytes; Bytes>>rawLeaf send seam
 
 Socket>>sendTo:port:data: takes a Bytes and passes its raw leaf to basicSend:
 via a module-internal Bytes>>rawLeaf (non-public, same confinement as
@@ -189,7 +189,7 @@ Datagram>>data answers an immutable Bytes. The L1-deferred immutability seam.
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 
-cd /home/david/workspace/nsl-tests && git add 04_somns_basic/42_udp.ns && git commit -m "test(rung6): 42_udp payload migrated String 'ping' -> 4-byte Bytes
+cd ~/workspace/nsl-tests && git add 04_somns_basic/42_udp.ns && git commit -m "test(rung6): 42_udp payload migrated String 'ping' -> 4-byte Bytes
 
 The L1 net round-trip now carries an immutable Bytes payload (Rung 6 seam).
 43_udp_confined unchanged — it DNUs on net before the send, so payload type is
@@ -293,7 +293,7 @@ class UdpBridgeTest usingPlatform: platform net: net = () (
 
 - [ ] **Step 2: Run it to verify it fails**
 
-Run: `cd /home/david/workspace/nsl-tuvm && OEVM_PATH=A python3 tools/run_tests_oevm.py 45_udp_bridge`
+Run: `cd ~/workspace/nsl-tuvm && OEVM_PATH=A python3 tools/run_tests_oevm.py 45_udp_bridge`
 Expected: FAIL — `platform NetBridge` is `doesNotUnderstand` (class + accessor not yet added).
 
 - [ ] **Step 3: Add `class NetBridge` to `nsl-tuvm/lib/kernel.ns`**
@@ -343,13 +343,13 @@ In the accessor block, after `public ByteArray` (line 1736):
 
 - [ ] **Step 5: Run the test to verify it passes (both paths)**
 
-Run: `cd /home/david/workspace/nsl-tuvm && OEVM_PATH=AB python3 tools/run_tests_oevm.py 45_udp_bridge`
+Run: `cd ~/workspace/nsl-tuvm && OEVM_PATH=AB python3 tools/run_tests_oevm.py 45_udp_bridge`
 Expected: PASS on Path A and Path B — prints `a->b ok` / `b->a ok` / `survived garbage` / `BRIDGE OK`.
 
 - [ ] **Step 6: Commit (two repos)**
 
 ```bash
-cd /home/david/workspace/nsl-tuvm && git add lib/kernel.ns && git commit -m "feat(rung6): NetBridge — reactive channel<->UDP bridge (CBOR)
+cd ~/workspace/nsl-tuvm && git add lib/kernel.ns && git commit -m "feat(rung6): NetBridge — reactive channel<->UDP bridge (CBOR)
 
 Outbound: a drain-time reaction encodes each `out`-channel post to CBOR and
 sendTo:s the peer. Inbound: pumpInbound receives-until-empty, CBOR-decodes, and
@@ -359,7 +359,7 @@ stays an explicit call (rule-of-three; no unified-pump registry this rung).
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 
-cd /home/david/workspace/nsl-tests && git add 04_somns_basic/45_udp_bridge.ns && git commit -m "test(rung6): bidirectional NetBridge round-trip over UDP loopback + garbage drop
+cd ~/workspace/nsl-tests && git add 04_somns_basic/45_udp_bridge.ns && git commit -m "test(rung6): bidirectional NetBridge round-trip over UDP loopback + garbage drop
 
 Two bridges A<->B in one Space: a Record round-trips encode->UDP->decode->
 reaction both directions (value-equal), and a non-CBOR garbage datagram is
@@ -456,9 +456,9 @@ class NetBridgeNode usingPlatform: platform net: net = () (
 Copy each node into the nsl-tests tree transiently OR run via the solidifier + host VM per the project's Model-A single-file recipe. The lightweight check: bake and run on host Path A.
 
 ```bash
-cd /home/david/workspace/nsl-tuvm
-python3 tools/ns_compile_oevm.py /home/david/workspace/tuvm/zephyr/NetBridgeNode.ns /home/david/workspace/tuvm/src/solidified_image.c
-cd /home/david/workspace/tuvm && cc -I src src/*.c src/backend/posix/*.c -o /tmp/rung6_host 2>/tmp/rung6_host_build.log && /tmp/rung6_host 2>&1 | tee /tmp/rung6_host.log
+cd ~/workspace/nsl-tuvm
+python3 tools/ns_compile_oevm.py ~/workspace/tuvm/zephyr/NetBridgeNode.ns ~/workspace/tuvm/src/solidified_image.c
+cd ~/workspace/tuvm && cc -I src src/*.c src/backend/posix/*.c -o /tmp/rung6_host 2>/tmp/rung6_host_build.log && /tmp/rung6_host 2>&1 | tee /tmp/rung6_host.log
 grep -q 'BRIDGE OK' /tmp/rung6_host.log && echo HOST_PASS || echo HOST_FAIL
 git checkout -- src/solidified_image.c src/solidified_image.stmap
 ```
@@ -468,7 +468,7 @@ Expected: `HOST_PASS`. (If the compile line differs from this repo's Model-A hos
 - [ ] **Step 4: Verify the CBOR prims are in the native_sim build list (watch-item §6)**
 
 ```bash
-cd /home/david/workspace/tuvm
+cd ~/workspace/tuvm
 grep -n 'platform.c' zephyr/CMakeLists.txt
 ```
 
@@ -477,10 +477,10 @@ Expected: `zephyr/CMakeLists.txt` compiles `src/platform.c` (whole file → the 
 - [ ] **Step 5: Bake `NetBridgeNode.ns` and build native_sim**
 
 ```bash
-source /home/david/workspace/ns-zephyr/tools/env.sh
-cd /home/david/workspace/nsl-tuvm
-python3 tools/ns_compile_oevm.py /home/david/workspace/tuvm/zephyr/NetBridgeNode.ns /home/david/workspace/tuvm/src/solidified_image.c
-cd /home/david/workspace/tuvm/zephyr
+source ~/workspace/ns-zephyr/tools/env.sh
+cd ~/workspace/nsl-tuvm
+python3 tools/ns_compile_oevm.py ~/workspace/tuvm/zephyr/NetBridgeNode.ns ~/workspace/tuvm/src/solidified_image.c
+cd ~/workspace/tuvm/zephyr
 west build -b native_sim -p always . 2>&1 | tee /tmp/rung6_build.log | tail -20
 ```
 
@@ -489,7 +489,7 @@ Expected: `west build` completes. If it fails on a missing CBOR/space symbol, ad
 - [ ] **Step 6: Run native_sim and observe the round-trip**
 
 ```bash
-cd /home/david/workspace/tuvm/zephyr
+cd ~/workspace/tuvm/zephyr
 timeout 8 ./build/zephyr/zephyr.exe 2>&1 | tee /tmp/rung6_run.log
 grep -q 'BRIDGE OK' /tmp/rung6_run.log && echo GATE_PASS || echo GATE_FAIL
 ```
@@ -499,7 +499,7 @@ Expected: `GATE_PASS` — a CBOR `Record` round-tripped over NSOS loopback throu
 - [ ] **Step 7: Restore the clobbered generated image (MANDATORY before any commit)**
 
 ```bash
-cd /home/david/workspace/tuvm
+cd ~/workspace/tuvm
 git checkout -- src/solidified_image.c src/solidified_image.stmap
 git status --short   # expect ONLY zephyr/NetBridgeNode.ns (new) + zephyr/NetNode.ns (modified); maybe prj.conf/udp_zephyr.c if a native_sim fix was needed
 ```
@@ -509,7 +509,7 @@ Expected: `src/solidified_image.c`/`.stmap` clean; only the intended `zephyr/` c
 - [ ] **Step 8: Commit (tuvm)**
 
 ```bash
-cd /home/david/workspace/tuvm
+cd ~/workspace/tuvm
 git add zephyr/NetBridgeNode.ns zephyr/NetNode.ns
 # add ONLY if a native_sim fix was needed: git add zephyr/prj.conf src/backend/zephyr/udp_zephyr.c
 git commit -m "feat(rung6): native_sim bidirectional NetBridge round-trip gate
@@ -536,7 +536,7 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 
 - [ ] **Step 1: Run the full both-path suite (controller-owned)**
 
-Run: `cd /home/david/workspace/nsl-tuvm && OEVM_PATH=AB python3 tools/run_tests_oevm.py`
+Run: `cd ~/workspace/nsl-tuvm && OEVM_PATH=AB python3 tools/run_tests_oevm.py`
 Expected: the prior baseline count **+1 test** (the new `45_udp_bridge.ns`), 0 failed, skips unchanged — both paths. Record the exact passed/failed/skipped from the run (do not assume; the baseline was 179/0/12 at rung 5 — expect **180/0/12** if no other tests changed).
 
 - [ ] **Step 2: Run the five named gates (controller-owned)**
@@ -547,8 +547,8 @@ Expected: grant / debugger-integration / portability-32 / boot-gc-asan PASS. The
 - [ ] **Step 3: Re-measure and re-bank the footprint if it moved (no silent ratchet)**
 
 ```bash
-cd /home/david/workspace/tuvm
-source /home/david/workspace/ns-zephyr/tools/env.sh
+cd ~/workspace/tuvm
+source ~/workspace/ns-zephyr/tools/env.sh
 FOOTPRINT_CONFIG=mcu ./tools/footprint.sh 2>&1 | tail -5
 git diff tools/footprint-mcu-baseline.txt
 ```
@@ -571,15 +571,15 @@ printing `BRIDGE OK`. Model A; reuses this directory's `main.c`/`CMakeLists.txt`
 
 ## Build + run
 
-    source /home/david/workspace/ns-zephyr/tools/env.sh
-    cd /home/david/workspace/nsl-tuvm
+    source ~/workspace/ns-zephyr/tools/env.sh
+    cd ~/workspace/nsl-tuvm
     python3 tools/ns_compile_oevm.py \
-      /home/david/workspace/tuvm/zephyr/NetBridgeNode.ns \
-      /home/david/workspace/tuvm/src/solidified_image.c
-    cd /home/david/workspace/tuvm/zephyr
+      ~/workspace/tuvm/zephyr/NetBridgeNode.ns \
+      ~/workspace/tuvm/src/solidified_image.c
+    cd ~/workspace/tuvm/zephyr
     west build -b native_sim -p always .
     timeout 8 ./build/zephyr/zephyr.exe   # expect a line: BRIDGE OK
-    cd /home/david/workspace/tuvm
+    cd ~/workspace/tuvm
     git checkout -- src/solidified_image.c src/solidified_image.stmap
 ```
 
@@ -598,7 +598,7 @@ named. Stream-transport framing (serial/tcp) named (see rung-6 design §7).
 - [ ] **Step 6: Add the dialect/vocabulary note**
 
 ```bash
-grep -rln 'net' /home/david/workspace/nsl-tuvm/docs/NEWSPEAK_DIALECT.md 2>/dev/null
+grep -rln 'net' ~/workspace/nsl-tuvm/docs/NEWSPEAK_DIALECT.md 2>/dev/null
 ```
 
 If `NEWSPEAK_DIALECT.md` owns the `net`/`serial` capability vocabulary, add a one-line `NetBridge` note beside the `net` entry (the reactive channel↔UDP bridge; CBOR wire; drop-on-malformed). Otherwise add the line to the tests README net section. Do NOT invent a new doc.
@@ -610,7 +610,7 @@ Verify `docs/design/2026-07-10-rung6-udp-bridge-l2-design.md` §7 is present and
 - [ ] **Step 8: Commit the close (tuvm + nsl-tuvm as touched)**
 
 ```bash
-cd /home/david/workspace/tuvm
+cd ~/workspace/tuvm
 git add zephyr/README.md review/program-sequence.md
 # add tools/footprint-mcu-baseline.txt ONLY if it moved (Step 3)
 git commit -m "docs(rung6): close — native_sim bridge gate README, program-sequence Layer 2 done$(: 'append: + footprint re-bank if moved')
@@ -618,7 +618,7 @@ git commit -m "docs(rung6): close — native_sim bridge gate README, program-seq
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 
 # if the dialect doc lives in nsl-tuvm and was edited:
-cd /home/david/workspace/nsl-tuvm
+cd ~/workspace/nsl-tuvm
 git add docs/NEWSPEAK_DIALECT.md 2>/dev/null && git commit -m "docs(rung6): NetBridge vocabulary note
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>" || true

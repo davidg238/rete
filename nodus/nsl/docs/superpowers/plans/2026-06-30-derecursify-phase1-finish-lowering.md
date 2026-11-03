@@ -10,8 +10,8 @@
 
 ## Global Constraints
 
-- **Repos & cwd:** VM edits in `/home/david/workspace/oevm` (`src/`). Compiler/generator/plan edits in `/home/david/workspace/ns-oevm`. Run the suite from the `ns-oevm` cwd.
-- **Both image paths, every task:** `cd /home/david/workspace/ns-oevm && OEVM_PATH=AB python3 tools/run_tests_oevm.py` must pass with **no new failures** vs. the pre-Phase-1 baseline (currently **73/0/6**). Path A = solidified-C image; Path B = `.oimg` image-VM. Both carry raw bytecode unchanged, so a new opcode only needs: (a) compiler emits it, (b) `enum Opcode` in `oevm.h` defines it, (c) `vm.c` handles it. There is NO separate serializer change for a new opcode number.
+- **Repos & cwd:** VM edits in `~/workspace/oevm` (`src/`). Compiler/generator/plan edits in `~/workspace/ns-oevm`. Run the suite from the `ns-oevm` cwd.
+- **Both image paths, every task:** `cd ~/workspace/ns-oevm && OEVM_PATH=AB python3 tools/run_tests_oevm.py` must pass with **no new failures** vs. the pre-Phase-1 baseline (currently **73/0/6**). Path A = solidified-C image; Path B = `.oimg` image-VM. Both carry raw bytecode unchanged, so a new opcode only needs: (a) compiler emits it, (b) `enum Opcode` in `oevm.h` defines it, (c) `vm.c` handles it. There is NO separate serializer change for a new opcode number.
 - **Opcode numbering:** the next free opcode is `0x16` (`OP_LD_SENDER = 0x15` is the current max). Use `OP_BLOCK_INVOKE = 0x16`. The number MUST be identical in `oevm/src/oevm.h` (`enum Opcode`) and `ns-oevm/tools/ns_compile_oevm.py` (the `OP_*` constants block, lines 10–29).
 - **Engine stays recursive in Phase 1.** Do NOT touch the flat-loop flip, the Zephyr hijack, ucontext, `unwind_target_*`, or fibers here — those are Phase 2/3.
 - **Behavior-equivalence is the oracle.** Every lowering must match the semantics of the primitive it replaces (result value AND side effects). The relevant equivalences are quoted inline per task.
@@ -28,17 +28,17 @@
 
 - [ ] **Step 1: Record the current green baseline (both paths)**
 
-Run: `cd /home/david/workspace/ns-oevm && OEVM_PATH=AB python3 tools/run_tests_oevm.py 2>&1 | tail -5`
+Run: `cd ~/workspace/ns-oevm && OEVM_PATH=AB python3 tools/run_tests_oevm.py 2>&1 | tail -5`
 Expected: a pass/fail/skip summary (baseline is 73/0/6). Write the exact numbers into your working notes — every later task compares against them.
 
 - [ ] **Step 2: Confirm the block-invoking primitives that Phase 1 will delete still exist**
 
-Run: `cd /home/david/workspace/oevm && grep -nE 'case PRIM_(to_do|to_by_do|ifTrue|ifFalse|ifTrueIfFalse):' src/dispatch.c`
+Run: `cd ~/workspace/oevm && grep -nE 'case PRIM_(to_do|to_by_do|ifTrue|ifFalse|ifTrueIfFalse):' src/dispatch.c`
 Expected: five `case` lines. These are the deletion targets (Tasks 2–4). If the set differs, reconcile with the design before proceeding.
 
 - [ ] **Step 3: Survey reflective combinator sends (deletion-safety check)**
 
-Run: `cd /home/david/workspace/ns-oevm && grep -rnE "perform:.*#(ifTrue|ifFalse|to:do|to:by:do|and|or|whileTrue|whileFalse)" ../ns-tests 2>/dev/null; echo "exit=$?"`
+Run: `cd ~/workspace/ns-oevm && grep -rnE "perform:.*#(ifTrue|ifFalse|to:do|to:by:do|and|or|whileTrue|whileFalse)" ../ns-tests 2>/dev/null; echo "exit=$?"`
 Expected: no matches (`exit=1`). If any suite code sends these selectors reflectively via `perform:`, note it — deleting the C primitive would turn that into a `doesNotUnderstand`, and that case must instead be handled by an image-level method. (No matches ⇒ deletion is safe.)
 
 ---
@@ -46,10 +46,10 @@ Expected: no matches (`exit=1`). If any suite code sends these selectors reflect
 ### Task 1: `OP_BLOCK_INVOKE` opcode + recursive-engine handler + route `value`-family sends to it
 
 **Files:**
-- Modify: `/home/david/workspace/oevm/src/oevm.h` (the `enum Opcode` block — add `OP_BLOCK_INVOKE = 0x16`)
-- Modify: `/home/david/workspace/oevm/src/vm.c` (add `case OP_BLOCK_INVOKE:` to the `switch (op)` in `run_interpreter`)
-- Modify: `/home/david/workspace/ns-oevm/tools/ns_compile_oevm.py` (opcode constant + route `value`-family sends)
-- Test: `/home/david/workspace/ns-tests/<new>_block_invoke.ns` (a new suite file; match the existing suite naming/numbering — inspect `../ns-tests` for the next free number and the file conventions)
+- Modify: `~/workspace/oevm/src/oevm.h` (the `enum Opcode` block — add `OP_BLOCK_INVOKE = 0x16`)
+- Modify: `~/workspace/oevm/src/vm.c` (add `case OP_BLOCK_INVOKE:` to the `switch (op)` in `run_interpreter`)
+- Modify: `~/workspace/ns-oevm/tools/ns_compile_oevm.py` (opcode constant + route `value`-family sends)
+- Test: `~/workspace/ns-tests/<new>_block_invoke.ns` (a new suite file; match the existing suite naming/numbering — inspect `../ns-tests` for the next free number and the file conventions)
 
 **Interfaces:**
 - Produces: `OP_BLOCK_INVOKE = 0x16` — operand layout **identical to `OP_SEND`**: `a` (bits 8–15) = argc, `b` (bits 16–23) = selector constant index, `c` (bits 24–31) = receiver register (also the result destination). Later tasks emit it via `self.emit_ABC(OP_BLOCK_INVOKE, argc, cidx, base)`.
@@ -71,12 +71,12 @@ Expected program output: `42`. Register the file in the suite's manifest the sam
 
 - [ ] **Step 2: Run the suite to confirm the new test PASSES on the current build (guards against a vacuous test)**
 
-Run: `cd /home/david/workspace/ns-oevm && OEVM_PATH=AB python3 tools/run_tests_oevm.py 2>&1 | grep -iE 'block_invoke|PASS|FAIL' | tail -5`
+Run: `cd ~/workspace/ns-oevm && OEVM_PATH=AB python3 tools/run_tests_oevm.py 2>&1 | grep -iE 'block_invoke|PASS|FAIL' | tail -5`
 Expected: the new test PASSES *today* (the value: send currently works via the intercept). This confirms the test is wired correctly before we change the compile path. (We are re-routing an already-working case through a new opcode; the behavioral guard is "still passes after re-routing", plus the both-paths gate.)
 
 - [ ] **Step 3: Add the opcode to the VM enum**
 
-In `/home/david/workspace/oevm/src/oevm.h`, in `enum Opcode`, add the new member after `OP_LD_SENDER = 0x15,`:
+In `~/workspace/oevm/src/oevm.h`, in `enum Opcode`, add the new member after `OP_LD_SENDER = 0x15,`:
 
 ```c
     OP_LD_SENDER  = 0x15,   /* dest, src1=ctx-reg : load prev_frame (sender) of the context in R(src1) */
@@ -86,7 +86,7 @@ In `/home/david/workspace/oevm/src/oevm.h`, in `enum Opcode`, add the new member
 
 - [ ] **Step 4: Add the opcode constant to the compiler**
 
-In `/home/david/workspace/ns-oevm/tools/ns_compile_oevm.py`, in the opcode-constants block (currently ending `OP_CLOSURE = 0x14` around line 29), add:
+In `~/workspace/ns-oevm/tools/ns_compile_oevm.py`, in the opcode-constants block (currently ending `OP_CLOSURE = 0x14` around line 29), add:
 
 ```python
 OP_LD_SENDER  = 0x15
@@ -97,7 +97,7 @@ OP_BLOCK_INVOKE = 0x16
 
 - [ ] **Step 5: Add the VM handler**
 
-In `/home/david/workspace/oevm/src/vm.c`, inside the `switch (op)` in `run_interpreter`, add a `case OP_BLOCK_INVOKE:` immediately after the existing `case OP_SEND:` block. It is a copy of the `OP_SEND` body with ONE change — the call site. Copy the `OP_SEND` case verbatim (including its `#ifdef __ZEPHYR__` reload block and its `if (unwind_target_reached)` check and the trailing `ctx->regs[src2] = result;`), and replace only the `oop result = send(target, selector, send_argc, send_args);` line with:
+In `~/workspace/oevm/src/vm.c`, inside the `switch (op)` in `run_interpreter`, add a `case OP_BLOCK_INVOKE:` immediately after the existing `case OP_SEND:` block. It is a copy of the `OP_SEND` body with ONE change — the call site. Copy the `OP_SEND` case verbatim (including its `#ifdef __ZEPHYR__` reload block and its `if (unwind_target_reached)` check and the trailing `ctx->regs[src2] = result;`), and replace only the `oop result = send(target, selector, send_argc, send_args);` line with:
 
 ```c
             case OP_BLOCK_INVOKE: {
@@ -131,7 +131,7 @@ The two commented regions MUST be filled by pasting the corresponding lines from
 
 - [ ] **Step 6: Route compiled `value`-family sends to `OP_BLOCK_INVOKE`**
 
-In `/home/david/workspace/ns-oevm/tools/ns_compile_oevm.py`, in the normal message-send path (the block that ends around line 686–689 with `self.emit_ABC(OP_SEND, len(args), cidx, rcvr_reg)`), detect the block-value selector family and emit `OP_BLOCK_INVOKE` instead. Add a small predicate helper on `MethodCompiler`:
+In `~/workspace/ns-oevm/tools/ns_compile_oevm.py`, in the normal message-send path (the block that ends around line 686–689 with `self.emit_ABC(OP_SEND, len(args), cidx, rcvr_reg)`), detect the block-value selector family and emit `OP_BLOCK_INVOKE` instead. Add a small predicate helper on `MethodCompiler`:
 
 ```python
     @staticmethod
@@ -158,17 +158,17 @@ Then at the send emit site, choose the opcode:
 
 - [ ] **Step 7: Rebuild both image paths and run the suite**
 
-Run: `cd /home/david/workspace/ns-oevm && OEVM_PATH=AB python3 tools/run_tests_oevm.py 2>&1 | tail -5`
+Run: `cd ~/workspace/ns-oevm && OEVM_PATH=AB python3 tools/run_tests_oevm.py 2>&1 | tail -5`
 Expected: same pass/fail/skip counts as the Task 0 baseline (73/0/6), including the new `block_invoke` test PASSING on BOTH paths. If Path A and Path B disagree, the opcode number is out of sync between `oevm.h` and `ns_compile_oevm.py` — fix and re-run.
 
 - [ ] **Step 8: Commit**
 
 ```bash
-cd /home/david/workspace/oevm && git add src/oevm.h src/vm.c && \
+cd ~/workspace/oevm && git add src/oevm.h src/vm.c && \
   git commit -m $'feat(derecursify): OP_BLOCK_INVOKE opcode + recursive-engine handler (Phase 1)\n\nCo-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>'
-cd /home/david/workspace/ns-oevm && git add tools/ns_compile_oevm.py && \
+cd ~/workspace/ns-oevm && git add tools/ns_compile_oevm.py && \
   git commit -m $'feat(derecursify): compile value-family sends to OP_BLOCK_INVOKE (Phase 1)\n\nCo-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>'
-cd /home/david/workspace/ns-tests && git add -A && \
+cd ~/workspace/ns-tests && git add -A && \
   git commit -m $'test(derecursify): non-literal block value: via OP_BLOCK_INVOKE\n\nCo-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>'
 ```
 
@@ -177,9 +177,9 @@ cd /home/david/workspace/ns-tests && git add -A && \
 ### Task 2: Lower non-literal if-family + `and:`/`or:` to `OP_BLOCK_INVOKE`; delete `PRIM_ifTrue`/`PRIM_ifFalse`/`PRIM_ifTrueIfFalse`
 
 **Files:**
-- Modify: `/home/david/workspace/ns-oevm/tools/ns_compile_oevm.py` (new `emit_block_value` helper; generalize `compile_if_inline` + `compile_logic_inline`; broaden the guards at lines 692–706)
-- Modify: `/home/david/workspace/oevm/src/dispatch.c` (delete `PRIM_ifTrue`, `PRIM_ifFalse`, `PRIM_ifTrueIfFalse` cases)
-- Test: `/home/david/workspace/ns-tests/<new>_ifTrue_nonliteral.ns`
+- Modify: `~/workspace/ns-oevm/tools/ns_compile_oevm.py` (new `emit_block_value` helper; generalize `compile_if_inline` + `compile_logic_inline`; broaden the guards at lines 692–706)
+- Modify: `~/workspace/oevm/src/dispatch.c` (delete `PRIM_ifTrue`, `PRIM_ifFalse`, `PRIM_ifTrueIfFalse` cases)
+- Test: `~/workspace/ns-tests/<new>_ifTrue_nonliteral.ns`
 
 **Interfaces:**
 - Consumes: `OP_BLOCK_INVOKE` (Task 1).
@@ -205,7 +205,7 @@ Expected output: `taken`. Register it in the suite manifest.
 
 - [ ] **Step 2: Run the suite to confirm the new test currently PASSES (via PRIM_ifTrue)**
 
-Run: `cd /home/david/workspace/ns-oevm && OEVM_PATH=AB python3 tools/run_tests_oevm.py 2>&1 | grep -iE 'ifTrue_nonliteral|FAIL' | tail -5`
+Run: `cd ~/workspace/ns-oevm && OEVM_PATH=AB python3 tools/run_tests_oevm.py 2>&1 | grep -iE 'ifTrue_nonliteral|FAIL' | tail -5`
 Expected: the new test PASSES today (it routes through `PRIM_ifTrue`, which recursively invokes the block). This is the behavior we must preserve after re-routing through bytecode + `OP_BLOCK_INVOKE`.
 
 - [ ] **Step 3: Add the `emit_block_value` helper**
@@ -283,21 +283,21 @@ with:
 
 - [ ] **Step 6: Delete the recursive if-family primitives**
 
-In `/home/david/workspace/oevm/src/dispatch.c`, delete the `case PRIM_ifTrueIfFalse:`, `case PRIM_ifTrue:`, and `case PRIM_ifFalse:` blocks (each currently recursively calls `run_interpreter` on an arm). Leave `PRIM_and`/`PRIM_or` handling as-is IF present (Task 0 found no `PRIM_and`/`PRIM_or` — non-literal `and:`/`or:` is now lowered by the compiler, so no C case is needed). If the switch requires every `PRIM_*` enum value to have a case (e.g. a `-Wswitch` build), route the deleted selectors to the default `does_not_understand` path rather than leaving a dangling label.
+In `~/workspace/oevm/src/dispatch.c`, delete the `case PRIM_ifTrueIfFalse:`, `case PRIM_ifTrue:`, and `case PRIM_ifFalse:` blocks (each currently recursively calls `run_interpreter` on an arm). Leave `PRIM_and`/`PRIM_or` handling as-is IF present (Task 0 found no `PRIM_and`/`PRIM_or` — non-literal `and:`/`or:` is now lowered by the compiler, so no C case is needed). If the switch requires every `PRIM_*` enum value to have a case (e.g. a `-Wswitch` build), route the deleted selectors to the default `does_not_understand` path rather than leaving a dangling label.
 
 - [ ] **Step 7: Rebuild + run the suite**
 
-Run: `cd /home/david/workspace/ns-oevm && OEVM_PATH=AB python3 tools/run_tests_oevm.py 2>&1 | tail -5`
+Run: `cd ~/workspace/ns-oevm && OEVM_PATH=AB python3 tools/run_tests_oevm.py 2>&1 | tail -5`
 Expected: baseline counts (73/0/6) plus the two new tests, no new failures, both paths. If a previously-green test now fails, it exercised a non-literal if-family case whose lowered value differs from the primitive — diff the expected vs. actual and reconcile the lowering to the equivalence in the Background note.
 
 - [ ] **Step 8: Commit**
 
 ```bash
-cd /home/david/workspace/oevm && git add src/dispatch.c && \
+cd ~/workspace/oevm && git add src/dispatch.c && \
   git commit -m $'refactor(derecursify): delete recursive PRIM_ifTrue/ifFalse/ifTrueIfFalse (Phase 1)\n\nCo-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>'
-cd /home/david/workspace/ns-oevm && git add tools/ns_compile_oevm.py && \
+cd ~/workspace/ns-oevm && git add tools/ns_compile_oevm.py && \
   git commit -m $'feat(derecursify): lower non-literal if-family + and:/or: via OP_BLOCK_INVOKE\n\nCo-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>'
-cd /home/david/workspace/ns-tests && git add -A && \
+cd ~/workspace/ns-tests && git add -A && \
   git commit -m $'test(derecursify): non-literal ifTrue: arm\n\nCo-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>'
 ```
 
@@ -306,9 +306,9 @@ cd /home/david/workspace/ns-tests && git add -A && \
 ### Task 3: Lower non-literal `to:do:` / `to:by:do:` to `OP_BLOCK_INVOKE`; delete `PRIM_to_do`/`PRIM_to_by_do`
 
 **Files:**
-- Modify: `/home/david/workspace/ns-oevm/tools/ns_compile_oevm.py` (generalize `compile_to_do_inline` for a non-literal body block; add a runtime-direction path for a non-literal step; broaden the guards at lines 708–732)
-- Modify: `/home/david/workspace/oevm/src/dispatch.c` (delete `PRIM_to_do`, `PRIM_to_by_do`)
-- Test: `/home/david/workspace/ns-tests/<new>_todo_nonliteral.ns`
+- Modify: `~/workspace/ns-oevm/tools/ns_compile_oevm.py` (generalize `compile_to_do_inline` for a non-literal body block; add a runtime-direction path for a non-literal step; broaden the guards at lines 708–732)
+- Modify: `~/workspace/oevm/src/dispatch.c` (delete `PRIM_to_do`, `PRIM_to_by_do`)
+- Test: `~/workspace/ns-tests/<new>_todo_nonliteral.ns`
 
 **Interfaces:**
 - Consumes: `OP_BLOCK_INVOKE` (Task 1), `emit_block_value` (Task 2).
@@ -332,7 +332,7 @@ Expected output: `10`. Register it.
 
 - [ ] **Step 2: Run the suite to confirm it currently PASSES (via PRIM_to_do)**
 
-Run: `cd /home/david/workspace/ns-oevm && OEVM_PATH=AB python3 tools/run_tests_oevm.py 2>&1 | grep -iE 'todo_nonliteral|FAIL' | tail -5`
+Run: `cd ~/workspace/ns-oevm && OEVM_PATH=AB python3 tools/run_tests_oevm.py 2>&1 | grep -iE 'todo_nonliteral|FAIL' | tail -5`
 Expected: PASSES today (routes through `PRIM_to_do`, which recursively invokes `body`).
 
 - [ ] **Step 3: Generalize `compile_to_do_inline` for a non-literal body block**
@@ -384,11 +384,11 @@ Note: `compile_to_do_inline`'s existing literal-step guard already rejects `by: 
 
 - [ ] **Step 6: Delete the recursive `to:do:`/`to:by:do:` primitives**
 
-In `/home/david/workspace/oevm/src/dispatch.c`, delete `case PRIM_to_do:` and `case PRIM_to_by_do:` (both recursively `run_interpreter` the block per iteration). As in Task 2 Step 6, if the build requires the enum value to have a case, route it to `does_not_understand`.
+In `~/workspace/oevm/src/dispatch.c`, delete `case PRIM_to_do:` and `case PRIM_to_by_do:` (both recursively `run_interpreter` the block per iteration). As in Task 2 Step 6, if the build requires the enum value to have a case, route it to `does_not_understand`.
 
 - [ ] **Step 7: Rebuild + run the suite**
 
-Run: `cd /home/david/workspace/ns-oevm && OEVM_PATH=AB python3 tools/run_tests_oevm.py 2>&1 | tail -5`
+Run: `cd ~/workspace/ns-oevm && OEVM_PATH=AB python3 tools/run_tests_oevm.py 2>&1 | tail -5`
 Expected: baseline + new tests, no new failures, both paths. Pay attention to any suite test using `to:by:do:` with a negative or non-literal step — those exercise the new runtime-direction path.
 
 - [ ] **Step 8: Commit** (three repos, as in Task 2 Step 8, with messages naming `to:do:`/`to:by:do:` lowering + `PRIM_to_do`/`PRIM_to_by_do` deletion + the `todo_nonliteral` test).
@@ -398,9 +398,9 @@ Expected: baseline + new tests, no new failures, both paths. Pay attention to an
 ### Task 4: Lower non-literal `whileTrue:` / `whileFalse:`; retire the `whileTrue:`/`whileFalse:` closure intercept
 
 **Files:**
-- Modify: `/home/david/workspace/ns-oevm/tools/ns_compile_oevm.py` (generalize `compile_loop_inline`; broaden the guard at lines 734–742)
-- Modify: `/home/david/workspace/oevm/src/dispatch.c` (delete the `whileTrue:`/`whileFalse:` branch of the `BytecodeClosureVtable` intercept)
-- Test: `/home/david/workspace/ns-tests/<new>_while_nonliteral.ns`
+- Modify: `~/workspace/ns-oevm/tools/ns_compile_oevm.py` (generalize `compile_loop_inline`; broaden the guard at lines 734–742)
+- Modify: `~/workspace/oevm/src/dispatch.c` (delete the `whileTrue:`/`whileFalse:` branch of the `BytecodeClosureVtable` intercept)
+- Test: `~/workspace/ns-tests/<new>_while_nonliteral.ns`
 
 **Interfaces:**
 - Consumes: `OP_BLOCK_INVOKE`, `emit_block_value`.
@@ -425,7 +425,7 @@ Expected output: `3`. Register it.
 
 - [ ] **Step 2: Run the suite to confirm it currently PASSES (via the intercept)**
 
-Run: `cd /home/david/workspace/ns-oevm && OEVM_PATH=AB python3 tools/run_tests_oevm.py 2>&1 | grep -iE 'while_nonliteral|FAIL' | tail -5`
+Run: `cd ~/workspace/ns-oevm && OEVM_PATH=AB python3 tools/run_tests_oevm.py 2>&1 | grep -iE 'while_nonliteral|FAIL' | tail -5`
 Expected: PASSES today (routes through the `whileTrue:` branch of the `dispatch.c` `BytecodeClosureVtable` intercept, which recursively invokes both blocks).
 
 - [ ] **Step 3: Generalize `compile_loop_inline` for non-literal cond/body**
@@ -448,11 +448,11 @@ Caution: `compile_loop_inline` treats `receiver` as the condition block and `arg
 
 - [ ] **Step 5: Retire the intercept's `whileTrue:`/`whileFalse:` branch**
 
-In `/home/david/workspace/oevm/src/dispatch.c`, inside the `if (receiver_vtable == BytecodeClosureVtable)` block, delete the `strcmp(sname, "whileTrue:") == 0` loop and its `whileFalse:` twin (they recursively `run_interpreter` the cond/body blocks). **Keep** the `value`-prefix branch (`strncmp(sname, "value", 5) == 0`) — it remains the reflective/`perform:`-send fallback for block invocation and is folded into the flat loop in Phase 2 (see "Deferred to Phase 2" below).
+In `~/workspace/oevm/src/dispatch.c`, inside the `if (receiver_vtable == BytecodeClosureVtable)` block, delete the `strcmp(sname, "whileTrue:") == 0` loop and its `whileFalse:` twin (they recursively `run_interpreter` the cond/body blocks). **Keep** the `value`-prefix branch (`strncmp(sname, "value", 5) == 0`) — it remains the reflective/`perform:`-send fallback for block invocation and is folded into the flat loop in Phase 2 (see "Deferred to Phase 2" below).
 
 - [ ] **Step 6: Rebuild + run the suite**
 
-Run: `cd /home/david/workspace/ns-oevm && OEVM_PATH=AB python3 tools/run_tests_oevm.py 2>&1 | tail -5`
+Run: `cd ~/workspace/ns-oevm && OEVM_PATH=AB python3 tools/run_tests_oevm.py 2>&1 | tail -5`
 Expected: baseline + all four new tests, no new failures, both paths.
 
 - [ ] **Step 7: Commit** (three repos, messages naming `whileTrue:`/`whileFalse:` lowering + intercept retirement + the `while_nonliteral` test).
@@ -462,12 +462,12 @@ Expected: baseline + all four new tests, no new failures, both paths.
 ### Task 5: Full regression gate, dialect/doc update, and Phase-2 handoff note
 
 **Files:**
-- Modify: `/home/david/workspace/oevm/docs/archive/fiber_derecursify_core_design.md` (mark Phase 1 DONE; record what Phase 2 inherits)
-- Modify: `/home/david/workspace/ns-oevm/docs/NEWSPEAK_DIALECT.md` (if a new dialect row is warranted — see Step 4)
+- Modify: `~/workspace/oevm/docs/archive/fiber_derecursify_core_design.md` (mark Phase 1 DONE; record what Phase 2 inherits)
+- Modify: `~/workspace/ns-oevm/docs/NEWSPEAK_DIALECT.md` (if a new dialect row is warranted — see Step 4)
 
 - [ ] **Step 1: Full suite, both paths**
 
-Run: `cd /home/david/workspace/ns-oevm && OEVM_PATH=AB python3 tools/run_tests_oevm.py 2>&1 | tail -8`
+Run: `cd ~/workspace/ns-oevm && OEVM_PATH=AB python3 tools/run_tests_oevm.py 2>&1 | tail -8`
 Expected: baseline pass count + the 4 new Phase-1 tests, 0 failures, both paths.
 
 - [ ] **Step 2: Fibers + GC + portability regression gates**
@@ -475,7 +475,7 @@ Expected: baseline pass count + the 4 new Phase-1 tests, 0 failures, both paths.
 Run the same gates used by the L1 work (they are the standing regression set for interpreter-core changes):
 
 ```bash
-cd /home/david/workspace/oevm
+cd ~/workspace/oevm
 # fibers interleave + GC-stress + 32-bit portability + ASan/GC_STRESS.
 # Use the exact recipes from oevm's test harness / Makefile — locate them with:
 grep -rniE 'fibers-gc-stress|portability_32|GC_STRESS|asan' Makefile* tests/ tools/ 2>/dev/null | head
@@ -485,7 +485,7 @@ Expected: locate and run `test_portability_32.sh`, the fibers-gc-stress build, a
 
 - [ ] **Step 3: Confirm the recursive primitives are gone**
 
-Run: `cd /home/david/workspace/oevm && grep -nE 'PRIM_(to_do|to_by_do|ifTrue|ifFalse|ifTrueIfFalse)\b' src/dispatch.c; echo "exit=$?"`
+Run: `cd ~/workspace/oevm && grep -nE 'PRIM_(to_do|to_by_do|ifTrue|ifFalse|ifTrueIfFalse)\b' src/dispatch.c; echo "exit=$?"`
 Expected: no `case` definitions remain (matches only in an enum declaration, if any, are acceptable; there must be no `case PRIM_...:` bodies that call `run_interpreter`). Also confirm the `whileTrue:`/`whileFalse:` intercept branch is gone: `grep -nE 'whileTrue:|whileFalse:' src/dispatch.c` should show no `strcmp(...)` loop.
 
 - [ ] **Step 4: Update dialect ledger if warranted**
@@ -502,7 +502,7 @@ In `oevm/docs/archive/fiber_derecursify_core_design.md`, update the Phase 1 bull
 - [ ] **Step 6: Commit**
 
 ```bash
-cd /home/david/workspace/oevm && git add nodus/oevm/docs/archive/fiber_derecursify_core_design.md && \
+cd ~/workspace/oevm && git add nodus/oevm/docs/archive/fiber_derecursify_core_design.md && \
   git commit -m $'docs(derecursify): Phase 1 (finish lowering) complete; Phase 2 handoff\n\nCo-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>'
 # plus ns-oevm docs/NEWSPEAK_DIALECT.md only if Step 4 added a row.
 ```

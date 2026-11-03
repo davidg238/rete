@@ -1,0 +1,6 @@
+name: boot-owns
+pattern: Facade
+intent: the boot API owns what boot sets — the kernel's symbols, registry, singleton, instance and image blob
+compromise: vm.c's lazy writes of Symbol_value and Symbol_debug_ become owns-violated, named rather than fixed
+ops:
+  - card: {file: boot.yaml}

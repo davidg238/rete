@@ -148,7 +148,7 @@ the same envelope cache and narration engine.
 
    ```json
    { "wifi":  { "wifi.ssid": "…", "wifi.password": "…" },
-     "porta": { "gateway.host": "192.168.0.175", "gateway.port": 6969 } }
+     "porta": { "gateway.host": "192.0.2.75", "gateway.port": 6969 } }
    ```
 
    via `toit tool firmware -e nodus.envelope flash --config device.json --port …`
@@ -157,7 +157,7 @@ the same envelope cache and narration engine.
 5. Seed the `nodes` row with chip/SDK (+ gateway address).
 
 **Runtime side (nodus, separate repo):** `supervisor.toit` replaces the hardcoded
-`GATEWAY-HOST ::= "192.168.0.175"` constant with a read of
+`GATEWAY-HOST ::= "192.0.2.75"` constant with a read of
 `firmware.config["porta"]` → `gateway.host`/`gateway.port`, falling back to the
 constant when the key is absent (so `jag run` dev flow is untouched). Nested
 `"porta"` key, mirroring how `wifi` nests. This is a nodus-repo change tracked

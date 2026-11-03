@@ -16,9 +16,9 @@
 - **Suite invocation rules** (all have burned us): run the gate from the **nsl-tuvm** cwd (`OEVM_PATH=AB python3 tools/run_tests_oevm.py`); first line must say `Discovered ~200` (92 means you ran `tuvm/tools/`'s copy against the frozen oracle); **never** run concurrently with a `west build`; **never** wrap in `timeout` or pipe to `head`/`tail` — redirect to a file and poll; it has **no single-test filter**.
 - **Single-.ns fast check** (Path A) — compile in place, build the runner, ALWAYS restore the clobbered image:
   ```bash
-  cd /home/david/workspace/nsl-tuvm
-  python3 tools/ns_compile_oevm.py ../nsl-tests/<path>.ns /home/david/workspace/tuvm/src/solidified_image.c
-  cd /home/david/workspace/tuvm
+  cd ~/workspace/nsl-tuvm
+  python3 tools/ns_compile_oevm.py ../nsl-tests/<path>.ns ~/workspace/tuvm/src/solidified_image.c
+  cd ~/workspace/tuvm
   gcc -Wall -std=c99 -Isrc -DOEVM_APPLIANCE \
     src/vm.c src/gc.c src/dispatch.c src/platform.c src/space.c src/handles.c \
     src/serial.c src/udp.c src/mirror.c \

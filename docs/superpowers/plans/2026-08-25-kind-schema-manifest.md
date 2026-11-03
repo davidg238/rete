@@ -136,7 +136,7 @@ def test_syms_extracted():
 
 - [ ] **Step 2: Run tests to verify they fail**
 
-Run: `cd /home/david/workspace/rete/protocol/tools && python3 -m pytest test_manifestlib.py -q`
+Run: `cd ~/workspace/rete/protocol/tools && python3 -m pytest test_manifestlib.py -q`
 Expected: FAIL / collection error — `manifestlib` not found.
 
 - [ ] **Step 3: Implement `manifestlib.py`**
@@ -253,13 +253,13 @@ def parse(text):
 
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `cd /home/david/workspace/rete/protocol/tools && python3 -m pytest test_manifestlib.py -q`
+Run: `cd ~/workspace/rete/protocol/tools && python3 -m pytest test_manifestlib.py -q`
 Expected: all PASS. Fix `test_parse_entries_and_stacked_annotations` if its awkward sorted-comparison needs cleanup — assert on `m.match(...)` results instead; the behavior, not the listing, is the contract.
 
 - [ ] **Step 5: Commit**
 
 ```bash
-cd /home/david/workspace/rete && git add protocol/tools/manifestlib.py protocol/tools/test_manifestlib.py
+cd ~/workspace/rete && git add protocol/tools/manifestlib.py protocol/tools/test_manifestlib.py
 git commit -m "feat(#243): manifestlib — the annotated-CDDL parser both gates share"
 ```
 

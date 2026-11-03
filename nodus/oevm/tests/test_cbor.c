@@ -205,18 +205,17 @@ static void test_cbor_as_symbol(void) {
     extern oop StringVtable, SymbolVtable;
     extern oop gc_allocate(oop vtable, size_t size);
     extern void gc_temp_root_push(oop o);
-    extern int gc_temp_roots_count;
     const char *txt = "reading"; size_t n = strlen(txt);
     oop s = gc_allocate(StringVtable, sizeof(struct String) + n);
     ((struct String*)s)->length = n; memcpy(((struct String*)s)->bytes, txt, n);
-    int saved_roots = gc_temp_roots_count;
+    int saved_roots = gc_temp_roots_mark();
     gc_temp_root_push(s);
     oop out = NULL;
     int ok = platform_dispatch(PRIM_pf_asSymbol, 1, &s, &out);
     assert(ok && out && obj_vtable(out) == SymbolVtable);
     struct Symbol *sym = (struct Symbol*)out;
     assert(sym->length == n && memcmp(sym->name, txt, n) == 0);
-    gc_temp_roots_count = saved_roots;
+    gc_temp_roots_reset(saved_roots);
     printf("test_cbor_as_symbol OK\n");
 }
 

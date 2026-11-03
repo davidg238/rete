@@ -77,11 +77,11 @@ Map's stored order.
 ## Running
 
 ```bash
-cd /home/david/workspace/nsl-tuvm/tools
-OEVM_DIR=/home/david/workspace/tuvm OEVM_PATH=AB python3 - <<'PY'
+cd ~/workspace/nsl-tuvm/tools
+OEVM_DIR=~/workspace/tuvm OEVM_PATH=AB python3 - <<'PY'
 from pathlib import Path; import run_tests_oevm as R
 for f in ['02_golden_hex.ns','03_map_order.ns']:
-    p=Path('/home/david/workspace/nsl-tests/14_cbor/'+f)
+    p=Path('~/workspace/nsl-tests/14_cbor/'+f)
     print(f, 'A', R.run_test_file(p)[0], 'B', R.run_test_file_oimg(p)[0])
 PY
 ```

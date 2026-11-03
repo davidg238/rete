@@ -18,14 +18,14 @@ Every task's requirements implicitly include these. Values copied verbatim from 
 - **C holds M6 handle indices, never raw oops.** The mailbox and ISR slots carry `(chan_id, handle_idx)`.
 - **ISRs never touch the VM heap or the Space ring** — only `k_msgq_put`. `space.c` stays irq-free.
 - **Fixed-capacity tables, `-D`-overridable, embedded-arena style.** Exhaustion = Tier-2 crash: bare `fprintf(stderr, "<frozen string>\n"); abort();` (no helper). Frozen strings introduced here: `"handle table full"`, `"pulse mailbox full"`.
-- **Both execution paths must pass.** The gate is `cd /home/david/workspace/nsl-tuvm && OEVM_PATH=AB python3 tools/run_tests_oevm.py` — every `.ns` test is run Path A (solidified) AND Path B (.oimg) and must match its `expect:` block on both.
-- **AB runs CLOBBER `tuvm/src/solidified_image.c` + `.stmap`.** Always `cd /home/david/workspace/tuvm && git checkout -- src/solidified_image.c src/solidified_image.stmap` before any tuvm commit.
+- **Both execution paths must pass.** The gate is `cd ~/workspace/nsl-tuvm && OEVM_PATH=AB python3 tools/run_tests_oevm.py` — every `.ns` test is run Path A (solidified) AND Path B (.oimg) and must match its `expect:` block on both.
+- **AB runs CLOBBER `tuvm/src/solidified_image.c` + `.stmap`.** Always `cd ~/workspace/tuvm && git checkout -- src/solidified_image.c src/solidified_image.stmap` before any tuvm commit.
 - **The full nsl suite (~10 min) is controller-owned** — do not spin it inside a subagent; the controller runs it at task boundaries.
 - **Non-moving GC is verified** (`gc.c` mark-and-sweep + coalescing, no relocation) — the handle table roots values; supporting property, not a new assumption.
 
 ## File map (what each new/edited file is responsible for)
 
-**Repo `/home/david/workspace/tuvm` (C engine):**
+**Repo `~/workspace/tuvm` (C engine):**
 - Create `src/handles.h`, `src/handles.c` — M6 C-boundary handle table (`handle_new/get/free`, `handle_gc_trace`).
 - Create `tests/test_handles.c` — handle-table GC-survival + overflow-abort unit test.
 - Create `src/pulse_backend.h` — the pulse seam (`pulse_post_isr`, `pulse_pump`).
@@ -40,10 +40,10 @@ Every task's requirements implicitly include these. Values copied verbatim from 
 - Modify `tools/footprint.sh` — `FOOTPRINT_CONFIG=mcu` cross-compiled ROM/RAM line.
 - Create `zephyr/` app (CMakeLists.txt, prj.conf, boards overlay, src/main.c) — the Zephyr bring-up harness (adapted from `ns-zephyr/app`).
 
-**Repo `/home/david/workspace/nsl-tuvm` (kernel library):**
+**Repo `~/workspace/nsl-tuvm` (kernel library):**
 - Modify `lib/kernel.ns` — add nested `class GpioPulse`, three seam forwarders, and a `gpio` accessor.
 
-**Repo `/home/david/workspace/nsl-tests` (test suites):**
+**Repo `~/workspace/nsl-tests` (test suites):**
 - Create `13_pulse/01_pulse_roundtrip.ns` — the host AB gate for the pulse surface.
 
 ---
@@ -51,11 +51,11 @@ Every task's requirements implicitly include these. Values copied verbatim from 
 ### Task 1: M6 C-boundary handle table
 
 **Files:**
-- Create: `/home/david/workspace/tuvm/src/handles.h`
-- Create: `/home/david/workspace/tuvm/src/handles.c`
-- Create: `/home/david/workspace/tuvm/tests/test_handles.c`
-- Modify: `/home/david/workspace/tuvm/src/gc.c` (root-scan phase, ~line 715)
-- Modify: `/home/david/workspace/tuvm/tools/run_c_tests.sh`
+- Create: `~/workspace/tuvm/src/handles.h`
+- Create: `~/workspace/tuvm/src/handles.c`
+- Create: `~/workspace/tuvm/tests/test_handles.c`
+- Modify: `~/workspace/tuvm/src/gc.c` (root-scan phase, ~line 715)
+- Modify: `~/workspace/tuvm/tools/run_c_tests.sh`
 
 **Interfaces:**
 - Consumes: `oop`, `mark_object(oop)` (extern from gc.c:630), `IS_SMI` (oevm.h).
@@ -65,7 +65,7 @@ Every task's requirements implicitly include these. Values copied verbatim from 
   - `void handle_free(int idx);` — release the pin (idempotent; ignores out-of-range/free).
   - `void handle_gc_trace(void);` — `mark_object` every live slot.
 
-- [ ] **Step 1: Write the failing test** — `/home/david/workspace/tuvm/tests/test_handles.c`
+- [ ] **Step 1: Write the failing test** — `~/workspace/tuvm/tests/test_handles.c`
 
 ```c
 /* Unit test for the M6 C-boundary handle table (src/handles.c). Proves: a handle
@@ -152,7 +152,7 @@ int main(void) {
 }
 ```
 
-- [ ] **Step 2: Create the header** — `/home/david/workspace/tuvm/src/handles.h`
+- [ ] **Step 2: Create the header** — `~/workspace/tuvm/src/handles.h`
 
 ```c
 #ifndef OEVM_HANDLES_H
@@ -183,7 +183,7 @@ void handle_gc_trace(void);
 #endif /* OEVM_HANDLES_H */
 ```
 
-- [ ] **Step 3: Create the implementation** — `/home/david/workspace/tuvm/src/handles.c`
+- [ ] **Step 3: Create the implementation** — `~/workspace/tuvm/src/handles.c`
 
 ```c
 /* M6 C-boundary handle table — see src/handles.h. Storage mirrors src/space.c's
@@ -231,7 +231,7 @@ void handle_gc_trace(void) {
 }
 ```
 
-- [ ] **Step 4: Hook the trace into GC root-scan** — `/home/david/workspace/tuvm/src/gc.c`
+- [ ] **Step 4: Hook the trace into GC root-scan** — `~/workspace/tuvm/src/gc.c`
 
 Immediately after the existing `space_gc_trace();` call (~line 715), add:
 
@@ -242,7 +242,7 @@ Immediately after the existing `space_gc_trace();` call (~line 715), add:
     handle_gc_trace();
 ```
 
-- [ ] **Step 5: Register the module + test** — `/home/david/workspace/tuvm/tools/run_c_tests.sh`
+- [ ] **Step 5: Register the module + test** — `~/workspace/tuvm/tools/run_c_tests.sh`
 
 Add `src/handles.c` to the `ENG_COMMON` link string (so both ENG_A and ENG_B link it):
 
@@ -259,13 +259,13 @@ run test_handles "$ENG_B" -DOEVM_HANDLE_TABLE_MAX=4
 
 - [ ] **Step 6: Run the test — verify it passes**
 
-Run: `cd /home/david/workspace/tuvm && tools/run_c_tests.sh 2>&1 | grep -E 'test_handles|FAIL'`
+Run: `cd ~/workspace/tuvm && tools/run_c_tests.sh 2>&1 | grep -E 'test_handles|FAIL'`
 Expected: `test_handles                 PASS` and no `FAIL` lines.
 
 - [ ] **Step 7: Commit** (restore the clobber-prone image files first, though this task doesn't touch them — habit)
 
 ```bash
-cd /home/david/workspace/tuvm
+cd ~/workspace/tuvm
 git add src/handles.h src/handles.c tests/test_handles.c src/gc.c tools/run_c_tests.sh
 git commit -m "feat(gc): M6 C-boundary handle table (JNI-global-ref roots for the Zephyr seam)"
 ```
@@ -275,10 +275,10 @@ git commit -m "feat(gc): M6 C-boundary handle table (JNI-global-ref roots for th
 ### Task 2: Pulse backend seam + posix impl
 
 **Files:**
-- Create: `/home/david/workspace/tuvm/src/pulse_backend.h`
-- Create: `/home/david/workspace/tuvm/src/backend/posix/pulse_posix.c`
-- Create: `/home/david/workspace/tuvm/tests/test_pulse.c`
-- Modify: `/home/david/workspace/tuvm/tools/run_c_tests.sh`
+- Create: `~/workspace/tuvm/src/pulse_backend.h`
+- Create: `~/workspace/tuvm/src/backend/posix/pulse_posix.c`
+- Create: `~/workspace/tuvm/tests/test_pulse.c`
+- Modify: `~/workspace/tuvm/tools/run_c_tests.sh`
 
 **Interfaces:**
 - Consumes: `space_post(const char*, size_t, oop)` (space.h), `space_intern(const char*, size_t)` (space.h), `handle_get(int)` (handles.h).
@@ -289,7 +289,7 @@ git commit -m "feat(gc): M6 C-boundary handle table (JNI-global-ref roots for th
 
 - [ ] **Step 1: Add `space_post_id` to space.c/space.h** (the mailbox carries a chan id, not a path)
 
-In `/home/david/workspace/tuvm/src/space.h`, after the `space_post` declaration (~line 59):
+In `~/workspace/tuvm/src/space.h`, after the `space_post` declaration (~line 59):
 
 ```c
 /* Like space_post but the channel is already interned to an id (the ISR-pulse
@@ -297,7 +297,7 @@ In `/home/david/workspace/tuvm/src/space.h`, after the `space_post` declaration 
 void space_post_id(int chan_id, oop value);
 ```
 
-In `/home/david/workspace/tuvm/src/space.c`, refactor `space_post` to delegate (keep behavior identical). Replace the body of `space_post` and add `space_post_id`:
+In `~/workspace/tuvm/src/space.c`, refactor `space_post` to delegate (keep behavior identical). Replace the body of `space_post` and add `space_post_id`:
 
 ```c
 void space_post_id(int chan_id, oop value) {
@@ -316,7 +316,7 @@ void space_post(const char *path, size_t len, oop value) {
 }
 ```
 
-- [ ] **Step 2: Write the failing test** — `/home/david/workspace/tuvm/tests/test_pulse.c`
+- [ ] **Step 2: Write the failing test** — `~/workspace/tuvm/tests/test_pulse.c`
 
 ```c
 /* Unit test for the posix pulse backend (src/backend/posix/pulse_posix.c) + the M6
@@ -393,7 +393,7 @@ int main(void) {
 
 (If `space_take` is not already declared in `space.h`, add `oop space_take(const char *path, size_t len);` there — the agent survey confirms `space_take` exists in space.c; check `space.h` and add the prototype if missing, in the same commit.)
 
-- [ ] **Step 3: Create the seam header** — `/home/david/workspace/tuvm/src/pulse_backend.h`
+- [ ] **Step 3: Create the seam header** — `~/workspace/tuvm/src/pulse_backend.h`
 
 ```c
 #ifndef OEVM_PULSE_BACKEND_H
@@ -423,7 +423,7 @@ int pulse_pump(void);
 #endif /* OEVM_PULSE_BACKEND_H */
 ```
 
-- [ ] **Step 4: Create the posix impl** — `/home/david/workspace/tuvm/src/backend/posix/pulse_posix.c`
+- [ ] **Step 4: Create the posix impl** — `~/workspace/tuvm/src/backend/posix/pulse_posix.c`
 
 ```c
 /* Host pulse backend: a plain in-process ring (no irq, no threads). The host GPIO
@@ -465,7 +465,7 @@ int pulse_pump(void) {
 }
 ```
 
-- [ ] **Step 5: Register module + test** — `/home/david/workspace/tuvm/tools/run_c_tests.sh`
+- [ ] **Step 5: Register module + test** — `~/workspace/tuvm/tools/run_c_tests.sh`
 
 Add the posix pulse backend to `ENG_COMMON`:
 
@@ -483,13 +483,13 @@ run test_pulse "$ENG_B" -DOEVM_PULSE_MAILBOX_DEPTH=4
 
 - [ ] **Step 6: Run the test — verify it passes**
 
-Run: `cd /home/david/workspace/tuvm && tools/run_c_tests.sh 2>&1 | grep -E 'test_pulse|FAIL'`
+Run: `cd ~/workspace/tuvm && tools/run_c_tests.sh 2>&1 | grep -E 'test_pulse|FAIL'`
 Expected: `test_pulse                   PASS` and no `FAIL` lines.
 
 - [ ] **Step 7: Commit**
 
 ```bash
-cd /home/david/workspace/tuvm
+cd ~/workspace/tuvm
 git checkout -- src/solidified_image.c src/solidified_image.stmap 2>/dev/null || true
 git add src/pulse_backend.h src/backend/posix/pulse_posix.c tests/test_pulse.c src/space.c src/space.h tools/run_c_tests.sh
 git commit -m "feat(seam): pulse backend seam + posix in-process ring (ISR-safe post, safe-point pump)"
@@ -500,10 +500,10 @@ git commit -m "feat(seam): pulse backend seam + posix in-process ring (ISR-safe 
 ### Task 3: Host GPIO prims + `pumpEvents`
 
 **Files:**
-- Modify: `/home/david/workspace/tuvm/src/dispatch.c` (enum tail + `PRIM_NAMES[]` tail)
-- Modify: `/home/david/workspace/tuvm/src/prim_ids.h` (three `#define`s, counted)
-- Modify: `/home/david/workspace/tuvm/src/platform.c` (include headers, host GPIO slot table, three `platform_dispatch` cases)
-- Modify: `/home/david/workspace/tuvm/tests/test_pulse.c` (drive the prims via `platform_dispatch`)
+- Modify: `~/workspace/tuvm/src/dispatch.c` (enum tail + `PRIM_NAMES[]` tail)
+- Modify: `~/workspace/tuvm/src/prim_ids.h` (three `#define`s, counted)
+- Modify: `~/workspace/tuvm/src/platform.c` (include headers, host GPIO slot table, three `platform_dispatch` cases)
+- Modify: `~/workspace/tuvm/tests/test_pulse.c` (drive the prims via `platform_dispatch`)
 
 **Interfaces:**
 - Consumes: `handle_new` (handles.h), `space_intern`, `pulse_post_isr`, `pulse_pump` (Tasks 1–2), `TAG_SMI`/`UNTAG_SMI`/`IS_SMI` (oevm.h), `platform_object()` (platform.c), `StringVtable`, `obj_vtable`, `struct String` (as used by `PRIM_pf_spacePost`).
@@ -512,7 +512,7 @@ git commit -m "feat(seam): pulse backend seam + posix in-process ring (ISR-safe 
   - `platform gpioFire: n` — host-only simulated edge: find the slot for pin `n`, `pulse_post_isr(chan_id, handle_idx)`. Answers `platform`. (On target this is a no-op stub; the real ISR posts.)
   - `platform pumpEvents` — `*out = TAG_SMI(pulse_pump())`.
 
-- [ ] **Step 1: Append the three prim ids to the enum + names array** — `/home/david/workspace/tuvm/src/dispatch.c`
+- [ ] **Step 1: Append the three prim ids to the enum + names array** — `~/workspace/tuvm/src/dispatch.c`
 
 At the END of the `enum` (after `PRIM_ensure,` ~line 674):
 
@@ -532,7 +532,7 @@ At the END of `PRIM_NAMES[]` (after `"ensure:",` ~line 709), in the SAME order:
     "pumpEvents",
 ```
 
-- [ ] **Step 2: Count the ids and add the mirrors** — `/home/david/workspace/tuvm/src/prim_ids.h`
+- [ ] **Step 2: Count the ids and add the mirrors** — `~/workspace/tuvm/src/prim_ids.h`
 
 Count `PRIM_NAMES[]`: the last pre-existing entry `"ensure:"` is id 93 (`PRIM_ensure`). The three appends are therefore positions 94, 95, 96 — **verify by counting the array, do not assume**. After the `PRIM_ensure` region (or wherever the last mirrors sit, at the end before `#endif`):
 
@@ -544,10 +544,10 @@ Count `PRIM_NAMES[]`: the last pre-existing entry `"ensure:"` is id 93 (`PRIM_en
 ```
 
 To confirm the count mechanically:
-Run: `cd /home/david/workspace/tuvm && awk '/static const char \*const PRIM_NAMES/{f=1} f&&/"pumpEvents"/{print NR": pumpEvents"} f&&/};/{f=0}' src/dispatch.c`
+Run: `cd ~/workspace/tuvm && awk '/static const char \*const PRIM_NAMES/{f=1} f&&/"pumpEvents"/{print NR": pumpEvents"} f&&/};/{f=0}' src/dispatch.c`
 Then count entries: `grep -c '"' <(sed -n '/PRIM_NAMES\[\] = {/,/};/p' src/dispatch.c)` is a rough aid — but the authoritative check is that `selector_prim_id` returns the matching `#define` (validated by the Step-6 nsl test failing loudly if the id is wrong).
 
-- [ ] **Step 3: Add the host GPIO facility + three cases** — `/home/david/workspace/tuvm/src/platform.c`
+- [ ] **Step 3: Add the host GPIO facility + three cases** — `~/workspace/tuvm/src/platform.c`
 
 Add includes near the top (beside the existing `space.h` include):
 
@@ -622,7 +622,7 @@ Add the three cases inside `platform_dispatch()` (beside `PRIM_pf_advanceMillis`
         return 1;
 ```
 
-- [ ] **Step 4: Extend the C test to drive the prims** — add to `/home/david/workspace/tuvm/tests/test_pulse.c` `main()` before the final `printf("test_pulse: OK\n")`:
+- [ ] **Step 4: Extend the C test to drive the prims** — add to `~/workspace/tuvm/tests/test_pulse.c` `main()` before the final `printf("test_pulse: OK\n")`:
 
 ```c
     /* drive the real prim path: gpioPin registers, gpioFire simulates the edge,
@@ -647,13 +647,13 @@ Note: constructing a `struct String` oop by hand in C is verbose; the authoritat
 
 - [ ] **Step 5: Build the engine — verify it compiles and existing C tests pass**
 
-Run: `cd /home/david/workspace/tuvm && tools/run_c_tests.sh 2>&1 | tail -5`
+Run: `cd ~/workspace/tuvm && tools/run_c_tests.sh 2>&1 | tail -5`
 Expected: all lines `PASS`/`SKIP`, no `FAIL`. (This confirms the enum/names/prim_ids additions compile and don't shift ids — `test_space`, `test_platform` still pass.)
 
 - [ ] **Step 6: Commit**
 
 ```bash
-cd /home/david/workspace/tuvm
+cd ~/workspace/tuvm
 git checkout -- src/solidified_image.c src/solidified_image.stmap 2>/dev/null || true
 git add src/dispatch.c src/prim_ids.h src/platform.c tests/test_pulse.c
 git commit -m "feat(prim): gpioPin:edge:post:on:/gpioFire:/pumpEvents platform prims + host GPIO mock"
@@ -664,7 +664,7 @@ git commit -m "feat(prim): gpioPin:edge:post:on:/gpioFire:/pumpEvents platform p
 ### Task 4: nsl `GpioPulse` capability + seam forwarders
 
 **Files:**
-- Modify: `/home/david/workspace/nsl-tuvm/lib/kernel.ns` (nested class + forwarders + accessor)
+- Modify: `~/workspace/nsl-tuvm/lib/kernel.ns` (nested class + forwarders + accessor)
 
 **Interfaces:**
 - Consumes: the three prims from Task 3 (`platform gpioPin:edge:post:on:`, `platform gpioFire:`, `platform pumpEvents`), `Channel>>resolve:`, `Channel>>out:value:`.
@@ -712,14 +712,14 @@ Note: `aChannel rootPath` yields the fully-resolved path string the prim interns
 
 Run:
 ```bash
-cd /home/david/workspace/nsl-tuvm && python3 -c "from pathlib import Path; import tools.run_tests_oevm as r; print(r.run_test_file(Path('../nsl-tests/11_supervision/06_timers.ns'))); print(r.run_test_file_oimg(Path('../nsl-tests/11_supervision/06_timers.ns')))"
+cd ~/workspace/nsl-tuvm && python3 -c "from pathlib import Path; import tools.run_tests_oevm as r; print(r.run_test_file(Path('../nsl-tests/11_supervision/06_timers.ns'))); print(r.run_test_file_oimg(Path('../nsl-tests/11_supervision/06_timers.ns')))"
 ```
 Expected: two `('PASS', ...)` tuples. A parse/compile error in the new class shows here.
 
 - [ ] **Step 5: Commit**
 
 ```bash
-cd /home/david/workspace/nsl-tuvm
+cd ~/workspace/nsl-tuvm
 git add lib/kernel.ns
 git commit -m "feat(kernel): GpioPulse pulse capability + gpioPin/gpioFire/pumpEvents forwarders"
 ```
@@ -729,13 +729,13 @@ git commit -m "feat(kernel): GpioPulse pulse capability + gpioPin/gpioFire/pumpE
 ### Task 5: Host AB gate — `13_pulse/01_pulse_roundtrip.ns`
 
 **Files:**
-- Create: `/home/david/workspace/nsl-tests/13_pulse/01_pulse_roundtrip.ns`
+- Create: `~/workspace/nsl-tests/13_pulse/01_pulse_roundtrip.ns`
 
 **Interfaces:**
 - Consumes: `GpioPulse` (Task 4), `platform space`, `Channel>>whenever:do:`, `Channel>>out:value:`, `platform pumpEvents`, `space drain`.
 - Produces: an `expect:`-gated conformance test proving register → simulated edge → pump → reactor observation, on BOTH Path A and Path B.
 
-- [ ] **Step 1: Write the test** — `/home/david/workspace/nsl-tests/13_pulse/01_pulse_roundtrip.ns`
+- [ ] **Step 1: Write the test** — `~/workspace/nsl-tests/13_pulse/01_pulse_roundtrip.ns`
 
 ```smalltalk
 (*
@@ -773,20 +773,20 @@ class PulseRoundtrip packageUsing: manifest = () (
 
 Run:
 ```bash
-cd /home/david/workspace/nsl-tuvm && python3 -c "from pathlib import Path; import tools.run_tests_oevm as r; print(r.run_test_file(Path('../nsl-tests/13_pulse/01_pulse_roundtrip.ns'))); print(r.run_test_file_oimg(Path('../nsl-tests/13_pulse/01_pulse_roundtrip.ns')))"
+cd ~/workspace/nsl-tuvm && python3 -c "from pathlib import Path; import tools.run_tests_oevm as r; print(r.run_test_file(Path('../nsl-tests/13_pulse/01_pulse_roundtrip.ns'))); print(r.run_test_file_oimg(Path('../nsl-tests/13_pulse/01_pulse_roundtrip.ns')))"
 ```
 Expected: two `('PASS', 'Output matches expectations.')` tuples. If Path A fails but B passes (or vice-versa), the prim id or a solidified-image staleness is the cause — re-run after `git checkout -- src/solidified_image.c src/solidified_image.stmap` in tuvm.
 
 - [ ] **Step 3: Controller runs the FULL suite** (controller-owned, ~10 min — do NOT run inside a subagent):
 
-Run: `cd /home/david/workspace/nsl-tuvm && OEVM_PATH=AB python3 tools/run_tests_oevm.py 2>&1 | tail -8`
+Run: `cd ~/workspace/nsl-tuvm && OEVM_PATH=AB python3 tools/run_tests_oevm.py 2>&1 | tail -8`
 Expected: `Failed: 0`, all gates green, the discovered-file count increased by 1, `13_pulse/01_pulse_roundtrip.ns ... PASS`.
 
 - [ ] **Step 4: Commit** (both repos; restore the tuvm image clobber first)
 
 ```bash
-cd /home/david/workspace/tuvm && git checkout -- src/solidified_image.c src/solidified_image.stmap 2>/dev/null || true
-cd /home/david/workspace/nsl-tests
+cd ~/workspace/tuvm && git checkout -- src/solidified_image.c src/solidified_image.stmap 2>/dev/null || true
+cd ~/workspace/nsl-tests
 git add 13_pulse/01_pulse_roundtrip.ns
 git commit -m "test(pulse): 13_pulse host gate — register/fire/pump/observe on both paths"
 ```
@@ -796,13 +796,13 @@ git commit -m "test(pulse): 13_pulse host gate — register/fire/pump/observe on
 ### Task 6: Zephyr pulse backend (`k_msgq`, ISR-safe)
 
 **Files:**
-- Create: `/home/david/workspace/tuvm/src/backend/zephyr/pulse_zephyr.c`
+- Create: `~/workspace/tuvm/src/backend/zephyr/pulse_zephyr.c`
 
 **Interfaces:**
 - Consumes: `space_post_id` (space.h), `handle_get` (handles.h), Zephyr `<zephyr/kernel.h>` (`K_MSGQ_DEFINE`, `k_msgq_put`, `k_msgq_get`).
 - Produces: the same `pulse_post_isr` / `pulse_pump` seam as posix, but ISR-safe (mailbox = `k_msgq`) and blocking-first in `pulse_pump`.
 
-- [ ] **Step 1: Create the zephyr impl** — `/home/david/workspace/tuvm/src/backend/zephyr/pulse_zephyr.c`
+- [ ] **Step 1: Create the zephyr impl** — `~/workspace/tuvm/src/backend/zephyr/pulse_zephyr.c`
 
 ```c
 /* Target pulse backend: an ISR-safe k_msgq mailbox (pattern from st-zephyr's
@@ -847,7 +847,7 @@ int pulse_pump(void) {
 
 Run:
 ```bash
-cd /home/david/workspace/tuvm && gcc -fsyntax-only -std=c99 -Isrc \
+cd ~/workspace/tuvm && gcc -fsyntax-only -std=c99 -Isrc \
   -D'K_MSGQ_DEFINE(a,b,c,d)=int a' -D'k_msgq_put(a,b,c)=0' -D'k_msgq_get(a,b,c)=0' \
   -D'K_NO_WAIT=0' -D'K_FOREVER=0' -D'printk=printf' -D'k_oops()=abort()' \
   -include stdio.h -include stdlib.h src/backend/zephyr/pulse_zephyr.c && echo SYNTAX-OK
@@ -857,7 +857,7 @@ Expected: `SYNTAX-OK` (real Zephyr-header compile happens in Task 7).
 - [ ] **Step 3: Commit**
 
 ```bash
-cd /home/david/workspace/tuvm
+cd ~/workspace/tuvm
 git add src/backend/zephyr/pulse_zephyr.c
 git commit -m "feat(seam): zephyr pulse backend — ISR-safe k_msgq mailbox, blocking pump"
 ```
@@ -867,10 +867,10 @@ git commit -m "feat(seam): zephyr pulse backend — ISR-safe k_msgq mailbox, blo
 ### Task 7: Zephyr `native_sim` bring-up (CI gate)
 
 **Files:**
-- Create: `/home/david/workspace/tuvm/zephyr/CMakeLists.txt`
-- Create: `/home/david/workspace/tuvm/zephyr/prj.conf`
-- Create: `/home/david/workspace/tuvm/zephyr/src/main.c`
-- Create: `/home/david/workspace/tuvm/zephyr/README.md` (build/run commands)
+- Create: `~/workspace/tuvm/zephyr/CMakeLists.txt`
+- Create: `~/workspace/tuvm/zephyr/prj.conf`
+- Create: `~/workspace/tuvm/zephyr/src/main.c`
+- Create: `~/workspace/tuvm/zephyr/README.md` (build/run commands)
 
 **Interfaces:**
 - Consumes: the engine sources, `pulse_zephyr.c`, the nsl image entry point (Model A solidified or Model B `.oimg`), the `[ platform pumpEvents. space drain ] repeat` loop (emitted from the node's `main:` — for the gate, provided by a tiny built-in node or by driving the loop from C after boot).
@@ -881,12 +881,12 @@ git commit -m "feat(seam): zephyr pulse backend — ISR-safe k_msgq mailbox, blo
 - [ ] **Step 1: Copy the toolchain env** (one-time, per shell):
 
 ```bash
-source /home/david/workspace/ns-zephyr/tools/env.sh
+source ~/workspace/ns-zephyr/tools/env.sh
 # verifies: ZEPHYR_BASE=~/ncs/zephyr, ZEPHYR_SDK_INSTALL_DIR=~/ncs/toolchains/2ac5840438/opt/zephyr-sdk
 env | grep -E 'ZEPHYR_BASE|ZEPHYR_SDK|ZEPHYR_TOOLCHAIN'
 ```
 
-- [ ] **Step 2: Write `prj.conf`** — `/home/david/workspace/tuvm/zephyr/prj.conf` (minimal; console + a generous main stack + heap for the VM arena; NO OpenThread):
+- [ ] **Step 2: Write `prj.conf`** — `~/workspace/tuvm/zephyr/prj.conf` (minimal; console + a generous main stack + heap for the VM arena; NO OpenThread):
 
 ```
 CONFIG_MAIN_STACK_SIZE=8192
@@ -896,7 +896,7 @@ CONFIG_CBPRINTF_FP_SUPPORT=y
 CONFIG_TEST=n
 ```
 
-- [ ] **Step 3: Write `CMakeLists.txt`** — `/home/david/workspace/tuvm/zephyr/CMakeLists.txt` (mirrors `ns-zephyr/app/CMakeLists.txt`: pull engine `.c` from this repo's `src/`, select the zephyr backend, pass the arena size via env because NCS sysbuild swallows `-D`):
+- [ ] **Step 3: Write `CMakeLists.txt`** — `~/workspace/tuvm/zephyr/CMakeLists.txt` (mirrors `ns-zephyr/app/CMakeLists.txt`: pull engine `.c` from this repo's `src/`, select the zephyr backend, pass the arena size via env because NCS sysbuild swallows `-D`):
 
 ```cmake
 cmake_minimum_required(VERSION 3.20.0)
@@ -922,7 +922,7 @@ if(DEFINED ENV{OEVM_HEAP_SIZE})
 endif()
 ```
 
-- [ ] **Step 4: Write `src/main.c`** — `/home/david/workspace/tuvm/zephyr/src/main.c` (adapted from `ns-zephyr/app/src/main.c`; a one-shot `k_timer` simulates the GPIO edge for the sim gate — Task 8 swaps it for a real GPIO ISR):
+- [ ] **Step 4: Write `src/main.c`** — `~/workspace/tuvm/zephyr/src/main.c` (adapted from `ns-zephyr/app/src/main.c`; a one-shot `k_timer` simulates the GPIO edge for the sim gate — Task 8 swaps it for a real GPIO ISR):
 
 ```c
 /* tuvm on Zephyr — native_sim bring-up gate for the ISR→channel pulse seam.
@@ -987,20 +987,20 @@ For the native_sim gate this deterministic single-edge form (fire once, then loo
 
 Run:
 ```bash
-cd /home/david/workspace/tuvm/zephyr && source /home/david/workspace/ns-zephyr/tools/env.sh
+cd ~/workspace/tuvm/zephyr && source ~/workspace/ns-zephyr/tools/env.sh
 west build -b native_sim -p always . 2>&1 | tail -20
 ```
 Expected: `west build` completes; `build/zephyr/zephyr.exe` exists. First-build failures are almost always missing `prj.conf` symbols or include paths — fix and rebuild (this is the expected one iteration).
 
 - [ ] **Step 6: Run native_sim — verify the pulse is observed**
 
-Run: `cd /home/david/workspace/tuvm/zephyr && timeout 5 ./build/zephyr/zephyr.exe 2>&1 | head`
+Run: `cd ~/workspace/tuvm/zephyr && timeout 5 ./build/zephyr/zephyr.exe 2>&1 | head`
 Expected: a line `observed done` in the output.
 
 - [ ] **Step 7: Commit**
 
 ```bash
-cd /home/david/workspace/tuvm
+cd ~/workspace/tuvm
 git checkout -- src/solidified_image.c src/solidified_image.stmap 2>/dev/null || true
 git add zephyr/CMakeLists.txt zephyr/prj.conf zephyr/src/main.c zephyr/README.md
 git commit -m "feat(zephyr): native_sim bring-up gate — VM boot + pulse observed end-to-end"
@@ -1022,8 +1022,8 @@ git commit -m "feat(zephyr): native_sim bring-up gate — VM boot + pulse observ
 > recipe: `tuvm/zephyr/README.md` → "Task 8 — nRF52840-DK acceptance bar".
 
 **Files:**
-- Modify: `/home/david/workspace/tuvm/zephyr/src/main.c` (real GPIO edge callback for the dongle)
-- Create: `/home/david/workspace/tuvm/zephyr/boards/nrf52840dongle_nrf52840.overlay` (button/ALERT pin)
+- Modify: `~/workspace/tuvm/zephyr/src/main.c` (real GPIO edge callback for the dongle)
+- Create: `~/workspace/tuvm/zephyr/boards/nrf52840dongle_nrf52840.overlay` (button/ALERT pin)
 
 **Interfaces:**
 - Consumes: Zephyr `<zephyr/drivers/gpio.h>`, `pulse_post_isr`, the node's registered `(chan_id, handle_idx)`.
@@ -1031,7 +1031,7 @@ git commit -m "feat(zephyr): native_sim bring-up gate — VM boot + pulse observ
 
 **Approach note:** this task requires the physical nRF52840 dongle and `nrfutil`/`west flash`. The GPIO edge wiring is lifted from `st-zephyr/.../test-dongle-05-jast/port/be_native_button.c`.
 
-- [ ] **Step 1: Add the board overlay** — `/home/david/workspace/tuvm/zephyr/boards/nrf52840dongle_nrf52840.overlay` (expose the on-board button, P1.06 on the dongle, as the edge source):
+- [ ] **Step 1: Add the board overlay** — `~/workspace/tuvm/zephyr/boards/nrf52840dongle_nrf52840.overlay` (expose the on-board button, P1.06 on the dongle, as the edge source):
 
 ```dts
 / {
@@ -1084,7 +1084,7 @@ void gpio_target_fire(int pin) { host_gpio_fire(pin); }
 
 Run:
 ```bash
-cd /home/david/workspace/tuvm/zephyr && source /home/david/workspace/ns-zephyr/tools/env.sh
+cd ~/workspace/tuvm/zephyr && source ~/workspace/ns-zephyr/tools/env.sh
 west build -b nrf52840dongle/nrf52840 -p always . 2>&1 | tail -20
 # put the dongle in bootloader mode (press RESET), then:
 west flash 2>&1 | tail -10
@@ -1099,7 +1099,7 @@ Expected: `observed done` prints on each press. This is the rung's acceptance ba
 - [ ] **Step 6: Commit**
 
 ```bash
-cd /home/david/workspace/tuvm
+cd ~/workspace/tuvm
 git checkout -- src/solidified_image.c src/solidified_image.stmap 2>/dev/null || true
 git add zephyr/src/main.c zephyr/boards/nrf52840dongle_nrf52840.overlay src/platform.c
 git commit -m "feat(zephyr): nRF52840 acceptance bar — real GPIO edge ISR drives the pulse"
@@ -1110,13 +1110,13 @@ git commit -m "feat(zephyr): nRF52840 acceptance bar — real GPIO edge ISR driv
 ### Task 9: Precursor — `FOOTPRINT_CONFIG=mcu` (tuvm#5)
 
 **Files:**
-- Modify: `/home/david/workspace/tuvm/tools/footprint.sh`
+- Modify: `~/workspace/tuvm/tools/footprint.sh`
 
 **Interfaces:**
 - Consumes: `arm-zephyr-eabi-gcc` (from the NCS SDK on PATH after `env.sh`), the engine `.c` set (now including `handles.c`, `pulse_backend` zephyr impl).
 - Produces: a real cross-compiled ROM(`text`)/RAM(`data+bss`) line under `FOOTPRINT_CONFIG=mcu`, consumable by `review/tests/t0-gates/ratchet.sh` (which already expects the `mcu` config).
 
-- [ ] **Step 1: Add the mcu branch** to `/home/david/workspace/tuvm/tools/footprint.sh` — after the existing host-proxy build, branch on `FOOTPRINT_CONFIG`:
+- [ ] **Step 1: Add the mcu branch** to `~/workspace/tuvm/tools/footprint.sh` — after the existing host-proxy build, branch on `FOOTPRINT_CONFIG`:
 
 ```bash
 # FOOTPRINT_CONFIG=mcu: real arm-zephyr-eabi cross build (host proxy replaced by the
@@ -1144,7 +1144,7 @@ fi
 
 Run:
 ```bash
-cd /home/david/workspace/tuvm && source /home/david/workspace/ns-zephyr/tools/env.sh
+cd ~/workspace/tuvm && source ~/workspace/ns-zephyr/tools/env.sh
 FOOTPRINT_CONFIG=mcu tools/footprint.sh 2>&1 | tail -3
 ```
 Expected: an `arm-zephyr-eabi-size` total line with `text data bss` columns (real Cortex-M4 figures), not the host-proxy line.
@@ -1152,7 +1152,7 @@ Expected: an `arm-zephyr-eabi-size` total line with `text data bss` columns (rea
 - [ ] **Step 3: Commit**
 
 ```bash
-cd /home/david/workspace/tuvm
+cd ~/workspace/tuvm
 git add tools/footprint.sh
 git commit -m "feat(metrics): FOOTPRINT_CONFIG=mcu — real arm-zephyr-eabi ROM/RAM line (tuvm#5)"
 ```
@@ -1162,13 +1162,13 @@ git commit -m "feat(metrics): FOOTPRINT_CONFIG=mcu — real arm-zephyr-eabi ROM/
 ### Task 10: Precursor — `OEVM_BUILD=asan|ubsan` harness knob
 
 **Files:**
-- Modify: `/home/david/workspace/tuvm/tools/run_c_tests.sh`
+- Modify: `~/workspace/tuvm/tools/run_c_tests.sh`
 
 **Interfaces:**
 - Consumes: the `CC` interpolation point in `run_c_tests.sh` (the only injection point).
 - Produces: `OEVM_BUILD=asan` / `OEVM_BUILD=ubsan` prepends the sanitizer flags to `CC`, so the whole C-test suite (incl. `test_handles`, `test_pulse`) runs sanitized.
 
-- [ ] **Step 1: Add the knob** near the top of `/home/david/workspace/tuvm/tools/run_c_tests.sh` (after `CC=${CC:-gcc}`):
+- [ ] **Step 1: Add the knob** near the top of `~/workspace/tuvm/tools/run_c_tests.sh` (after `CC=${CC:-gcc}`):
 
 ```bash
 # OEVM_BUILD=asan|ubsan: sanitizer coverage for the ISR-adjacent C (mailbox ring,
@@ -1183,18 +1183,18 @@ esac
 
 - [ ] **Step 2: Run the suite under ASan — verify clean**
 
-Run: `cd /home/david/workspace/tuvm && OEVM_BUILD=asan tools/run_c_tests.sh 2>&1 | grep -E 'FAIL|ERROR|runtime error|AddressSanitizer' || echo 'ASAN CLEAN'`
+Run: `cd ~/workspace/tuvm && OEVM_BUILD=asan tools/run_c_tests.sh 2>&1 | grep -E 'FAIL|ERROR|runtime error|AddressSanitizer' || echo 'ASAN CLEAN'`
 Expected: `ASAN CLEAN` (all tests PASS with no sanitizer diagnostics). The `expect_abort` fork tests intentionally SIGABRT — confirm those still print `PASS` (ASan does not flag a deliberate abort).
 
 - [ ] **Step 3: Run under UBSan — verify clean**
 
-Run: `cd /home/david/workspace/tuvm && OEVM_BUILD=ubsan tools/run_c_tests.sh 2>&1 | grep -E 'FAIL|runtime error' || echo 'UBSAN CLEAN'`
+Run: `cd ~/workspace/tuvm && OEVM_BUILD=ubsan tools/run_c_tests.sh 2>&1 | grep -E 'FAIL|runtime error' || echo 'UBSAN CLEAN'`
 Expected: `UBSAN CLEAN`.
 
 - [ ] **Step 4: Commit**
 
 ```bash
-cd /home/david/workspace/tuvm
+cd ~/workspace/tuvm
 git add tools/run_c_tests.sh
 git commit -m "feat(harness): OEVM_BUILD=asan|ubsan sanitizer knob for the C test suite"
 ```

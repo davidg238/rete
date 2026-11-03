@@ -12,7 +12,7 @@
 
 ## Global Constraints
 
-- Working directory for all Go commands: `/home/david/workspace/rete/porta`. `go test ./...` must pass and `gofmt -l .` must print nothing before every commit.
+- Working directory for all Go commands: `~/workspace/rete/porta`. `go test ./...` must pass and `gofmt -l .` must print nothing before every commit.
 - No new Go files are created by this plan; the copyright-header rule (`// Copyright (c) 2026 Ekorau LLC`) therefore never triggers, but applies if you do create one.
 - In `schema.go`: **keep column comments ABOVE the CREATE TABLE statement, never inside the parentheses** — sqlite's DROP COLUMN rewrites the stored DDL and an interior comment makes it unparseable (the file says this twice; it was found by the migration test).
 - The `addColumns` swallow pattern is exact: only a `duplicate column name` error is discarded; anything else must fail Open.
@@ -140,7 +140,7 @@ func TestOpenAddsCursorHwToAPreExistingStore(t *testing.T) {
 
 - [ ] **Step 2: Run the tests to verify they fail**
 
-Run: `cd /home/david/workspace/rete/porta && go test ./internal/space/ -run 'CursorH|ClampsAnImpossible' -v`
+Run: `cd ~/workspace/rete/porta && go test ./internal/space/ -run 'CursorH|ClampsAnImpossible' -v`
 Expected: FAIL — `no such column: cursor_hw` on all three.
 
 - [ ] **Step 3: Implement**
@@ -201,13 +201,13 @@ In `porta/internal/space/store.go`, `NoteCheckIn`, replace the final UPDATE:
 
 - [ ] **Step 4: Run the tests to verify they pass**
 
-Run: `cd /home/david/workspace/rete/porta && go test ./internal/space/ -v`
+Run: `cd ~/workspace/rete/porta && go test ./internal/space/ -v`
 Expected: PASS, including every pre-existing test (the migration ordering tests especially).
 
 - [ ] **Step 5: gofmt and commit**
 
 ```bash
-cd /home/david/workspace/rete/porta && gofmt -l . && cd /home/david/workspace/rete
+cd ~/workspace/rete/porta && gofmt -l . && cd ~/workspace/rete
 git add porta/internal/space/schema.go porta/internal/space/store.go porta/internal/space/store_test.go
 git commit -m "feat(#117,#119): nodes.cursor_hw — the acked high-water the replay guard reads, clamped against out_seq
 
@@ -326,7 +326,7 @@ func TestFreshStoreRowsServeAfterAnImpossibleCursor(t *testing.T) {
 
 - [ ] **Step 2: Run the tests to verify they fail**
 
-Run: `cd /home/david/workspace/rete/porta && go test ./internal/space/ -run 'ReServed|LostBatch|OutageWritten|ImpossibleCursor' -v`
+Run: `cd ~/workspace/rete/porta && go test ./internal/space/ -run 'ReServed|LostBatch|OutageWritten|ImpossibleCursor' -v`
 Expected: `TestAckedStreamRowsAreNeverReServed` and `TestOutageWrittenStreamRowDeliversAcrossAReboot` FAIL (streams re-served); the other two PASS already — they pin the properties the change must not break. Confirm exactly this split before proceeding.
 
 - [ ] **Step 3: Implement**
@@ -354,13 +354,13 @@ In `porta/internal/space/store.go`, `OutboundSince`, replace the query (only the
 
 - [ ] **Step 4: Run the full package to verify everything passes**
 
-Run: `cd /home/david/workspace/rete/porta && go test ./internal/space/ -v`
+Run: `cd ~/workspace/rete/porta && go test ./internal/space/ -v`
 Expected: PASS — all four new tests and every pre-existing one (watch `TestOutboundKeepsEveryStreamEntry` and `TestOutboundRespectsCursor` in particular: they never call `NoteCheckIn`, so `cursor_hw` is 0 and their behaviour must be unchanged).
 
 - [ ] **Step 5: gofmt and commit**
 
 ```bash
-cd /home/david/workspace/rete/porta && gofmt -l . && cd /home/david/workspace/rete
+cd ~/workspace/rete/porta && gofmt -l . && cd ~/workspace/rete
 git add porta/internal/space/store.go porta/internal/space/store_test.go
 git commit -m "feat(#119,#262): the replay guard — an acked stream row is never re-served, uniformly, cells untouched
 
@@ -428,16 +428,16 @@ func TestColdBootDoesNotReExecuteAckedStreams(t *testing.T) {
 
 - [ ] **Step 2: Run it**
 
-Run: `cd /home/david/workspace/rete/porta && go test ./internal/wire/ -run ColdBootDoesNotReExecute -v`
+Run: `cd ~/workspace/rete/porta && go test ./internal/wire/ -run ColdBootDoesNotReExecute -v`
 Expected: PASS (Tasks 1–2 built the mechanism; this pins it at the protocol surface). If it FAILS, stop — do not patch the test; the mechanism is wrong, go back to Task 2.
 
 - [ ] **Step 3: Run both packages, then commit**
 
-Run: `cd /home/david/workspace/rete/porta && go test ./...`
+Run: `cd ~/workspace/rete/porta && go test ./...`
 Expected: `ok` for every package.
 
 ```bash
-cd /home/david/workspace/rete
+cd ~/workspace/rete
 git add porta/internal/wire/wire_test.go
 git commit -m "test(#262): the field shape at the wire — a new boot's cursor-0 pull carries cells only
 
@@ -569,7 +569,7 @@ Replace with:
 - [ ] **Step 6: Commit**
 
 ```bash
-cd /home/david/workspace/rete
+cd ~/workspace/rete
 git add protocol/PROTOCOL-NSL.md protocol/PROTOCOL-NSL-RECORDS.md porta/docs/design/2026-08-01-porta-space-sync-rewrite-design.md
 git commit -m "docs(protocol): replay-from-0 is per kind; must-deliver means re-offered-until-acked from a durable source (#119 #114)
 
@@ -590,8 +590,8 @@ Claude-Session: https://claude.ai/code/session_01H4VVGBQHafDXek3BsFchPv"
 - [ ] **Step 1: Run the gates**
 
 ```bash
-cd /home/david/workspace/rete/porta && gofmt -l . && go test ./...
-cd /home/david/workspace/rete/nodus/oevm && bash tests/porta_sync_host.sh
+cd ~/workspace/rete/porta && gofmt -l . && go test ./...
+cd ~/workspace/rete/nodus/oevm && bash tests/porta_sync_host.sh
 ```
 
 Expected: `gofmt` prints nothing; every package `ok`; the sync script ends `PORTA SYNC OK`. **Do not run the nsl suite concurrently with the sync script** (shared `/tmp` paths). If any gate is red, STOP and report — do not close issues over a red gate.

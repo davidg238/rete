@@ -10,7 +10,7 @@
 
 ## Global Constraints
 
-- **Three sibling repos:** `ns-oevm` (compiler/harness/`lib`; cwd `/home/david/workspace/ns-oevm`), `../oevm` (the C VM), `../ns-tests` (conformance tests + new tests). Paths are relative to the `ns-oevm` cwd.
+- **Three sibling repos:** `ns-oevm` (compiler/harness/`lib`; cwd `~/workspace/ns-oevm`), `../oevm` (the C VM), `../ns-tests` (conformance tests + new tests). Paths are relative to the `ns-oevm` cwd.
 - **Run the conformance suite from the `ns-oevm` cwd:** `python3 tools/run_tests_oevm.py` (wrong cwd silently reports 0/47). Default gate runs BOTH Path A (solidified-C) and Path B (`.oimg`).
 - **Regression bar:** 48 pass / 3 skip on both paths (the migration safety net — moving `Array`/`new:`/`at:`/`at:put:`/`size`/`do:` from C into `.ns` preserves observable behaviour). "Green" = same counts as `master`.
 - **Capability-purity (preserve step 2):** app code reaches kernel classes only via the threaded `platform`; kernel classes are top-level siblings so they are NOT directly resolvable by app code. The kernel itself needs no `platform` (allocation is a VM primitive; `Object.ns` uses `==`/literals).

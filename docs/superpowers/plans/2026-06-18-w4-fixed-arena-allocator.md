@@ -17,7 +17,7 @@
 - **Spec:** `docs/design/2026-06-18-w4-fixed-arena-allocator-design.md`.
 - **Build/run a single C unit test** (from `oevm/`):
   `gcc -std=c99 -Isrc tests/<t>.c src/vm.c src/gc.c src/dispatch.c src/oimg_loader.c src/solidified_image.c -lm -o /tmp/<t> && /tmp/<t>`
-- **Run conformance** (from `/home/david/workspace`): `python3 ns-oevm/tools/run_tests_oevm.py` (defaults to `OEVM_PATH=AB`). Expected tail: `47 pass / 0 fail / 1 skip` per path.
+- **Run conformance** (from `~/workspace`): `python3 ns-oevm/tools/run_tests_oevm.py` (defaults to `OEVM_PATH=AB`). Expected tail: `47 pass / 0 fail / 1 skip` per path.
 
 ---
 
@@ -312,7 +312,7 @@ Expected: each prints its own success line, no assertion failures. (If a test ne
 
 - [ ] **Step 8: Run full conformance + 32-bit**
 
-Run (from `/home/david/workspace`): `python3 ns-oevm/tools/run_tests_oevm.py`
+Run (from `~/workspace`): `python3 ns-oevm/tools/run_tests_oevm.py`
 Expected: `47 pass / 0 fail / 1 skip` on both Path A and Path B.
 Run (from `oevm/`): `bash tests/test_portability_32.sh`
 Expected: `32-bit portability OK`. (Requires `gcc-multilib`.)
@@ -501,12 +501,12 @@ Example for the Path A list:
 
 - [ ] **Step 2: Sanity-run conformance unchanged (no extra flags)**
 
-Run (from `/home/david/workspace`): `python3 ns-oevm/tools/run_tests_oevm.py`
+Run (from `~/workspace`): `python3 ns-oevm/tools/run_tests_oevm.py`
 Expected: `47 pass / 0 fail / 1 skip` (passthrough is empty → identical to before).
 
 - [ ] **Step 3: Run the 16 KB acceptance gate**
 
-Run (from `/home/david/workspace`):
+Run (from `~/workspace`):
 `OEVM_EXTRA_CFLAGS=-DOEVM_HEAP_SIZE=16384 python3 ns-oevm/tools/run_tests_oevm.py`
 Expected (target): `47 pass / 0 fail / 1 skip`.
 **Contingency:** if any test now fails with the OOM diagnostic (`VM GC Error: Out of Memory`), re-run doubling the cap (`32768`, `65536`, …) until 47/0/1, and record the smallest passing value as the embedded ceiling. The relevant tests run with no GC trigger in W4, so the cap must hold the test's full live + dead object set.
@@ -520,7 +520,7 @@ In `oevm/docs/archive/ROADMAP.md` GP0 section, mark step 1 (W4) done and point a
 
 ```bash
 # ns-oevm
-cd /home/david/workspace/ns-oevm
+cd ~/workspace/ns-oevm
 git add tools/run_tests_oevm.py
 git commit -m "test(harness): OEVM_EXTRA_CFLAGS passthrough for capped-heap runs
 
@@ -529,7 +529,7 @@ validate the embedded general-object ceiling.
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 # oevm
-cd /home/david/workspace/oevm
+cd ~/workspace/oevm
 git add nodus/oevm/docs/archive/ROADMAP.md nodus/oevm/docs/optimizations.md
 git commit -m "docs(gp0): W4 fixed-arena allocator done; record embedded heap ceiling
 

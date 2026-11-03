@@ -13,14 +13,14 @@
 - **Design of record:** `oevm/docs/design/2026-07-02-derecursify-phase3-growable-stacks-design.md` (scope **A**, DECIDED). Read it before starting.
 - **Behaviour-equivalent below the cap.** Same observable output on every existing test, BOTH paths. Growth is invisible to the language; the cap diagnostic is a new observable but not a language-semantics change → **no dialect row expected** (confirm in Task 4).
 - **Both image paths.** All changes are in `vm.c` runtime (compiled by both Path A and Path B); **no `.oimg` format change** — `Stack`/growth are runtime-only. No `builtins.def` change, no new vtable, no `solidify.py` change. Task 4 verifies the serializer/loader are untouched.
-- **Repos:** VM code in `/home/david/workspace/oevm`; tests in `/home/david/workspace/ns-tests`; runner + gates in `/home/david/workspace/ns-oevm/tools/run_tests_oevm.py`. Commit each repo separately. **Do not push** (David's push-only-when-asked rule).
+- **Repos:** VM code in `~/workspace/oevm`; tests in `~/workspace/ns-tests`; runner + gates in `~/workspace/ns-oevm/tools/run_tests_oevm.py`. Commit each repo separately. **Do not push** (David's push-only-when-asked rule).
 - **Gate (every task that touches the VM):** full suite BOTH paths + all 5 existing gates must stay green:
   ```
-  cd /home/david/workspace/ns-oevm && OEVM_PATH=AB python3 tools/run_tests_oevm.py
+  cd ~/workspace/ns-oevm && OEVM_PATH=AB python3 tools/run_tests_oevm.py
   ```
   Plus, when the VM changed: ASan/`OEVM_GC_STRESS=1` (the boot-gc-asan + fibers-gc-stress gates cover this) and `-D__ZEPHYR__ -fsyntax-only` syntax-clean:
   ```
-  cd /home/david/workspace/oevm && gcc -std=c99 -Isrc -D__ZEPHYR__ -DOEVM_APPLIANCE -fsyntax-only src/vm.c
+  cd ~/workspace/oevm && gcc -std=c99 -Isrc -D__ZEPHYR__ -DOEVM_APPLIANCE -fsyntax-only src/vm.c
   ```
 - **Runner is NOT concurrency-safe** (writes fixed `/tmp` fixtures). Run the suite **solo/serial**; re-run a red once solo before believing it.
 - **Locate edit sites by the quoted anchor code, not line numbers** (line numbers drift as you edit).
@@ -81,7 +81,7 @@ public main: platform args: args = (
 
 Run:
 ```bash
-cd /home/david/workspace/ns-oevm && OEVM_PATH=A python3 tools/run_tests_oevm.py 58_growable_stack
+cd ~/workspace/ns-oevm && OEVM_PATH=A python3 tools/run_tests_oevm.py 58_growable_stack
 ```
 Expected: FAIL — runtime crash "VM Error: Stack Overflow" (the fixed stack overflows near depth ~950). (If the runner filters by name differently, run the full suite and confirm `58_growable_stack` is the only new failure.)
 
@@ -305,29 +305,29 @@ Replace with:
 
 Run:
 ```bash
-cd /home/david/workspace/oevm && grep -rn "VM_STACK_MAX_WORDS" src/ | grep -v "VM_STACK_INIT_WORDS"
+cd ~/workspace/oevm && grep -rn "VM_STACK_MAX_WORDS" src/ | grep -v "VM_STACK_INIT_WORDS"
 ```
 Expected: no matches. (If any remain outside the retired `#define`, replace with the appropriate `VM_STACK_INIT_WORDS`/capacity-based logic.)
 
 - [ ] **Step 11: Run the new test — verify it PASSES both paths.**
 ```bash
-cd /home/david/workspace/ns-oevm && OEVM_PATH=AB python3 tools/run_tests_oevm.py 58_growable_stack
+cd ~/workspace/ns-oevm && OEVM_PATH=AB python3 tools/run_tests_oevm.py 58_growable_stack
 ```
 Expected: PASS on Path A and Path B, output `2001000`.
 
 - [ ] **Step 12: Run the FULL suite both paths + all 5 gates.**
 ```bash
-cd /home/david/workspace/ns-oevm && OEVM_PATH=AB python3 tools/run_tests_oevm.py
+cd ~/workspace/ns-oevm && OEVM_PATH=AB python3 tools/run_tests_oevm.py
 ```
 Expected: all tests pass BOTH paths (was 84/0/6, now 85/0/6 with `58_growable_stack`); `grant`, `debugger-integration`, `portability-32`, `fibers-gc-stress`, `boot-gc-asan` all PASS. Then syntax-check Zephyr:
 ```bash
-cd /home/david/workspace/oevm && gcc -std=c99 -Isrc -D__ZEPHYR__ -DOEVM_APPLIANCE -fsyntax-only src/vm.c && echo ZEPHYR-SYNTAX-OK
+cd ~/workspace/oevm && gcc -std=c99 -Isrc -D__ZEPHYR__ -DOEVM_APPLIANCE -fsyntax-only src/vm.c && echo ZEPHYR-SYNTAX-OK
 ```
 Expected: `ZEPHYR-SYNTAX-OK`.
 
 - [ ] **Step 13: Commit (two repos).**
 ```bash
-cd /home/david/workspace/oevm && git add src/vm.c && git commit -m "feat(derecursify): growable per-fiber stacks (Phase 3 mechanism)
+cd ~/workspace/oevm && git add src/vm.c && git commit -m "feat(derecursify): growable per-fiber stacks (Phase 3 mechanism)
 
 stack_ensure grows the active fiber stack (realloc-copy-to-larger) when a push
 would overflow; relative prev_frame/home_ctx links survive the copy with zero
@@ -340,7 +340,7 @@ New fibers + bootstrap start at INIT and grow on demand (embedded footprint win
 via -D small init). receiver temp-rooted across the grow's alloc.
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
-cd /home/david/workspace/ns-tests && git add 04_somns_basic/58_growable_stack.ns && git commit -m "test(derecursify): 58_growable_stack — deep recursion forces stack grow (Phase 3)
+cd ~/workspace/ns-tests && git add 04_somns_basic/58_growable_stack.ns && git commit -m "test(derecursify): 58_growable_stack — deep recursion forces stack grow (Phase 3)
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 ```
@@ -407,7 +407,7 @@ def run_stack_overflow_cap_gate() -> bool:
 
 - [ ] **Step 2: Run the gate — verify it FAILS** (Task 1 left a bare `fprintf("Stack Overflow")` + abort in the cap branch, so it may already partially pass; the point of this step is to confirm the gate detects the behaviour). Run the runner from `main()` or invoke the suite:
 ```bash
-cd /home/david/workspace/ns-oevm && OEVM_PATH=A python3 tools/run_tests_oevm.py 2>&1 | grep stack-overflow-cap
+cd ~/workspace/ns-oevm && OEVM_PATH=A python3 tools/run_tests_oevm.py 2>&1 | grep stack-overflow-cap
 ```
 Expected: the gate runs and reports (PASS if the Task-1 stub abort already fires; if the diagnostic string differs, FAIL — Step 3 sets the final text).
 
@@ -436,19 +436,19 @@ with:
 
 - [ ] **Step 4: Run the gate — verify it PASSES.**
 ```bash
-cd /home/david/workspace/ns-oevm && OEVM_PATH=A python3 tools/run_tests_oevm.py 2>&1 | grep stack-overflow-cap
+cd ~/workspace/ns-oevm && OEVM_PATH=A python3 tools/run_tests_oevm.py 2>&1 | grep stack-overflow-cap
 ```
 Expected: `stack-overflow-cap: PASSED`.
 
 - [ ] **Step 5: Full suite both paths + all gates still green** (the tiny-cap build is gate-only; the default-cap suite is unaffected).
 ```bash
-cd /home/david/workspace/ns-oevm && OEVM_PATH=AB python3 tools/run_tests_oevm.py
+cd ~/workspace/ns-oevm && OEVM_PATH=AB python3 tools/run_tests_oevm.py
 ```
 Expected: 85/0/6 both paths; all now-6 gates PASS.
 
 - [ ] **Step 6: Commit (two repos).**
 ```bash
-cd /home/david/workspace/oevm && git add src/vm.c && git commit -m "feat(derecursify): Phase 3 hard-cap policy A — controlled diagnostic termination
+cd ~/workspace/oevm && git add src/vm.c && git commit -m "feat(derecursify): Phase 3 hard-cap policy A — controlled diagnostic termination
 
 At VM_STACK_CAP_WORDS stack_ensure prints a clear diagnostic (fiber, needed
 words, cap) and aborts, instead of the terse pre-Phase-3 message. Catchable
@@ -456,7 +456,7 @@ in-image StackOverflow (worker fiber dies + node survives) is deferred with the
 exception facility it needs (design §4 A).
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
-cd /home/david/workspace/ns-oevm && git add tools/run_tests_oevm.py && git commit -m "test(derecursify): stack-overflow-cap gate — tiny-cap build must terminate cleanly
+cd ~/workspace/ns-oevm && git add tools/run_tests_oevm.py && git commit -m "test(derecursify): stack-overflow-cap gate — tiny-cap build must terminate cleanly
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 ```
@@ -510,17 +510,17 @@ public main: platform args: args = ( | c result |
 
 - [ ] **Step 2: Run it — verify it PASSES both paths** (this is a positive test of Task 1's mechanism, not a pre-written failure):
 ```bash
-cd /home/david/workspace/ns-oevm && OEVM_PATH=AB python3 tools/run_tests_oevm.py 59_grow_under_fibers
+cd ~/workspace/ns-oevm && OEVM_PATH=AB python3 tools/run_tests_oevm.py 59_grow_under_fibers
 ```
 Expected: PASS both paths, output `2001000` / `done`. If it fails, that's a real growth-isolation bug in Task 1 — debug via systematic-debugging before proceeding.
 
 - [ ] **Step 3: Run it under GC stress** (grown + un-grown stacks traced under collection pressure):
 ```bash
-cd /home/david/workspace/oevm && OEVM_GC_STRESS=1 <build+run 59 via the runner or a direct Path-A build>
+cd ~/workspace/oevm && OEVM_GC_STRESS=1 <build+run 59 via the runner or a direct Path-A build>
 ```
 Concretely, confirm the fibers-gc-stress-style path: the existing `fibers-gc-stress` gate only runs `45_fibers`; extend coverage by running the full suite once with stress on:
 ```bash
-cd /home/david/workspace/ns-oevm && OEVM_GC_STRESS=1 OEVM_PATH=A python3 tools/run_tests_oevm.py 59_grow_under_fibers
+cd ~/workspace/ns-oevm && OEVM_GC_STRESS=1 OEVM_PATH=A python3 tools/run_tests_oevm.py 59_grow_under_fibers
 ```
 Expected: PASS (correct output, no crash/leak).
 
@@ -575,22 +575,22 @@ Register it in `main()` (call + summary line), same as the other gates.
 
 - [ ] **Step 5: Run the new gate — verify it PASSES.**
 ```bash
-cd /home/david/workspace/ns-oevm && OEVM_PATH=A python3 tools/run_tests_oevm.py 2>&1 | grep growable-stack-small-init
+cd ~/workspace/ns-oevm && OEVM_PATH=A python3 tools/run_tests_oevm.py 2>&1 | grep growable-stack-small-init
 ```
 Expected: `growable-stack-small-init: PASSED` (or `SKIP` on a host without ASan).
 
 - [ ] **Step 6: Full suite both paths + all gates.**
 ```bash
-cd /home/david/workspace/ns-oevm && OEVM_PATH=AB python3 tools/run_tests_oevm.py
+cd ~/workspace/ns-oevm && OEVM_PATH=AB python3 tools/run_tests_oevm.py
 ```
 Expected: 86/0/6 both paths (adds `59_grow_under_fibers`); all now-7 gates PASS.
 
 - [ ] **Step 7: Commit (two repos).**
 ```bash
-cd /home/david/workspace/ns-tests && git add 04_somns_basic/59_grow_under_fibers.ns && git commit -m "test(derecursify): 59_grow_under_fibers — per-fiber growth isolation (Phase 3)
+cd ~/workspace/ns-tests && git add 04_somns_basic/59_grow_under_fibers.ns && git commit -m "test(derecursify): 59_grow_under_fibers — per-fiber growth isolation (Phase 3)
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
-cd /home/david/workspace/ns-oevm && git add tools/run_tests_oevm.py && git commit -m "test(derecursify): growable-stack-small-init gate — many-realloc + boot-grow under ASan
+cd ~/workspace/ns-oevm && git add tools/run_tests_oevm.py && git commit -m "test(derecursify): growable-stack-small-init gate — many-realloc + boot-grow under ASan
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 ```
@@ -608,14 +608,14 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 
 - [ ] **Step 1: Verify no `.oimg` format change.**
 ```bash
-cd /home/david/workspace/oevm && grep -rn "format_version\|VERSION" tools/oimg_serialize.py 2>/dev/null | head
-cd /home/david/workspace/ns-oevm && grep -rn "format_version\|VERSION" tools/*.py 2>/dev/null | grep -i version | head
+cd ~/workspace/oevm && grep -rn "format_version\|VERSION" tools/oimg_serialize.py 2>/dev/null | head
+cd ~/workspace/ns-oevm && grep -rn "format_version\|VERSION" tools/*.py 2>/dev/null | grep -i version | head
 ```
 Expected: no version bump was needed (growth is runtime-only). Confirm the `.oimg` Path-B suite already passed in Tasks 1–3 (it did → loader/serializer untouched). Record this in the report.
 
 - [ ] **Step 2: Dialect check.** Growth is behaviour-equivalent below the cap; the cap diagnostic is a new observable but not a language-semantics change. Confirm no existing test's expected output changed (the suite is green with only ADDED tests). Decision: **no dialect row**. If David disagrees on review, add one. Grep to confirm no dialect-guarded behaviour shifted:
 ```bash
-cd /home/david/workspace/oevm && grep -n "Dialect\|dialect #" docs/NEWSPEAK_DIALECT.md | tail -5
+cd ~/workspace/oevm && grep -n "Dialect\|dialect #" docs/NEWSPEAK_DIALECT.md | tail -5
 ```
 Note the current dialect number in the report; do not add a row unless review requires it.
 
@@ -627,10 +627,10 @@ Note the current dialect number in the report; do not add a row unless review re
 
 - [ ] **Step 6: Commit docs.**
 ```bash
-cd /home/david/workspace/oevm && git add docs/ && git commit -m "docs(derecursify): Phase 3 growable stacks DONE
+cd ~/workspace/oevm && git add docs/ && git commit -m "docs(derecursify): Phase 3 growable stacks DONE
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
-cd /home/david/workspace/ns-oevm && git add .superpowers/sdd/progress.md && git commit -m "docs(derecursify): Phase 3 ledger
+cd ~/workspace/ns-oevm && git add .superpowers/sdd/progress.md && git commit -m "docs(derecursify): Phase 3 ledger
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 ```

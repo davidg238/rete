@@ -1,0 +1,6 @@
+name: targets-facade
+pattern: Facade
+intent: one header declares the board facilities the core dispatches prims to
+compromise: the host stubs in src/platform.c stay; only the declarations move
+ops:
+  - declare: {func: "*_target_*", header: src/target_backend.h}

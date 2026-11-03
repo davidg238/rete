@@ -34,7 +34,8 @@ project(oevm_pulse)
 set(OEVM_SRC ${CMAKE_CURRENT_SOURCE_DIR}/..)
 target_sources(app PRIVATE
   src/main.c
-  src/log_udp.c
+  # The UDP log backend; its header log_udp.h stays in src (on the include path).
+  ${OEVM_SRC}/src/backend/zephyr/log_udp.c
   # rete#215: the retained panic note (.rtc_noinit) + the k_sys_fatal_error_handler
   # override. App-side, not an engine file: platform.c externs the five seam symbols the
   # way it already externs bell/ntp/rtc, so none of the nine engine source lists (#63)
@@ -44,9 +45,10 @@ target_sources(app PRIVATE
   # is reached only from main.c, and placing it in src/backend/zephyr/ would cost a posix
   # stub in nine source lists (#63) that nothing on the host would call.
   src/observer.c
-  # rete#233: the program-slot runner (the host runner's loop, in the firmware) and the
-  # ed25519 it verifies with — MCUboot's own, vendored (src/ed25519/README.md).
-  src/runner.c
+  # rete#233: the program-slot runner (the host runner's loop, in the firmware; a backend
+  # beside ota_zephyr.c, its header runner.h stays in src) and the ed25519 it verifies
+  # with — MCUboot's own, vendored (src/ed25519/README.md).
+  ${OEVM_SRC}/src/backend/zephyr/runner.c
   src/ed25519/curve25519.c
   src/ed25519/sha512.c
   src/ed25519/utils.c
@@ -56,7 +58,6 @@ target_sources(app PRIVATE
   ${OEVM_SRC}/src/serial.c ${OEVM_SRC}/src/udp.c ${OEVM_SRC}/src/mirror.c
   ${OEVM_SRC}/src/backend/zephyr/platform_zephyr.c
   ${OEVM_SRC}/src/backend/zephyr/serial_zephyr.c
-  ${OEVM_SRC}/src/backend/zephyr/udp_zephyr.c
   ${OEVM_SRC}/src/backend/zephyr/pulse_zephyr.c
   ${OEVM_SRC}/src/backend/zephyr/timer_zephyr.c
   ${OEVM_SRC}/src/backend/zephyr/span_zephyr.c
@@ -165,12 +166,19 @@ endif()
 target_sources(app PRIVATE ${OEVM_BOARD_NAME_C})
 message(STATUS "oevm board name: '${OEVM_BOARD_NAME}'")
 
-# OpenThread bring-up TU (oevm_thread_bringup). Gated on OPENTHREAD so the WROOM
+# OpenThread bring-up TU (oevm_thread_bringup), a radio adapter beside log_udp.c. Gated on OPENTHREAD so the WROOM
 # (WiFi, no Thread) compiles it away. ONE shared impl: nRF (NCS) and C6 (upstream
 # 4.2) expose the same no-arg OT API, so the earlier board split was redundant
 # (#59, 2026-07-20). Re-split behind thread_bringup.h only if the APIs diverge.
 if (CONFIG_NET_L2_OPENTHREAD)
-  target_sources(app PRIVATE src/thread_bringup.c)
+  target_sources(app PRIVATE ${OEVM_SRC}/src/backend/zephyr/thread_bringup.c)
+endif()
+# rete#439 (spike): the datagram backend follows the radio. A Bluetooth build carries the
+# seam over an L2CAP channel to a phone relay (udp_ble.c); every other build uses sockets.
+if (CONFIG_BT)
+  target_sources(app PRIVATE ${OEVM_SRC}/src/backend/zephyr/udp_ble.c)
+else()
+  target_sources(app PRIVATE ${OEVM_SRC}/src/backend/zephyr/udp_zephyr.c)
 endif()
 
 # ---- Model A/B knob -------------------------------------------------------
@@ -329,7 +337,7 @@ if(DEFINED ENV{OEVM_NTP_SERVER6})
   target_compile_definitions(app PRIVATE OEVM_NTP_SERVER6="$ENV{OEVM_NTP_SERVER6}")
 endif()
 
-# THE REMOTE CONSOLE (src/log_udp.c) has no build-time target: it tees to the
+# THE REMOTE CONSOLE (src/backend/zephyr/log_udp.c) has no build-time target: it tees to the
 # goal/console cell, set at run time by the custos that wants the lines (#415 Q2′;
 # the OEVM_LOG_UDP6 literal was deleted 2026-10-14, after the wall bell ran on the cell).
 # rete#415 F10: the console's drain before deep sleep counts the frames the WiFi

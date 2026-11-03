@@ -1,0 +1,10 @@
+{
+  "commit": "569e6c32",
+  "revision": "well-known-symbols",
+  "pattern": "Facade",
+  "before": {
+    "owns-violated|global:Symbol_debug_|func:primitive_register_debugger_hook": 1,
+    "owns-violated|global:Symbol_value|func:run_interpreter": 1
+  },
+  "after": {}
+}

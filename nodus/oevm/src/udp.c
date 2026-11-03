@@ -7,9 +7,10 @@
    platform.c) at 1-based indices: 1=dataString, 2=hostString, 3=portSMI.
    Strings are built with gc_allocate(StringVtable,...) directly (same pattern
    as make_string in dispatch.c, which is file-static and not reachable here).
-   indexable_new(3) is non-static in platform.c; declared extern below.
+   indexable_new(3) is platform.c's, declared in platform.h.
    Array slots are set by direct C struct access (no basic_at_put function). */
 #include "udp.h"
+#include "platform.h"
 #include "udp_backend.h"
 #include "oimg.h"
 #include <stdio.h>
@@ -18,8 +19,6 @@
 
 extern oop VtableVtable;
 extern oop StringVtable;
-extern oop gc_allocate(oop vtable, size_t size);
-extern oop indexable_new(intptr_t n);   /* platform.c: alloc n-slot indexable */
 
 static struct Object UdpObj;
 static struct Vtable UdpVtable;
@@ -86,8 +85,6 @@ oop udp_dispatch(oop selector, int argc, oop *args) {
            C-stack scan used to keep these bare-local oops live; with it gone,
            dataS is live across two later allocations and hostS across one, so
            each must be pinned as a temp root before those allocations run. */
-        extern void gc_temp_root_push(oop o);
-        extern void gc_temp_roots_clear(void);
         oop dataS = udp_make_bytes(buf, (size_t)n);
         gc_temp_root_push(dataS);
         oop hostS = udp_make_string((const uint8_t *)host, strlen(host));

@@ -506,7 +506,7 @@ arm-zephyr-eabi toolchain)` is expected; anything else red is a real break.
 - [ ] **Step 8: Commit**
 
 ```bash
-cd /home/david/workspace/rete
+cd ~/workspace/rete
 git add nodus/tuvm/src/reboot_note.h nodus/tuvm/tests/test_reboot_note.c \
         nodus/tuvm/src/platform.c nodus/tuvm/tools/run_c_tests.sh
 git commit -m "feat(#215): a retained note, and the rule that garbage is not a report"
@@ -701,7 +701,7 @@ stop and report rather than continuing.
 - [ ] **Step 6: Commit**
 
 ```bash
-cd /home/david/workspace/rete
+cd ~/workspace/rete
 git add nodus/tuvm/zephyr/src/reboot_note.c nodus/tuvm/zephyr/CMakeLists.txt \
         nodus/tuvm/zephyr/src/main.c
 git commit -m "feat(#215): a fatal error now leaves a note that survives the reboot"
@@ -803,7 +803,7 @@ int timer_target_snapshot(uint32_t *period_ms, uint32_t *since_ms, int max) {
 
 ```bash
 cd nodus/tuvm/zephyr && bash run.sh --board esp32c6 --build-only 2>&1 | tail -5
-cd /home/david/workspace/rete/nodus/nsl && python3 tools/run_tests_oevm.py > /tmp/nsl-t3.log 2>&1; echo "exit=$?"; tail -8 /tmp/nsl-t3.log
+cd ~/workspace/rete/nodus/nsl && python3 tools/run_tests_oevm.py > /tmp/nsl-t3.log 2>&1; echo "exit=$?"; tail -8 /tmp/nsl-t3.log
 ```
 Expected: the C6 build links; `exit=0` on the nsl suite. `timer_posix.c` is untouched by design —
 the host has no mailbox and no ISR, which is the whole reason `tests/target/` exists.
@@ -811,7 +811,7 @@ the host has no mailbox and no ISR, which is the whole reason `tests/target/` ex
 - [ ] **Step 5: Commit**
 
 ```bash
-cd /home/david/workspace/rete
+cd ~/workspace/rete
 git add nodus/tuvm/src/backend/zephyr/timer_zephyr.c
 git commit -m "feat(#215): a repeating timer now remembers what the app declared"
 ```
@@ -871,7 +871,7 @@ Expected: every C test still `PASS`; the C6 build links.
 - [ ] **Step 4: Commit**
 
 ```bash
-cd /home/david/workspace/rete
+cd ~/workspace/rete
 git add nodus/tuvm/src/pulse_backend.h nodus/tuvm/src/backend/zephyr/pulse_zephyr.c \
         nodus/tuvm/src/backend/posix/pulse_posix.c
 git commit -m "feat(#215): the pulse mailbox can now say how much it is holding"
@@ -1285,8 +1285,8 @@ Expected: the build links; `TUVM_WEDGE_TRIGGER` appears only as `# … is not se
 - [ ] **Step 7: Run the host gates**
 
 ```bash
-cd /home/david/workspace/rete/nodus/nsl && python3 tools/run_tests_oevm.py > /tmp/nsl-t5.log 2>&1; echo "exit=$?"; tail -8 /tmp/nsl-t5.log
-cd /home/david/workspace/rete/nodus/tuvm && bash tools/run_c_tests.sh 2>&1 | tail -30
+cd ~/workspace/rete/nodus/nsl && python3 tools/run_tests_oevm.py > /tmp/nsl-t5.log 2>&1; echo "exit=$?"; tail -8 /tmp/nsl-t5.log
+cd ~/workspace/rete/nodus/tuvm && bash tools/run_c_tests.sh 2>&1 | tail -30
 ```
 Expected: `exit=0`, every C test `PASS`. **Neither gate can see this file** — that is the point
 of `tests/target/`, and the tasks below are where it is actually tested.
@@ -1294,7 +1294,7 @@ of `tests/target/`, and the tasks below are where it is actually tested.
 - [ ] **Step 8: Commit**
 
 ```bash
-cd /home/david/workspace/rete
+cd ~/workspace/rete
 git add nodus/tuvm/zephyr/src/observer.c nodus/tuvm/zephyr/CMakeLists.txt \
         nodus/tuvm/zephyr/src/main.c nodus/tuvm/zephyr/src/reboot_note.c \
         nodus/tuvm/zephyr/prj_esp32c6.conf nodus/tuvm/zephyr/Kconfig \
@@ -1435,7 +1435,7 @@ the enum and `PRIM_NAMES` have gone out of step — fix the counting, do not adj
 - [ ] **Step 6: Commit**
 
 ```bash
-cd /home/david/workspace/rete
+cd ~/workspace/rete
 git add nodus/tuvm/src/prim_ids.h nodus/tuvm/src/dispatch.c nodus/tuvm/src/platform.c
 git commit -m "feat(#215): nsl can read the note the dying node left"
 ```
@@ -1550,7 +1550,7 @@ before `bridge checkIn`.
 node identities before and was nearly committed. Before staging anything:
 
 ```bash
-cd /home/david/workspace/rete && git diff --stat nodus/tuvm/src/solidified_image.c
+cd ~/workspace/rete && git diff --stat nodus/tuvm/src/solidified_image.c
 grep -c "Method_.*Test" nodus/tuvm/src/solidified_image.c
 ```
 If `solidified_image.c` changed and you did not intend it, **restore it** — the tracked fixture
@@ -1565,9 +1565,9 @@ cd nodus/tuvm/zephyr && bash run.sh --board esp32c6 --build-only 2>&1 | tail -5
 - [ ] **Step 5: Run the host gates**
 
 ```bash
-cd /home/david/workspace/rete/nodus/nsl && python3 tools/run_tests_oevm.py > /tmp/nsl-t7.log 2>&1; echo "exit=$?"; tail -8 /tmp/nsl-t7.log
+cd ~/workspace/rete/nodus/nsl && python3 tools/run_tests_oevm.py > /tmp/nsl-t7.log 2>&1; echo "exit=$?"; tail -8 /tmp/nsl-t7.log
 bash tests/porta_sync_host.sh 2>&1 | tail -5
-cd /home/david/workspace/rete/porta && go test ./... 2>&1 | tail -5
+cd ~/workspace/rete/porta && go test ./... 2>&1 | tail -5
 ```
 Expected: `exit=0` with a clean aux-gate line, `PORTA SYNC OK`, and all Go packages `ok`.
 
@@ -1577,7 +1577,7 @@ Green here means nothing about the board; Task 11 is where that is settled.
 - [ ] **Step 6: Commit**
 
 ```bash
-cd /home/david/workspace/rete
+cd ~/workspace/rete
 git add nodus/nsl/lib/kernel.nsl nodus/tuvm/zephyr/PortaBridgeNodeC6.nsl
 git commit -m "feat(#215): #watchdog stops being aspirational — a node reports how it died"
 ```
@@ -1694,7 +1694,7 @@ class WedgeProbeC6 packageUsing: manifest = (
 - [ ] **Step 2: Confirm the two deadlines are still in the right order**
 
 ```bash
-cd /home/david/workspace/rete/nodus/tuvm
+cd ~/workspace/rete/nodus/tuvm
 grep TRIGGER_S zephyr/prj_esp32c6_wedgegate.conf
 grep -n "wedgeAtTick" zephyr/WedgeProbeC6.nsl
 ```
@@ -1739,7 +1739,7 @@ OBSERVE_PROGRESS='^.*wedge-probe tick [0-9]+'
 - [ ] **Step 4: Run it**
 
 ```bash
-cd /home/david/workspace/rete/nodus/tuvm/tests/target && ./run.sh wedge-note
+cd ~/workspace/rete/nodus/tuvm/tests/target && ./run.sh wedge-note
 ```
 Expected: `TARGET 1/1 PASS`, with `wedge-note PASS 2/2`.
 
@@ -1750,7 +1750,7 @@ line. A pass without the `WEDGE` line means the reboot came from somewhere else.
 - [ ] **Step 5: Commit**
 
 ```bash
-cd /home/david/workspace/rete
+cd ~/workspace/rete
 git add nodus/tuvm/zephyr/WedgeProbeC6.nsl nodus/tuvm/zephyr/prj_esp32c6_wedgegate.conf \
         nodus/tuvm/tests/target/wedge-note.env
 git commit -m "test(#215): the note survives the reset, proven before anything leans on it"
@@ -1804,7 +1804,7 @@ OBSERVE_PROGRESS='^.*wedge-probe tick [0-9]+'
 - [ ] **Step 2: Run it, and read the dump rather than the verdict**
 
 ```bash
-cd /home/david/workspace/rete/nodus/tuvm/tests/target && ./run.sh wedge-detect
+cd ~/workspace/rete/nodus/tuvm/tests/target && ./run.sh wedge-detect
 ```
 Expected: `wedge-detect PASS 2/2`.
 
@@ -1824,7 +1824,7 @@ grep -E "tuvm: WEDGE|tuvm: reboot-note|wedge-probe tick 30" ~/.local/state/rete/
 - [ ] **Step 3: Commit**
 
 ```bash
-cd /home/david/workspace/rete
+cd ~/workspace/rete
 git add nodus/tuvm/tests/target/wedge-detect.env
 git commit -m "test(#215): a wedge with no fault now reboots the node and says which condition fired"
 ```
@@ -1944,7 +1944,7 @@ declared and this gate would test nothing). State in the manifest which you did 
 - [ ] **Step 4: Run it**
 
 ```bash
-cd /home/david/workspace/rete/nodus/tuvm/tests/target && ./run.sh wedge-quiet
+cd ~/workspace/rete/nodus/tuvm/tests/target && ./run.sh wedge-quiet
 ```
 Expected: `wedge-quiet PASS 1/1`, and **no** `tuvm: WEDGE` line anywhere in the window.
 
@@ -1955,7 +1955,7 @@ grep -c "tuvm: WEDGE" ~/.local/state/rete/console/*.log
 - [ ] **Step 5: Commit**
 
 ```bash
-cd /home/david/workspace/rete
+cd ~/workspace/rete
 git add nodus/tuvm/zephyr/SlowTimerNodeC6.nsl nodus/tuvm/tests/target/wedge-quiet.env
 git commit -m "test(#215): a node that legitimately sleeps ten minutes is not rebooted"
 ```
@@ -1988,7 +1988,7 @@ one, and a by-id hash matching neither entry means a third board is plugged in.
 - [ ] **Step 2: Flash c6spare with the bridge, radio up, detector armed — the DEFAULT build**
 
 ```bash
-cd /home/david/workspace/rete/nodus/tuvm/zephyr
+cd ~/workspace/rete/nodus/tuvm/zephyr
 ./run.sh --board c6spare --conf-extra "prj_esp32c6_thread.conf;prj_esp32c6_thread_ftd.conf" --flash
 ```
 Verify from the console, in the first minute:
@@ -2006,7 +2006,7 @@ to test is absent while everything looks green.
 Induce one reboot with the synthetic trigger on a second flash, then read the gateway:
 
 ```bash
-cd /home/david/workspace/rete/nodus/tuvm/zephyr
+cd ~/workspace/rete/nodus/tuvm/zephyr
 ./run.sh --board c6spare --conf-extra "prj_esp32c6_thread.conf;prj_esp32c6_thread_ftd.conf;prj_esp32c6_wedgegate.conf" --flash
 ```
 Then, **on the gateway — all of porta's operational state is on gw85224-01, not the
@@ -2027,7 +2027,7 @@ and `bootId` equal to the boot the node died on.
 - [ ] **Step 4: Reflash the DEFAULT build and start the soak**
 
 ```bash
-cd /home/david/workspace/rete/nodus/tuvm/zephyr
+cd ~/workspace/rete/nodus/tuvm/zephyr
 ./run.sh --board c6spare --conf-extra "prj_esp32c6_thread.conf;prj_esp32c6_thread_ftd.conf" --flash
 date -Is    # record the start; the session clock is UTC and the bench is MST
 ```
@@ -2066,7 +2066,7 @@ the boot count, the wedge count, the window length, the tick the node reached, a
 - [ ] **Step 7: Commit**
 
 ```bash
-cd /home/david/workspace/rete
+cd ~/workspace/rete
 git add docs/design/2026-08-16-vm-liveness-observer-design.md
 git commit -m "docs(#215): the armed detector left a healthy node alone for 12 h"
 ```
@@ -2087,7 +2087,7 @@ check-in and never acks. That is precisely §5.2's *"a genuine boot-OOM loop nev
 all, so it halts on the third try."*
 
 ```bash
-cd /home/david/workspace/rete/nodus/tuvm/zephyr
+cd ~/workspace/rete/nodus/tuvm/zephyr
 ./run.sh --board c6spare --conf-extra "prj_esp32c6_thread.conf;prj_esp32c6_thread_ftd.conf;prj_esp32c6_faultgate.conf" --flash
 grep -E "tuvm: FATAL|tuvm: HALT|tuvm: build-id" ~/.local/state/rete/console/*.log | tail -12
 ```
@@ -2125,7 +2125,7 @@ the halt is #220, not a failure here — read the row that persists.
 - [ ] **Step 4: Restore c6spare to something useful**
 
 ```bash
-cd /home/david/workspace/rete/nodus/tuvm/zephyr
+cd ~/workspace/rete/nodus/tuvm/zephyr
 ./run.sh --board c6spare --conf-extra "prj_esp32c6_thread.conf;prj_esp32c6_thread_ftd.conf" --flash
 ```
 A halted board left halted is a board someone will later mistake for a dead one.
@@ -2133,7 +2133,7 @@ A halted board left halted is a board someone will later mistake for a dead one.
 - [ ] **Step 5: Commit the reading**
 
 ```bash
-cd /home/david/workspace/rete
+cd ~/workspace/rete
 git add docs/design/2026-08-16-vm-liveness-observer-design.md
 git commit -m "docs(#215): three faults halt the node, and the gateway can see it happen"
 ```
@@ -2200,11 +2200,11 @@ anywhere.**
 - [ ] **Step 8: Final gates, then close**
 
 ```bash
-cd /home/david/workspace/rete/nodus/nsl && python3 tools/run_tests_oevm.py > /tmp/nsl-final.log 2>&1; echo "exit=$?"; tail -8 /tmp/nsl-final.log
-cd /home/david/workspace/rete/nodus/tuvm && bash tools/run_c_tests.sh 2>&1 | tail -30
-cd /home/david/workspace/rete/nodus/tuvm && bash tests/porta_sync_host.sh 2>&1 | tail -3
-cd /home/david/workspace/rete/porta && go test ./... 2>&1 | tail -5
-cd /home/david/workspace/rete/nodus/tuvm/tests/target && ./run.sh
+cd ~/workspace/rete/nodus/nsl && python3 tools/run_tests_oevm.py > /tmp/nsl-final.log 2>&1; echo "exit=$?"; tail -8 /tmp/nsl-final.log
+cd ~/workspace/rete/nodus/tuvm && bash tools/run_c_tests.sh 2>&1 | tail -30
+cd ~/workspace/rete/nodus/tuvm && bash tests/porta_sync_host.sh 2>&1 | tail -3
+cd ~/workspace/rete/porta && go test ./... 2>&1 | tail -5
+cd ~/workspace/rete/nodus/tuvm/tests/target && ./run.sh
 ```
 Expected: `exit=0` with a clean aux-gate line, every C test `PASS`, `PORTA SYNC OK`, all Go
 packages `ok`, and `TARGET n/n PASS` across every scenario including the three added here.
@@ -2212,7 +2212,7 @@ packages `ok`, and `TARGET n/n PASS` across every scenario including the three a
 - [ ] **Step 9: Commit and close**
 
 ```bash
-cd /home/david/workspace/rete
+cd ~/workspace/rete
 git add review/program-sequence.md docs/design/ docs/next-steps-overview.md \
         protocol/PROTOCOL-NSL-RECORDS.md CLAUDE.md
 git commit -m "docs(#215): a wedged node has a voice — promoting the rung to the record"

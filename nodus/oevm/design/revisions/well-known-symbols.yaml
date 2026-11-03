@@ -1,0 +1,7 @@
+name: well-known-symbols
+pattern: Facade
+intent: the interpreter's well-known symbols have one owner — boot sets them, and the interpreter interns them on a link without kernel_boot
+compromise: a card accepts the three writers; the lazy path is live on Model A and most host tests, so it stays
+ops:
+  - card: {file: well_known_symbols.yaml}
+  - card: {file: boot.yaml}

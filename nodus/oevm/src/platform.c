@@ -9,6 +9,7 @@
 #include "http.h"
 #include "http_backend.h"
 #include "sensor_backend.h"  /* AMG8833 thermal rung: the Tier-1 sensor seam */
+#include "target_backend.h"  /* invarlint#53: the board leaves, declared once */
 #include "span.h"            /* tuvm#61: job-latency span slots */
 
 /* rete#273 D1: the app's declared cadence for the observer (PRIM_pf_appLiveness).
@@ -168,8 +169,6 @@ int gpio_target_level(int pin) {
    across two repos (tuvm#63) for two functions.
    Note the direction is the MIRROR of gpio_target_fire below, which platform.c
    defines and main.c calls inbound. */
-extern int gpio_target_set(int pin, int level);
-extern int gpio_target_level(int pin);
 #endif
 
 /* tuvm#88: the host side of the display seam — a real character grid, not a
@@ -272,11 +271,6 @@ int display_target_refresh_row(int row) {
    devicetree node they read — the same split gpio_target_set/level use, and for
    the same reason: a new .c file costs edits to nine enumerated source lists
    across two repos (tuvm#63). */
-extern int display_target_available(void);
-extern int display_target_clear(void);
-extern int display_target_put(int row, int col, const char *s, int n);
-extern int display_target_refresh(void);
-extern int display_target_refresh_row(int row);
 #endif
 
 /* tuvm#94 stage 1: the host side of the bell seam. There is nothing to synthesise
@@ -511,55 +505,10 @@ void deep_sleep_target(int seconds) {
     exit(0);
 }
 #else
-/* On target these live in zephyr/src/main.c, beside the legacy cosine-generator
-   calls and the devicetree nodes they read — same split, same reason as the
-   display five above (tuvm#63). Like those, both symbols must exist and link on
-   EVERY Zephyr board, including the ones with no speaker: the guard goes inside
-   the function bodies, never around the definitions. */
-extern int bell_target_available(void);
-extern int bell_target_strike(int bells);
-/* tuvm#94 stage 4. Same rule as the bell pair above: the symbol must link on EVERY
-   Zephyr board, so main.c guards the BODY (a board without CONFIG_WIFI answers -1),
-   never the definition. */
-extern int ntp_target_sync(int tz_offset_seconds);
-/* tuvm#100 (2026-08-01): the date half of the NTP seam. Same linkage rule; it
-   answers -1 until a sync has succeeded, so a board with no network is already
-   handled without a second guard. */
-extern int ntp_target_date(void);
-/* tuvm#94 stage 5: RTC-retention leaves live in zephyr/src/main.c (the .rtc.data
-   struct is beside the wifi/ntp leaves). Same rule as bell/ntp — the symbols link on
-   every Zephyr board; main.c guards bodies, never definitions. */
-extern int rtc_target_valid(void);
-extern int rtc_target_get(int i);
-extern void rtc_target_put(int i, int v);
-/* rete#233 T10: the reset-cause leaf (hwinfo) lives in zephyr/src/main.c beside the
-   RTC retention block. Same rule: links on every board; a board whose hwinfo has no
-   reset cause answers 1 from the body. */
-extern int reset_cause_timer_wake(void);
-/* rete#215: the panic note's leaves live in zephyr/src/reboot_note.c, beside the RTC
-   retention block they share a section with. Same rule as bell/ntp/rtc above — the
-   symbols must link on EVERY Zephyr board, so that file guards bodies, never
-   definitions. */
-extern void     reboot_note_init(void);
-extern int      reboot_note_read(struct RebootNote *out);
-extern void     reboot_note_write(uint32_t reason, uint32_t mcause,
-                                  uint32_t mepc, uint32_t ra, uint32_t mono_ms);
-extern void     reboot_note_ack(uint32_t boot_id);
-extern uint32_t reboot_note_consecutive(void);
-/* tuvm#94 stage 5: deepSleep: device leaf deferred to a later task (zephyr/src/main.c
-   not yet touched); the extern must exist now so this shared translation unit links. */
-extern void deep_sleep_target(int seconds);
-/* tuvm#100: the wall-clock leaf lives in zephyr/src/main.c beside the other
-   devicetree-reading leaves. Same rule as bell/ntp/rtc — the symbol must link on
-   EVERY Zephyr board, so main.c guards the BODY (a board with no RTC node in its
-   devicetree answers -1), never the definition. */
-extern int wallclock_target_read(void);
-extern int wallclock_target_set(int yyyymmdd, int seconds_of_day);
-/* shipsBellsV3 (#102): the RTC alarm leaf, same rule as the wall-clock one above
-   — zephyr/src/main.c guards the BODY (a board with no RTC alias, or an image
-   built without CONFIG_RTC_ALARM, answers -1), never the definition, so the
-   symbol links on every Zephyr board. */
-extern int rtc_alarm_arm(int seconds_of_day, int chan_id, int handle_idx);
+/* On target the leaves live in zephyr/src/main.c (the panic note's in
+   zephyr/src/reboot_note.c), declared once in target_backend.h and reboot_note.h
+   (invarlint#53, #48). Every symbol links on EVERY Zephyr board: a board without the
+   hardware guards the BODY, never the definition. */
 #endif
 
 /* Target GPIO-ISR entry (Zephyr rung-2 Task 8): a real on-target GPIO edge
@@ -570,7 +519,6 @@ extern int rtc_alarm_arm(int seconds_of_day, int chan_id, int handle_idx);
    builds (host_gpio_fire serves the sim there), harmless when never called. */
 void gpio_target_fire(int pin) { host_gpio_fire(pin); }
 
-extern oop gc_allocate(oop vtable, size_t size);
 extern oop StringVtable, SymbolVtable, VtableVtable;
 extern oop RawBytesVtable;   /* Milestone B Task 3: RawBytes leaf storage */
 extern oop LargeIntegerVtable, FloatVtable;   /* Milestone B Task 4: valueRank: */
@@ -747,14 +695,14 @@ static const uint8_t *ota_leaf_bytes(oop v, size_t *len) {
    fills: one slot per half-hourly strike is a ~15.5 h uptime ceiling by
    construction, and the field data (#153, 3431 samples) shows handlesLive stepping
    +1 every thirty minutes with nothing ever given back.
-   There is exactly ONE outstanding alarm and ONE outstanding sensor trigger per
-   node, so one int each is the whole state. -1 is the invalid sentinel handle_new
+   There is exactly ONE outstanding alarm per node, so one int is the whole state;
+   the sensor trigger is one per KIND, and its pin lives with the kind in the sensor
+   backend, which hands the superseded one back (rete#436). -1 is the invalid sentinel handle_new
    can never return (handles.h keeps the sign bit clear), and handle_free ignores
    it, so no first-arm special case is needed. The timer seam
    (backend/zephyr/timer_zephyr.c:43) and the GPIO seam (host_gpio_register above)
    already reclaim theirs; these two were the outliers. */
 static int rtc_alarm_pin    = -1;
-static int sensor_event_pin = -1;
 
 int platform_dispatch(int pid, int argc, oop *args, oop *out) {
     (void)argc;
@@ -1063,9 +1011,7 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
                                     (const char *)p->bytes, p->length,
                                     ids, (int)want);
 
-        extern void gc_temp_root_push(oop o);
-        extern int gc_temp_roots_count;
-        int saved = gc_temp_roots_count;
+        int saved = gc_temp_roots_mark();
 
         oop rows = indexable_new(n);
         gc_temp_root_push(rows);
@@ -1079,7 +1025,7 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
                 TAG_SMI((intptr_t)space_last_seq_of(ids[i]));
             ((struct ObjectInstance *)row)->slots[3] = space_value_of(ids[i]);
         }
-        gc_temp_roots_count = saved;
+        gc_temp_roots_reset(saved);
         *out = rows;
         return 1;
     }
@@ -1236,8 +1182,6 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
            (mirrors src/udp.c). `argv` is a heap LargeInteger on the large-arg
            branch (arg > INTPTR_MAX>>1) and is held live across indexable_new(3);
            pin it before that allocation. TAG_SMI pushes are harmless. */
-        extern void gc_temp_root_push(oop o);
-        extern void gc_temp_roots_clear(void);
         oop argv = (arg <= (uint64_t)(INTPTR_MAX>>1)) ? TAG_SMI((intptr_t)arg)
                                                       : oevm_int_demote(largeint_alloc(+1, arg));
         gc_temp_root_push(argv);
@@ -1283,8 +1227,6 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
            heap Float held live across indexable_new(2); the non-stack-scanning
            mark-sweep GC would sweep it, so pin it as a temp root first (mirrors
            src/udp.c). This fires on EVERY call, not just an edge case. */
-        extern void gc_temp_root_push(oop o);
-        extern void gc_temp_roots_clear(void);
         oop f = float_alloc(FloatVtable); ((struct Float*)f)->value = d;
         gc_temp_root_push(f);
         oop r = indexable_new(2);
@@ -1404,9 +1346,7 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
         if (dn < 0) dn = 0;
         if (dn > (int)sizeof detail - 1) dn = (int)sizeof detail - 1;
 
-        extern void gc_temp_root_push(oop o);
-        extern int gc_temp_roots_count;
-        int saved = gc_temp_roots_count;
+        int saved = gc_temp_roots_mark();
 
         oop r = indexable_new(4);
         gc_temp_root_push(r);
@@ -1414,7 +1354,7 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
         ((struct ObjectInstance *)r)->slots[2] = TAG_SMI((intptr_t)rn.boot_id);
         ((struct ObjectInstance *)r)->slots[3] = TAG_SMI((intptr_t)rn.mono_ms);
         ((struct ObjectInstance *)r)->slots[4] = space_make_string_pub(detail, (size_t)dn);
-        gc_temp_roots_count = saved;
+        gc_temp_roots_reset(saved);
         *out = r; return 1;
     }
     case PRIM_pf_panicNoteAck: {
@@ -1805,56 +1745,64 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
         *out = platform_object();
         return 1;
     }
-    case PRIM_pf_sensorFrame: {
-        /* `platform sensorFrame` — one 8x8 thermal frame as a 64-slot Array of
-           centi-degC SMIs, or nil when the device is not ready. GC-safety: the
-           backend fills a C buffer BEFORE the single allocating call
-           (indexable_new); the 64 stores are SMIs (immediates, no allocation), so
-           no heap oop is ever held across an allocation and no gc_temp_root pin is
-           required — the same shape as heapStats/sysStats above. args are ignored
-           (0-arg selector). */
-        int32_t px[OEVM_THERMAL_PIXELS];
-        if (sensor_frame_read(px) != 0) { *out = NULL; return 1; }   /* not ready -> nil */
-        oop r = indexable_new(OEVM_THERMAL_PIXELS);
-        for (int i = 0; i < OEVM_THERMAL_PIXELS; i++)
-            ((struct ObjectInstance *)r)->slots[i + 1] = TAG_SMI((intptr_t)px[i]);
+    case PRIM_pf_sensorRead: {
+        /* `platform sensorRead: 'kind'` (rete#436) — one reading as a raw Array of
+           SMIs in milli-units of the channel's SI unit (sensor_backend.h), or nil
+           when the kind is unknown or its device not ready. GC-safety: the kind's
+           bytes are copied out and the backend fills a C buffer BEFORE the single
+           allocating call (indexable_new); the stores are SMIs (immediates, no
+           allocation), so no heap oop is held across an allocation and no
+           gc_temp_root pin is required — the same shape as heapStats/sysStats. */
+        oop kind = args[0];
+        if (kind == NULL || IS_SMI(kind) || StringVtable == NULL ||
+            obj_vtable(kind) != StringVtable) {
+            fprintf(stderr, "VM Error: platform sensorRead: expects a String kind\n");
+            abort();
+        }
+        struct String *k = (struct String *)kind;
+        int32_t v[OEVM_SENSOR_MAX_VALUES];
+        int n = sensor_read((const char *)k->bytes, k->length, v);
+        if (n <= 0) { *out = NULL; return 1; }                    /* not ready -> nil */
+        oop r = indexable_new(n);
+        for (int i = 0; i < n; i++)
+            ((struct ObjectInstance *)r)->slots[i + 1] = TAG_SMI((intptr_t)v[i]);
         *out = r;
         return 1;
     }
-    case PRIM_pf_sensorArmEvent: {
-        /* sensorArmEventPost: msg on: 'path' threshold: centi — mirrors
-           gpioPin:edge:post:on: exactly: the channel arrives as a String PATH
-           (interned to a chan_id here, in thread context) and the message oop is
-           pinned via an M6 handle, because an ISR must never touch the VM. The
-           trigger handler then only calls pulse_post_isr(chan_id, handle_idx). */
-        oop path = args[1];
-        if (path == NULL || IS_SMI(path) || StringVtable == NULL ||
+    case PRIM_pf_sensorArm: {
+        /* sensorArm: 'kind' post: msg on: 'path' threshold: milli (rete#436) —
+           mirrors gpioPin:edge:post:on: exactly: the channel arrives as a String
+           PATH (interned to a chan_id here, in thread context) and the message oop
+           is pinned via an M6 handle, because a trigger handler must never touch
+           the VM. The handler then only calls pulse_post_isr(chan_id, handle_idx). */
+        oop kind = args[0], path = args[2];
+        if (kind == NULL || IS_SMI(kind) || path == NULL || IS_SMI(path) ||
+            StringVtable == NULL || obj_vtable(kind) != StringVtable ||
             obj_vtable(path) != StringVtable) {
-            fprintf(stderr, "VM Error: platform sensorArmEventPost:on:threshold: expects a String channel\n");
+            fprintf(stderr, "VM Error: platform sensorArm:post:on:threshold: expects a String kind and channel\n");
             abort();
         }
+        struct String *k = (struct String *)kind;
         struct String *p = (struct String *)path;
         int chan_id = space_intern((const char *)p->bytes, p->length);
-        int hidx = handle_new(args[0]);                 /* pin the message oop via M6 */
-        int32_t thr = IS_SMI(args[2]) ? (int32_t)UNTAG_SMI(args[2]) : 0;
-        if (sensor_arm_event(chan_id, hidx, thr) != 0) {
+        int hidx = handle_new(args[1]);                 /* pin the message oop via M6 */
+        int32_t thr = IS_SMI(args[3]) ? (int32_t)UNTAG_SMI(args[3]) : 0;
+        int superseded = -1;
+        if (sensor_arm((const char *)k->bytes, k->length, chan_id, hidx, thr, &superseded) != 0) {
             handle_free(hidx);                          /* nothing holds this pin — do not leak it */
-            *out = NULL;                                /* nil — could not arm */
+            *out = NULL;                                /* nil — could not arm (rete#184) */
             return 1;
         }
-        /* Released after a confirmed arm, never before — see the longer note on
-           the ordering under PRIM_pf_rtcAlarmAt below. Answering NIL on a refused
-           arm is new with rete#184: this used to answer the platform either way,
-           i.e. report "armed" for a trigger that was not, which is the one thing
-           the neighbouring rtcAlarmAt: seam is careful not to do. */
-        handle_free(sensor_event_pin);                  /* release the superseded pin — no slot leak */
-        sensor_event_pin = hidx;
+        /* Released after a confirmed arm, never before — see the longer note on the
+           ordering under PRIM_pf_rtcAlarmAt below. One pin per kind: the backend
+           hands back the one this arm replaced. */
+        handle_free(superseded);
         *out = platform_object();
         return 1;
     }
     case PRIM_pf_rtcAlarmAt: {
         /* rtcAlarmAt: secondsOfDay post: msg on: 'path' (#102). Same shape as
-           sensorArmEventPost:on:threshold: above and for the same reason: the
+           sensorArm:post:on:threshold: above and for the same reason: the
            channel arrives as a String PATH, interned here in thread context, and
            the message oop is pinned via an M6 handle because the delivery side
            (the DS3231 driver's workqueue callback) must never touch the VM.

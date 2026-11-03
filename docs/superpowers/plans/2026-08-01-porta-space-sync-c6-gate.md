@@ -777,7 +777,7 @@ it is reproducible and so its one irreversible step is explicit.
   `[fdc5:9109:9afe:97ea:9541:d963:f8d9:8567]:6969`, and v1 stopped.
 
 **Precondition — do not start this task until Tasks 1–4 are green.** Once v1 stops, the
-LAN nodes at 192.168.0.240 and .241 have no gateway, and there is no migration between the
+LAN nodes at 192.0.2.40 and .241 have no gateway, and there is no migration between the
 two wires (D1). The rollback artifact `~/porta-v1-0.7.6` was captured on 2026-08-01 and its
 sha256 matches `/usr/bin/porta`.
 
@@ -1162,7 +1162,7 @@ is closed, all three plans executed, and the hardware gate is re-runnable as
 
 ```bash
 cd ~/workspace/porta
-gh issue create --title "v1 LAN nodes at 192.168.0.240/.241 have no gateway since v2 took :6969" \
+gh issue create --title "v1 LAN nodes at 192.0.2.40/.241 have no gateway since v2 took :6969" \
   --body "Plan 3 D1. porta.service (v1, 0.7.6) was disabled on gw85224-01 on 2026-08-01 so the space-sync gateway could take :6969. The two LAN nodes that were still checking in (most recently 2026-07-30) have had no gateway since, and there is no migration path — v1's JSON report wire and v2's CBOR space-sync wire share nothing. Decide their fate: port them to the space-sync wire, retire them, or run v1 alongside on another port. Rollback artifact: ~/porta-v1-0.7.6 on gw85224-01 (sha256 matches the binary that was running)."
 
 cd ~/workspace/tuvm

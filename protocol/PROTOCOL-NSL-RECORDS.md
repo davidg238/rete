@@ -317,6 +317,12 @@ monotonic-only; porta maps it to wall-clock at ingest using porta's own clock.
   obstacle, since every `prj_*_thread.conf` already mounts NVS for OpenThread's own
   dataset, so this cost one settings key (`oevm/bootid`) and no new subsystem.
 
+**A row's time is its capture, not its arrival** (rete#444). A stream row waits in the
+node's outbox while the link is down; the push carries each entry's `ageMs` — the node's
+`monoMs` now minus at capture — and porta stamps it arrival − `ageMs`. The error is the
+one-way transit, whatever the outage, and porta keeps no per-boot clock state. A cell
+carries age 0: the space keeps no write time, and a cell is the latest value.
+
 The pair `(bootId, monoMs)` totally orders every observation a node ever makes, across
 reboots, **without a clock**. A node that reboots does not emit timestamps that appear
 to travel backwards, which is what a naive monotonic-only scheme does. This is also why

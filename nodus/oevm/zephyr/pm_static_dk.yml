@@ -1,0 +1,27 @@
+# Static partition layout for the nRF52840 DK profile (run.sh --board nrf52840dk), which
+# ttgm's ACC01 and OCM.1 also build on (rete#449). Passed as -DPM_STATIC_YML_FILE by run.sh.
+#
+# WHY: rete#310's two program slots, the C6's mechanism, in internal flash. Under the NCS
+# partition manager the slots are PM partitions, not devicetree ones; flash_map_pm.h maps
+# FIXED_PARTITION_EXISTS/ID/OFFSET/SIZE onto them, so runner.c and ota_zephyr.c read this
+# file through the same macros the C6 reads its overlay through.
+#
+# Layout: app 0x0-0x80000 (512 KB; the OCM.1 debug image is ~427 KB, the DK Thread image
+# ~437 KB), then two equal slots splitting the rest (252 KB each; AccMotionBle.oimg is
+# ~160 KB), then settings_storage where dynamic PM put it (0xfe000, 8 KB). The equal split
+# is the degenerate case: a measured app or program size is what would move the line.
+program_a:
+  address: 0x80000
+  end_address: 0xbf000
+  region: flash_primary
+  size: 0x3f000
+program_b:
+  address: 0xbf000
+  end_address: 0xfe000
+  region: flash_primary
+  size: 0x3f000
+settings_storage:
+  address: 0xfe000
+  end_address: 0x100000
+  region: flash_primary
+  size: 0x2000

@@ -6,7 +6,7 @@
 
 **Architecture:** The http server is a driver like gpio/pulse: C owns the datapath (TCP + HTTP envelope framing), records/values cross the seam, nsl owns coordination. The **request half** mirrors the pulse seam (external event → mailbox → `pumpEvents` safe point → `space_post 'dev/http/request'`). The **reply half** is the NetBridge egress idiom (an nsl `whenever:` reaction forwards `dev/http/reply` records to the `platform httpRespondId:status:body:` send-prim). A per-request **id** (minted by C) correlates reply→socket via a bounded in-flight table.
 
-**Tech Stack:** C99 (VM core + posix backend), Newspeak-dialect "nsl" (node + reactions), the live Path-B (`.oimg`) test harness at `/home/david/workspace/nsl-tuvm/tools/run_tests_oevm.py`, `curl` for the transport integration test.
+**Tech Stack:** C99 (VM core + posix backend), Newspeak-dialect "nsl" (node + reactions), the live Path-B (`.oimg`) test harness at `~/workspace/nsl-tuvm/tools/run_tests_oevm.py`, `curl` for the transport integration test.
 
 ## Global Constraints
 
@@ -15,7 +15,7 @@
 - **`src/space.c` stays pure storage — add no policy there.**
 - **C never holds a raw oop across a thread boundary.** The accept thread copies request *bytes* into the ring; VM objects are built only in `http_pump` (reactor thread, at the `pumpEvents` safe point).
 - **Reliability:** G2 (bounded in-flight table, (N+1)th → 503), G3 (request buffers in a C arena, never the VM heap), G9 (act only on inbound requests).
-- **Host test path:** Path B only (`.oimg`), no per-test gcc rebuild (project standing rule). New nsl tests live under `/home/david/workspace/nsl-tests/14_http/`.
+- **Host test path:** Path B only (`.oimg`), no per-test gcc rebuild (project standing rule). New nsl tests live under `~/workspace/nsl-tests/14_http/`.
 - **Capacities:** `OEVM_HTTP_INFLIGHT` = 4, method buffer 8 B, path buffer 64 B, response buffer 4096 B.
 - **HTTP scope:** HTTP/1.0, `Connection: close`, GET only, request-line parse only, headers discarded to the blank line.
 - **Frame contract (`dev/thermal0/sample`):** a **cell** holding an `Array` of 64 SMIs, row-major (`at: (row*8 + col + 1)`, 1-based), centi-°C (0.01 °C; 21.4 °C → `2140`).
@@ -32,11 +32,11 @@ Design record: `docs/design/2026-07-18-webserver-channel-device-spike-design.md`
 - `src/prim_ids.h`, `src/dispatch.c`, `src/platform.c` — **modify.** Three new platform prims (`httpListen:`, `httpRespondId:status:body:`, `httpInject:path:`) + `http_pump()` hooked into `PRIM_pf_pumpEvents`. Task 3.
 - `tests/test_http.c` — **new.** C unit test for framing + ring + in-flight shed. Tasks 1, 2.
 - `tools/run_c_tests.sh` — **modify.** Register `test_http`. Task 1.
-- `/home/david/workspace/nsl-tuvm/tools/run_tests_oevm.py`, `bench.sh` — **modify.** Add `src/http.c` + `src/backend/$TARGET/http_$TARGET.c` to the link lists. Task 3.
-- `/home/david/workspace/tuvm/zephyr/HttpNode.nsl` — **new.** The node: app reaction (route + render) + egress reaction (forward reply). Tasks 3, 4.
-- `/home/david/workspace/nsl-tests/14_http/0{1,2,3}_*.nsl` — **new.** Model-level conformance tests (stdout assertions). Tasks 3, 4, 5.
+- `~/workspace/nsl-tuvm/tools/run_tests_oevm.py`, `bench.sh` — **modify.** Add `src/http.c` + `src/backend/$TARGET/http_$TARGET.c` to the link lists. Task 3.
+- `~/workspace/tuvm/zephyr/HttpNode.nsl` — **new.** The node: app reaction (route + render) + egress reaction (forward reply). Tasks 3, 4.
+- `~/workspace/nsl-tests/14_http/0{1,2,3}_*.nsl` — **new.** Model-level conformance tests (stdout assertions). Tasks 3, 4, 5.
 - `tests/http_roundtrip_host.sh` — **new.** curl transport integration test. Task 6.
-- `/home/david/workspace/tuvm/review/model-capability-findings.md` — **new.** The spike verdict. Task 7.
+- `~/workspace/tuvm/review/model-capability-findings.md` — **new.** The spike verdict. Task 7.
 
 **Out of scope for this plan (deferred follow-on):** `src/backend/zephyr/http_zephyr.c` + ESP32/WiFi bring-up — the last mile after the model verdict.
 
@@ -179,7 +179,7 @@ run test_http "src/backend/posix/http_posix.c"
 
 - [ ] **Step 4: Run the test to verify it passes**
 
-Run: `cd /home/david/workspace/tuvm && bash tools/run_c_tests.sh test_http`
+Run: `cd ~/workspace/tuvm && bash tools/run_c_tests.sh test_http`
 Expected: `test_http OK` (the framing asserts pass).
 
 - [ ] **Step 5: Commit**
@@ -244,7 +244,7 @@ Add to `main`: `test_admit_take_respond(); test_backpressure_shed();`
 
 - [ ] **Step 2: Run to verify it fails**
 
-Run: `cd /home/david/workspace/tuvm && bash tools/run_c_tests.sh test_http`
+Run: `cd ~/workspace/tuvm && bash tools/run_c_tests.sh test_http`
 Expected: FAIL — `http_accept_request` / `http_take_request` / `http_respond` / `http_inflight_count` / `http_backend_reset` undefined.
 
 - [ ] **Step 3: Declare the new seam functions in `src/http_backend.h`**
@@ -348,7 +348,7 @@ void http_respond(int id, int status, const char *body, int body_len) {
 
 - [ ] **Step 5: Run the test to verify it passes**
 
-Run: `cd /home/david/workspace/tuvm && bash tools/run_c_tests.sh test_http`
+Run: `cd ~/workspace/tuvm && bash tools/run_c_tests.sh test_http`
 Expected: `test_http OK`.
 
 - [ ] **Step 6: Commit**
@@ -366,9 +366,9 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 **Files:**
 - Create: `src/http.c`, `src/http.h`
 - Modify: `src/prim_ids.h`, `src/dispatch.c`, `src/platform.c`
-- Modify: `/home/david/workspace/nsl-tuvm/tools/run_tests_oevm.py`, `bench.sh`
-- Create: `/home/david/workspace/tuvm/zephyr/HttpNode.nsl`
-- Test: `/home/david/workspace/nsl-tests/14_http/01_hello_roundtrip.nsl`
+- Modify: `~/workspace/nsl-tuvm/tools/run_tests_oevm.py`, `bench.sh`
+- Create: `~/workspace/tuvm/zephyr/HttpNode.nsl`
+- Test: `~/workspace/nsl-tests/14_http/01_hello_roundtrip.nsl`
 
 **Interfaces:**
 - Consumes: `http_accept_request`, `http_take_request`, `http_respond` (Task 2).
@@ -378,7 +378,7 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 
 - [ ] **Step 1: nsl idiom verification probe (cheap insurance)**
 
-Create `/home/david/workspace/nsl-tests/14_http/00_idioms.nsl`:
+Create `~/workspace/nsl-tests/14_http/00_idioms.nsl`:
 ```
 (*
 expect:
@@ -399,12 +399,12 @@ class Idioms packageUsing: manifest = () (
 ) : (
 )
 ```
-Run: `cd /home/david/workspace/tuvm && python3 /home/david/workspace/nsl-tuvm/tools/run_tests_oevm.py 14_http/00_idioms`
+Run: `cd ~/workspace/tuvm && python3 ~/workspace/nsl-tuvm/tools/run_tests_oevm.py 14_http/00_idioms`
 Expected: PASS. If `eq` is `false`, String `=` is identity here — then in every `path = 'X'` below, replace with `(path sameAs: 'X')` using the byteCompare helper in `review/lib/strings.ns`, and note it in the findings doc. If the Record lines fail, adjust to the exact `Record`/`at:ifAbsent:` selectors that pass. Do not proceed until this passes.
 
 - [ ] **Step 2: Write the failing round-trip test**
 
-Create `/home/david/workspace/nsl-tests/14_http/01_hello_roundtrip.nsl`:
+Create `~/workspace/nsl-tests/14_http/01_hello_roundtrip.nsl`:
 ```
 (*
 expect:
@@ -443,7 +443,7 @@ class HttpHello packageUsing: manifest = () (
 ) : (
 )
 ```
-Run: `cd /home/david/workspace/tuvm && python3 /home/david/workspace/nsl-tuvm/tools/run_tests_oevm.py 14_http/01_hello_roundtrip`
+Run: `cd ~/workspace/tuvm && python3 ~/workspace/nsl-tuvm/tools/run_tests_oevm.py 14_http/01_hello_roundtrip`
 Expected: FAIL — `httpInject:path:` / `httpRespondId:status:body:` unknown, and the http request never posts.
 
 - [ ] **Step 3: Add the three prims (enum + names + mirror)**
@@ -575,13 +575,13 @@ to:
 
 - [ ] **Step 6: Wire `src/http.c` + the backend into the host build**
 
-In `/home/david/workspace/nsl-tuvm/tools/run_tests_oevm.py`, add to the `OEVM_BACKEND` list:
+In `~/workspace/nsl-tuvm/tools/run_tests_oevm.py`, add to the `OEVM_BACKEND` list:
 ```python
                 f"src/backend/{OEVM_TARGET}/http_{OEVM_TARGET}.c",
 ```
 and add `"src/http.c"` to the fixed VM source list used in both the Path-B image-VM build (`_build_pathb_once`) and the Path-A build — wherever `src/udp.c` appears, add `src/http.c` beside it.
 
-In `/home/david/workspace/tuvm/bench.sh` line 9, add `src/http.c "src/backend/$TARGET/http_$TARGET.c"` beside the `src/udp.c "src/backend/$TARGET/udp_$TARGET.c"` pair.
+In `~/workspace/tuvm/bench.sh` line 9, add `src/http.c "src/backend/$TARGET/http_$TARGET.c"` beside the `src/udp.c "src/backend/$TARGET/udp_$TARGET.c"` pair.
 
 - [ ] **Step 7: Create the node `zephyr/HttpNode.nsl`**
 
@@ -589,23 +589,23 @@ Same body as the test's `HttpHello` class (Step 2), but named `HttpNode`, and wi
 
 - [ ] **Step 8: Run the round-trip test to verify it passes**
 
-Run: `cd /home/david/workspace/tuvm && python3 /home/david/workspace/nsl-tuvm/tools/run_tests_oevm.py 14_http/01_hello_roundtrip`
+Run: `cd ~/workspace/tuvm && python3 ~/workspace/nsl-tuvm/tools/run_tests_oevm.py 14_http/01_hello_roundtrip`
 Expected: PASS — stdout is the framed `200 OK` response with body `hello`, then `finished`.
 
 - [ ] **Step 9: Full suite regression + commit**
 
-Run: `cd /home/david/workspace/tuvm && python3 /home/david/workspace/nsl-tuvm/tools/run_tests_oevm.py`
+Run: `cd ~/workspace/tuvm && python3 ~/workspace/nsl-tuvm/tools/run_tests_oevm.py`
 Expected: the prior floor holds (no regressions) and `14_http/00,01` pass.
 ```bash
 git add src/http.c src/http.h src/prim_ids.h src/dispatch.c src/platform.c \
-        zephyr/HttpNode.nsl /home/david/workspace/nsl-tests/14_http/00_idioms.nsl \
-        /home/david/workspace/nsl-tests/14_http/01_hello_roundtrip.nsl bench.sh
+        zephyr/HttpNode.nsl ~/workspace/nsl-tests/14_http/00_idioms.nsl \
+        ~/workspace/nsl-tests/14_http/01_hello_roundtrip.nsl bench.sh
 git commit -m "feat(http): platform prims + pump hook; /hello request-reply round-trip over channels
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 # nsl-tuvm harness change is a separate repo:
-git -C /home/david/workspace/nsl-tuvm add tools/run_tests_oevm.py
-git -C /home/david/workspace/nsl-tuvm commit -m "test(http): link src/http.c + http backend into the Path-B image VM
+git -C ~/workspace/nsl-tuvm add tools/run_tests_oevm.py
+git -C ~/workspace/nsl-tuvm commit -m "test(http): link src/http.c + http backend into the Path-B image VM
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 ```
@@ -615,8 +615,8 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 ### Task 4: `/thermal` render — reduce + SVG heat-grid
 
 **Files:**
-- Modify: `/home/david/workspace/tuvm/zephyr/HttpNode.nsl`
-- Test: `/home/david/workspace/nsl-tests/14_http/02_thermal_render.nsl`
+- Modify: `~/workspace/tuvm/zephyr/HttpNode.nsl`
+- Test: `~/workspace/nsl-tests/14_http/02_thermal_render.nsl`
 
 **Interfaces:**
 - Consumes: the request/reply loop + prims from Task 3.
@@ -633,7 +633,7 @@ add `cell 2140` to `expect:`. Run `…run_tests_oevm.py 14_http/00_idioms`. If `
 
 - [ ] **Step 2: Write the failing thermal test**
 
-Create `/home/david/workspace/nsl-tests/14_http/02_thermal_render.nsl`. Seed a 64-SMI dummy frame with a single hot pixel at row 3,col 5 (index `3*8+5+1 = 30`) = `3120` (31.2 °C), the rest `2200` (22.0 °C). Assert the response is `200`, contains one `rgb(` fill and the caption:
+Create `~/workspace/nsl-tests/14_http/02_thermal_render.nsl`. Seed a 64-SMI dummy frame with a single hot pixel at row 3,col 5 (index `3*8+5+1 = 30`) = `3120` (31.2 °C), the rest `2200` (22.0 °C). Assert the response is `200`, contains one `rgb(` fill and the caption:
 ```
 (*
 expect-contains:
@@ -696,13 +696,13 @@ Add the render helper (folds reduce + SVG, all `printString` + `,`; `,` is Strin
 
 - [ ] **Step 4: Run the test to verify it passes**
 
-Run: `cd /home/david/workspace/tuvm && python3 /home/david/workspace/nsl-tuvm/tools/run_tests_oevm.py 14_http/02_thermal_render`
+Run: `cd ~/workspace/tuvm && python3 ~/workspace/nsl-tuvm/tools/run_tests_oevm.py 14_http/02_thermal_render`
 Expected: PASS — `/thermal` → 200 with the SVG + caption `max 31.2C  min 22.0C  hot (3,5)`; `/nope` → 404 `notfound`.
 
 - [ ] **Step 5: Commit**
 ```bash
-git add zephyr/HttpNode.nsl /home/david/workspace/nsl-tests/14_http/00_idioms.nsl \
-        /home/david/workspace/nsl-tests/14_http/02_thermal_render.nsl
+git add zephyr/HttpNode.nsl ~/workspace/nsl-tests/14_http/00_idioms.nsl \
+        ~/workspace/nsl-tests/14_http/02_thermal_render.nsl
 git commit -m "feat(http): /thermal route renders 8x8 heat-grid SVG with on-node reduce
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
@@ -713,14 +713,14 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 ### Task 5: G2 back-pressure at the model level (503)
 
 **Files:**
-- Test: `/home/david/workspace/nsl-tests/14_http/03_backpressure.nsl`
+- Test: `~/workspace/nsl-tests/14_http/03_backpressure.nsl`
 
 **Interfaces:**
 - Consumes: the loop + prims from Task 3 (the C shed is already covered by Task 2's `test_backpressure_shed`; this asserts it is observable through the nsl seam).
 
 - [ ] **Step 1: Write the failing/asserting test**
 
-Create `/home/david/workspace/nsl-tests/14_http/03_backpressure.nsl`. Register the app + egress reactions, but do **not** pump/drain between injects — inject `OEVM_HTTP_INFLIGHT + 1` (5) requests back-to-back so the table fills and the 5th is shed with a 503 straight to stdout (no id, no reply channel). Then pump+drain to flush the 4 admitted. Assert the stdout contains exactly one `503 Service Unavailable` and four `200 OK`:
+Create `~/workspace/nsl-tests/14_http/03_backpressure.nsl`. Register the app + egress reactions, but do **not** pump/drain between injects — inject `OEVM_HTTP_INFLIGHT + 1` (5) requests back-to-back so the table fills and the 5th is shed with a 503 straight to stdout (no id, no reply channel). Then pump+drain to flush the 4 admitted. Assert the stdout contains exactly one `503 Service Unavailable` and four `200 OK`:
 ```
 (*
 expect-contains:
@@ -737,12 +737,12 @@ Drive:
 
 - [ ] **Step 2: Run to verify it passes**
 
-Run: `cd /home/david/workspace/tuvm && python3 /home/david/workspace/nsl-tuvm/tools/run_tests_oevm.py 14_http/03_backpressure`
+Run: `cd ~/workspace/tuvm && python3 ~/workspace/nsl-tuvm/tools/run_tests_oevm.py 14_http/03_backpressure`
 Expected: PASS — one 503 emitted at the moment the 5th inject overflows the in-flight table; the 4 admitted requests still serve 200.
 
 - [ ] **Step 3: Commit**
 ```bash
-git add /home/david/workspace/nsl-tests/14_http/03_backpressure.nsl
+git add ~/workspace/nsl-tests/14_http/03_backpressure.nsl
 git commit -m "test(http): G2 back-pressure — (N+1)th concurrent request sheds 503
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
@@ -831,11 +831,11 @@ Replace the `PRIM_pf_httpListen` stub body:
 
 - [ ] **Step 4: Add `-lpthread` to the host link lines**
 
-In `/home/david/workspace/nsl-tuvm/tools/run_tests_oevm.py` (both build sites) and `bench.sh`, append `-lpthread` to the gcc link flags (beside `-lm`). In `tools/run_c_tests.sh`, the `test_http` entry now also needs `-lpthread` — add it to that run line.
+In `~/workspace/nsl-tuvm/tools/run_tests_oevm.py` (both build sites) and `bench.sh`, append `-lpthread` to the gcc link flags (beside `-lm`). In `tools/run_c_tests.sh`, the `test_http` entry now also needs `-lpthread` — add it to that run line.
 
 - [ ] **Step 5: Run the integration test to verify it passes**
 
-Run: `cd /home/david/workspace/tuvm && bash tests/http_roundtrip_host.sh`
+Run: `cd ~/workspace/tuvm && bash tests/http_roundtrip_host.sh`
 Expected: `http_roundtrip OK` — `/thermal` returns 200 with an SVG containing `rgb(`, `/nope` returns 404, and the 8-way burst shows a mix of 200 and at least one 503. Also re-run the C unit test: `bash tools/run_c_tests.sh test_http` → `test_http OK`.
 
 - [ ] **Step 6: Commit**
@@ -845,8 +845,8 @@ git add src/http_backend.h src/backend/posix/http_posix.c src/platform.c \
 git commit -m "feat(http): posix TCP accept thread + httpListen:; curl round-trip integration test
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
-git -C /home/david/workspace/nsl-tuvm add tools/run_tests_oevm.py
-git -C /home/david/workspace/nsl-tuvm commit -m "test(http): -lpthread for the http accept thread
+git -C ~/workspace/nsl-tuvm add tools/run_tests_oevm.py
+git -C ~/workspace/nsl-tuvm commit -m "test(http): -lpthread for the http accept thread
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 ```
@@ -856,7 +856,7 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 ### Task 7: Write the spike-1 findings entry
 
 **Files:**
-- Create: `/home/david/workspace/tuvm/review/model-capability-findings.md`
+- Create: `~/workspace/tuvm/review/model-capability-findings.md`
 
 **Interfaces:**
 - Consumes: the results of Tasks 3–6.

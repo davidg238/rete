@@ -373,6 +373,7 @@ class Kernel usingPlatform: platform = (
     public with: a with: b = ( | arr | arr:: platform basicNew: Array indexable: 2. arr at: 1 put: a. arr at: 2 put: b. ^ self new setItems: arr )
     public with: a with: b with: c = ( | arr | arr:: platform basicNew: Array indexable: 3. arr at: 1 put: a. arr at: 2 put: b. arr at: 3 put: c. ^ self new setItems: arr )
     public with: a with: b with: c with: d = ( | arr | arr:: platform basicNew: Array indexable: 4. arr at: 1 put: a. arr at: 2 put: b. arr at: 3 put: c. arr at: 4 put: d. ^ self new setItems: arr )
+    public with: a with: b with: c with: d with: e = ( | arr | arr:: platform basicNew: Array indexable: 5. arr at: 1 put: a. arr at: 2 put: b. arr at: 3 put: c. arr at: 4 put: d. arr at: 5 put: e. ^ self new setItems: arr )
     public fromCollection: aCollection = ( | n arr i |
       n:: aCollection size.
       arr:: platform basicNew: Array indexable: n.
@@ -2017,7 +2018,9 @@ class Kernel usingPlatform: platform = (
       ^ self )
     capture: absolutePath value: v = (
       | evicted |
-      pending add: (List with: space stamp with: absolutePath with: 1 with: v).
+      (* rete#444: the 5th field is monoMs at CAPTURE, so a row held through an outage
+         keeps its own time; collectOutbound turns it into an age for the wire. *)
+      pending add: (List with: space stamp with: absolutePath with: 1 with: v with: platform monotonicMillis).
       [ pending size > self maxPending ] whileTrue: [
         evicted:: pending removeFirst.
         (* rete#114: an evicted OFFER must not read as a delivered one. With
@@ -2407,10 +2410,17 @@ class Kernel usingPlatform: platform = (
        maxRows applies PER PREFIX, so up to 2x maxRows rows can enter before pushFrame
        trims by bytes. Safe, and not free — see the starvation note on pushFrame. *)
     public collectOutbound = (
-      | rows i |
+      | rows i r now |
       rows:: OrderedCollection new.
       i:: 1.
-      [ i <= pending size ] whileTrue: [ rows add: (pending at: i). i:: i + 1 ].
+      now:: platform monotonicMillis.
+      (* rete#444: an entry's 5th field on the wire is its AGE, ms between capture and
+         this push, so porta stamps it arrival - age (G6) with no clock or state of
+         its own. Rebuilt every push, so a re-sent row's age is never stale. *)
+      [ i <= pending size ] whileTrue: [
+        r:: pending at: i.
+        rows add: (List with: (r at: 1) with: (r at: 2) with: (r at: 3) with: (r at: 4) with: now - (r at: 5)).
+        i:: i + 1 ].
       self addCellsFrom: 'obs' into: rows.
       self addCellsFrom: 'sys' into: rows.
       self addCellsFrom: 'diag' into: rows.
@@ -2423,7 +2433,7 @@ class Kernel usingPlatform: platform = (
       [ i <= cells size ] whileTrue: [
         r:: cells at: i.
         (self valueFits: (r at: 3))
-          ifTrue: [ rows add: (List with: (r at: 2) with: (r at: 1) with: 2 with: (r at: 3)) ]
+          ifTrue: [ rows add: (List with: (r at: 2) with: (r at: 1) with: 2 with: (r at: 3) with: 0) ]
           ifFalse: [ rejected:: rejected + 1 ].
         i:: i + 1 ].
       ^ self )
@@ -4398,14 +4408,15 @@ class Kernel usingPlatform: platform = (
      shape as the http family above — the C-side work lives entirely in
      src/sensor_backend.h + src/backend/<target>/sensor_<target>.c; this Kernel
      instance is just the capability the user's nsl code actually holds as
-     `platform`. sensorFrame answers a raw 64-slot Array of centi-degC SMIs (or
-     nil when the device is not ready) — read with basicAt:, the heapStats
-     precedent, not Array's at:. sensorArmEventPost:on:threshold: answers the
+     `platform`. sensorRead: 'kind' (rete#436: 'thermal', 'accel') answers a raw
+     Array of SMIs in milli-units of the channel's SI unit (or nil when the kind
+     is unknown or its device not ready) — read with basicAt:, the heapStats
+     precedent, not Array's at:. sensorArm:post:on:threshold: answers the
      platform when the trigger is armed and NIL when the backend refuses, exactly
      like rtcAlarmAt:post:on: — so a caller has to carry a fallback rather than
      assume a trigger it never got (rete#184). *)
-  public sensorFrame = ( ^ platform sensorFrame )
-  public sensorArmEventPost: msg on: path threshold: centi = ( ^ platform sensorArmEventPost: msg on: path threshold: centi )
+  public sensorRead: kind = ( ^ platform sensorRead: kind )
+  public sensorArm: kind post: msg on: path threshold: milli = ( ^ platform sensorArm: kind post: msg on: path threshold: milli )
 
   public Object            = ( ^ Object )
   public Array             = ( ^ Array )
@@ -4739,7 +4750,7 @@ class Kernel usingPlatform: platform = (
        nothing else — it is not an instance of a class carrying Object's protocol — so
        `isNil` is a doesNotUnderstand on it. Found on a C6 on 2026-08-19: the send
        aborted the VM on the boot that was trying to REPORT the previous wedge, and
-       three of those in a row halted the node. `sensorFrame`'s callers already use
+       three of those in a row halted the node. `sensorRead:`'s callers already use
        `(f == nil)` for exactly this reason (ThermalDiagNode.nsl:53); metrics and cheap
        never hit it because they only ever send basicAt:. *)
     (n == nil) ifTrue: [ ^ nil ].

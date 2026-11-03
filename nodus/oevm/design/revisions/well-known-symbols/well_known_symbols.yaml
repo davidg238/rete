@@ -1,0 +1,13 @@
+# Accepted by David, 2026-10-18 (invarlint#48): Symbol_value and Symbol_debug_ are set by
+# kernel_boot, and interned lazily when NULL by run_interpreter and the debugger hook — the path a
+# link without kernel_boot (Model A, most host tests) takes. Moved out of Boot's owns.
+name: WellKnownSymbols
+does:
+  - the symbols the interpreter compares by identity, set at boot or interned on first use
+owns:
+  - global:Symbol_value
+  - global:Symbol_debug_
+implemented_by:
+  - c: kernel_boot
+  - c: run_interpreter
+  - c: primitive_register_debugger_hook

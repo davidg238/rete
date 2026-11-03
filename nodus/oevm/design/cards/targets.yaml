@@ -1,0 +1,15 @@
+# Accepted by David, 2026-10-18 (proposed by Claude 2026-10-17 from the 49 root-bypassed keys; a declared port accepts the crossing, it does not fix it).
+# Group 1 (21 keys): the core's platform_dispatch calls the app's target functions by extern
+# (src/platform.c:170, :274 declare them; platform.c also holds the host stubs). A port with
+# two adapters and no header; the code fix is a src/target_backend.h.
+name: Targets
+root: true
+does:
+  - the board facilities the core dispatches prims to (gpio, display, bell, ntp, rtc, wallclock, sleep, reboot note)
+implemented_by:
+  - c: "*_target_*"
+  - c: deep_sleep_target
+  - c: rtc_alarm_arm
+  - c: reset_cause_timer_wake
+  - c: reboot_note_read
+  - c: reboot_note_ack

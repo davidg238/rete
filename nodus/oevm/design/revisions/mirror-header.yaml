@@ -1,0 +1,6 @@
+name: mirror-header
+pattern: Facade
+intent: oimg_loader.c includes the header that already declares mirror_object
+compromise: none
+ops:
+  - declare: {func: mirror_object, header: src/mirror.h}

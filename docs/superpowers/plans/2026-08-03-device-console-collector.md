@@ -53,7 +53,7 @@ Clears the debt §2 diagnoses: the tooling recent sessions actually relied on li
 - [ ] **Step 1: Copy the file in, byte-for-byte**
 
 ```bash
-cd /home/david/workspace/rete
+cd ~/workspace/rete
 cp ~/magtag-captures/capture.py nodus/tuvm/zephyr/boards/magtag/capture.py
 diff ~/magtag-captures/capture.py nodus/tuvm/zephyr/boards/magtag/capture.py && echo IDENTICAL
 ```

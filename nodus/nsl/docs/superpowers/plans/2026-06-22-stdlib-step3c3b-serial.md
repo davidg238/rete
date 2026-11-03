@@ -10,7 +10,7 @@
 
 ## Global Constraints
 
-- **Three sibling repos:** `ns-oevm` (compiler/lib/docs, cwd `/home/david/workspace/ns-oevm`), `oevm` (C VM, `/home/david/workspace/oevm`), `ns-tests` (conformance, `/home/david/workspace/ns-tests`). Commit **per-repo**; every commit ends with the trailer `Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>`. **Do NOT push** unless the controller says so.
+- **Three sibling repos:** `ns-oevm` (compiler/lib/docs, cwd `~/workspace/ns-oevm`), `oevm` (C VM, `~/workspace/oevm`), `ns-tests` (conformance, `~/workspace/ns-tests`). Commit **per-repo**; every commit ends with the trailer `Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>`. **Do NOT push** unless the controller says so.
 - **Run conformance from `ns-oevm` cwd:** `python3 tools/run_tests_oevm.py` (defaults to `OEVM_PATH=AB` = both image paths). NO single-test filter — run the full suite, read the summary line. To gate one path during development: `OEVM_PATH=A` or `OEVM_PATH=B`.
 - **The runner CLOBBERS `../oevm/src/solidified_image.c`.** Before committing/pushing `oevm`, restore it (`git checkout src/solidified_image.c`) UNLESS this plan's final task deliberately regenerates the committed default image — then commit the regenerated file.
 - **Baseline:** suite is **61 pass / 0 fail / 3 skip** on both paths at HEAD (ns-oevm `dd4777c`, oevm `5ce2678`, ns-tests `c634874`). Target end state: **62/0/3** both paths (one new test file `38_serial.ns`), or **63/0/3** if the confinement evidence becomes a runtime pin (Task 5 Step 3).
@@ -56,7 +56,7 @@ This task only RELOCATES code and adds a hook — no behaviour change. The confo
 
 - [ ] **Step 1: Confirm green baseline**
 
-Run: `cd /home/david/workspace/ns-oevm && python3 tools/run_tests_oevm.py`
+Run: `cd ~/workspace/ns-oevm && python3 tools/run_tests_oevm.py`
 Expected: `61 pass / 0 fail / 3 skip` (both paths). Record it.
 
 - [ ] **Step 2: Promote the two BoundClass statics so platform.c can see them**
@@ -148,17 +148,17 @@ Add `#include "platform.h"` near the top of `dispatch.c`. (Leave the indexable-b
 
 - [ ] **Step 7: Add platform.c to both build scripts**
 
-Path A build (e.g. `oevm/bench.sh` and the runner's Path-A compile in `ns-oevm/tools/run_tests_oevm.py`) and Path B build (e.g. `oevm/tests/test_load_run.sh` and the runner's Path-B compile): add `src/platform.c` to every `gcc ... src/dispatch.c ...` line. Find them: `grep -rn "src/dispatch.c" /home/david/workspace/oevm /home/david/workspace/ns-oevm/tools`.
+Path A build (e.g. `oevm/bench.sh` and the runner's Path-A compile in `ns-oevm/tools/run_tests_oevm.py`) and Path B build (e.g. `oevm/tests/test_load_run.sh` and the runner's Path-B compile): add `src/platform.c` to every `gcc ... src/dispatch.c ...` line. Find them: `grep -rn "src/dispatch.c" ~/workspace/oevm ~/workspace/ns-oevm/tools`.
 
 - [ ] **Step 8: Run the full suite — must be unchanged**
 
-Run: `cd /home/david/workspace/ns-oevm && python3 tools/run_tests_oevm.py`
+Run: `cd ~/workspace/ns-oevm && python3 tools/run_tests_oevm.py`
 Expected: `61 pass / 0 fail / 3 skip` both paths — identical to Step 1. If any regression, the extraction changed behaviour: diff the moved code against `dispatch.c:699-776` byte-for-byte.
 
 - [ ] **Step 9: Restore clobbered image, commit oevm**
 
 ```bash
-cd /home/david/workspace/oevm && git checkout src/solidified_image.c
+cd ~/workspace/oevm && git checkout src/solidified_image.c
 git add src/platform.c src/platform.h src/prim_ids.h src/dispatch.c src/oevm.h bench.sh tests/test_load_run.sh
 git commit -m "$(cat <<'EOF'
 refactor(vm): extract platform capability into platform.c
@@ -173,7 +173,7 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
 EOF
 )"
 ```
-(Also commit the ns-oevm-side runner/build edit if the runner embeds the compile command: `cd /home/david/workspace/ns-oevm && git add tools/run_tests_oevm.py && git commit ...` with the same trailer.)
+(Also commit the ns-oevm-side runner/build edit if the runner embeds the compile command: `cd ~/workspace/ns-oevm && git add tools/run_tests_oevm.py && git commit ...` with the same trailer.)
 
 ---
 
@@ -213,7 +213,7 @@ int main(void) {
 
 - [ ] **Step 2: Run it to confirm it fails to build (symbols undefined)**
 
-Run: `cd /home/david/workspace/oevm && gcc -std=c99 -Isrc tests/test_serial.c src/backend/posix/serial_posix.c -o /tmp/test_serial 2>&1 | head`
+Run: `cd ~/workspace/oevm && gcc -std=c99 -Isrc tests/test_serial.c src/backend/posix/serial_posix.c -o /tmp/test_serial 2>&1 | head`
 Expected: FAIL — `serial_backend.h` not found / undefined refs.
 (Backend path updated post-3c-3b: backends moved to `src/backend/<target>/` — oevm#10.)
 
@@ -322,7 +322,7 @@ oop serial_dispatch(oop selector, int argc, oop *args) {
 
 - [ ] **Step 7: Run the C smoke test — passes**
 
-Run: `cd /home/david/workspace/oevm && gcc -std=c99 -Isrc tests/test_serial.c src/backend/posix/serial_posix.c -o /tmp/test_serial && /tmp/test_serial`
+Run: `cd ~/workspace/oevm && gcc -std=c99 -Isrc tests/test_serial.c src/backend/posix/serial_posix.c -o /tmp/test_serial && /tmp/test_serial`
 Expected: `test_serial OK`
 
 - [ ] **Step 8: Add the early receiver hook in `send()` + declare in oevm.h**
@@ -341,13 +341,13 @@ Add `src/serial.c src/serial_host.c` to every link line that already lists `src/
 
 - [ ] **Step 10: Full suite still green (serial unreached but linked)**
 
-Run: `cd /home/david/workspace/ns-oevm && python3 tools/run_tests_oevm.py`
+Run: `cd ~/workspace/ns-oevm && python3 tools/run_tests_oevm.py`
 Expected: `61 pass / 0 fail / 3 skip` both paths (serial code linked but no `.ns` reaches it yet).
 
 - [ ] **Step 11: Restore image, commit oevm**
 
 ```bash
-cd /home/david/workspace/oevm && git checkout src/solidified_image.c
+cd ~/workspace/oevm && git checkout src/solidified_image.c
 git add src/serial.c src/serial.h src/serial_backend.h src/serial_host.c tests/test_serial.c src/dispatch.c src/oevm.h bench.sh tests/test_load_run.sh
 git commit -m "$(cat <<'EOF'
 feat(vm): serial native capability module + host loopback backend
@@ -382,7 +382,7 @@ EOF
 
 Write a throwaway `/tmp/probe.ns` whose entry is `class P usingPlatform: platform serial: serial = () ( public main: a args: b = ( ^ 42 ) )` and a trivial 2-slot Kernel-nested class, compile Path A only, and confirm: (a) the compiler derives `params=["platform","serial"]` and selector `init_platform:serial:` at `ns_compile_oevm.py:1960`; (b) a nested-class instance built by `send(kernel_inst, #someCtor:, 1, {x})` reaches `platform` in its instance methods (already proven by 3c-3a ReadStream — re-confirm with `platform string:` inside a method). Record the exact generated-C arg-array shape. If construction differs from the assumption below, adjust Steps 4-5.
 
-Run: `cd /home/david/workspace/ns-oevm && OEVM_PATH=A python3 tools/run_tests_oevm.py` after wiring a temporary probe test, or use a direct compile. Remove the probe before committing.
+Run: `cd ~/workspace/ns-oevm && OEVM_PATH=A python3 tools/run_tests_oevm.py` after wiring a temporary probe test, or use a direct compile. Remove the probe before committing.
 
 - [ ] **Step 2: Write the failing conformance test `38_serial.ns`**
 
@@ -429,7 +429,7 @@ class SerialTest usingPlatform: platform serial: serial = () (
 
 - [ ] **Step 3: Run it — confirm it fails**
 
-Run: `cd /home/david/workspace/ns-oevm && OEVM_PATH=A python3 tools/run_tests_oevm.py`
+Run: `cd ~/workspace/ns-oevm && OEVM_PATH=A python3 tools/run_tests_oevm.py`
 Expected: `38_serial` FAILS (Serial class + serial: arg threading not yet present) — suite shows one new failure.
 
 - [ ] **Step 4: Add the `Serial` class + `serialOn:` to `lib/kernel.ns`**
@@ -494,7 +494,7 @@ Then keep the existing `main:args:` invocation (`~1967-1969`) unchanged (it pass
 
 - [ ] **Step 6: Run Path A — `38_serial` passes**
 
-Run: `cd /home/david/workspace/ns-oevm && OEVM_PATH=A python3 tools/run_tests_oevm.py`
+Run: `cd ~/workspace/ns-oevm && OEVM_PATH=A python3 tools/run_tests_oevm.py`
 Expected: `62 pass / 0 fail / 3 skip` on Path A. (Path B not yet wired — gate to A.)
 
 - [ ] **Step 7: Confirm no Path-A regression for 1-cap entries**
@@ -504,8 +504,8 @@ The change is guarded by `"serial" in params`; entries declaring only `usingPlat
 - [ ] **Step 8: Commit (ns-oevm + ns-tests; oevm image restored)**
 
 ```bash
-cd /home/david/workspace/oevm && git checkout src/solidified_image.c
-cd /home/david/workspace/ns-oevm && git add lib/kernel.ns tools/ns_compile_oevm.py
+cd ~/workspace/oevm && git checkout src/solidified_image.c
+cd ~/workspace/ns-oevm && git add lib/kernel.ns tools/ns_compile_oevm.py
 git commit -m "$(cat <<'EOF'
 feat(stdlib): Serial Kernel wrapper + Path A boot threading
 
@@ -519,7 +519,7 @@ signature. Path B follows in task 4. std-lib step 3c-3b task 3.
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
 EOF
 )"
-cd /home/david/workspace/ns-tests && git add 04_somns_basic/38_serial.ns
+cd ~/workspace/ns-tests && git add 04_somns_basic/38_serial.ns
 git commit -m "$(cat <<'EOF'
 test(stdlib): 38_serial — Serial round-trip, EOF, CRLF strip (3c-3b)
 
@@ -544,12 +544,12 @@ EOF
 
 - [ ] **Step 1: Probe — verify `38_serial` currently fails on Path B and why**
 
-Run: `cd /home/david/workspace/ns-oevm && OEVM_PATH=B python3 tools/run_tests_oevm.py`
+Run: `cd ~/workspace/ns-oevm && OEVM_PATH=B python3 tools/run_tests_oevm.py`
 Expected: `38_serial` FAILS on Path B (loader passes only `kernel_inst`; entry expects 2 args). Confirm the failure mode (arity/DNU), and inspect the current `.oimg` header layout in `oevm/src/oimg_loader.c:117-128` + the serializer.
 
 - [ ] **Step 2: Bump format_version to 4 and add `serial_on_sel_ref` to the header (serializer side)**
 
-Find the `.oimg` serializer (`grep -rn "format_version\|init_sel_ref\|kernel_init_sel" /home/david/workspace/oevm/tools`). Add a header word `serial_on_sel_ref` AFTER the format_version-3 Kernel descriptor words (`img_kernel_*`), written only when an entry declares `serial:` (else 0). Bump the written `format_version` to 4. Keep the version constant in sync (`grep -rn "format_version\|FORMAT_VERSION\|>= 3" /home/david/workspace/oevm/src/oimg_loader.c`).
+Find the `.oimg` serializer (`grep -rn "format_version\|init_sel_ref\|kernel_init_sel" ~/workspace/oevm/tools`). Add a header word `serial_on_sel_ref` AFTER the format_version-3 Kernel descriptor words (`img_kernel_*`), written only when an entry declares `serial:` (else 0). Bump the written `format_version` to 4. Keep the version constant in sync (`grep -rn "format_version\|FORMAT_VERSION\|>= 3" ~/workspace/oevm/src/oimg_loader.c`).
 
 - [ ] **Step 3: Read the new word in the loader**
 
@@ -578,12 +578,12 @@ In `oevm/src/oimg_loader.c:147-169`, expand `init_args` and conditionally mint s
 
 - [ ] **Step 5: Run Path B — `38_serial` passes**
 
-Run: `cd /home/david/workspace/ns-oevm && OEVM_PATH=B python3 tools/run_tests_oevm.py`
+Run: `cd ~/workspace/ns-oevm && OEVM_PATH=B python3 tools/run_tests_oevm.py`
 Expected: `62 pass / 0 fail / 3 skip` on Path B.
 
 - [ ] **Step 6: Run BOTH paths — full green**
 
-Run: `cd /home/david/workspace/ns-oevm && python3 tools/run_tests_oevm.py`
+Run: `cd ~/workspace/ns-oevm && python3 tools/run_tests_oevm.py`
 Expected: `62 pass / 0 fail / 3 skip` both paths.
 
 - [ ] **Step 7: Confirm two-path layout parity for the new header word**
@@ -593,7 +593,7 @@ Verify a `serial:`-declaring entry produces identical observable behaviour A vs 
 - [ ] **Step 8: Restore image, commit oevm**
 
 ```bash
-cd /home/david/workspace/oevm && git checkout src/solidified_image.c
+cd ~/workspace/oevm && git checkout src/solidified_image.c
 git add src/oimg_loader.c src/oimg.h tools/
 git commit -m "$(cat <<'EOF'
 feat(vm): Path B .oimg boot threads the serial capability (format_version 4)
@@ -622,9 +622,9 @@ In `ns-oevm/docs/NEWSPEAK_DIALECT.md`, append row #13 after #12 (verbatim text f
 
 - [ ] **Step 2: Regenerate the committed default `solidified_image.c` from `38_serial.ns`**
 
-Per the per-step convention (each step regenerates the committed default image from its headline test). Find the regeneration command (the runner or a `solidify` invocation): `grep -rn "solidified_image" /home/david/workspace/ns-oevm/tools`. Generate from `38_serial.ns`, then:
+Per the per-step convention (each step regenerates the committed default image from its headline test). Find the regeneration command (the runner or a `solidify` invocation): `grep -rn "solidified_image" ~/workspace/ns-oevm/tools`. Generate from `38_serial.ns`, then:
 
-Run: `cd /home/david/workspace/ns-oevm && python3 tools/run_tests_oevm.py`
+Run: `cd ~/workspace/ns-oevm && python3 tools/run_tests_oevm.py`
 Expected: `62 pass / 0 fail / 3 skip` both paths with the regenerated default image committed (do NOT `git checkout` it this time).
 
 - [ ] **Step 3: Confinement evidence (spec §7 / §9 item 4) — empirical, then pin**
@@ -641,14 +641,14 @@ If convenient and in already-touched code: the step-1 deferred `fflush(stdout)` 
 - [ ] **Step 5: Commit (ns-oevm doc + oevm image; + ns-tests if a confinement pin was added)**
 
 ```bash
-cd /home/david/workspace/ns-oevm && git add docs/NEWSPEAK_DIALECT.md
+cd ~/workspace/ns-oevm && git add docs/NEWSPEAK_DIALECT.md
 git commit -m "$(cat <<'EOF'
 docs(stdlib): NEWSPEAK_DIALECT #13 — native capability tier / Serial
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
 EOF
 )"
-cd /home/david/workspace/oevm && git add src/solidified_image.c
+cd ~/workspace/oevm && git add src/solidified_image.c
 git commit -m "$(cat <<'EOF'
 chore(vm): regenerate committed default image from 38_serial (3c-3b)
 
@@ -659,7 +659,7 @@ EOF
 
 - [ ] **Step 6: Final whole-suite confirmation**
 
-Run: `cd /home/david/workspace/ns-oevm && python3 tools/run_tests_oevm.py`
+Run: `cd ~/workspace/ns-oevm && python3 tools/run_tests_oevm.py`
 Expected: `62 pass / 0 fail / 3 skip` both paths (or `63/0/3` if a confinement pin was added in Step 3). This is the merge bar.
 
 ---

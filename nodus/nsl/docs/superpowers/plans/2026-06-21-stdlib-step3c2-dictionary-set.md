@@ -80,10 +80,10 @@ below depend on them:
 - [ ] **Step 1: Create feature branches in all three repos**
 
 ```bash
-cd /home/david/workspace/ns-oevm && git checkout -b feat/stdlib-step3c2
-cd /home/david/workspace/ns-tests && git checkout -b feat/stdlib-step3c2
-cd /home/david/workspace/oevm && git checkout -b feat/stdlib-step3c2
-cd /home/david/workspace/ns-oevm
+cd ~/workspace/ns-oevm && git checkout -b feat/stdlib-step3c2
+cd ~/workspace/ns-tests && git checkout -b feat/stdlib-step3c2
+cd ~/workspace/oevm && git checkout -b feat/stdlib-step3c2
+cd ~/workspace/ns-oevm
 ```
 
 - [ ] **Step 2: Write the failing test `35_set.ns`**
@@ -256,12 +256,12 @@ mismatch is a real logic bug, not iteration order.
 - [ ] **Step 6: Commit (per repo)**
 
 ```bash
-cd /home/david/workspace/ns-tests
+cd ~/workspace/ns-tests
 git add 04_somns_basic/35_set.ns
 git commit -m "test(stdlib): 35_set.ns — Set conformance (3c-2 task 1)
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
-cd /home/david/workspace/ns-oevm
+cd ~/workspace/ns-oevm
 git add lib/kernel.ns
 git commit -m "feat(stdlib): HashedCollection + Set (3c-2 task 1)
 
@@ -458,7 +458,7 @@ A run; the committed default should be a representative current image. Regenerat
 it from `34_dictionary.ns` (matching the 3b/3c-1 precedent):
 
 ```bash
-cd /home/david/workspace/ns-oevm
+cd ~/workspace/ns-oevm
 python3 tools/ns_compile_oevm.py ../ns-tests/04_somns_basic/34_dictionary.ns ../oevm/src/solidified_image.c
 ```
 
@@ -474,17 +474,17 @@ VM is unaffected.)
 - [ ] **Step 8: Commit (per repo)**
 
 ```bash
-cd /home/david/workspace/ns-tests
+cd ~/workspace/ns-tests
 git add 04_somns_basic/34_dictionary.ns
 git commit -m "test(stdlib): 34_dictionary.ns — Dictionary conformance + value-protocol keys (3c-2 task 2)
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
-cd /home/david/workspace/oevm
+cd ~/workspace/oevm
 git add src/solidified_image.c src/solidified_image.stmap
 git commit -m "chore(stdlib): regenerate default solidified image from 34_dictionary (3c-2 task 2)
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
-cd /home/david/workspace/ns-oevm
+cd ~/workspace/ns-oevm
 git add lib/kernel.ns docs/NEWSPEAK_DIALECT.md
 git commit -m "feat(stdlib): Dictionary + dialect #11 (3c-2 task 2)
 

@@ -147,7 +147,7 @@ int main(void) {
 
 Run:
 ```bash
-cd /home/david/workspace/oevm
+cd ~/workspace/oevm
 git restore src/solidified_image.c 2>/dev/null
 gcc -std=c99 -Isrc -DOEVM_HEAP_SIZE=33554432 tests/test_gc_mark_iterative.c \
     src/vm.c src/gc.c src/dispatch.c src/oimg_loader.c src/solidified_image.c \
@@ -346,7 +346,7 @@ Then, immediately **after** the conservative `scan_c_stack();` call (~line 605) 
 
 Run:
 ```bash
-cd /home/david/workspace/oevm
+cd ~/workspace/oevm
 git restore src/solidified_image.c 2>/dev/null
 gcc -std=c99 -Isrc -DOEVM_HEAP_SIZE=33554432 tests/test_gc_mark_iterative.c \
     src/vm.c src/gc.c src/dispatch.c src/oimg_loader.c src/solidified_image.c \
@@ -363,7 +363,7 @@ exit=0
 
 Run:
 ```bash
-cd /home/david/workspace/oevm
+cd ~/workspace/oevm
 gcc -std=c99 -Isrc -DOEVM_HEAP_SIZE=65536 tests/test_gc_trigger.c \
     src/vm.c src/gc.c src/dispatch.c src/oimg_loader.c src/solidified_image.c \
     -lm -o /tmp/tgct && /tmp/tgct | tail -1
@@ -376,7 +376,7 @@ Expected: `ALL TESTS PASSED` for both (the float GC suite's last line is `ALL TE
 - [ ] **Step 9: Commit**
 
 ```bash
-cd /home/david/workspace/oevm
+cd ~/workspace/oevm
 git restore src/solidified_image.c 2>/dev/null
 git add src/gc.c tests/test_gc_mark_iterative.c
 git commit -m "feat(gc): iterative mark via explicit worklist + overflow recovery (GH#4)
@@ -445,7 +445,7 @@ Add `test_overflow_recovery();` in `main` before the final `printf`.
 
 Run:
 ```bash
-cd /home/david/workspace/oevm
+cd ~/workspace/oevm
 git restore src/solidified_image.c 2>/dev/null
 gcc -std=c99 -Isrc -DOEVM_HEAP_SIZE=33554432 -DOEVM_MARK_STACK_SIZE=4 \
     tests/test_gc_mark_iterative.c \
@@ -464,7 +464,7 @@ exit=0
 
 Run:
 ```bash
-cd /home/david/workspace/oevm
+cd ~/workspace/oevm
 gcc -std=c99 -Isrc -DOEVM_HEAP_SIZE=33554432 tests/test_gc_mark_iterative.c \
     src/vm.c src/gc.c src/dispatch.c src/oimg_loader.c src/solidified_image.c \
     -lm -lpthread -o /tmp/tgmi && /tmp/tgmi | tail -1
@@ -475,7 +475,7 @@ Expected: `ALL TESTS PASSED` (at the 1024 default the overflow branch is simply 
 
 Run:
 ```bash
-cd /home/david/workspace/oevm
+cd ~/workspace/oevm
 bash tests/test_portability_32.sh 2>&1 | tail -3
 ```
 Expected: `32-bit portability OK` (the change adds only a static `oop` array + `size_t`/`int` and a pointer-walk already exercised by the sweep — pointer-width-neutral). If 32-bit multilib is not installed, record that as an environment limitation; `test_portability_32.sh` is the authoritative gate.
@@ -484,7 +484,7 @@ Expected: `32-bit portability OK` (the change adds only a static `oop` array + `
 
 Run (the W1 acceptance workload — must still complete under the small managed-arena cap with the iterative mark):
 ```bash
-cd /home/david/workspace/ns-oevm
+cd ~/workspace/ns-oevm
 OEVM_EXTRA_CFLAGS="-DOEVM_HEAP_SIZE=65536" OEVM_PATH=AB \
     python3 tools/run_tests_oevm.py 05_gc_stress 2>&1 | grep -E "gc_stress|Passed|Failed" | head
 ```
@@ -494,7 +494,7 @@ Expected: `05_gc_stress` passes on Path A+B (runs to completion, bounded — no 
 
 Run:
 ```bash
-cd /home/david/workspace/ns-oevm
+cd ~/workspace/ns-oevm
 OEVM_PATH=AB python3 tools/run_tests_oevm.py 2>&1 | grep -E "Passed|Failed|Skipped"
 ```
 Expected: `Passed: 47`, `Failed: 0`, `Skipped: 1`.
@@ -510,7 +510,7 @@ Mark GP0 **step 5 (Iterative mark, GH#4) DONE** with the result (deep 500k-chain
 - [ ] **Step 9: Commit and close the issue**
 
 ```bash
-cd /home/david/workspace/oevm
+cd ~/workspace/oevm
 git restore src/solidified_image.c 2>/dev/null
 git add tests/test_gc_mark_iterative.c nodus/oevm/docs/optimizations.md nodus/oevm/docs/archive/ROADMAP.md
 git commit -m "test+docs(gp0): GH#4 overflow-recovery test + iterative-mark done

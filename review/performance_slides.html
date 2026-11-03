@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>nsl-tuvm — optimize the right thing</title>
+<title>rete — optimize the right thing</title>
 <style>
   :root {
     --page:        #f9f9f7;
@@ -343,6 +343,10 @@
   <em>prov.</em> were taken on a build whose RX packet slab was itself the bottleneck —
   root-caused and fixed on 2026-07-22, but <strong>not yet re-taken</strong>. Quote the
   thermal half; treat the network half as a placeholder.</p>
+  <p class="asterisk"><strong>Re-measure pending (2026-11-02).</strong> Every figure in Act I is
+  from July 2026 on the WROOM-32 + AMG8833 thermal board, which has since left the bench. David is
+  locating it; until it is re-measured on the current VM these rows are a photograph of the
+  code the day they were taken.</p>
 </section>
 
 <section class="slide dense" id="thermal-witness">
@@ -373,6 +377,24 @@
   everything the VM does after it.</strong> Same shape as the HTTP argument, reached
   through I/O instead — which makes it a genuinely separate witness rather than a
   restatement.</p>
+</section>
+
+<section class="slide" id="checkin">
+  <div class="kicker">Act I · a third witness, on the radio node</div>
+  <h2>The porta check-in on the C6: when nsl did the heavy lifting, it showed</h2>
+  <ul class="points">
+    <li>August 2026, the Thread bridge node, six spans inside <code>checkIn</code>, partition closed to 0.16%:
+    the 300 ms check-in was <strong><span class="fig" data-fig="checkin_ms_vm_pc"></span> VM, 30% radio</strong> —
+    and one method, <code>pushBuild</code>, building the CBOR frame in nsl, was 62% of it.</li>
+    <li>Four days later, the codec moved down: <code>pushBuild</code>
+    <span class="fig" data-fig="checkin_pushbuild_before_us" data-as="ms"></span> →
+    <span class="fig" data-fig="checkin_pushbuild_after_us" data-as="ms"></span>, 2.0×, now
+    <span class="fig" data-fig="checkin_pushbuild_pc_after"></span> of a check-in that “has stopped being VM-dominated”.</li>
+    <li>The principle the thermal node shows from the other side: Zephyr and C do the byte work, nsl coordinates.
+    The one place the VM dominated a real job was the one place nsl was doing the bytes.</li>
+  </ul>
+  <p class="asterisk">Two-sample windows on the bridge-health gate; spans cost nothing at this resolution
+  (<code>checkIn</code> read the same with twelve extra brackets). Source: the two results records named in the witness appendix.</p>
 </section>
 
 <section class="slide" id="client-view">
@@ -451,32 +473,40 @@
 
 <section class="slide dense" id="stic-table">
   <div class="kicker">Act II · the microbenchmarks, whole</div>
-  <h2>STIC on ESP32 — four languages, no row omitted</h2>
+  <h2>STIC on the ESP32-C6 — three VMs, no row omitted</h2>
   <div id="stictable"></div>
 </section>
 
 <section class="slide" id="stic-row">
   <div class="kicker">Act II · the row that hurts</div>
-  <h2>Collection iterate — <span class="fig" data-fig="stic_iter_us"></span> against Toit's <span class="fig" data-fig="stic_iter_toit"></span></h2>
-  <p class="big"><span class="fig" data-fig="stic_iter_ratio"></span> slower, on the one
-  operation an object language does most.</p>
-  <p class="note" style="margin-top:1.3rem">No qualifier, no normalisation, no “but”. It is
-  the worst row in the table and it is a real result. What follows is the reason and the
+  <h2>Richards — <span class="fig" data-fig="stic_richards_ms"></span> against Toit's <span class="fig" data-fig="stic_richards_toit"></span></h2>
+  <p class="big"><span class="fig" data-fig="stic_richards_ratio"></span> slower on Richards,
+  <span class="fig" data-fig="stic_deltablue_ratio"></span> on DeltaBlue: the send-heavy,
+  object-heavy pair an object language is made of.</p>
+  <p class="note" style="margin-top:1.3rem">No qualifier, no normalisation, no “but”. They are
+  the worst rows in the table and they are a real result. What follows is the reason and the
   consequence — in that order, because the reason does not excuse it.</p>
+  <p class="asterisk">The row that hurt in July — collection iterate at
+  <span class="fig" data-fig="stic_iter_us_jul"></span>, <span class="fig" data-fig="stic_iter_ratio_jul"></span>
+  behind Toit on the WROOM-32 — now reads <span class="fig" data-fig="stic_iter_us"></span> against Toit's
+  <span class="fig" data-fig="stic_iter_toit"></span> on the C6, after the #37 dispatch work and the hot path in SRAM.
+  Bought back in nsl, not by moving the collections to C.</p>
 </section>
 
 <section class="slide" id="stic-why">
   <div class="kicker">Act II · why</div>
-  <h2>Because <code>OrderedCollection</code> is written in nsl, not in C</h2>
+  <h2>Because every operation is a send, and Toit compiles</h2>
   <div class="cols">
     <div>
       <ul class="points">
         <li>Every <code>do:</code> is a real block activation. Every <code>at:</code> is a
         real send with a real bounds check. <strong>There is no fast path, because there is
         no special case</strong> — the uniformity that makes capabilities and the debugger
-        cheap costs exactly here.</li>
-        <li>Putting the collection classes in C would buy the row back and cost flash and
-        surface. <strong>That is a footprint decision, not a quality gap.</strong></li>
+        cheap costs exactly here: about <span class="fig" data-fig="activation_us_c6"></span> per activation on the C6.</li>
+        <li>Richards and DeltaBlue are nothing but sends, so they pay that price on every line, and Toit's
+        compiled code does not. The arithmetic and collection rows no longer pay it. <strong>That is the
+        interpreter's dispatch cost, not a library gap</strong> — and the Hanoi slide shows what one native
+        method does to it.</li>
       </ul>
     </div>
     <div>
@@ -502,11 +532,11 @@
 <section class="slide" id="stic-investor">
   <div class="kicker">Act II · the microbenchmarks, in one line</div>
   <h2>We know exactly where we are slow — by name</h2>
-  <p class="big">Iterating a collection costs
-  <span class="fig" data-fig="stic_iter_us"></span> against Toit's
-  <span class="fig" data-fig="stic_iter_toit"></span> —
-  <span class="fig" data-fig="stic_iter_ratio"></span> — because our collection classes are
-  written in the language, not in C.</p>
+  <p class="big">Richards costs
+  <span class="fig" data-fig="stic_richards_ms"></span> against Toit's
+  <span class="fig" data-fig="stic_richards_toit"></span> —
+  <span class="fig" data-fig="stic_richards_ratio"></span> — because every operation is a
+  late-bound send and Toit compiles; on the arithmetic and collection rows we are level or ahead.</p>
   <div class="cols" style="margin-top:1.3rem">
     <div>
       <div class="card warn">
@@ -547,8 +577,8 @@
     outweighs everything the VM does, and the node is idle for the rest</li>
     <li>And the whole VM share is <span class="fig" data-fig="vm_share_pc"></span> of what
     the client feels</li>
-    <li>Making the collections 40× faster would move the user-visible number by a few
-    percent. <strong>It is a real deficiency in a place that does not decide anything.</strong></li>
+    <li>Making every send as fast as Toit's compiled code (its 4× margin on Richards) would move
+    the user-visible number by a few percent. <strong>It is a real deficiency in a place that does not decide anything.</strong></li>
   </ul>
   <p class="big" style="margin-top:1.3rem">The microbenchmark was not wrong.<br>
   <em>It was answering a question the product does not ask.</em></p>
@@ -684,16 +714,29 @@
 <section class="slide" id="reflash">
   <div class="kicker">Act IV · change without reflash</div>
   <h2>Time from an edit to a deployed change, on a device in the field</h2>
-  <div class="tbdcard">
-    <div class="t">Not measured — #67</div>
-    <div class="d"><strong><span class="fig" data-fig="ota_cycle_s"></span></strong><br>
-    The <code>.oimg</code> push path over porta exists and works. What does not exist is a
-    <em>timed</em> comparison against a flash cycle on real hardware — and this number is
-    load-bearing for the agent-loop claim in Act V.</div>
+  <div class="cols">
+    <div>
+      <div class="card good">
+        <div class="t">Measured once — #449, 2026-10-27</div>
+        <div class="d">A signed <code>.oimg</code> of <span class="fig" data-fig="ota_bytes"></span> pushed through
+        production porta and the phone's BLE relay to OCM.1 (nRF52840), no cable:
+        <strong><span class="fig" data-fig="ota_cycle_s"></span></strong> for the fetch (~1.15 KB/s on BLE,
+        slot erase <span class="fig" data-fig="ota_erase_s"></span>), then <code>staged-ok → trial b → confirmed b</code>
+        and the new program's first lines. One run, one board, one transport.</div>
+      </div>
+    </div>
+    <div>
+      <div class="tbdcard">
+        <div class="t">Still not measured — #67</div>
+        <div class="d"><strong><span class="fig" data-fig="flash_cycle_s"></span></strong><br>
+        The comparison this slide was built for — the same change as a flash cycle, timed on the same
+        board — and the Thread and WiFi transports, which will not be 1.15 KB/s.</div>
+      </div>
+    </div>
   </div>
   <p class="note" style="margin-top:1.2rem">It would have been easy to write “seconds
-  versus minutes” here. That is what we <em>expect</em>, and expecting is not measuring.
-  The badge stays until the harness runs.</p>
+  versus minutes” here. We now have one side of it, over the slowest link we own.
+  The badge on the other side stays until the harness runs.</p>
   <p class="note" data-aud="record peer"><strong>The honest caveat that comes with it:</strong>
   the two-speed story only holds while the C substrate is stable. Every new primitive is
   still a reflash, and the prim surface has not fully converged.</p>
@@ -809,10 +852,12 @@
   <div id="surfacetable"></div>
   <div class="cols" style="margin-top:1rem">
     <div>
-      <p><strong>Whole system, language + VM:</strong> the stdlib plus the hand-written C
-      substrate ≈ <span class="fig" data-fig="whole_system_tok"></span>.
-      <strong>An agent can hold the entire system in one context window</strong> — semantics,
-      implementation, and seam.</p>
+      <p><strong>The language — grammar, guide, ledger and the comment-free kernel — is
+      <span class="fig" data-fig="language_tok"></span>.</strong> Whole system, language + VM, comments
+      stripped: ≈ <span class="fig" data-fig="whole_system_tok"></span>; as written, with every
+      comment, ≈ <span class="fig" data-fig="whole_system_tok_commented"></span>.
+      <strong>An agent can hold the entire system in one 200 k window only in its comment-free form</strong>
+      — semantics, implementation, and seam; the language alone fits a local model's 64 k window.</p>
     </div>
     <div>
       <p><strong>The demonstration, not the claim.</strong> One session, one agent, one
@@ -971,7 +1016,7 @@
 </section>
 
   <div class="footer">
-    <span><span class="aud" id="audname"></span> <span id="deckinfo">nsl-tuvm — performance · 2026-07-22</span></span>
+    <span><span class="aud" id="audname"></span> <span id="deckinfo">rete (was nsl-tuvm) — performance · 2026-07-22, figures revised 2026-11-02</span></span>
     <span class="nav">
       <span id="counter" style="margin-right:0.6rem"></span>
       <button id="home" aria-label="audience chooser">⌂</button>
@@ -1002,6 +1047,11 @@ const SRC = {
   notes:   "session notes — never recorded as a timed measurement (#68)",
   i67:     "tuvm#67 — time-to-deployed-change, not yet measured",
   i65:     "review/2026-07-21-issue-65-http-load-wedge/README.md",
+  stic_c6: "~/workspaceToit/stic/README.md — ESP32-C6 table, 2026-10-12 (rete e2fa47e, Zephyr 4.2.0, Model B, 128 KB heap, hot path in SRAM; docs/results/2026-10-12-37-c6-cross-vm)",
+  surface2:"nodus/nsl/docs/nsl-design-paper.md — 'the whole language fits in a context window', measured 2026-10-06, bytes ÷ 3.5; substrate re-measured 2026-11-02 the same way",
+  ota449:  "rete#449 — OCM.1 (nRF52840) over BLE through production porta, 2026-10-27 22:49–22:53 MST",
+  checkin: "docs/results/2026-08-05-c6-checkin-decomposition.md and 2026-08-09-checkin-after-the-codec-fix.md — c6-bench / c6spare, bridge-health gate",
+  retake:  "the WROOM-32 + AMG8833 thermal board is to be located and re-measured (David, 2026-11-02); every Act I figure is July 2026",
 };
 
 const DATA = {
@@ -1033,9 +1083,19 @@ const DATA = {
   thermal2_job_us:     { v: 23295, u: "µs", src: SRC.prof },
 
   /* --- Act II --- */
-  stic_iter_us:       { v: 532.6, u: "", src: SRC.stic },
-  stic_iter_toit:     { v: 12.7,  u: "", src: SRC.stic },
-  stic_iter_ratio:    { v: 42,    u: "×", src: SRC.stic, st: "der" },
+  stic_iter_us:       { v: 10.9,  u: "s", src: SRC.stic_c6 },
+  stic_iter_toit:     { v: 17.1,  u: "s", src: SRC.stic_c6 },
+  stic_iter_us_jul:   { v: 532.6, u: "s", src: SRC.stic },
+  stic_iter_ratio_jul:{ v: 42,    u: "×", src: SRC.stic, st: "der" },
+  stic_richards_ms:   { v: 5080,  u: "ms", src: SRC.stic_c6 },
+  stic_richards_toit: { v: 1178,  u: "ms", src: SRC.stic_c6 },
+  stic_richards_ratio:{ v: 4.3,   u: "×", src: SRC.stic_c6, st: "der" },
+  stic_deltablue_ratio:{ v: 4.4,  u: "×", src: SRC.stic_c6, st: "der" },
+  activation_us_c6:   { v: 11.83, u: "µs", src: "docs/overview.md processor table — µs per activation, C6 vs RP2350 11.13" },
+  checkin_ms_vm_pc:   { v: 70,    u: "%", src: SRC.checkin },
+  checkin_pushbuild_before_us: { v: 196792, u: "µs", src: SRC.checkin },
+  checkin_pushbuild_after_us:  { v: 98250,  u: "µs", src: SRC.checkin },
+  checkin_pushbuild_pc_after:  { v: 43.2,   u: "%",  src: SRC.checkin },
 
   /* --- Act III --- */
   hanoi20_interp:     { v: 12.0,  u: "s", src: SRC.hanoi },
@@ -1044,7 +1104,10 @@ const DATA = {
   /* --- Act IV --- */
   modelA_build_min:   { v: 50,  u: "min", src: SRC.notes, st: "rec", pre: "~" },
   modelA_rss_gb:      { v: 4.9, u: "GB",  src: SRC.notes, st: "rec", pre: "~" },
-  ota_cycle_s:        { v: null, st: "tbd", tbd: "OTA / .oimg push cycle vs a flash cycle — not yet measured", src: SRC.i67 },
+  ota_cycle_s:        { v: 143,    u: "s", src: SRC.ota449 },
+  ota_bytes:          { v: 164000, u: "B", src: SRC.ota449 },
+  ota_erase_s:        { v: 7.7,    u: "s", src: SRC.ota449 },
+  flash_cycle_s:      { v: null, st: "tbd", tbd: "a timed flash cycle on the same board, for the comparison — not yet measured", src: SRC.i67 },
   wrap_bug_us:        { v: 4277094806, u: "µs", src: SRC.rung61 },
   wrap_domain:        { v: 17895697,   u: "",   src: SRC.rung61 },
   burst_requests:     { v: 500, u: "", src: SRC.i65 },
@@ -1052,7 +1115,9 @@ const DATA = {
   timeouts_after:     { v: 183,  u: "", src: SRC.addend },
 
   /* --- Act V --- */
-  whole_system_tok:   { v: 138, u: "k tokens", src: SRC.surface, st: "ind", pre: "≈" },
+  whole_system_tok:   { v: 155, u: "k tokens", src: SRC.surface2, st: "ind", pre: "≈" },
+  whole_system_tok_commented: { v: 310, u: "k tokens", src: SRC.surface2, st: "ind", pre: "≈" },
+  language_tok:       { v: 45,  u: "k tokens", src: SRC.surface2, st: "ind", pre: "≈" },
 };
 
 /* Tables render from data too — otherwise the witness appendix is theatre. */
@@ -1067,7 +1132,8 @@ const SPANS = {
   cap: "WROOM-32, 2026-07-21 · 310 thermal jobs, 296 paced HTTP requests · every row past the n ≥ 200 gate. " +
        "<strong>Indented rows are nested inside the row above them</strong> — a parent's time is not the sum of its children, it <em>contains</em> them. " +
        "<code>egress</code> is sampled once per emitted chunk, ~12.05 chunks per render, which is why its n is 12× <code>render</code>'s. " +
-       "Rows marked <em>prov.</em> were measured on a build whose RX packet slab was itself the bottleneck (#65, root-caused 2026-07-22) and are pending a re-take.",
+       "Rows marked <em>prov.</em> were measured on a build whose RX packet slab was itself the bottleneck (#65, root-caused 2026-07-22) and are pending a re-take. " +
+       "<strong>All rows are July 2026: the thermal board is to be located and re-measured (2026-11-02).</strong>",
   cols: ["span", "owner", "n", "mean µs", "min µs", "max µs", "max/min"],
   depth: [0, 0, 1, 0, 1, 1, 1],
   rows: [
@@ -1096,32 +1162,29 @@ const THERMAL2 = {
 };
 
 const STIC = {
-  src: SRC.stic,
-  cap: "ESP32, 240 MHz, 520 KB RAM · smaller is better · <em>ut</em> = untested, <em>se</em> = stack exhausted · " +
-       "Toit v2.0.0-alpha.180 · uLisp v4.7 · CircuitPython 9.2.7 · nsl-tuvm on Zephyr 4.2.0 with a 96 KB VM heap. " +
-       "Shown whole, no row omitted and no column normalised.",
-  cols: ["test", "Toit", "uLisp", "CircuitPython", "tuvm/nsl"],
+  src: SRC.stic_c6,
+  cap: "ESP32-C6, RISC-V 160 MHz, 512 KB RAM · one board, one session, 2026-10-12 · seconds unless marked, smaller is better · " +
+       "Toit v2.0.0-alpha.194 · MicroPython v1.29.0 · rete/nsl e2fa47e on Zephyr 4.2.0, Model B, 128 KB VM heap, no radio, the interpreter's hot path in SRAM. " +
+       "All three print <code>verified: true</code> on Richards and DeltaBlue. Shown whole, no row omitted and no column normalised. " +
+       "The July 2026 four-language WROOM-32 table (Toit, uLisp, CircuitPython, nsl; collection iterate 532.6 s against Toit's 12.7) is in the stic README's ESP32 section.",
+  cols: ["test", "Toit", "MicroPython", "rete/nsl"],
   rows: [
-    ["alloc",              "16.0",   "21.6",  "11.4",  "24.1",  ""],
-    ["array write",        "19.4",   "98.1",  "63.3",  "138.9", ""],
-    ["dictionary write",   "5.7",    "1.4",   "0.9",   "43.3",  ""],
-    ["float math",         "41.1",   "124.3", "20.9",  "35.1",  ""],
-    ["integer math",       "9.4",    "122.5", "14.4",  "15.3",  ""],
-    ["collection iterate", "12.7",   "42.5",  "29.2",  "532.6", "hurt"],
-    ["collection write",   "9.5",    "6.7",   "15.4",  "97.0",  ""],
-    ["string compare",     "1.5",    "12.5",  "2.9",   "5.2",   ""],
-    ["hanoi @ blocks: 8",  "0.0000", "0.01",  "0.01",  "0.003", ""],
-    ["16",                 "0.2",    "3.2",   "1.4",   "0.7",   "sub"],
-    ["20",                 "3.0",    "54.2",  "21.6",  "12.0",  "sub"],
-    ["21",                 "ut",     "ut",    "43.1",  "24.0",  "sub"],
-    ["22",                 "ut",     "ut",    "se",    "ut",    "sub"],
-    ["24",                 "49.2",   "924.1", "se",    "191.7", "sub"],
+    ["alloc",              "28.0",  "13.2",    "10.9",  ""],
+    ["array write",        "25.9",  "41.5",    "18.0",  ""],
+    ["dictionary write",   "5.5",   "1.0",     "5.3",   ""],
+    ["float math",         "78.7",  "49.0",    "23.3",  ""],
+    ["integer math",       "13.8",  "17.6",    "3.6",   ""],
+    ["collection iterate", "17.1",  "35.3",    "10.9",  ""],
+    ["collection write",   "12.1",  "6.4",     "11.8",  ""],
+    ["string compare",     "1.9",   "4.0",     "2.2",   ""],
+    ["Richards (ms per run)", "1,178", "7,471", "5,080", "hurt"],
+    ["DeltaBlue (ms per run)", "77",  "326–359", "336", "hurt"],
   ],
 };
 
 const HANOI = {
   src: SRC.hanoi,
-  cap: "Same board, same binary, one vtable field swapped. ~11.75 µs/move → ~0.10 µs/move; the native path is linear and allocation-free, so no GC runs at all.",
+  cap: "ESP32-WROOM-32, July 2026. Same board, same binary, one vtable field swapped. ~11.75 µs/move → ~0.10 µs/move; the native path is linear and allocation-free, so no GC runs at all.",
   cols: ["hanoi n", "interpreted (tuvm/nsl)", "native in the vtable", "speedup"],
   rows: [
     ["16", "0.7 s",  "0.0067 s", "~116×", ""],
@@ -1130,14 +1193,19 @@ const HANOI = {
 };
 
 const SURFACE = {
-  src: SRC.surface,
-  cap: "Measured 2026-07-22 with <code>wc -c</code>; ≈ tokens at 4 chars/token. Two systems only, and “surface” is not yet defined rigorously across peers — hence the badge. #66 is the real benchmark.",
-  cols: ["what", "files", "chars", "≈ tokens"],
+  src: SRC.surface2,
+  cap: "Bytes, ≈ tokens at 3.5 bytes/token — estimated, not counted by a tokenizer. The language rows are the nsl design paper's (2026-10-06); the substrate rows were taken 2026-11-02 the same way over <code>nodus/oevm/src/*.{c,h}</code> and <code>src/backend/*/</code>, 66 files, excluding the generated image. " +
+       "The July comparison to the Toit SDK (<code>core/</code> ≈ 81k tokens at 4 chars/token) is in the 2026-07-21 deck design; “surface” is still not defined rigorously across peers — hence the badge. #66 is the real benchmark.",
+  cols: ["what", "bytes", "≈ tokens"],
   rows: [
-    ["<code>kernel.nsl</code> — the entire nsl stdlib", 1, 131423, "~33k", "us"],
-    ["Toit SDK <code>core/</code>", 21, 323032, "~81k", ""],
-    ["Toit SDK <code>lib/</code> (full)", 146, 1380028, "~345k", ""],
-    ["nsl-tuvm C substrate — <code>src/*.{c,h}</code>, excluding the generated image", 36, 422315, "~106k", "us"],
+    ["Grammar (109 lines)", 3416, "~1.0k", "us"],
+    ["User's guide", 27385, "~7.8k", "us"],
+    ["Dialect ledger", 36374, "~10.4k", "us"],
+    ["Kernel's public selectors (438 signatures)", 6397, "~1.8k", "us"],
+    ["<code>kernel.nsl</code> without comments — the entire stdlib", 91815, "~26k", "us"],
+    ["<code>kernel.nsl</code> as written", 247689, "~71k", ""],
+    ["C substrate without comments", 379132, "~108k", "us"],
+    ["C substrate as written", 807986, "~231k", ""],
   ],
 };
 
@@ -1148,7 +1216,7 @@ const SURFACE = {
 const PLAYLIST = {
   record: [
     "title","product","roadblocks","zephyr","software-left","two-questions",
-    "real-node","device-table","thermal-witness","client-view","accounting",
+    "real-node","device-table","thermal-witness","checkin","client-view","accounting",
     "stic-intro","stic-table","stic-row","stic-why","stic-turn",
     "oeom","hanoi","strategy",
     "unbenchmarked","build-time","reflash","observability","proof","legibility",
@@ -1157,7 +1225,7 @@ const PLAYLIST = {
   ],
   peer: [
     "title","two-questions",
-    "real-node","device-table","thermal-witness","client-view","accounting",
+    "real-node","device-table","thermal-witness","checkin","client-view","accounting",
     "stic-intro","stic-table","stic-row","stic-why","stic-turn",
     "oeom","hanoi","strategy",
     "build-time","reflash","observability","proof","legibility",
@@ -1185,7 +1253,7 @@ const PLAYLIST = {
    ══════════════════════════════════════════════════════════════════════════ */
 
 const BADGE = {
-  prov: ["prov", "provisional — measured on a build since invalidated (#65); re-take pending"],
+  prov: ["prov", "provisional — measured on a build since invalidated (#65); re-take pending, thermal board to be located (2026-11-02)"],
   der:  ["der",  "derived by subtraction, not measured"],
   rec:  ["rec",  "recalled from notes — never recorded as a measurement (#68)"],
   ind:  ["ind",  "indicative — not yet a benchmark (#66)"],

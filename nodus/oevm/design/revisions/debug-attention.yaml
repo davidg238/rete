@@ -1,0 +1,6 @@
+name: debug-attention
+pattern: Facade
+intent: the debugger's attention flag has one owner, the console ISR that raises it and the line taker that lowers it
+compromise: a card accepts the writers, it does not reduce them; posix's copy (platform_posix.c) is outside the C6 photograph
+ops:
+  - card: {file: debug_attention.yaml}

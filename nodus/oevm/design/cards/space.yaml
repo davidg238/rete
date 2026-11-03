@@ -1,0 +1,8 @@
+# space.h is the primary means user programs talk to the world: the core's port (David, 2026-10-17).
+# A backend posting to the space (timer_*, pulse_*) is through the port, not a leak.
+name: Space
+root: true
+does:
+  - the channel registry, the node-wide event queue, and the ISR-callable post seam
+implemented_by:
+  - c: space_*

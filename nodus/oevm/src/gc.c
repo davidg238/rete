@@ -1,5 +1,7 @@
 #include "oevm.h"
 #include "frame_abi.h"
+#include "handles.h"   /* handle_gc_trace */
+#include "space.h"     /* space_gc_trace */
 #include "platform_backend.h"   /* platform_console_write: the OOM message must reach the console on every backend */
 #include <stdlib.h>
 #include <stdio.h>
@@ -810,8 +812,8 @@ void mark_object(oop ptr) {
    then clears the set. Empty
    (zero overhead) once boot completes. */
 #define GC_TEMP_ROOTS_MAX 16
-oop gc_temp_roots[GC_TEMP_ROOTS_MAX];
-int gc_temp_roots_count = 0;
+static oop gc_temp_roots[GC_TEMP_ROOTS_MAX];
+static int gc_temp_roots_count = 0;
 
 void gc_temp_root_push(oop o) {
     if (gc_temp_roots_count < GC_TEMP_ROOTS_MAX) {
@@ -828,6 +830,16 @@ void gc_temp_roots_clear(void) {
     gc_temp_roots_count = 0;
 }
 
+/* The save/restore idiom: a caller marks the set, pushes its roots, and resets to
+   the mark on every exit, so a nested push never outlives its frame. */
+int gc_temp_roots_mark(void) {
+    return gc_temp_roots_count;
+}
+
+void gc_temp_roots_reset(int mark) {
+    gc_temp_roots_count = mark;
+}
+
 /* Trigger a Mark-and-Sweep Garbage Collection cycle */
 OEVM_HOT void gc_collect(void) {
     // 1. Reset mark tags: linear walk of the arena
@@ -837,7 +849,6 @@ OEVM_HOT void gc_collect(void) {
        GC roots; after a non-moving sweep + slot reuse a stale entry could alias a
        reused address and produce a spurious cache hit dispatching the wrong method.
        GC is rare (exhaustion-triggered), so flushing here is cheap. */
-    extern void method_cache_flush(void);
     method_cache_flush();
     mark_sp = 0;
     mark_overflowed = 0;
@@ -880,12 +891,10 @@ OEVM_HOT void gc_collect(void) {
     // queued event values + registered reaction blocks/owners in its own
     // static tables, outside every other root set scanned here (not on the
     // VM stack, not a global vtable/singleton) — trace them explicitly.
-    extern void space_gc_trace(void);
     space_gc_trace();
 
     /* M6 C-boundary handle table (src/handles.c): live entries are GC roots held
        only in that static table, outside every other root set — trace them. */
-    extern void handle_gc_trace(void);
     handle_gc_trace();
 
     // Mark the execution-context root. Task 6 removed the Fiber wrapper: the running
@@ -941,8 +950,6 @@ OEVM_HOT void gc_collect(void) {
     }
 
     /* oevm#21: boot-driver temp roots (instances held across the boot send sequence). */
-    extern oop gc_temp_roots[];
-    extern int gc_temp_roots_count;
     for (int i = 0; i < gc_temp_roots_count; i++) {
         mark(gc_temp_roots[i]);
     }

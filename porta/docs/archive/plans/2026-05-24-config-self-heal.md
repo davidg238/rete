@@ -15,7 +15,7 @@
 **Before you start — toolchain:** every command below assumes:
 ```bash
 export TS=~/workspaceToit/sqlite/build/bin/toit-sqlite
-cd /home/david/workspaceToit/porta/gateway
+cd ~/workspaceToit/porta/gateway
 ```
 There is no `toit test` on this SDK; each `*_test.toit` is a `main` you run directly. `$TS analyze <file>.toit` is the compile gate (exit 0, no output = clean).
 

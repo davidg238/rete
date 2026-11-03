@@ -1,0 +1,9 @@
+name: log-udp-header
+pattern: Facade
+intent: the remote console's header is the one declaration of its entry points
+compromise: the header stays in zephyr/src (on the include path), not beside log_udp.c
+ops:
+  - declare: {func: log_udp_tee, header: zephyr/src/log_udp.h}
+  - declare: {func: log_udp_tee_paced, header: zephyr/src/log_udp.h}
+  - declare: {func: log_udp_set_target, header: zephyr/src/log_udp.h}
+  - declare: {func: log_udp_drain, header: zephyr/src/log_udp.h}

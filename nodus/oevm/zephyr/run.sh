@@ -7,7 +7,7 @@
 # solidified_image.c.
 set -euo pipefail
 
-MODEL=B NODE=TimerNode.nsl DO_FLASH=0 CAPTURE=0 PRISTINE=0 BUILD_DIR="" BOARD_ID=esp32c6 CONF_EXTRA=""
+MODEL=B NODE=TimerNode.nsl DO_FLASH=0 CAPTURE=0 PRISTINE=0 BUILD_DIR="" BOARD_ID=esp32c6 CONF_EXTRA="" DTC_OVERLAY="" EXTRA_MODULE="" CONF_OVERRIDE=""
 # Which chip's ROM ld the setjmp/longjmp patch targets. Only meaningful when a
 # profile sets ROM_PATCH=1; the esp32 profile leaves this default.
 ROM_PATCH_CHIP=esp32
@@ -21,6 +21,9 @@ while [ $# -gt 0 ]; do
     --build-dir)  BUILD_DIR="$2"; shift 2 ;;
     --board)      BOARD_ID="$2"; shift 2 ;;
     --conf-extra) CONF_EXTRA="$2"; shift 2 ;;
+    --dtc-overlay) DTC_OVERLAY="$2"; shift 2 ;;
+    --extra-module) EXTRA_MODULE="$2"; shift 2 ;;
+    --conf)       CONF_OVERRIDE="$2"; shift 2 ;;
     *) echo "unknown arg: $1" >&2; exit 2 ;;
   esac
 done
@@ -331,8 +334,15 @@ case "$BOARD_ID" in
     # because OT/mbedTLS/the 802.15.4 driver and the 32 KB system heap are static here
     # too, and on this part VM_STACK_INIT_WORDS (4096 words = 16 KB) sits INSIDE the
     # arena. Re-measure if any of those move; do not carry this number to another node.
-    : "${OEVM_HEAP_SIZE:=114688}"
+    # rete#449 moved one: the program slots bring the OTA fetch stack (2.5 KB), and at
+    # 114688 the Thread image overflowed RAM by 1,764 B. 98304 (96 KB) is the host sweep
+    # of 2026-10-27 (PortaBridgeNodeNrf, -m32, this profile's cache/stack/mark sizes,
+    # 120 s against a loopback porta): 22 collections at 112 KB, 27 at 96, 82 at 48,
+    # out of memory at 40. NOT yet run on a board (David: test it, next session).
+    : "${OEVM_HEAP_SIZE:=98304}"
     : "${BUILD_DIR:=build-nrf52840dk-$MODEL}"
+    # rete#449: the two program slots, so a program can arrive over the air as on the C6.
+    PM_STATIC_ARG=(-DPM_STATIC_YML_FILE=pm_static_dk.yml)
     # ONE cable, unlike the C6: the DK's on-board SEGGER J-Link carries both the flash
     # channel (west flash --runner jlink) and the console VCOM. Same zero/one/many
     # discipline as the ESP32 profiles, for the same reason — this bench has had more
@@ -540,6 +550,13 @@ else
   BLOB_ARG=(-DOEVM_BLOB="$OIMG")
 fi
 
+# --conf (rete#439): replace the profile's CONF_FILE — same board, another radio (the
+# DK's prj_dk_ble.conf). Everything else in the profile stands.
+if [ -n "$CONF_OVERRIDE" ]; then
+  [ -f "$ZDIR/$CONF_OVERRIDE" ] || { echo "--conf: no such file in $ZDIR: $CONF_OVERRIDE" >&2; exit 2; }
+  CONF_FILE="$CONF_OVERRIDE"
+  echo "[conf]  $CONF_FILE (replaces the profile's)"
+fi
 PRISTINE_ARG=(); [ "$PRISTINE" = 1 ] && PRISTINE_ARG=(-p always)
 # WiFi credentials overlay (#46): git-ignored, generated once with the real
 # SSID/PSK (never tracked). Appended only when present so a checkout without
@@ -595,13 +612,14 @@ case "$BOARD_ID" in
       *)                         WANTS_THREAD=0 ;;
     esac
     ;;
-  nrf52840dk)
-    THREAD_LOCAL="$ZDIR/prj_dk_thread_local.conf"
-    WANTS_THREAD=1
-    ;;
-  nrf52840dongle)
-    THREAD_LOCAL="$ZDIR/prj_dongle_thread_local.conf"
-    WANTS_THREAD=1
+  nrf52840dk|nrf52840dongle)
+    case "$BOARD_ID" in
+      nrf52840dk)     THREAD_LOCAL="$ZDIR/prj_dk_thread_local.conf" ;;
+      nrf52840dongle) THREAD_LOCAL="$ZDIR/prj_dongle_thread_local.conf" ;;
+    esac
+    # Same rule as the C6: credentials follow the radio, read from the CONF_FILE itself
+    # since --conf can swap Thread out (rete#439, prj_dk_ble.conf).
+    if grep -q '^CONFIG_NET_L2_OPENTHREAD=y' "$ZDIR/$CONF_FILE"; then WANTS_THREAD=1; else WANTS_THREAD=0; fi
     ;;
   *)
     THREAD_LOCAL=""
@@ -633,6 +651,29 @@ if [ ${#EXTRA_CONF_FILES[@]} -gt 0 ]; then
   IFS=';'
   EXTRA_CONF_ARG=(-DEXTRA_CONF_FILE="${EXTRA_CONF_FILES[*]}")
   unset IFS
+fi
+# --dtc-overlay (rete#438): a caller-supplied devicetree overlay, applied after the
+# board's own boards/<board>.overlay. This is how a board rete may not carry (a
+# proprietary PCB, e.g. ttgm's) adds its sensor nodes and the `<kind>0` aliases the
+# sensor seam looks up (rete#436), with the file living in the board's own repo.
+# Made absolute because west runs from $ZDIR; a missing file is fatal here rather
+# than a devicetree with no sensor node and a node that reads nil forever.
+if [ -n "$DTC_OVERLAY" ]; then
+  [ -f "$DTC_OVERLAY" ] || { echo "--dtc-overlay: no such file: $DTC_OVERLAY" >&2; exit 2; }
+  DTC_OVERLAY="$(cd "$(dirname "$DTC_OVERLAY")" && pwd)/$(basename "$DTC_OVERLAY")"
+  EXTRA_CONF_ARG+=(-DEXTRA_DTC_OVERLAY_FILE="$DTC_OVERLAY")
+  echo "[extra] dtc overlay -> $DTC_OVERLAY"
+fi
+# --extra-module (rete#438): a caller-supplied Zephyr module, for drivers rete does not
+# carry (ttgm's OCM.1 PIR and thermopile, rete#447) — the driver half of the line
+# --dtc-overlay draws for the board. The module's own zephyr/module.yml says what it
+# adds (Kconfig, CMake, dts bindings). A directory without one is fatal here: Zephyr
+# would otherwise build without it and the sensor would read nil forever.
+if [ -n "$EXTRA_MODULE" ]; then
+  [ -f "$EXTRA_MODULE/zephyr/module.yml" ] || { echo "--extra-module: no zephyr/module.yml under: $EXTRA_MODULE" >&2; exit 2; }
+  EXTRA_MODULE="$(cd "$EXTRA_MODULE" && pwd)"
+  EXTRA_CONF_ARG+=(-DZEPHYR_EXTRA_MODULES="$EXTRA_MODULE")
+  echo "[extra] zephyr module -> $EXTRA_MODULE"
 fi
 # ROM setjmp/longjmp/ungetc fault under Zephyr+picolibc (same forced-ROM-newlib
 # family as fflush); patch the vendored SDK ld to use picolibc's. Idempotent; a
@@ -726,6 +767,10 @@ if [ "$BUILD_RC" = 0 ]; then
     # is the writer; this is a reader, not a copy).
     PROG_REG=$(awk '/program_a: partition@/{f=1} f && /reg = </{gsub(/[<>;]/,""); print $3, $4; exit}' \
                  "$ZDIR/$BUILD_DIR/zephyr/zephyr.dts" 2>/dev/null || true)
+    # rete#449: under the NCS partition manager the slots are PM partitions, and the
+    # build's partitions.yml is where PM wrote them (pm_static_dk.yml is the writer).
+    [ -n "$PROG_REG" ] || PROG_REG=$(awk '/^program_a:/{f=1;next} f&&/^  address:/{a=$2} f&&/^  size:/{s=$2}
+                 /^[a-z]/{f=0} END{if (a != "") print a, s}' "$ZDIR/$BUILD_DIR/partitions.yml" 2>/dev/null || true)
     if [ -n "$PROG_REG" ]; then
       read -r PROG_OFF PROG_SIZE <<< "$PROG_REG"
       OIMG_SIZE=$(stat -c %s "$OIMG")
@@ -769,6 +814,9 @@ if [ "$BUILD_RC" = 0 ]; then
   # on the RP2350, with nothing in the diff to point at (docs/ZEPHYR_LESSONS.md §11). oevm.h
   # OEVM_HOT routes them into RAM; this line says, after every build, whether it did. Read
   # from the ELF with the build's own nm (the compiler path from compile_commands.json).
+  # Only on the XIP boards: an nRF build is sysbuild, its compile_commands.json is one level
+  # down, and the failed grep under set -e ended the script before --flash (rete#448).
+  case "$BOARD_ID" in rpi_pico2|weact_rp2350b|feather_rp2040|esp32*)
   HOT_SYM_ADDR=$(CCPATH=$(grep -o -m1 '[^" ]*-gcc' "$ZDIR/$BUILD_DIR/compile_commands.json" | head -1); \
     [ -n "$CCPATH" ] && "${CCPATH%-gcc}-nm" "$ZDIR/$BUILD_DIR/zephyr/zephyr.elf" 2>/dev/null | awk '$3=="run_interpreter"{print $1}')
   case "$BOARD_ID:${HOT_SYM_ADDR:0:4}" in
@@ -776,8 +824,8 @@ if [ "$BUILD_RC" = 0 ]; then
       echo "[build] hot path: SRAM (run_interpreter @ 0x$HOT_SYM_ADDR)" ;;
     rpi_pico2:*|weact_rp2350b:*|feather_rp2040:*|esp32*:*)
       echo "[build] hot path: FLASH (run_interpreter @ 0x${HOT_SYM_ADDR:-?}) — the XIP cache cliff, ZEPHYR_LESSONS §11; OEVM_HOT is not landing in RAM" >&2 ;;
-    *) : ;;   # nRF52840: internal flash, not XIP; nothing to say
-  esac
+  esac ;;
+  esac   # nRF52840: internal flash, not XIP; nothing to say
 
   # WHERE THIS IMAGE PUT ITS SETTINGS PARTITION — a dongle-only check, and it is here
   # because the assertions above would have passed the image that went dark on
@@ -890,8 +938,27 @@ if [ "$DO_FLASH" = 1 ]; then
     # SEGGER J-Link. --skip-rebuild for the SAME reason the esptool branch does not
     # call `west flash` bare — a rebuild here would run under a different resolved
     # environment than the one that produced the artifact just built.
-    echo "[flash] west flash --runner jlink -d $BUILD_DIR"
-    ( ncs_env && cd "$ZDIR" && west flash --skip-rebuild --runner jlink -d "$BUILD_DIR" )
+    # rete#449: with program slots no program is linked, so the .oimg goes into program_a
+    # beside the firmware: one hex, one load, overlap refused (a slot over the app is a
+    # layout error, not a flash to attempt).
+    FILE_ARG=()
+    if [ -n "${PROG_OFF:-}" ]; then
+      PROG_HEX="$ZDIR/$BUILD_DIR/merged_program.hex"
+      ( ncs_env && python3 - "$ZDIR/$BUILD_DIR/merged.hex" "$OIMG" "$PROG_OFF" "$PROG_HEX" <<'PY'
+import sys
+from intelhex import IntelHex
+fw, oimg, off, out = sys.argv[1], sys.argv[2], int(sys.argv[3], 0), sys.argv[4]
+ih = IntelHex(fw)
+p = IntelHex(); p.frombytes(open(oimg, "rb").read(), offset=off)
+ih.merge(p, overlap="error")
+ih.write_hex_file(out)
+PY
+      )
+      FILE_ARG=(--file "$PROG_HEX")
+      echo "[flash] $(basename "$OIMG") -> program_a $PROG_OFF, merged into $(basename "$PROG_HEX")"
+    fi
+    echo "[flash] west flash --runner jlink -d $BUILD_DIR ${FILE_ARG[*]}"
+    ( ncs_env && cd "$ZDIR" && west flash --skip-rebuild --runner jlink -d "$BUILD_DIR" "${FILE_ARG[@]}" )
   else
   echo "[flash] esptool $ESPTOOL_CHIP @ $ESPTOOL_OFFSET -> $ESPTOOL_PORT"
   # NOT `west flash` — that would rebuild.

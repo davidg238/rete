@@ -22,7 +22,7 @@ done
        rtc_alarm_arm answers -1 on purpose, so a node has to carry its fallback), so
        the host exercises the FAILURE path, where the pin was leaked before it had
        even been handed to a driver.
-     - sensorArmEventPost:on:threshold: — the host backend arms successfully, so the
+     - sensorArm:post:on:threshold: — the host backend arms 'accel' successfully, so the
        host exercises the RE-ARM path, which is the one the bell walks.
 
    Every assertion is a DELTA, never an absolute. What is wrong with a leak is that
@@ -42,10 +42,10 @@ public main: platform args: args = (
 
   (* The re-arm path. There is exactly one outstanding trigger per node, so an
      armed seam costs exactly one pin however many times it is re-armed. *)
-  ((platform sensorArmEventPost: #hot on: 'obs/thermal' threshold: 3000) == nil) printString println.
+  ((platform sensorArm: 'accel' post: #moved on: 'obs/accel' threshold: 1000) == nil) printString println.
   afterFirst:: (platform metrics) at: #hnl ifAbsent: [ -1 ].
   (afterFirst = (base + 1)) printString println.
-  1 to: 20 do: [ :i | platform sensorArmEventPost: #hot on: 'obs/thermal' threshold: 3000 ].
+  1 to: 20 do: [ :i | platform sensorArm: 'accel' post: #moved on: 'obs/accel' threshold: 1000 ].
   afterMany:: (platform metrics) at: #hnl ifAbsent: [ -1 ].
   (afterMany = afterFirst) printString println.
   'done' println.

@@ -15,7 +15,7 @@
 //
 // A flash tool builds the config entry like so:
 //
-//	gw, _ := provision.ParseGateway("192.168.0.175:6969", 6969)
+//	gw, _ := provision.ParseGateway("192.0.2.75:6969", 6969)
 //	config[provision.PortaConfigKey] = gw.PortaConfig()
 package provision
 

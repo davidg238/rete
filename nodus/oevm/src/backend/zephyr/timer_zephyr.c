@@ -1,5 +1,6 @@
 #include "../../timer_backend.h"
 #include "../../pulse_backend.h"
+#include "../../target_backend.h"   /* timer_target_snapshot, declared once (invarlint#53) */
 #include "../../space.h"
 #include "../../oevm.h"
 #include <zephyr/kernel.h>

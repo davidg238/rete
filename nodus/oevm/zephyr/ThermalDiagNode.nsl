@@ -48,7 +48,7 @@ class ThermalDiagNode usingPlatform: platform net: net = () (
       | f oc i |
       spans begin: sJob.
       spans begin: sAcquire.
-      f:: seam sensorFrame.
+      f:: seam sensorRead: 'thermal'.
       spans end: sAcquire.
       (f == nil) ifTrue: [ spans noteFailure: sJob. ^ self ].
       spans begin: sCompute.

@@ -1,0 +1,11 @@
+# Accepted by David, 2026-10-18 (proposed by Claude 2026-10-17 from the 49 root-bypassed keys; a declared port accepts the crossing, it does not fix it).
+# Group 5 (7 keys): static functions defined in src/*.h, compiled into every includer — shared
+# by core and app by design (DDD shared kernel), not a seam to route around.
+name: SharedKernel
+root: true
+does:
+  - header-defined helpers both sides compile in (reboot note checks, link address, observer verdict)
+implemented_by:
+  - c: "src/reboot_note.h:*"
+  - c: "src/link_addr.h:*"
+  - c: "src/observer_core.h:*"

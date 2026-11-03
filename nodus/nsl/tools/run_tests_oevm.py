@@ -269,6 +269,9 @@ C_UNIT_TESTS = [
     # and carries the pre-#269 predicate in-file, requiring THAT to false-fire — so
     # this gate has teeth rather than being a tautology written after the fix.
     ("test_observer_core",    [], ["-Wextra"], None),
+    # rete#439: the relay frame codec against protocol/fixtures/relay/frame.hex, the
+    # golden vector the relay app's FrameTest.kt also reads.
+    ("test_relay_frame",      [], ["-Wextra"], None),
 
     # --- Pre-existing breakage, excluded rather than silently dropped ---
     ("test_solidified",       ENG_A, [],
@@ -735,6 +738,38 @@ def run_cmake_parse_gate() -> str:
         return "FAIL"
     print(f"{COLOR_GREEN}{out.splitlines()[-1]}{COLOR_RESET}" if out else
           f"{COLOR_GREEN}cmake-parse: PASSED{COLOR_RESET}")
+    return "PASS"
+
+
+def run_invarlint_gate() -> str:
+    """Gate the ARCHITECTURE: invarlint check --baseline on oevm's photograph (invarlint#48, #54).
+
+    nodus/oevm/tests/invarlint_gate.sh extracts facts from clang's AST of the C6 build's
+    compile database and fails when a key is new or stale against
+    design/invarlint/findings.baseline.json. It reads build output, so it needs the C6 built
+    in the configuration the baseline was photographed from (the script's header says which);
+    without the binary, clang or the database it answers SKIP (exit 77), which fails the
+    suite like every aux SKIP. Returns "PASS", "SKIP" or "FAIL"."""
+    script = OEVM_DIR / "tests" / "invarlint_gate.sh"
+    if not script.exists():
+        print(f"{COLOR_RED}invarlint: FAIL{COLOR_RESET} (gate script not found at {script})")
+        return "FAIL"
+    try:
+        proc = subprocess.run(["bash", str(script)],
+                              cwd=str(OEVM_DIR), capture_output=True, text=True, timeout=600)
+    except Exception as e:
+        print(f"{COLOR_RED}invarlint: FAIL{COLOR_RESET} (runner error: {e})")
+        return "FAIL"
+    out = ((proc.stdout or "") + (proc.stderr or "")).strip()
+    last = out.splitlines()[-1] if out else ""
+    if proc.returncode == 77:
+        print(f"invarlint: {COLOR_YELLOW}SKIP{COLOR_RESET} {last.removeprefix('invarlint: SKIP ')}")
+        return "SKIP"
+    if proc.returncode != 0:
+        print(f"{COLOR_RED}invarlint: FAIL{COLOR_RESET}")
+        print("  " + "\n  ".join(out.splitlines()[-20:]))
+        return "FAIL"
+    print(f"{COLOR_GREEN}{last}{COLOR_RESET}")
     return "PASS"
 
 
@@ -1300,6 +1335,7 @@ def main():
 
     portability = run_portability_gate()   # "PASS" | "SKIP" | "FAIL"
     cmake_parse = run_cmake_parse_gate()    # "PASS" | "SKIP" | "FAIL"
+    invarlint = run_invarlint_gate()        # "PASS" | "SKIP" | "FAIL"
     boot_gc_ok = run_boot_gc_asan_gate()
     # tuvm#94 stage 5: the deep-sleep node harness drives the REAL MagTagDeepSleepNode
     # across simulated sleeps via OEVM_RTC_FILE. It uses absolute paths + its own
@@ -1375,7 +1411,7 @@ def main():
     # The line below still says SKIP, so the reason is the missing tool, not the code.
     aux = (custos_dbg, custos_prof, custos_load, custos_patch, custos_build, portability, footprint, mprof_py,
            observe_py, cmake_parse, nsl_tools_py, protocol_py, gwprof_py, tutorial,
-           tutorial_porta, tutorial_board, tutorial_dbg, porta_cli)
+           tutorial_porta, tutorial_board, tutorial_dbg, porta_cli, invarlint)
     suite_ok = (failed == 0 and c_units_ok and grant_ok and dbg_int_ok and patch_ok
                 and boot_gc_ok and deepsleep_ok and shipsbell_ok
                 and all(g == "PASS" for g in aux))
@@ -1412,6 +1448,7 @@ def main():
           f"  mprof-tools-py: {_mark(mprof_py)}  "
           f"target-observe-py: {_mark(observe_py)}  "
           f"cmake-parse: {_mark(cmake_parse)}  "
+          f"invarlint: {_mark(invarlint)}  "
           f"nsl-tools-py: {_mark(nsl_tools_py)}  "
           f"protocol-py: {_mark(protocol_py)}  "
           f"gwprofiler-py: {_mark(gwprof_py)}  "

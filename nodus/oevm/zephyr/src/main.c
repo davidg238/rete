@@ -29,10 +29,11 @@
 #include "oevm.h"
 #include "space.h"        /* rete#233 T10: space_channel_count at the deep-sleep line */
 #include "reboot_note.h"  /* rete#215: the retained panic note (this file owns the storage) */
-void observer_start(void);   /* zephyr/src/observer.c (rete#215) */
+#include "observer.h"     /* observer_start (rete#215, invarlint#48) */
 #include "oimg.h"
 #include "thread_bringup.h"
 #include "log_udp.h"
+#include "target_backend.h"   /* invarlint#53: the leaves this file defines, declared once */
 
 /* OUTSIDE the CONFIG_WIFI block below, because the NTP seam is no longer inside
    it: a Thread node has SNTP and no WiFi. See ntp_target_sync(). */
@@ -1564,11 +1565,8 @@ extern void init_reflection_symbols(void);
 extern oop  run_solidified_entry_point(void);
 #else
 /* Model B: the program is a .oimg blob in flash, not baked C.
-   kernel_boot() comes from oevm.h and oimg_load_blob() from oimg.h, but
-   oimg_root()/oimg_bootstrap() are declared in NO header (defined in
-   src/oimg_loader.c, used by src/oevm_image_main.c), so they are externed here. */
-extern oop  oimg_root(void);
-extern oop  oimg_bootstrap(oop entry_vtable);
+   kernel_boot() comes from oevm.h; oimg_load_blob(), oimg_root() and
+   oimg_bootstrap() from oimg.h. */
 #include <zephyr/storage/flash_map.h>
 #if FIXED_PARTITION_EXISTS(program_a)
 /* rete#310 / rete#233: the program lives in one of two flash slots, chosen and mapped by
@@ -1978,7 +1976,7 @@ int main(void) {
      * it through their first display prim; wakes that don't never touch the glass. */
 
 #ifdef CONFIG_NET_L2_OPENTHREAD
-    oevm_thread_bringup();   /* shared OT bring-up seam (src/thread_bringup.c) */
+    oevm_thread_bringup();   /* shared OT bring-up seam (src/backend/zephyr/thread_bringup.c) */
 #endif
 #ifdef CONFIG_WIFI
     wifi_bringup();      /* #46: associate to WiFi + DHCPv4 before the VM binds the http listener */

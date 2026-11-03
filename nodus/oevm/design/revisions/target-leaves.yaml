@@ -1,0 +1,8 @@
+name: target-leaves
+pattern: Facade
+intent: the board leaves the *_target_* glob missed join the targets facade
+compromise: names are kept; the glob is not widened
+ops:
+  - declare: {func: deep_sleep_target, header: src/target_backend.h}
+  - declare: {func: reset_cause_timer_wake, header: src/target_backend.h}
+  - declare: {func: rtc_alarm_arm, header: src/target_backend.h}

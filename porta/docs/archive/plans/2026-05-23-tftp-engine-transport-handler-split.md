@@ -14,7 +14,7 @@
 
 **Where things live:** package source is `~/workspaceToit/tftp/src/`; tests are `~/workspaceToit/tftp/tests/` (a separate package with a `path: ..` dep on the parent — so tests import `tftp` normally). All test commands run **from `~/workspaceToit/tftp/tests/`** because tests read relative paths.
 
-**Baseline facts (verified):** `toit` is at `/home/david/.local/bin/toit`, `toit version` → `v2.0.0-alpha.192`. There is no `toit test` subcommand; run a test with `toit run <file>`. The existing tests (`roundtrip_test`, `options_test`, etc.) require an *external* TFTP server and are **not** part of this gate; the deterministic gate is the new in-process test from Task 1.
+**Baseline facts (verified):** `toit` is at `~/.local/bin/toit`, `toit version` → `v2.0.0-alpha.192`. There is no `toit test` subcommand; run a test with `toit run <file>`. The existing tests (`roundtrip_test`, `options_test`, etc.) require an *external* TFTP server and are **not** part of this gate; the deterministic gate is the new in-process test from Task 1.
 
 ---
 

@@ -245,7 +245,7 @@ allocation — and leaves the rule written down so the next person does not rein
 A truncated search reads exactly like a complete answer, so count before reading:
 
 ```bash
-cd /home/david/workspace/rete/nodus/tuvm
+cd ~/workspace/rete/nodus/tuvm
 grep -rn "symbol_name(" src/ | wc -l          # expect 32 (31 call sites + the definition)
 grep -rn "symbol_name(" src/
 ```
@@ -285,7 +285,7 @@ In `src/oimg.h`, directly above `symbol_name`:
 - [ ] **Step 4: Commit the audit**
 
 ```bash
-cd /home/david/workspace/rete
+cd ~/workspace/rete
 git add nodus/tuvm/src/oimg.h
 git commit -m "docs(#190): the inline-Symbol lifetime rule, written where symbol_name() is read
 
@@ -566,7 +566,7 @@ and the comment block at lines 32/42 that documents `format_version 8`. Add the 
 the same source `zephyr/run.sh` uses:
 
 ```bash
-cd /home/david/workspace/rete/nodus/tuvm
+cd ~/workspace/rete/nodus/tuvm
 python3 ../nsl/tools/ns_compile_oevm.py tests/MethodCallTest.nsl src/solidified_image.c
 git diff --stat src/solidified_image.c
 ```
@@ -579,7 +579,7 @@ transposition plus offsets.
 - [ ] **Step 11: Build and run the C tests**
 
 ```bash
-cd /home/david/workspace/rete/nodus/tuvm && bash tools/run_c_tests.sh 2>&1 | tail -40
+cd ~/workspace/rete/nodus/tuvm && bash tools/run_c_tests.sh 2>&1 | tail -40
 ```
 
 Expected: no `FAIL`. This is the first real gate — it exercises both `ENG_A` (which links the
@@ -589,7 +589,7 @@ mistake in either static-Symbol wall.
 - [ ] **Step 12: Run the nsl suite — and read the aux line**
 
 ```bash
-cd /home/david/workspace/rete/nodus/nsl && python3 tools/run_tests_oevm.py 2>&1 | tail -30
+cd ~/workspace/rete/nodus/nsl && python3 tools/run_tests_oevm.py 2>&1 | tail -30
 ```
 
 Expected: `Passed: 258 / Failed: 0`, and the aux-gate line clean apart from the expected
@@ -601,7 +601,7 @@ serializer, so it is the real proof that the format change is coherent end to en
 - [ ] **Step 13: Run the porta wire gate**
 
 ```bash
-cd /home/david/workspace/rete/nodus/tuvm && bash tests/porta_sync_host.sh 2>&1 | tail -20
+cd ~/workspace/rete/nodus/tuvm && bash tests/porta_sync_host.sh 2>&1 | tail -20
 ```
 
 Expected: `PORTA SYNC OK`. This is the one that exercises `asSymbol` on the decode path — the site
@@ -610,7 +610,7 @@ the leak lived at — against a real porta.
 - [ ] **Step 14: Commit, in one commit**
 
 ```bash
-cd /home/david/workspace/rete
+cd ~/workspace/rete
 git add nodus/tuvm/src/oevm.h nodus/tuvm/src/oimg.h nodus/tuvm/src/gc.c \
         nodus/tuvm/src/dispatch.c nodus/tuvm/src/vm.c nodus/tuvm/src/platform.c \
         nodus/tuvm/src/kernel_boot.c nodus/tuvm/src/oimg_loader.c \
@@ -766,7 +766,7 @@ then note that in the test's header comment.
 - [ ] **Step 3: Run it against the fixed VM**
 
 ```bash
-cd /home/david/workspace/rete/nodus/tuvm
+cd ~/workspace/rete/nodus/tuvm
 gcc -std=c99 -Isrc -DOEVM_HEAP_SIZE=65536 tests/test_symbol_inline.c \
     src/vm.c src/gc.c src/dispatch.c src/platform.c src/serial.c src/udp.c \
     src/mirror.c src/backend/posix/platform_posix.c \
@@ -789,8 +789,8 @@ run test_symbol_inline "$ENG_A" -DOEVM_HEAP_SIZE=65536
 - [ ] **Step 5: Run the whole C gate and commit**
 
 ```bash
-cd /home/david/workspace/rete/nodus/tuvm && bash tools/run_c_tests.sh 2>&1 | tail -40
-cd /home/david/workspace/rete
+cd ~/workspace/rete/nodus/tuvm && bash tools/run_c_tests.sh 2>&1 | tail -40
+cd ~/workspace/rete
 git add nodus/tuvm/tests/test_symbol_inline.c nodus/tuvm/tools/run_c_tests.sh
 git commit -m "test(#190): 200 Symbols must cost the C heap zero bytes, and inline bytes must be a GC leaf
 
@@ -877,7 +877,7 @@ count at the same fixed ticks the leaky run was read at.
 - [ ] **Step 3: Commit the documents**
 
 ```bash
-cd /home/david/workspace/rete
+cd ~/workspace/rete
 git add docs/design/2026-08-10-node-memory-and-liveness-design.md
 git commit -m "docs(#190): §4 said two static Symbols; there are nine hand-written and ~265 generated"
 ```

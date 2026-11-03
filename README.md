@@ -6,9 +6,13 @@ orchestrates a fleet of them, with the wire contract they share in `protocol/`.
 
 The two halves are coupled **only over the wire**; they never import each other's code.
 
+Development is agent-first: the whole language, grammar, guide and comment-free kernel, is
+about 45,000 tokens, so an agent can hold it in one context; and every verb on a node (load,
+debug, patch, profile) is an HTTP JSON answer before it is an HTML page.
+
 ## The VM in five lines
 
-- **oevm** is a register VM in C on Piumarta's open object model: three primitive kinds,
+- **oevm** is a register VM in C on Piumarta and Warth's [open, extensible object model](https://www.piumarta.com/software/cola/objmodel2.pdf): three primitive kinds,
   everything else a late-bound message send.
 - It runs **nsl**, a Newspeak-derived dialect, compiled on the host into an `.oimg`
   image the flashed VM executes in place.

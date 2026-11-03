@@ -10,14 +10,14 @@
 
 ## Global Constraints
 
-- **Repos & branch.** Work touches **`/home/david/workspace/tuvm`** (the gate node + zephyr README) and **`/home/david/workspace/nsl-tuvm`** (design/plan/dialect docs) and **`/home/david/workspace/tuvm/review/`** (program-sequence). **`nsl-tests` is untouched this rung.** Branch `rung5-udp-transport` in **tuvm** and **nsl-tuvm** before Task 1. Merge/push ONLY on David's explicit say-so (finishing-a-development-branch).
+- **Repos & branch.** Work touches **`~/workspace/tuvm`** (the gate node + zephyr README) and **`~/workspace/nsl-tuvm`** (design/plan/dialect docs) and **`~/workspace/tuvm/review/`** (program-sequence). **`nsl-tests` is untouched this rung.** Branch `rung5-udp-transport` in **tuvm** and **nsl-tuvm** before Task 1. Merge/push ONLY on David's explicit say-so (finishing-a-development-branch).
 - **No source edits to the VM/facade/compiler/host tests.** If any task finds itself editing `src/udp.c`, `kernel.ns`, `ns_compile_oevm.py`, or an `nsl-tests` `.ns`, STOP — it is out of scope (except a `udp_zephyr.c` backend fix if and only if native_sim exposes a `zsock_*` symbol/behavior bug — the one allowed C edit, §Task 1).
 - **Model A only on Zephyr.** `tuvm/zephyr/` excludes `oimg_loader.c`/`kernel_boot.c`; the node is baked into `src/solidified_image.c` by the solidifier. There is no `.oimg` path on device.
 - **`solidified_image.c` is a generated artifact** shared by other tests. Building the gate CLOBBERS `tuvm/src/solidified_image.c` + `tuvm/src/solidified_image.stmap`. ALWAYS restore before committing anything in tuvm:
   ```bash
-  git -C /home/david/workspace/tuvm checkout -- src/solidified_image.c src/solidified_image.stmap
+  git -C ~/workspace/tuvm checkout -- src/solidified_image.c src/solidified_image.stmap
   ```
-- **Zephyr build needs the SDK env** sourced each shell: `source /home/david/workspace/ns-zephyr/tools/env.sh` (sets `ZEPHYR_BASE`, west, the `arm-zephyr-eabi`/native_sim toolchain).
+- **Zephyr build needs the SDK env** sourced each shell: `source ~/workspace/ns-zephyr/tools/env.sh` (sets `ZEPHYR_BASE`, west, the `arm-zephyr-eabi`/native_sim toolchain).
 - **Controller owns every full-suite run.** Implementers run single-file/host checks foreground only.
 - **Commits:** commit after each task; end every commit message with:
   ```
@@ -86,14 +86,14 @@ class NetNode usingPlatform: platform net: net = () (
 This solidifies `NetNode.ns` and runs it on the host (posix backend), separate from any native_sim/SDK concern. Run from the nsl-tuvm tools dir:
 
 ```bash
-cd /home/david/workspace/nsl-tuvm/tools
-OEVM_DIR=/home/david/workspace/tuvm OEVM_PATH=A python3 - <<'PY'
+cd ~/workspace/nsl-tuvm/tools
+OEVM_DIR=~/workspace/tuvm OEVM_PATH=A python3 - <<'PY'
 from pathlib import Path
 import run_tests_oevm as R
-p = Path('/home/david/workspace/tuvm/zephyr/NetNode.ns')
+p = Path('~/workspace/tuvm/zephyr/NetNode.ns')
 print('A', R.run_test_file(p))
 PY
-git -C /home/david/workspace/tuvm checkout -- src/solidified_image.c src/solidified_image.stmap
+git -C ~/workspace/tuvm checkout -- src/solidified_image.c src/solidified_image.stmap
 ```
 
 Expected: `A ('PASS', ...)` — the node prints `UDP OK` over the posix backend. (If it fails, the bug is in the node, not the Zephyr backend — fix `NetNode.ns` before proceeding.)
@@ -101,11 +101,11 @@ Expected: `A ('PASS', ...)` — the node prints `UDP OK` over the posix backend.
 - [ ] **Step 3: Bake `NetNode.ns` into the solidified image for the Zephyr build**
 
 ```bash
-source /home/david/workspace/ns-zephyr/tools/env.sh
-cd /home/david/workspace/nsl-tuvm
+source ~/workspace/ns-zephyr/tools/env.sh
+cd ~/workspace/nsl-tuvm
 python3 tools/ns_compile_oevm.py \
-  /home/david/workspace/tuvm/zephyr/NetNode.ns \
-  /home/david/workspace/tuvm/src/solidified_image.c
+  ~/workspace/tuvm/zephyr/NetNode.ns \
+  ~/workspace/tuvm/src/solidified_image.c
 ```
 
 Expected: exit 0; `tuvm/src/solidified_image.c` now bakes `NetNode` (and, via the `net` param, the `udp_object()` grant threaded by `ns_compile_oevm.py:2389-2396`).
@@ -113,7 +113,7 @@ Expected: exit 0; `tuvm/src/solidified_image.c` now bakes `NetNode` (and, via th
 - [ ] **Step 4: Build the native_sim image**
 
 ```bash
-cd /home/david/workspace/tuvm/zephyr
+cd ~/workspace/tuvm/zephyr
 west build -b native_sim -p always . 2>&1 | tee /tmp/rung5_build.log | tail -20
 ```
 
@@ -122,7 +122,7 @@ Expected: `west build` completes (the CMakeLists already lists `udp.c` + `udp_ze
 - [ ] **Step 5: Run native_sim and observe the round-trip**
 
 ```bash
-cd /home/david/workspace/tuvm/zephyr
+cd ~/workspace/tuvm/zephyr
 timeout 8 ./build/zephyr/zephyr.exe 2>&1 | tee /tmp/rung5_run.log
 grep -q 'UDP OK' /tmp/rung5_run.log && echo GATE_PASS || echo GATE_FAIL
 ```
@@ -134,7 +134,7 @@ Expected: `GATE_PASS` — the console shows `UDP OK`, i.e. `udp_zephyr.c`'s `zso
 - [ ] **Step 6: Restore the clobbered generated image (MANDATORY before any commit)**
 
 ```bash
-cd /home/david/workspace/tuvm
+cd ~/workspace/tuvm
 git checkout -- src/solidified_image.c src/solidified_image.stmap
 git status --short   # expect ONLY zephyr/NetNode.ns as new (and maybe udp_zephyr.c if fixed)
 ```
@@ -144,7 +144,7 @@ Expected: the working tree shows only `zephyr/NetNode.ns` (untracked) plus any d
 - [ ] **Step 7: Commit (tuvm)**
 
 ```bash
-cd /home/david/workspace/tuvm
+cd ~/workspace/tuvm
 git add zephyr/NetNode.ns
 # also add udp_zephyr.c / prj.conf ONLY if a native_sim fix was needed:
 # git add src/backend/zephyr/udp_zephyr.c zephyr/prj.conf
@@ -180,7 +180,7 @@ Expected: **179 passed / 0 failed / 12 skipped** both paths; **grant / debugger-
 - [ ] **Step 2: Verify the footprint baseline is untouched**
 
 ```bash
-cd /home/david/workspace/tuvm
+cd ~/workspace/tuvm
 git diff --stat tools/footprint-mcu-baseline.txt   # expect: no change
 FOOTPRINT_CONFIG=mcu ./tools/footprint.sh 2>&1 | tail -3   # if the SDK env is sourced; else SKIP is acceptable
 ```
@@ -204,17 +204,17 @@ returns).
 
 ## Build + run
 
-    source /home/david/workspace/ns-zephyr/tools/env.sh
+    source ~/workspace/ns-zephyr/tools/env.sh
     # bake NetNode.ns into the solidified image (from the nsl-tuvm repo)
-    cd /home/david/workspace/nsl-tuvm
+    cd ~/workspace/nsl-tuvm
     python3 tools/ns_compile_oevm.py \
-      /home/david/workspace/tuvm/zephyr/NetNode.ns \
-      /home/david/workspace/tuvm/src/solidified_image.c
-    cd /home/david/workspace/tuvm/zephyr
+      ~/workspace/tuvm/zephyr/NetNode.ns \
+      ~/workspace/tuvm/src/solidified_image.c
+    cd ~/workspace/tuvm/zephyr
     west build -b native_sim -p always .
     timeout 8 ./build/zephyr/zephyr.exe   # expect a line: UDP OK
     # restore the generated image before committing anything in tuvm
-    cd /home/david/workspace/tuvm
+    cd ~/workspace/tuvm
     git checkout -- src/solidified_image.c src/solidified_image.stmap
 ```
 
@@ -225,7 +225,7 @@ Find the Phase-3 capability-breadth line (currently ~line 110: *"OpenThread/UDP 
 - [ ] **Step 5: Add the `net` dialect/vocabulary note**
 
 ```bash
-grep -n "serial" /home/david/workspace/nsl-tuvm/docs/NEWSPEAK_DIALECT.md | head
+grep -n "serial" ~/workspace/nsl-tuvm/docs/NEWSPEAK_DIALECT.md | head
 ```
 
 If a serial capability row exists, append a sibling `net` row in the same column format (confined native cap; `net udpBindPort:`/`udp` → `Socket`; non-blocking `receive` → `Datagram` (`data`/`senderHost`/`senderPort`) or nil; String payloads for now — Bytes at Layer 2; real POSIX sockets on host, Zephyr NSOS on native_sim, OpenThread on the DK deferred to Layer 3). If no such doc/row exists, SKIP this step (do not invent a doc) and note the net vocabulary in the tests README instead.
@@ -233,14 +233,14 @@ If a serial capability row exists, append a sibling `net` row in the same column
 - [ ] **Step 6: Commit the docs (tuvm + nsl-tuvm)**
 
 ```bash
-cd /home/david/workspace/tuvm
+cd ~/workspace/tuvm
 git add zephyr/README.md review/program-sequence.md
 git commit -m "docs(rung5): native_sim net gate recipe + program-sequence Layer-1 done
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_01McJ8j3dpJmtV1bVpVWiXqK"
 
-cd /home/david/workspace/nsl-tuvm
+cd ~/workspace/nsl-tuvm
 git add docs/NEWSPEAK_DIALECT.md   # only if edited in Step 5
 git commit -m "docs(rung5): net capability dialect note
 

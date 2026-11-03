@@ -66,7 +66,7 @@ porta/
 
 - [ ] **Step 1: Confirm the branch is clean and host-green**
 
-Run: `git -C /home/david/workspaceToit/porta status -s` (expect empty) and
+Run: `git -C ~/workspaceToit/porta status -s` (expect empty) and
 `for f in device/*_test.toit gateway/*_test.toit; do toit "$f" >/dev/null 2>&1 && echo "ok $f" || echo "FAIL $f"; done`
 Expected: every line `ok`.
 
@@ -100,7 +100,7 @@ All Phase 1 work happens on a fresh branch off the post-merge `master`.
 - [ ] **Step 1: Branch**
 
 ```bash
-cd /home/david/workspaceToit/porta
+cd ~/workspaceToit/porta
 git checkout master && git pull
 git checkout -b refactor/split-nodus
 ```
@@ -124,7 +124,7 @@ name: nodus
 description: Porta node — on-device loader/supervisor (the keeper) + node services.
 ```
 
-(Keep the existing `dependencies: { tftp: { path: /home/david/workspaceToit/tftp } }` block unchanged.)
+(Keep the existing `dependencies: { tftp: { path: ~/workspaceToit/tftp } }` block unchanged.)
 
 - [ ] **Step 4: Verify the library compiles from `src/`**
 
@@ -148,7 +148,7 @@ git add -A && git commit -m "refactor(nodus): rename device→nodus; move librar
 - [ ] **Step 1: Move the test files**
 
 ```bash
-cd /home/david/workspaceToit/porta
+cd ~/workspaceToit/porta
 mkdir nodus/tests
 git mv nodus/*_test.toit nodus/tests/
 ```
@@ -199,7 +199,7 @@ git add -A && git commit -m "refactor(nodus): tests→tests/ as a local-dep pack
 - [ ] **Step 1: Move the files**
 
 ```bash
-cd /home/david/workspaceToit/porta
+cd ~/workspaceToit/porta
 mkdir -p nodus/examples/vindriktning
 for f in vin vindriktning olympic olympic_test; do git mv "nodus/$f.toit" "nodus/examples/vindriktning/$f.toit"; done
 ```
@@ -207,7 +207,7 @@ for f in vin vindriktning olympic olympic_test; do git mv "nodus/$f.toit" "nodus
 - [ ] **Step 2: Register the nodus dependency**
 
 ```bash
-cd nodus/examples/vindriktning && toit pkg install --local ../.. && cd /home/david/workspaceToit/porta
+cd nodus/examples/vindriktning && toit pkg install --local ../.. && cd ~/workspaceToit/porta
 ```
 
 - [ ] **Step 3: Repoint vin's library import**
@@ -247,7 +247,7 @@ git add -A && git commit -m "refactor(nodus): vindriktning example → examples/
 - [ ] **Step 1: Move the files**
 
 ```bash
-cd /home/david/workspaceToit/porta
+cd ~/workspaceToit/porta
 mkdir -p nodus/examples/chatty nodus/examples/control-demo nodus/examples/hello
 git mv nodus/chatty.toit       nodus/examples/chatty/chatty.toit
 git mv nodus/control_demo.toit nodus/examples/control-demo/control_demo.toit
@@ -257,8 +257,8 @@ git mv nodus/hello.toit        nodus/examples/hello/hello.toit
 - [ ] **Step 2: Register nodus deps (chatty, control-demo only — hello has none)**
 
 ```bash
-cd nodus/examples/chatty       && toit pkg install --local ../.. && cd /home/david/workspaceToit/porta
-cd nodus/examples/control-demo && toit pkg install --local ../.. && cd /home/david/workspaceToit/porta
+cd nodus/examples/chatty       && toit pkg install --local ../.. && cd ~/workspaceToit/porta
+cd nodus/examples/control-demo && toit pkg install --local ../.. && cd ~/workspaceToit/porta
 ```
 
 - [ ] **Step 3: Repoint library imports**
@@ -305,7 +305,7 @@ git add -A && git commit -m "refactor(nodus): chatty/control-demo/hello → exam
 - [ ] **Step 1: Move host/**
 
 ```bash
-cd /home/david/workspaceToit/porta
+cd ~/workspaceToit/porta
 git mv host nodus/host
 ```
 
@@ -324,7 +324,7 @@ toit compile -s -o supervisor.snapshot src/supervisor.toit
 Run from the `nodus/` directory (per the script's documented invocation `bash host/build-envelope.sh`):
 
 ```bash
-cd /home/david/workspaceToit/porta/nodus && bash host/build-envelope.sh && cd /home/david/workspaceToit/porta
+cd ~/workspaceToit/porta/nodus && bash host/build-envelope.sh && cd ~/workspaceToit/porta
 ```
 
 Expected: the script completes and reports the supervisor container present (no `jaguar`). Investigate any path error.
@@ -345,7 +345,7 @@ git add -A && git commit -m "refactor(nodus): host/ tooling → nodus/host/; bui
 - [ ] **Step 1: Move node-side docs**
 
 ```bash
-cd /home/david/workspaceToit/porta
+cd ~/workspaceToit/porta
 mkdir -p nodus/docs/specs nodus/docs/plans
 git mv docs/specs/2026-05-21-toit-tftp-loader-design.md            nodus/docs/specs/
 git mv docs/specs/2026-05-22-porta-no-jaguar-supervisor-design.md  nodus/docs/specs/
@@ -448,7 +448,7 @@ git add docs/PROTOCOL.md && git commit -m "docs(porta): canonical wire-protocol 
 - [ ] **Step 1: Prove zero cross-imports**
 
 ```bash
-cd /home/david/workspaceToit/porta
+cd ~/workspaceToit/porta
 echo "nodus importing gateway:"; grep -rnE '^import .*gateway' nodus/ || echo "  (none)"
 echo "gateway importing nodus/device:"; grep -rnE '^import .*(nodus|device)' gateway/ || echo "  (none)"
 ```
@@ -517,7 +517,7 @@ git push origin master
 - [ ] **Step 1: Split**
 
 ```bash
-cd /home/david/workspaceToit/porta
+cd ~/workspaceToit/porta
 git checkout master
 git subtree split --prefix=nodus -b nodus-export
 ```
@@ -535,7 +535,7 @@ Expected: history present; tree root shows `package.yaml`, `src/`, `tests/`, `ex
 
 ```bash
 gh repo create nodus --private --description "Porta node — loader/supervisor + node services + examples (Toit)"
-cd /home/david/workspaceToit/porta
+cd ~/workspaceToit/porta
 git push git@github.com:davidg238/nodus.git nodus-export:master
 ```
 
@@ -548,7 +548,7 @@ git push git@github.com:davidg238/nodus.git nodus-export:master
 - [ ] **Step 1 (user-run):**
 
 ```bash
-cd /home/david/workspaceToit/porta
+cd ~/workspaceToit/porta
 git checkout master
 git rm -r nodus
 git commit -m "refactor: nodus extracted to its own repo (github.com/davidg238/nodus); porta is gateway-only"
@@ -567,7 +567,7 @@ git branch -D nodus-export refactor/split-nodus
 - [ ] **Step 1 (user-run): clone**
 
 ```bash
-cd /home/david/workspaceToit && git clone git@github.com:davidg238/nodus.git
+cd ~/workspaceToit && git clone git@github.com:davidg238/nodus.git
 ```
 
 - [ ] **Step 2: Pin the SDK + fix the path-dep note** 🤖
@@ -583,7 +583,7 @@ dependencies:
   # machine-specific absolute path (packages live under ~/workspaceToit/);
   # a clone on a different layout must adjust this path.
   tftp:
-    path: /home/david/workspaceToit/tftp
+    path: ~/workspaceToit/tftp
 ```
 
 Run `toit pkg install` at the repo root and confirm `toit compile -s -o /tmp/sup.snapshot src/supervisor.toit` succeeds.
@@ -599,7 +599,7 @@ In `nodus/CLAUDE.md` and `README.md`, set the live URL to the porta `docs/PROTOC
 - [ ] **Step 5: Commit + push** 🧑
 
 ```bash
-cd /home/david/workspaceToit/nodus
+cd ~/workspaceToit/nodus
 git add -A && git commit -m "chore: SDK pin, CI, protocol cross-link"
 git push origin master
 ```
@@ -608,7 +608,7 @@ git push origin master
 
 ### Task 16: Update auto-memory 🤖
 
-**Files:** memory under `/home/david/.claude/projects/-home-david-workspaceToit-porta/memory/`.
+**Files:** memory under `~/.claude/projects/-home-david-workspaceToit-porta/memory/`.
 
 - [ ] **Step 1:** Add/update a memory recording the split: two repos (`porta` = gateway, `nodus` = node), `nodus` is a Toit package (`src`/`tests`/`examples`), porta owns the wire protocol (`docs/PROTOCOL.md`) for heterogeneous nodes (Smalltalk planned), always-on-vin is the next node milestone. Update `MEMORY.md` index line and the `porta-vindriktning-lifecycle` / `porta-github-remote` pointers. Commit is implicit (memory files are not part of repo).
 

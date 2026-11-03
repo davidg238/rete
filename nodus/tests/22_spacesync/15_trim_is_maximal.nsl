@@ -1,9 +1,9 @@
 (*
 expect:
-one row 112
+one row 113
 overflowing rows 8
 frame fits true
-frame bytes 481
+frame bytes 485
 frame entries 4
 dropped the tail true
 kept the lowest seqs true
@@ -60,7 +60,7 @@ class TrimIsMaximal packageUsing: manifest = () (
 
     (* One row's cost, so the expectations below can be read rather than trusted. *)
     ('one row ' , (platform Cbor encode:
-        (platform List with: 1 with: 'obs/c1' with: 2 with: self filler)) byteSize printString) out.
+        (platform List with: 1 with: 'obs/c1' with: 2 with: self filler with: 0)) byteSize printString) out.
 
     i:: 1.
     [ i <= 8 ] whileTrue: [
@@ -88,7 +88,7 @@ class TrimIsMaximal packageUsing: manifest = () (
     lo:: platform OrderedCollection new.
     i:: 1.
     [ i <= (ent size + 1) ] whileTrue: [
-      lo add: (platform List with: i with: 'obs/c' , i printString with: 2 with: self filler).
+      lo add: (platform List with: i with: 'obs/c' , i printString with: 2 with: self filler with: 0).
       i:: i + 1 ].
     ('one more would not fit ' , ((platform Cbor encode: (platform Record tag: #push
         with: #id -> 'n1'

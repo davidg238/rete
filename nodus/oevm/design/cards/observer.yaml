@@ -1,0 +1,11 @@
+# Accepted by David, 2026-10-18 (proposed by Claude 2026-10-17 from the 49 root-bypassed keys; a declared port accepts the crossing, it does not fix it).
+# Group 6, part (1 key): the app's observer asks the timer adapter for its schedule
+# (zephyr/src/observer.c:26 "it asks ... through timer_target_snapshot()"). A port.
+# Left out on purpose: observer → platform_app_cad_ms (src/platform.c:18), 2 keys — the app
+# reading a core value by extern looks like a leak; David to decide.
+name: TimerSnapshot
+root: true
+does:
+  - the timer adapter's schedule, read by the liveness observer
+implemented_by:
+  - c: timer_target_snapshot

@@ -179,7 +179,7 @@ Three phases; only iteration mechanics change, not semantics:
 - **Regression:** `tests/test_oimg.c`, `tests/test_fibers.c`,
   `tests/test_mirrors.c` stay green (behavior unchanged).
 - **Conformance:** `python3 ns-oevm/tools/run_tests_oevm.py` from
-  `/home/david/workspace`, `OEVM_PATH=AB` → **47/0/1** unchanged; `-m32`
+  `~/workspace`, `OEVM_PATH=AB` → **47/0/1** unchanged; `-m32`
   (`oevm/tests/test_portability_32.sh`) green.
 - **Acceptance gate (the embedded ceiling):** build the host binary with
   `-DOEVM_HEAP_SIZE=16384` and run all 47 conformance tests. Pass ⇒ 16 KB is the

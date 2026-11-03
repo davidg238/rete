@@ -1,0 +1,6 @@
+name: handles-header
+pattern: Facade
+intent: gc.c includes the header that already declares handle_gc_trace
+compromise: none
+ops:
+  - declare: {func: handle_gc_trace, header: src/handles.h}

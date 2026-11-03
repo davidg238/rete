@@ -24,18 +24,15 @@
    and nsl's `out` is the output that matters most here (it is what prints the
    bell lines), so a console that loses it locally to gain it remotely is a bad
    trade. */
-/* DECLARED here, DEFINED in zephyr/src/log_udp.c (a no-op there when the image
-   has no sockets). The weak stub that used to live here was
+/* DECLARED in log_udp.h, DEFINED in src/backend/zephyr/log_udp.c, which tees
+   through the datagram seam on every build (rete#439). The weak stub that used to live here was
    defined in THIS translation unit — so the compiler bound the call below to its
    own local definition and the strong one was never reached. The tee silently did
    nothing, and the remote log carried every C line and none of nsl's. A weak
-   fallback must not live in the TU that calls it. */
-void log_udp_tee(const char *bytes, size_t n);
-/* rete#415: the tee's run-time target, the dump's paced write, and the drain before a
-   deep sleep (zephyr/src/log_udp.h; no-ops in an image without sockets). */
-void log_udp_tee_paced(const char *bytes, size_t n);
-int  log_udp_set_target(const char *addr6, size_t len, int port);
-void log_udp_drain(int max_ms);
+   fallback must not live in the TU that calls it.
+   rete#415: also the tee's run-time target, the dump's paced write, and the drain
+   before a deep sleep. */
+#include "log_udp.h"
 
 int platform_console_tee(const char *addr6, size_t addr_len, int port) {
     return log_udp_set_target(addr6, addr_len, port);

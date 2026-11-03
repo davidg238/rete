@@ -211,20 +211,20 @@ import (
 )
 
 func TestGatewayPortaConfig(t *testing.T) {
-	g := Gateway{Host: "192.168.0.175", Port: 6969}
+	g := Gateway{Host: "192.0.2.75", Port: 6969}
 	got := g.PortaConfig()
-	want := map[string]any{"host": "192.168.0.175", "port": 6969}
+	want := map[string]any{"host": "192.0.2.75", "port": 6969}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("PortaConfig() = %#v, want %#v", got, want)
 	}
 }
 
 func TestParseGatewayHostPort(t *testing.T) {
-	g, err := ParseGateway("192.168.0.175:6969", 6969)
+	g, err := ParseGateway("192.0.2.75:6969", 6969)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if g.Host != "192.168.0.175" || g.Port != 6969 {
+	if g.Host != "192.0.2.75" || g.Port != 6969 {
 		t.Fatalf("got %+v", g)
 	}
 }

@@ -1,0 +1,15 @@
+{
+  "commit": "1071ed42",
+  "revision": "debug-attention",
+  "pattern": "Facade",
+  "before": {
+    "owns-violated|global:Symbol_debug_|func:primitive_register_debugger_hook": 1,
+    "owns-violated|global:Symbol_value|func:run_interpreter": 1,
+    "unowned-writer|global:platform_debug_pending|func:src/backend/zephyr/platform_zephyr.c:rl_isr": 2,
+    "unowned-writer|global:platform_debug_pending|func:src/backend/zephyr/platform_zephyr.c:rl_line_taken": 2
+  },
+  "after": {
+    "owns-violated|global:Symbol_debug_|func:primitive_register_debugger_hook": 1,
+    "owns-violated|global:Symbol_value|func:run_interpreter": 1
+  }
+}

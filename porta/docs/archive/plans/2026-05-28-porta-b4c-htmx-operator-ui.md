@@ -1124,11 +1124,11 @@ Append to `web_test.go`:
 ```go
 func TestNodeTableRendersRowAndGauge(t *testing.T) {
 	st := testStore(t)
-	st.TouchNode("aabbccddeeff", "192.168.1.9", 1000)
+	st.TouchNode("aabbccddeeff", "192.0.2.9", 1000)
 	srv := serve(t, st)
 
 	body := readBody(t, mustGet(t, srv.URL+"/"))
-	if !strings.Contains(body, "192.168.1.9") || !strings.Contains(body, "gauge") {
+	if !strings.Contains(body, "192.0.2.9") || !strings.Contains(body, "gauge") {
 		t.Errorf("row/gauge missing: %s", body)
 	}
 	// partial endpoint returns just the tbody:
@@ -1224,7 +1224,7 @@ Append to `web_test.go`:
 ```go
 func TestNodeDetailRendersSections(t *testing.T) {
 	st := testStore(t)
-	st.TouchNode("aabbccddeeff", "192.168.1.9", 1000)
+	st.TouchNode("aabbccddeeff", "192.0.2.9", 1000)
 	control.Set(st, "aabbccddeeff", "demo", "gain", int64(2), "cli", 1000)
 	st.InsertReport("aabbccddeeff", `{"config":{"demo":{"gain":2}},"apps":{"demo":{"crc":99,"runlevel":3}}}`, "", 1001)
 	st.InsertData("aabbccddeeff", 1002, 1, "metric", "pm25", int64(12), "", "int")
@@ -1431,7 +1431,7 @@ Append to `web_test.go`:
 ```go
 func TestSetFormEnqueuesWebCommand(t *testing.T) {
 	st := testStore(t)
-	st.TouchNode("aabbccddeeff", "192.168.1.9", 1000)
+	st.TouchNode("aabbccddeeff", "192.0.2.9", 1000)
 	srv := serve(t, st)
 
 	form := url.Values{"app": {"demo"}, "key": {"gain"}, "value": {"3"}}
@@ -1608,7 +1608,7 @@ Append to `web_test.go`:
 ```go
 func TestInstallUploadRegistersPayloadAndQueuesRun(t *testing.T) {
 	st := testStore(t)
-	st.TouchNode("aabbccddeeff", "192.168.1.9", 1000)
+	st.TouchNode("aabbccddeeff", "192.0.2.9", 1000)
 	srv := serve(t, st)
 
 	var buf bytes.Buffer
@@ -1926,7 +1926,7 @@ import (
 
 func TestEndToEndOperatorFlow(t *testing.T) {
 	st := testStore(t)
-	st.TouchNode("aabbccddeeff", "192.168.1.9", 1000)
+	st.TouchNode("aabbccddeeff", "192.0.2.9", 1000)
 	srv := serve(t, st)
 
 	// 1. fleet page lists the node

@@ -6,13 +6,13 @@
 
 **Architecture:** `get_top_level_method_closure` (`oevm/src/vm.c:1424`) is reached only from `find_defining_vtable` ← the `ACCESS_PRIVATE` branch of `check_access_allowed`. That branch only fires when `receiver == caller_self == current_frame->regs[0]`; a block frame's `regs[0]` is the closure (never a private method's receiver), so the caller here is always a **method** closure (`home_ctx == NULL`) and the walk loop never iterates. Reduce the function to `return closure`, guarded by a fail-fast if `home_ctx != NULL` (should-never-happen). Pure dead-code deletion; behaviour-identical on every reachable path.
 
-**Tech Stack:** C99, GCC. VM in `/home/david/workspace/oevm/src/{vm,dispatch,gc}.c` + `oevm.h`. C unit tests are standalone `main()` programs compiled ad hoc with `gcc`. Conformance harness: `python3 tools/run_tests_oevm.py` in `/home/david/workspace/ns-oevm`.
+**Tech Stack:** C99, GCC. VM in `~/workspace/oevm/src/{vm,dispatch,gc}.c` + `oevm.h`. C unit tests are standalone `main()` programs compiled ad hoc with `gcc`. Conformance harness: `python3 tools/run_tests_oevm.py` in `~/workspace/ns-oevm`.
 
 ## Global Constraints
 
 - **Design of record:** `oevm/docs/design/2026-07-03-derecursify-e1-retire-dead-access-walk-design.md`.
-- **Repos:** VM code in `/home/david/workspace/oevm`; `.ns` tests in `/home/david/workspace/ns-tests`; runner + gates in `/home/david/workspace/ns-oevm/tools/run_tests_oevm.py`. Commit each repo separately.
-- **Branch:** `derecursify-reify-e1-home-method` already exists in `/home/david/workspace/oevm` (holds the design commits). Work on it.
+- **Repos:** VM code in `~/workspace/oevm`; `.ns` tests in `~/workspace/ns-tests`; runner + gates in `~/workspace/ns-oevm/tools/run_tests_oevm.py`. Commit each repo separately.
+- **Branch:** `derecursify-reify-e1-home-method` already exists in `~/workspace/oevm` (holds the design commits). Work on it.
 - **Do NOT push** (David's push-only-when-asked rule).
 - **No `.oimg`/dialect/GC change.** No `struct Closure` field is added. Latest dialect stays #19; registry VERSION stays 4.
 - **Harness is NOT concurrency-safe** — run the suite **solo** and in the **FOREGROUND** (background runs get released mid-run). Re-run a red solo before believing it.
@@ -23,8 +23,8 @@
 ### Task 1: Retire the dead walk and pin the invariant
 
 **Files:**
-- Modify: `/home/david/workspace/oevm/src/vm.c:1424-1432` (`get_top_level_method_closure`)
-- Test (existing, must stay green): `/home/david/workspace/oevm/tests/test_access.c`
+- Modify: `~/workspace/oevm/src/vm.c:1424-1432` (`get_top_level_method_closure`)
+- Test (existing, must stay green): `~/workspace/oevm/tests/test_access.c`
 
 **Interfaces:**
 - Consumes: nothing new.
@@ -35,7 +35,7 @@
 The gate asserts the function body no longer walks `home_ctx`. Run it against the current (unmodified) code so it FAILS first:
 
 ```bash
-cd /home/david/workspace/oevm && \
+cd ~/workspace/oevm && \
 awk '/^static oop get_top_level_method_closure/,/^}/' src/vm.c \
   | grep -Eq 'home_ctx_frame|while|for *\(' \
   && echo "GATE FAIL: dead walk still present" \
@@ -49,7 +49,7 @@ Expected: `GATE FAIL: dead walk still present` (the current body contains `while
 
 - [ ] **Step 3: Replace the function body**
 
-In `/home/david/workspace/oevm/src/vm.c`, replace the whole function (lines 1424-1432):
+In `~/workspace/oevm/src/vm.c`, replace the whole function (lines 1424-1432):
 
 ```c
 static oop get_top_level_method_closure(oop closure) {
@@ -96,14 +96,14 @@ Expected: `GATE PASS: walk retired`.
 - [ ] **Step 5: Build and run `test_access.c` (the sole exerciser of the access branch)**
 
 ```bash
-cd /home/david/workspace/oevm && TARGET=posix \
+cd ~/workspace/oevm && TARGET=posix \
 gcc -Wall -Wextra -std=c99 -Isrc tests/test_access.c \
   src/solidified_image.c src/dispatch.c src/vm.c src/gc.c \
   src/platform.c src/backend/posix/platform_posix.c \
   src/serial.c src/backend/posix/serial_posix.c \
   src/mirror.c src/udp.c src/backend/posix/udp_posix.c src/oimg_loader.c \
   -lm -o /tmp/test_access && /tmp/test_access; echo "exit=$?"
-git -C /home/david/workspace/oevm checkout src/solidified_image.c src/solidified_image.stmap
+git -C ~/workspace/oevm checkout src/solidified_image.c src/solidified_image.stmap
 ```
 
 Expected: all six sub-tests print `Passed!`, final line `All OEVM Access Modifier & Dynamic Capability tests PASSED successfully!`, `exit=0`. (A `-Wmissing-field-initializers` warning on `solidified_image.c:3134` for `captured_env` is the pre-existing oevm#32 surface — harmless, ignore. The trailing `git checkout` reverts the harness's touch of the generated image.)
@@ -111,7 +111,7 @@ Expected: all six sub-tests print `Passed!`, final line `All OEVM Access Modifie
 - [ ] **Step 6: Run the full conformance suite, both paths, FOREGROUND + solo**
 
 ```bash
-cd /home/david/workspace/ns-oevm && OEVM_PATH=AB python3 tools/run_tests_oevm.py
+cd ~/workspace/ns-oevm && OEVM_PATH=AB python3 tools/run_tests_oevm.py
 ```
 
 Expected: the merged-master baseline **86/0/6 both paths + 7 gates** (unchanged — this task is behaviour-equivalent). If any test is red, re-run solo before believing it (harness not concurrency-safe).
@@ -119,7 +119,7 @@ Expected: the merged-master baseline **86/0/6 both paths + 7 gates** (unchanged 
 - [ ] **Step 7: `-D__ZEPHYR__` syntax-clean check**
 
 ```bash
-cd /home/david/workspace/oevm && \
+cd ~/workspace/oevm && \
 gcc -std=c99 -Isrc -D__ZEPHYR__ -fsyntax-only src/vm.c && echo "zephyr-syntax OK"
 ```
 
@@ -128,7 +128,7 @@ Expected: `zephyr-syntax OK` (a function-body simplification stays syntax-clean;
 - [ ] **Step 8: Commit**
 
 ```bash
-cd /home/david/workspace/oevm && git add src/vm.c && git commit -m "feat(derecursify): E1 — retire the dead home_ctx access-walk in get_top_level_method_closure
+cd ~/workspace/oevm && git add src/vm.c && git commit -m "feat(derecursify): E1 — retire the dead home_ctx access-walk in get_top_level_method_closure
 
 The lexical walk was unreachable through dispatch: its only caller path
 (find_defining_vtable <- ACCESS_PRIVATE branch of check_access_allowed) is

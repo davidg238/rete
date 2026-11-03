@@ -1,0 +1,8 @@
+# space.h is the core's port (David, 2026-10-17): space_peek names a space path at arg 0.
+name: SpacePeek
+kind: primitive
+resource: path
+mode: read
+arg: 0
+implemented_by:
+  - c: space_peek

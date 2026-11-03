@@ -11,8 +11,8 @@ the button is pressed.
 
 Baked into the DK boot image with (run from the nsl-tuvm repo):
   python3 tools/ns_compile_oevm.py \
-    /home/david/workspace/tuvm/zephyr/PulseNodeDK.ns \
-    /home/david/workspace/tuvm/src/solidified_image.c
+    ~/workspace/tuvm/zephyr/PulseNodeDK.ns \
+    ~/workspace/tuvm/src/solidified_image.c
 
 Same two dialect deviations as PulseNode.ns, for the same reasons:
   - `[ ... ] repeat` is unsupported; use `[ true ] whileTrue:`.

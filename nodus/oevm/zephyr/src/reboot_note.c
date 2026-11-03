@@ -17,9 +17,7 @@
 #include <string.h>
 #include "reboot_note.h"
 
-/* Defined in observer.c. Declared across translation units rather than included, the way
-   platform.c declares bell/ntp/rtc — the tree's idiom for a target leaf in another file. */
-void observer_halt(void);
+#include "observer.h"   /* observer_halt (invarlint#48) */
 
 #ifdef CONFIG_RISCV
 #include <zephyr/arch/riscv/csr.h>

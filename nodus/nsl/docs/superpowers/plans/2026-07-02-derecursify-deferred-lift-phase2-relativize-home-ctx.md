@@ -42,8 +42,8 @@
 - [ ] **Step 1: Create the working branch in both repos**
 
 ```bash
-git -C /home/david/workspace/oevm checkout -b derecursify-deferred-phase2
-git -C /home/david/workspace/ns-oevm checkout -b derecursify-deferred-phase2
+git -C ~/workspace/oevm checkout -b derecursify-deferred-phase2
+git -C ~/workspace/ns-oevm checkout -b derecursify-deferred-phase2
 ```
 
 Expected: `Switched to a new branch 'derecursify-deferred-phase2'` in each.
@@ -61,8 +61,8 @@ Expected (record verbatim in the ledger): `84 pass / 0 fail / 6 skip` both paths
 - [ ] **Step 4: Commit the ledger**
 
 ```bash
-git -C /home/david/workspace/ns-oevm add .superpowers/sdd/progress.md
-git -C /home/david/workspace/ns-oevm commit -m "chore(derecursify): Phase 2 relativize-home_ctx SDD ledger + baseline"
+git -C ~/workspace/ns-oevm add .superpowers/sdd/progress.md
+git -C ~/workspace/ns-oevm commit -m "chore(derecursify): Phase 2 relativize-home_ctx SDD ledger + baseline"
 ```
 
 ---
@@ -109,7 +109,7 @@ Register the call in `main()` of `test_frame_abi.c` alongside the existing tests
 - [ ] **Step 2: Run it — verify it passes immediately (the helpers are already correct L0 code)**
 
 ```bash
-cd /home/david/workspace/oevm && cc -std=c99 -Isrc tests/test_frame_abi.c -o /tmp/test_frame_abi && /tmp/test_frame_abi
+cd ~/workspace/oevm && cc -std=c99 -Isrc tests/test_frame_abi.c -o /tmp/test_frame_abi && /tmp/test_frame_abi
 ```
 Expected: all lines PASS including `test_home_link_survives_base_move: PASS`. (This is a characterization proof of the frozen helpers, not a red→green cycle — the L0 helpers already exist; the test locks in the relativity property this phase depends on.)
 
@@ -233,8 +233,8 @@ Expected: clean (no output).
 - [ ] **Step 8: Commit**
 
 ```bash
-git -C /home/david/workspace/oevm add src/vm.c tests/test_frame_abi.c
-git -C /home/david/workspace/oevm commit -m "refactor(derecursify): home_ctx decode chokepoint + relativity proof (Phase 2 Task 1)
+git -C ~/workspace/oevm add src/vm.c tests/test_frame_abi.c
+git -C ~/workspace/oevm commit -m "refactor(derecursify): home_ctx decode chokepoint + relativity proof (Phase 2 Task 1)
 
 Route every home_ctx read (NLR walk, primitive_closure_home,
 get_top_level_method_closure) through one home_ctx_frame() decoder.
@@ -357,7 +357,7 @@ Expected: clean.
 The reviewer/executor must confirm (not just that behavior is unchanged, but that the encoding changed — see "behavior-proofs ≠ intent-proofs"):
 
 ```bash
-cd /home/david/workspace/oevm
+cd ~/workspace/oevm
 # All 4 encode sites now use the relative helper; none assign a raw (oop)ctx/(oop)current_frame to home_ctx:
 grep -n "home_link_encode_relative" src/vm.c src/dispatch.c
 grep -n "home_ctx = .*(oop)ctx\|home_ctx = (oop)current_frame" src/vm.c src/dispatch.c
@@ -367,8 +367,8 @@ Expected: FIRST grep shows 4 encode sites (3 in vm.c + 1 in dispatch.c). SECOND 
 - [ ] **Step 8: Commit**
 
 ```bash
-git -C /home/david/workspace/oevm add src/vm.c src/dispatch.c src/gc.c
-git -C /home/david/workspace/oevm commit -m "feat(derecursify): relativize home_ctx (Phase 2 the flip)
+git -C ~/workspace/oevm add src/vm.c src/dispatch.c src/gc.c
+git -C ~/workspace/oevm commit -m "feat(derecursify): relativize home_ctx (Phase 2 the flip)
 
 All 4 home_ctx encode sites (push_frame, run_interpreter setup,
 fiber_create, make_closure) now store home_link_encode_relative; the
@@ -404,10 +404,10 @@ Fill `ns-oevm/.superpowers/sdd/progress.md` with per-task outcomes, final gate n
 - [ ] **Step 4: Commit**
 
 ```bash
-git -C /home/david/workspace/oevm add src/frame_abi.h docs/design/2026-07-01-derecursify-deferred-lift-growable-stacks-upward-closures-design.md
-git -C /home/david/workspace/oevm commit -m "docs(derecursify): Phase 2 relativize-home_ctx DONE + ABI status"
-git -C /home/david/workspace/ns-oevm add .superpowers/sdd/progress.md
-git -C /home/david/workspace/ns-oevm commit -m "docs(derecursify): Phase 2 SDD close-out ledger"
+git -C ~/workspace/oevm add src/frame_abi.h docs/design/2026-07-01-derecursify-deferred-lift-growable-stacks-upward-closures-design.md
+git -C ~/workspace/oevm commit -m "docs(derecursify): Phase 2 relativize-home_ctx DONE + ABI status"
+git -C ~/workspace/ns-oevm add .superpowers/sdd/progress.md
+git -C ~/workspace/ns-oevm commit -m "docs(derecursify): Phase 2 SDD close-out ledger"
 ```
 
 - [ ] **Step 5: Whole-phase review + finish**

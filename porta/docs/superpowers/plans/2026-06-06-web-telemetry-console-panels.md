@@ -170,7 +170,7 @@ Add to `internal/web/web_test.go` (harness: `testStore(t)`, `serve(t, st)` → `
 ```go
 func TestNodeConsolePanels(t *testing.T) {
 	st := testStore(t)
-	st.TouchNode("aabbccddeeff", "192.168.1.9", 1000)
+	st.TouchNode("aabbccddeeff", "192.0.2.9", 1000)
 	_ = st.InsertData("aabbccddeeff", 1001, 0, "print", "", nil, "hello world", "", "")
 	_ = st.InsertData("aabbccddeeff", 1002, 0, "log", "", nil, "pump stalled", "", "warn")
 	_ = st.InsertData("aabbccddeeff", 1003, 0, "panic", "", nil, "traceblob", "", "")
@@ -198,7 +198,7 @@ func TestNodeConsolePanels(t *testing.T) {
 
 func TestNodeConsoleEmptyHint(t *testing.T) {
 	st := testStore(t)
-	st.TouchNode("aabbccddeeff", "192.168.1.9", 1000)
+	st.TouchNode("aabbccddeeff", "192.0.2.9", 1000)
 	srv := serve(t, st)
 	prints := readBody(t, mustGet(t, srv.URL+"/n/aabbccddeeff/prints"))
 	if !strings.Contains(prints, "no prints") {
@@ -208,7 +208,7 @@ func TestNodeConsoleEmptyHint(t *testing.T) {
 
 func TestNodeConsoleEscapesText(t *testing.T) {
 	st := testStore(t)
-	st.TouchNode("aabbccddeeff", "192.168.1.9", 1000)
+	st.TouchNode("aabbccddeeff", "192.0.2.9", 1000)
 	_ = st.InsertData("aabbccddeeff", 1001, 0, "print", "", nil, "<script>x</script>", "", "")
 	srv := serve(t, st)
 	prints := readBody(t, mustGet(t, srv.URL+"/n/aabbccddeeff/prints"))
@@ -219,7 +219,7 @@ func TestNodeConsoleEscapesText(t *testing.T) {
 
 func TestNodePageEmbedsConsolePlaceholders(t *testing.T) {
 	st := testStore(t)
-	st.TouchNode("aabbccddeeff", "192.168.1.9", 1000)
+	st.TouchNode("aabbccddeeff", "192.0.2.9", 1000)
 	srv := serve(t, st)
 	body := readBody(t, mustGet(t, srv.URL+"/n/aabbccddeeff"))
 	if !strings.Contains(body, `hx-get="/n/aabbccddeeff/prints"`) ||
@@ -362,7 +362,7 @@ Add to `internal/web/web_test.go`:
 ```go
 func TestTelemetryNodeFilterSelect(t *testing.T) {
 	st := testStore(t)
-	st.TouchNode("aabbccddeeff", "192.168.1.9", 1000)
+	st.TouchNode("aabbccddeeff", "192.0.2.9", 1000)
 	_ = st.SetNodeName("aabbccddeeff", "fwkb")
 	st.TouchNode("ccddeeff0011", "192.168.1.10", 1000)
 	_ = st.SetNodeName("ccddeeff0011", "vin")

@@ -1,0 +1,6 @@
+name: radio-home
+pattern: Move Function
+intent: the OpenThread bring-up is a radio adapter; it lives with log_udp, the adapter that paces on its pool
+compromise: thread_bringup.h stays in zephyr/src (on the include path), as backends-home left runner.h and log_udp.h; main → oevm_thread_bringup becomes a crossing (adapter-start)
+ops:
+  - move: {file: zephyr/src/thread_bringup.c, unit: src/backend/zephyr}

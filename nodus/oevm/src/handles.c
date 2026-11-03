@@ -5,8 +5,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-extern void mark_object(oop ptr);   /* gc.c:630 — the exported push-only root marker */
-
 /* tuvm#13: `generation` advances on every free, so a reused slot issues handles that
    never compare equal to the ones outstanding before the reuse. */
 struct HandleSlot { oop value; int live; unsigned generation; };

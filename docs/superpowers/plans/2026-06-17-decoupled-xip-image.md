@@ -18,8 +18,8 @@
 - **Blob is immutable:** blob objects are never written; runtime instances are `gc_allocate`d in RAM as today.
 - **Model A retained:** the solidify-to-C fused build stays available as an opt-in appliance build; it must remain byte-for-byte unchanged in output through this work.
 - **Two test paths, both gated:** Path A (existing solidify-to-C, full 36/42 suite) and Path B (new `.oimg`-loaded) must both pass.
-- **Repos:** VM = `/home/david/workspace/oevm`; tooling + tests = `/home/david/workspace/ns-oevm` (tools) and `/home/david/workspace/ns-tests`. The harness finds the VM via `$OEVM_DIR` (defaults to the sibling `oevm`).
-- **Regression gate command:** `cd /home/david/workspace/ns-oevm && python3 tools/run_tests_oevm.py` (expect `Passed: 36 / Failed: 5 / Skipped: 1`).
+- **Repos:** VM = `~/workspace/oevm`; tooling + tests = `~/workspace/ns-oevm` (tools) and `~/workspace/ns-tests`. The harness finds the VM via `$OEVM_DIR` (defaults to the sibling `oevm`).
+- **Regression gate command:** `cd ~/workspace/ns-oevm && python3 tools/run_tests_oevm.py` (expect `Passed: 36 / Failed: 5 / Skipped: 1`).
 - **Magic / version:** header magic = ASCII `"OIMG"`; `format_version` starts at 1; `BUILTIN_REGISTRY_VERSION` starts at 1 and bumps whenever `builtins.def` changes.
 
 ---
@@ -127,7 +127,7 @@ def test_generator_produces_stable_indices():
 
 - [ ] **Step 3: Run it to confirm it fails**
 
-Run: `cd /home/david/workspace/ns-oevm && python3 -m pytest tools/test_gen_builtins.py -q`
+Run: `cd ~/workspace/ns-oevm && python3 -m pytest tools/test_gen_builtins.py -q`
 Expected: FAIL (`gen_builtins.py` / `builtins_registry.py` not found).
 
 - [ ] **Step 4: Write `gen_builtins.py`**
@@ -165,16 +165,16 @@ if __name__ == "__main__":
 
 - [ ] **Step 5: Run the test to confirm it passes**
 
-Run: `cd /home/david/workspace/ns-oevm && python3 -m pytest tools/test_gen_builtins.py -q`
+Run: `cd ~/workspace/ns-oevm && python3 -m pytest tools/test_gen_builtins.py -q`
 Expected: PASS.
 
 - [ ] **Step 6: Commit**
 
 ```bash
-cd /home/david/workspace/oevm && git add src/builtins.def
-cd /home/david/workspace/ns-oevm && git add tools/gen_builtins.py tools/builtins_registry.py tools/test_gen_builtins.py
-git -C /home/david/workspace/oevm commit -m "feat(oimg): builtin registry source (builtins.def)"
-git -C /home/david/workspace/ns-oevm commit -m "feat(oimg): builtin registry generator + serializer-side map"
+cd ~/workspace/oevm && git add src/builtins.def
+cd ~/workspace/ns-oevm && git add tools/gen_builtins.py tools/builtins_registry.py tools/test_gen_builtins.py
+git -C ~/workspace/oevm commit -m "feat(oimg): builtin registry source (builtins.def)"
+git -C ~/workspace/ns-oevm commit -m "feat(oimg): builtin registry generator + serializer-side map"
 ```
 
 ---
@@ -213,7 +213,7 @@ PY
 
 - [ ] **Step 2: Run it to confirm it fails**
 
-Run: `bash /home/david/workspace/oevm/tools/test_dump_layout.sh`
+Run: `bash ~/workspace/oevm/tools/test_dump_layout.sh`
 Expected: FAIL (`dump_layout.c` not found).
 
 - [ ] **Step 3: Write `dump_layout.c`**
@@ -285,13 +285,13 @@ Note: `ObjectInstance.slots` is a flexible array (no fixed offset); the serializ
 
 - [ ] **Step 4: Run the test to confirm it passes**
 
-Run: `bash /home/david/workspace/oevm/tools/test_dump_layout.sh`
+Run: `bash ~/workspace/oevm/tools/test_dump_layout.sh`
 Expected: prints `layout OK`.
 
 - [ ] **Step 5: Commit**
 
 ```bash
-cd /home/david/workspace/oevm && git add tools/dump_layout.c tools/test_dump_layout.sh
+cd ~/workspace/oevm && git add tools/dump_layout.c tools/test_dump_layout.sh
 git commit -m "feat(oimg): layout dumper for target ABI"
 ```
 
@@ -329,7 +329,7 @@ def test_app_offset_must_be_aligned():
 
 - [ ] **Step 2: Run it to confirm it fails**
 
-Run: `cd /home/david/workspace/ns-oevm/tools && python3 -m pytest test_oimg_serialize.py -q`
+Run: `cd ~/workspace/ns-oevm/tools && python3 -m pytest test_oimg_serialize.py -q`
 Expected: FAIL (no module).
 
 - [ ] **Step 3: Implement the codec**
@@ -388,13 +388,13 @@ class OimgWriter:
 
 - [ ] **Step 4: Run the test to confirm it passes**
 
-Run: `cd /home/david/workspace/ns-oevm/tools && python3 -m pytest test_oimg_serialize.py -q`
+Run: `cd ~/workspace/ns-oevm/tools && python3 -m pytest test_oimg_serialize.py -q`
 Expected: PASS.
 
 - [ ] **Step 5: Commit**
 
 ```bash
-cd /home/david/workspace/ns-oevm && git add tools/oimg_serialize.py tools/test_oimg_serialize.py
+cd ~/workspace/ns-oevm && git add tools/oimg_serialize.py tools/test_oimg_serialize.py
 git commit -m "feat(oimg): ref-word codec + header writer"
 ```
 
@@ -476,7 +476,7 @@ def test_increment_method_instructions_present():
 
 - [ ] **Step 2: Run it to confirm it fails**
 
-Run: `cd /home/david/workspace/ns-oevm/tools && python3 -m pytest test_oimg_graph.py -q`
+Run: `cd ~/workspace/ns-oevm/tools && python3 -m pytest test_oimg_graph.py -q`
 Expected: FAIL (`OimgSerializer` not defined).
 
 - [ ] **Step 3: Implement `OimgSerializer`**
@@ -492,13 +492,13 @@ Cluster count in the header counts only non-empty kinds (the `FLOAT`/`INSTANCE`/
 
 - [ ] **Step 4: Run the test to confirm it passes**
 
-Run: `cd /home/david/workspace/ns-oevm/tools && python3 -m pytest test_oimg_graph.py -q`
+Run: `cd ~/workspace/ns-oevm/tools && python3 -m pytest test_oimg_graph.py -q`
 Expected: PASS (fix the `cluster_count` assertion to your actual non-empty-kind count during Step 3).
 
 - [ ] **Step 5: Commit**
 
 ```bash
-cd /home/david/workspace/ns-oevm && git add tools/oimg_serialize.py tools/test_oimg_graph.py
+cd ~/workspace/ns-oevm && git add tools/oimg_serialize.py tools/test_oimg_graph.py
 git commit -m "feat(oimg): serialize object graph to native-layout blob"
 ```
 
@@ -541,7 +541,7 @@ def test_compile_counter_to_oimg(tmp_path):
 
 - [ ] **Step 2: Run it to confirm it fails**
 
-Run: `cd /home/david/workspace/ns-oevm/tools && python3 -m pytest test_compile_oimg.py -q`
+Run: `cd ~/workspace/ns-oevm/tools && python3 -m pytest test_compile_oimg.py -q`
 Expected: FAIL (`--format` unrecognized → C file written, magic mismatch).
 
 - [ ] **Step 3: Add argument parsing + the oimg branch**
@@ -568,18 +568,18 @@ Keep the existing C path as the `else`.
 
 - [ ] **Step 4: Run the test to confirm it passes**
 
-Run: `cd /home/david/workspace/ns-oevm/tools && python3 -m pytest test_compile_oimg.py -q`
+Run: `cd ~/workspace/ns-oevm/tools && python3 -m pytest test_compile_oimg.py -q`
 Expected: PASS.
 
 - [ ] **Step 5: Verify the C path is unchanged**
 
-Run: `cd /home/david/workspace/ns-oevm && python3 tools/run_tests_oevm.py`
+Run: `cd ~/workspace/ns-oevm && python3 tools/run_tests_oevm.py`
 Expected: `Passed: 36 / Failed: 5 / Skipped: 1` (unchanged).
 
 - [ ] **Step 6: Commit**
 
 ```bash
-cd /home/david/workspace/ns-oevm && git add tools/ns_compile_oevm.py tools/solidify.py tools/test_compile_oimg.py
+cd ~/workspace/ns-oevm && git add tools/ns_compile_oevm.py tools/solidify.py tools/test_compile_oimg.py
 git commit -m "feat(oimg): --format=oimg path in compiler driver"
 ```
 
@@ -628,7 +628,7 @@ int main(void) {
 
 - [ ] **Step 2: Run it to confirm it fails**
 
-Run: `cd /home/david/workspace/oevm && gcc -std=c99 -Isrc tests/test_oimg.c src/oimg_loader.c -o /tmp/t_oimg`
+Run: `cd ~/workspace/oevm && gcc -std=c99 -Isrc tests/test_oimg.c src/oimg_loader.c -o /tmp/t_oimg`
 Expected: FAIL (compile error — `oimg.h` / symbols missing).
 
 - [ ] **Step 3: Write `oimg.h` + loader globals**
@@ -690,13 +690,13 @@ Add `#include "oimg.h"` in `oevm.h` after the `oop` typedef and `TAG_SMI`/`IS_SM
 
 - [ ] **Step 4: Run the test to confirm it passes**
 
-Run: `cd /home/david/workspace/oevm && gcc -std=c99 -Isrc tests/test_oimg.c src/oimg_loader.c -o /tmp/t_oimg && /tmp/t_oimg`
+Run: `cd ~/workspace/oevm && gcc -std=c99 -Isrc tests/test_oimg.c src/oimg_loader.c -o /tmp/t_oimg && /tmp/t_oimg`
 Expected: prints `test_oimg basic PASS`.
 
 - [ ] **Step 5: Commit**
 
 ```bash
-cd /home/david/workspace/oevm && git add src/oimg.h src/oimg_loader.c src/oevm.h tests/test_oimg.c
+cd ~/workspace/oevm && git add src/oimg.h src/oimg_loader.c src/oevm.h tests/test_oimg.c
 git commit -m "feat(oimg): blob globals, is_in_blob, ref-word resolve"
 ```
 
@@ -742,7 +742,7 @@ Rule for `is_ptr` fields (internal C pointers): when the owning object is in the
 
 - [ ] **Step 2: Run it to confirm it fails**
 
-Run: `cd /home/david/workspace/oevm && gcc -std=c99 -Isrc tests/test_oimg.c src/oimg_loader.c -o /tmp/t_oimg`
+Run: `cd ~/workspace/oevm && gcc -std=c99 -Isrc tests/test_oimg.c src/oimg_loader.c -o /tmp/t_oimg`
 Expected: FAIL (`obj_vtable`/`symbol_name` undefined).
 
 - [ ] **Step 3: Add accessors to `oimg.h`**
@@ -792,13 +792,13 @@ static inline oop instance_slot(struct ObjectInstance *o, size_t i) {
 
 - [ ] **Step 4: Run the test to confirm it passes**
 
-Run: `cd /home/david/workspace/oevm && gcc -std=c99 -Isrc tests/test_oimg.c src/oimg_loader.c -o /tmp/t_oimg && /tmp/t_oimg`
+Run: `cd ~/workspace/oevm && gcc -std=c99 -Isrc tests/test_oimg.c src/oimg_loader.c -o /tmp/t_oimg && /tmp/t_oimg`
 Expected: prints both `PASS` lines.
 
 - [ ] **Step 5: Commit**
 
 ```bash
-cd /home/david/workspace/oevm && git add src/oimg.h tests/test_oimg.c
+cd ~/workspace/oevm && git add src/oimg.h tests/test_oimg.c
 git commit -m "feat(oimg): field-read accessors (identity for RAM objects)"
 ```
 
@@ -831,7 +831,7 @@ Leave WRITES untouched: instances are always RAM (`gc_allocate`), so `inst->slot
 
 - [ ] **Step 1: Enumerate the sites**
 
-Run: `cd /home/david/workspace/oevm && grep -nE -e '->vtable' -e '->delegate' -e '->bindings' -e '->instructions' -e '->constants\[' -e '->name' -e 'entry_point' -e '->slots\[' src/dispatch.c src/vm.c`
+Run: `cd ~/workspace/oevm && grep -nE -e '->vtable' -e '->delegate' -e '->bindings' -e '->instructions' -e '->constants\[' -e '->name' -e 'entry_point' -e '->slots\[' src/dispatch.c src/vm.c`
 Record the count; these are the sites to convert (the survey at plan-writing time found ~40 in dispatch.c).
 
 - [ ] **Step 2: Convert `dispatch.c`**
@@ -850,18 +850,18 @@ Convert the interpreter loop: bytecode pointer comes from `cm_instructions(metho
 
 - [ ] **Step 4: Build and run the full Model A suite (the gate)**
 
-Run: `cd /home/david/workspace/ns-oevm && python3 tools/run_tests_oevm.py`
+Run: `cd ~/workspace/ns-oevm && python3 tools/run_tests_oevm.py`
 Expected: `Passed: 36 / Failed: 5 / Skipped: 1` — **unchanged**. If any previously-passing test regresses, an accessor was applied to a non-heap value or a write site; revert that site.
 
 - [ ] **Step 5: Run the C unit tests**
 
-Run: `cd /home/david/workspace/oevm && for t in tests/test_oevm.c tests/test_access.c tests/test_mirrors.c; do gcc -std=c99 -Isrc "$t" src/vm.c src/gc.c src/dispatch.c src/oimg_loader.c -lm -o /tmp/ut 2>/dev/null && /tmp/ut; done`
+Run: `cd ~/workspace/oevm && for t in tests/test_oevm.c tests/test_access.c tests/test_mirrors.c; do gcc -std=c99 -Isrc "$t" src/vm.c src/gc.c src/dispatch.c src/oimg_loader.c -lm -o /tmp/ut 2>/dev/null && /tmp/ut; done`
 Expected: each existing unit test still passes (link now includes `oimg_loader.c`).
 
 - [ ] **Step 6: Commit**
 
 ```bash
-cd /home/david/workspace/oevm && git add src/dispatch.c src/vm.c
+cd ~/workspace/oevm && git add src/dispatch.c src/vm.c
 git commit -m "refactor(oimg): route VM field reads through XIP accessors (no-op for RAM)"
 ```
 
@@ -877,7 +877,7 @@ git commit -m "refactor(oimg): route VM field reads through XIP accessors (no-op
 
 - [ ] **Step 1: Find the trace + sweep entry points**
 
-Run: `cd /home/david/workspace/oevm && grep -nE 'mark|trace|sweep|free|gc_allocate|UPDATE_LIMITS|flash_rom' src/gc.c`
+Run: `cd ~/workspace/oevm && grep -nE 'mark|trace|sweep|free|gc_allocate|UPDATE_LIMITS|flash_rom' src/gc.c`
 Identify the per-object mark routine and the sweep loop.
 
 - [ ] **Step 2: Add the blob guard**
@@ -898,14 +898,14 @@ Construct a RAM `ObjectInstance` whose slot holds a pointer into a fake blob; ru
 
 - [ ] **Step 4: Run unit + full suite**
 
-Run: `cd /home/david/workspace/oevm && gcc -std=c99 -Isrc tests/test_oimg.c src/oimg_loader.c src/gc.c -lm -o /tmp/t_oimg && /tmp/t_oimg`
-Then: `cd /home/david/workspace/ns-oevm && python3 tools/run_tests_oevm.py`
+Run: `cd ~/workspace/oevm && gcc -std=c99 -Isrc tests/test_oimg.c src/oimg_loader.c src/gc.c -lm -o /tmp/t_oimg && /tmp/t_oimg`
+Then: `cd ~/workspace/ns-oevm && python3 tools/run_tests_oevm.py`
 Expected: unit PASS; suite `36/5/1` unchanged.
 
 - [ ] **Step 5: Commit**
 
 ```bash
-cd /home/david/workspace/oevm && git add src/gc.c tests/test_oimg.c
+cd ~/workspace/oevm && git add src/gc.c tests/test_oimg.c
 git commit -m "feat(oimg): GC skips immutable blob region"
 ```
 
@@ -943,7 +943,7 @@ BUILTIN(20, SYMBOL, "unwindTo:value:")
    region ~lines 1459-1491). */
 ```
 
-Regenerate: `cd /home/david/workspace/ns-oevm && python3 tools/gen_builtins.py`.
+Regenerate: `cd ~/workspace/ns-oevm && python3 tools/gen_builtins.py`.
 
 - [ ] **Step 2: Write the failing test**
 
@@ -966,7 +966,7 @@ int main(void) {
 
 - [ ] **Step 3: Run it to confirm it fails**
 
-Run: `cd /home/david/workspace/oevm && gcc -std=c99 -Isrc tests/test_kernel_boot.c src/kernel_boot.c src/oimg_loader.c src/dispatch.c src/vm.c src/gc.c -lm -o /tmp/t_kb`
+Run: `cd ~/workspace/oevm && gcc -std=c99 -Isrc tests/test_kernel_boot.c src/kernel_boot.c src/oimg_loader.c src/dispatch.c src/vm.c src/gc.c -lm -o /tmp/t_kb`
 Expected: FAIL (`kernel_boot` undefined).
 
 - [ ] **Step 4: Implement `kernel_boot.c`**
@@ -981,10 +981,10 @@ Expected: prints `kernel_boot PASS`.
 - [ ] **Step 6: Commit**
 
 ```bash
-cd /home/david/workspace/oevm && git add src/kernel_boot.c src/builtins.def src/oimg_loader.c tests/test_kernel_boot.c
-cd /home/david/workspace/ns-oevm && git add tools/builtins_registry.py tools/gen_builtins.py
-git -C /home/david/workspace/oevm commit -m "feat(oimg): kernel_boot constructs builtins, fills registry"
-git -C /home/david/workspace/ns-oevm commit -m "chore(oimg): core symbols in registry (v2)"
+cd ~/workspace/oevm && git add src/kernel_boot.c src/builtins.def src/oimg_loader.c tests/test_kernel_boot.c
+cd ~/workspace/ns-oevm && git add tools/builtins_registry.py tools/gen_builtins.py
+git -C ~/workspace/oevm commit -m "feat(oimg): kernel_boot constructs builtins, fills registry"
+git -C ~/workspace/ns-oevm commit -m "chore(oimg): core symbols in registry (v2)"
 ```
 
 ---
@@ -1024,7 +1024,7 @@ gcc -Wall -std=c99 src/vm.c src/gc.c src/dispatch.c src/oimg_loader.c src/kernel
 
 - [ ] **Step 2: Run it to confirm it fails**
 
-Run: `bash /home/david/workspace/oevm/tests/test_load_run.sh`
+Run: `bash ~/workspace/oevm/tests/test_load_run.sh`
 Expected: FAIL (`oevm_image_main.c` / loader funcs missing).
 
 - [ ] **Step 3: Implement loader + main**
@@ -1052,13 +1052,13 @@ int main(int argc, char **argv) {
 
 - [ ] **Step 4: Run the test to confirm it passes**
 
-Run: `bash /home/david/workspace/oevm/tests/test_load_run.sh`
+Run: `bash ~/workspace/oevm/tests/test_load_run.sh`
 Expected: prints the program's expected output (same as Model A for that test).
 
 - [ ] **Step 5: Commit**
 
 ```bash
-cd /home/david/workspace/oevm && git add src/oimg_loader.c oevm_image_main.c tests/test_load_run.sh
+cd ~/workspace/oevm && git add src/oimg_loader.c oevm_image_main.c tests/test_load_run.sh
 git commit -m "feat(oimg): mmap loader + standalone image VM entry"
 ```
 
@@ -1079,14 +1079,14 @@ Wrap `oevm_main.c`'s body so the `extern run_solidified_entry_point()` path comp
 
 - [ ] **Step 2: Verify both builds compile**
 
-Run (Model B): `cd /home/david/workspace/oevm && gcc -Wall -std=c99 src/vm.c src/gc.c src/dispatch.c src/oimg_loader.c src/kernel_boot.c oevm_image_main.c -o /tmp/oevm_img -lm`
+Run (Model B): `cd ~/workspace/oevm && gcc -Wall -std=c99 src/vm.c src/gc.c src/dispatch.c src/oimg_loader.c src/kernel_boot.c oevm_image_main.c -o /tmp/oevm_img -lm`
 Run (Model A appliance): generate an image C first (`python3 ../ns-oevm/tools/ns_compile_oevm.py <a passing test> src/solidified_image.c`), then `gcc -DOEVM_APPLIANCE -std=c99 src/vm.c src/gc.c src/dispatch.c src/solidified_image.c src/oevm_main.c -lm -o /tmp/oevm_app && /tmp/oevm_app`
 Expected: both build; appliance run matches Model A output.
 
 - [ ] **Step 3: Commit**
 
 ```bash
-cd /home/david/workspace/oevm && git add src/oevm_main.c nodus/oevm/docs/deployment-model.md
+cd ~/workspace/oevm && git add src/oevm_main.c nodus/oevm/docs/deployment-model.md
 git commit -m "feat(oimg): decouple default build; Model A behind OEVM_APPLIANCE"
 ```
 
@@ -1109,13 +1109,13 @@ For each test, run Path A (existing) and Path B; report a test as PASS only if b
 
 - [ ] **Step 3: Run the suite**
 
-Run: `cd /home/david/workspace/ns-oevm && python3 tools/run_tests_oevm.py`
+Run: `cd ~/workspace/ns-oevm && python3 tools/run_tests_oevm.py`
 Expected: Path A `36/5/1`; Path B matches Path A on the 36 passing tests (the 5 known failures may differ — record which fail under B; the gate is that no Path-A pass regresses under B). Investigate any Path-B-only failure with the printf-bisect technique from `conformance-workstreams`.
 
 - [ ] **Step 4: Commit**
 
 ```bash
-cd /home/david/workspace/ns-oevm && git add tools/run_tests_oevm.py
+cd ~/workspace/ns-oevm && git add tools/run_tests_oevm.py
 git commit -m "test(oimg): add loaded-image path B; both paths gated"
 ```
 
@@ -1152,7 +1152,7 @@ echo "32-bit portability OK"
 
 - [ ] **Step 3: Run it**
 
-Run: `bash /home/david/workspace/oevm/tests/test_portability_32.sh`
+Run: `bash ~/workspace/oevm/tests/test_portability_32.sh`
 Expected: prints the program output then `32-bit portability OK`. Fix any width assumptions in `oimg_serialize.py` (it must use `layout["oop_size"]` everywhere, never a hardcoded 8) and in the loader.
 
 - [ ] **Step 4: Extend `test_layout.c`**
@@ -1162,7 +1162,7 @@ Add a parametric check that all `oop`-typed fields sit at `index * oop_size` for
 - [ ] **Step 5: Commit**
 
 ```bash
-cd /home/david/workspace/oevm && git add tests/test_layout.c tests/test_portability_32.sh
+cd ~/workspace/oevm && git add tests/test_layout.c tests/test_portability_32.sh
 git commit -m "test(oimg): 32-bit ABI portability (serialize+load+run)"
 ```
 
@@ -1188,13 +1188,13 @@ if (is_in_blob(target)) {
 
 - [ ] **Step 2: Verify no current test trips it**
 
-Run: `cd /home/david/workspace/ns-oevm && python3 tools/run_tests_oevm.py`
+Run: `cd ~/workspace/ns-oevm && python3 tools/run_tests_oevm.py`
 Expected: `36/5/1`; no "mutate immutable image object" message on any passing test (instances are RAM).
 
 - [ ] **Step 3: Commit**
 
 ```bash
-cd /home/david/workspace/oevm && git add src/dispatch.c
+cd ~/workspace/oevm && git add src/dispatch.c
 git commit -m "feat(oimg): guard against mutating immutable blob objects"
 ```
 

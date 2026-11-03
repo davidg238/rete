@@ -12,7 +12,7 @@
 
 ## Global Constraints
 
-- **Regression gate:** the **20 currently-passing** conformance tests must never regress. Baseline before this plan is `Passed: 20, Failed: 10, Skipped: 1`. After **Task 1** it is `Passed: 21, Failed: 10, Skipped: 1` (a new test that already passes via the primitives). After **Task 2** it stays `Passed: 21, Failed: 10, Skipped: 1` (the new test keeps passing, now via inlining). Gate command: `cd /home/david/workspace/ns-oevm && python3 tools/run_tests_oevm.py 2>&1 | tail -4`.
+- **Regression gate:** the **20 currently-passing** conformance tests must never regress. Baseline before this plan is `Passed: 20, Failed: 10, Skipped: 1`. After **Task 1** it is `Passed: 21, Failed: 10, Skipped: 1` (a new test that already passes via the primitives). After **Task 2** it stays `Passed: 21, Failed: 10, Skipped: 1` (the new test keeps passing, now via inlining). Gate command: `cd ~/workspace/ns-oevm && python3 tools/run_tests_oevm.py 2>&1 | tail -4`.
 - **Both `and:` and `or:` are already primitives** (`PRIM_and`/`PRIM_or` in `oevm/src/dispatch.c`). Phase C is therefore a structural/perf change, not a new capability — there is **no** RED behavioral case. The new test is GREEN before and after; the proof that inlining engaged is the structural fixture in Task 2 (`createClosure:` count drops to 0).
 - **This is NOT a byte-identical no-op.** Inlining changes codegen for every test using `and:`/`or:` with literal blocks; the Phase A snapshot gate does not apply.
 - **Exact semantic equivalence (verified against `dispatch.c:500-512`):**
@@ -103,7 +103,7 @@ public main: platform args: args = (
 
 Run:
 ```bash
-cd /home/david/workspace/ns-oevm
+cd ~/workspace/ns-oevm
 python3 tools/run_tests_oevm.py 2>&1 | tail -4
 ```
 Expected: `Passed: 21`, `Failed: 10`, `Skipped: 1` (the new test passes; the 20 prior passes are intact). If the new test fails, report the actual vs expected output — do not change the expected block to match a wrong value.
@@ -111,7 +111,7 @@ Expected: `Passed: 21`, `Failed: 10`, `Skipped: 1` (the new test passes; the 20 
 - [ ] **Step 3: Commit**
 
 ```bash
-cd /home/david/workspace/ns-tests
+cd ~/workspace/ns-tests
 git add 04_somns_basic/10_and_or_inlining.ns
 git commit -m "test: add and:/or: short-circuit inlining test (green via primitives)"
 ```
@@ -129,7 +129,7 @@ git commit -m "test: add and:/or: short-circuit inlining test (green via primiti
 
 Run:
 ```bash
-cd /home/david/workspace/oevm
+cd ~/workspace/oevm
 printf '((1 < 2) and: [ 3 < 2 ]) println.\n((1 > 2) or: [ 3 > 2 ]) println.\n' > /tmp/aofix.ns
 python3 ../ns-oevm/tools/ns_compile_oevm.py /tmp/aofix.ns /tmp/aofix_before.c >/dev/null 2>&1
 echo "createClosure: $(grep -c createClosure /tmp/aofix_before.c)"
@@ -189,7 +189,7 @@ before the `if receiver["type"] == "implicitReceiver":` block, insert:
 
 Run:
 ```bash
-cd /home/david/workspace/oevm
+cd ~/workspace/oevm
 python3 ../ns-oevm/tools/ns_compile_oevm.py /tmp/aofix.ns /tmp/aofix_after.c >/dev/null 2>&1
 echo "createClosure: $(grep -c createClosure /tmp/aofix_after.c)"
 ```
@@ -199,7 +199,7 @@ Expected (GREEN): `createClosure: 0`. If non-zero, the `and:`/`or:` blocks did n
 
 Run:
 ```bash
-cd /home/david/workspace/ns-oevm
+cd ~/workspace/ns-oevm
 python3 tools/run_tests_oevm.py 2>&1 | tail -4
 ```
 Expected: `Passed: 21`, `Failed: 10`, `Skipped: 1`. The `10_and_or_inlining` test still passes (now via inlining), the `09_if_inlining` test still passes, and **every one of the 20 previously-passing tests still passes**. If any regresses, the inlined lowering diverged from the primitive — stop and debug (do not edit existing tests' expected output). The short-circuit side-effect cases (`testAndSideEffect`/`testOrSideEffect` → `0`) are the key proof that the block is not evaluated on the dead path.
@@ -208,7 +208,7 @@ Expected: `Passed: 21`, `Failed: 10`, `Skipped: 1`. The `10_and_or_inlining` tes
 
 Run:
 ```bash
-cd /home/david/workspace/ns-oevm
+cd ~/workspace/ns-oevm
 python3 tools/run_tests_oevm.py 2>&1 | grep -i fib || echo "(fib runs under perf; no and:/or: in it — unaffected)"
 ```
 fib uses no `and:`/`or:`, so this phase does not change it; the conformance result above already covers correctness.
@@ -216,7 +216,7 @@ fib uses no `and:`/`or:`, so this phase does not change it; the conformance resu
 - [ ] **Step 7: Commit**
 
 ```bash
-cd /home/david/workspace/ns-oevm
+cd ~/workspace/ns-oevm
 git add tools/ns_compile_oevm.py
 git commit -m "compiler: inline and:/or: short-circuit (literal block args)"
 ```
@@ -254,7 +254,7 @@ no test regressed). fib is unaffected (no `and:`/`or:`). Next: Phase D (loops:
 - [ ] **Step 2: Commit (oevm repo)**
 
 ```bash
-cd /home/david/workspace/oevm
+cd ~/workspace/oevm
 git add nodus/oevm/docs/optimizations.md
 git commit -m "docs: record block-inlining Phase C (and:/or: short-circuit)
 

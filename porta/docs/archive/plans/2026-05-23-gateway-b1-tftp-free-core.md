@@ -80,7 +80,7 @@ dependencies:
   # NOTE: machine-specific absolute path (per CLAUDE.md, packages live under
   # ~/workspaceToit/). A clone on a different layout must adjust this path.
   sqlite:
-    path: /home/david/workspaceToit/sqlite
+    path: ~/workspaceToit/sqlite
   cli:
     url: github.com/toitlang/pkg-cli
     version: ^1.7.0

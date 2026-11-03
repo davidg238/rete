@@ -68,7 +68,7 @@ Pure refactor — no behavior change. Success = the existing build and test suit
 - [ ] **Step 1: Move the ST packages with git, preserving history**
 
 ```bash
-cd /home/david/workspaceToit/porta
+cd ~/workspaceToit/porta
 git mv cmd/porta cmd/st-devserver
 mkdir -p internal/st
 for p in store cli debug debugui mcpserver gateway helpers; do git mv "internal/$p" "internal/st/$p"; done
@@ -2010,7 +2010,7 @@ Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
 - [ ] **Step 1: Add cobra**
 
 ```bash
-cd /home/david/workspaceToit/porta
+cd ~/workspaceToit/porta
 go get github.com/spf13/cobra@latest
 ```
 

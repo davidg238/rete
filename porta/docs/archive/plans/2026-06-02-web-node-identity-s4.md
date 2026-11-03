@@ -18,7 +18,7 @@
 - `internal/web/pages.go`: `detailVM` struct (fields Title/ID/Name/Kind/IP/EUI/PollIntv/Gauge/Config/ConfApp/Recent/Apps) and its builder `detailVM(n *store.Node) detailVM` ending in a `return detailVM{...}` literal (Kind:`n.Kind`, IP:`n.SourceAddr`, EUI:`n.ID`, PollIntv:`humanizeDur(n.PollIntervalS)`, …).
 - `internal/web/templates/node.html`: the `node-header` partial's subtitle line is
   `<p class="subtitle">{{.Kind}} · {{.IP}} · eui {{.EUI}} · poll {{.PollIntv}} · <a href="/telemetry?node={{.ID}}">Telemetry →</a></p>`.
-- Test convention (`internal/web/web_test.go`): `st := testStore(t)`; `st.TouchNode("aabbccddeeff", "192.168.1.9", 1000)`; `srv := serve(t, st)`; `body := readBody(t, mustGet(t, srv.URL+"/n/aabbccddeeff"))`; assert substrings with `strings.Contains`. (`TestNodeDetailRendersSections` is the model.)
+- Test convention (`internal/web/web_test.go`): `st := testStore(t)`; `st.TouchNode("aabbccddeeff", "192.0.2.9", 1000)`; `srv := serve(t, st)`; `body := readBody(t, mustGet(t, srv.URL+"/n/aabbccddeeff"))`; assert substrings with `strings.Contains`. (`TestNodeDetailRendersSections` is the model.)
 
 ---
 
@@ -36,7 +36,7 @@ Add to `internal/web/web_test.go` (mirrors `TestNodeDetailRendersSections`):
 ```go
 func TestNodeHeaderShowsIdentity(t *testing.T) {
 	st := testStore(t)
-	st.TouchNode("aabbccddeeff", "192.168.1.9", 1000)
+	st.TouchNode("aabbccddeeff", "192.0.2.9", 1000)
 	if err := st.UpdateNodeIdentity("aabbccddeeff", "esp32", "v2.0.0-alpha.192"); err != nil {
 		t.Fatal(err)
 	}
@@ -52,7 +52,7 @@ func TestNodeHeaderShowsIdentity(t *testing.T) {
 
 func TestNodeHeaderIdentityFallback(t *testing.T) {
 	st := testStore(t)
-	st.TouchNode("aabbccddeeff", "192.168.1.9", 1000) // no UpdateNodeIdentity → chip/sdk empty
+	st.TouchNode("aabbccddeeff", "192.0.2.9", 1000) // no UpdateNodeIdentity → chip/sdk empty
 	srv := serve(t, st)
 
 	body := readBody(t, mustGet(t, srv.URL+"/n/aabbccddeeff"))

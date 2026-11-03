@@ -20,9 +20,9 @@
 **Toolchain setup (every gateway task):**
 ```bash
 export TS=~/workspaceToit/sqlite/build/bin/toit-sqlite
-cd /home/david/workspaceToit/porta/gateway
+cd ~/workspaceToit/porta/gateway
 ```
-**Device test command:** `cd /home/david/workspaceToit/porta && toit run device/<file>_test.toit`
+**Device test command:** `cd ~/workspaceToit/porta && toit run device/<file>_test.toit`
 **Supervisor compile gate:** `toit compile -s -o /tmp/sup.snapshot device/supervisor.toit` (analyze-only; imports esp32/system, cannot `toit run`).
 
 **Toit gotchas carried from M1/M2 (apply throughout):**
@@ -102,7 +102,7 @@ cd /home/david/workspaceToit/porta/gateway
 
 - [ ] **Step 2: Run to verify it fails**
 
-Run: `cd /home/david/workspaceToit/porta/gateway && ~/workspaceToit/sqlite/build/bin/toit-sqlite run command_test.toit`
+Run: `cd ~/workspaceToit/porta/gateway && ~/workspaceToit/sqlite/build/bin/toit-sqlite run command_test.toit`
 Expected: FAIL — `VERB-SET`/`Command.set`/`project-config`/`infer-scalar` undefined.
 
 - [ ] **Step 3: Implement in `gateway/command.toit`**
@@ -160,13 +160,13 @@ infer-scalar value-str/string -> any:
 
 - [ ] **Step 4: Run to verify it passes**
 
-Run: `cd /home/david/workspaceToit/porta/gateway && ~/workspaceToit/sqlite/build/bin/toit-sqlite run command_test.toit`
+Run: `cd ~/workspaceToit/porta/gateway && ~/workspaceToit/sqlite/build/bin/toit-sqlite run command_test.toit`
 Expected: PASS (no assertion failures; process exits 0).
 
 - [ ] **Step 5: Commit**
 
 ```bash
-cd /home/david/workspaceToit/porta
+cd ~/workspaceToit/porta
 git add gateway/command.toit gateway/command_test.toit
 git commit -m "feat(gateway): set command verb + project-config + infer-scalar (M2.2 down-path)"
 ```
@@ -249,7 +249,7 @@ cmd-device-get parsed/cli.Parsed -> none:
 - [ ] **Step 3: Verify the CLI end-to-end against a temp db.** Run:
 
 ```bash
-cd /home/david/workspaceToit/porta/gateway
+cd ~/workspaceToit/porta/gateway
 export TS=~/workspaceToit/sqlite/build/bin/toit-sqlite
 rm -f /tmp/m22-cli.db
 $TS gateway.toit --db /tmp/m22-cli.db device set -d aabbccddeeff thermostat target-c 21.5
@@ -272,7 +272,7 @@ aabbccddeeff: thermostat.missing is unset
 - [ ] **Step 4: Commit**
 
 ```bash
-cd /home/david/workspaceToit/porta
+cd ~/workspaceToit/porta
 git add gateway/gateway.toit
 git commit -m "feat(gateway): device set/get CLI for app config (M2.2 down-path)"
 ```
@@ -312,7 +312,7 @@ main:
 
 - [ ] **Step 2: Run to verify it fails**
 
-Run: `cd /home/david/workspaceToit/porta && toit run device/config_store_test.toit`
+Run: `cd ~/workspaceToit/porta && toit run device/config_store_test.toit`
 Expected: FAIL — cannot find `.config_store`.
 
 - [ ] **Step 3: Implement `device/config_store.toit`**
@@ -348,13 +348,13 @@ save-config bucket/storage.Bucket config/Map -> none:
 
 - [ ] **Step 4: Run to verify it passes**
 
-Run: `cd /home/david/workspaceToit/porta && toit run device/config_store_test.toit`
+Run: `cd ~/workspaceToit/porta && toit run device/config_store_test.toit`
 Expected: PASS — prints `config_store OK`.
 
 - [ ] **Step 5: Commit**
 
 ```bash
-cd /home/david/workspaceToit/porta
+cd ~/workspaceToit/porta
 git add device/config_store.toit device/config_store_test.toit
 git commit -m "feat(device): per-app config store helpers (M2.2 down-path)"
 ```
@@ -402,7 +402,7 @@ main:
 
 - [ ] **Step 2: Run to verify it fails**
 
-Run: `cd /home/david/workspaceToit/porta && toit run device/control_service_test.toit`
+Run: `cd ~/workspaceToit/porta && toit run device/control_service_test.toit`
 Expected: FAIL — cannot find `.control_service`.
 
 - [ ] **Step 3: Implement `device/control_service.toit`**
@@ -449,13 +449,13 @@ class ControlServiceProvider extends services.ServiceProvider
 
 - [ ] **Step 4: Run to verify it passes**
 
-Run: `cd /home/david/workspaceToit/porta && toit run device/control_service_test.toit`
+Run: `cd ~/workspaceToit/porta && toit run device/control_service_test.toit`
 Expected: PASS — prints `control service OK`.
 
 - [ ] **Step 5: Commit**
 
 ```bash
-cd /home/david/workspaceToit/porta
+cd ~/workspaceToit/porta
 git add device/control_service.toit device/control_service_test.toit
 git commit -m "feat(device): ControlService provider/client for app config (M2.2 down-path)"
 ```
@@ -485,7 +485,7 @@ Confirm `import encoding.json` is present at the top of `device/node_command_tes
 
 - [ ] **Step 2: Run to verify it fails**
 
-Run: `cd /home/david/workspaceToit/porta && toit run device/node_command_test.toit`
+Run: `cd ~/workspaceToit/porta && toit run device/node_command_test.toit`
 Expected: FAIL — `is-set`/`app`/`config-key`/`config-value` undefined.
 
 - [ ] **Step 3: Implement in `device/node_command.toit`**
@@ -507,13 +507,13 @@ Leave `apply-to-goal` unchanged — `set` is applied by the supervisor to NVS, n
 
 - [ ] **Step 4: Run to verify it passes**
 
-Run: `cd /home/david/workspaceToit/porta && toit run device/node_command_test.toit`
+Run: `cd ~/workspaceToit/porta && toit run device/node_command_test.toit`
 Expected: PASS.
 
 - [ ] **Step 5: Commit**
 
 ```bash
-cd /home/david/workspaceToit/porta
+cd ~/workspaceToit/porta
 git add device/node_command.toit device/node_command_test.toit
 git commit -m "feat(device): decode set command (M2.2 down-path)"
 ```
@@ -565,14 +565,14 @@ spawn-remoting_ -> none:
 
 - [ ] **Step 4: Compile gate**
 
-Run: `cd /home/david/workspaceToit/porta && toit compile -s -o /tmp/sup.snapshot device/supervisor.toit`
+Run: `cd ~/workspaceToit/porta && toit compile -s -o /tmp/sup.snapshot device/supervisor.toit`
 Expected: compiles; the only warning is the pre-existing `schedule_store.toit:26 rtc-user-bytes` deprecation. No errors.
 
 - [ ] **Step 5: Run the full device host suite (regression check)**
 
 Run:
 ```bash
-cd /home/david/workspaceToit/porta
+cd ~/workspaceToit/porta
 for t in node_command report inventory goal_state triggers image_writer telemetry_buffer telemetry_codec telemetry_service set_console_apply config_store control_service; do
   echo "== $t ==" ; toit run device/$t\_test.toit ; done
 ```
@@ -581,7 +581,7 @@ Expected: every suite prints its `OK` line / exits 0.
 - [ ] **Step 6: Commit**
 
 ```bash
-cd /home/david/workspaceToit/porta
+cd ~/workspaceToit/porta
 git add device/supervisor.toit
 git commit -m "feat(device): apply set to NVS config + spawn ControlService provider (M2.2 down-path)"
 ```
@@ -625,7 +625,7 @@ main:
 - [ ] **Step 2: Build the payload image (SDK-matched, 32-bit)**
 
 ```bash
-cd /home/david/workspaceToit/porta
+cd ~/workspaceToit/porta
 toit compile -s -o control_demo.snapshot device/control_demo.toit
 toit tool snapshot-to-image -m32 --format=binary -o control_demo.bin control_demo.snapshot
 ls -la control_demo.bin   # expect a non-zero .bin
@@ -634,7 +634,7 @@ ls -la control_demo.bin   # expect a non-zero .bin
 - [ ] **Step 3: Rebuild + flash the supervisor envelope** (picks up the Task 6 supervisor + new device files via the tftp path-dep recompile):
 
 ```bash
-cd /home/david/workspaceToit/porta
+cd ~/workspaceToit/porta
 rm -f firmware-esp32.envelope supervisor.image supervisor.snapshot
 bash host/build-envelope.sh    # expect: supervisor installed, no jaguar, SDK v2.0.0-alpha.192
 # Flash (your WiFi creds; device on /dev/ttyUSB0):
@@ -646,7 +646,7 @@ bash host/build-envelope.sh    # expect: supervisor installed, no jaguar, SDK v2
 
 ```bash
 export TS=~/workspaceToit/sqlite/build/bin/toit-sqlite
-cd /home/david/workspaceToit/porta/gateway
+cd ~/workspaceToit/porta/gateway
 $TS gateway.toit --db /tmp/porta-fwkd-m22.db serve
 # expect: "gateway: serving command queue + payloads on UDP/6969"
 ```
@@ -655,7 +655,7 @@ $TS gateway.toit --db /tmp/porta-fwkd-m22.db serve
 
 ```bash
 export TS=~/workspaceToit/sqlite/build/bin/toit-sqlite
-cd /home/david/workspaceToit/porta/gateway
+cd ~/workspaceToit/porta/gateway
 ID=30aea41a6208
 $TS gateway.toit --db /tmp/porta-fwkd-m22.db container install control-demo ../control_demo.bin -d $ID --interval=30s
 $TS gateway.toit --db /tmp/porta-fwkd-m22.db device set-console on -d $ID
@@ -691,7 +691,7 @@ $TS gateway.toit --db /tmp/porta-fwkd-m22.db monitor -d $ID --since 1h --kind me
 - [ ] **Step 8: Record the result + commit.** Add a "Hardware verification result" note to `docs/specs/2026-05-24-m2-telemetry-design.md` (under the M2.2 milestone) capturing: fwkd node id, the observed monitor rows, and which provider-hosting path (spawned vs main) was used.
 
 ```bash
-cd /home/david/workspaceToit/porta
+cd ~/workspaceToit/porta
 git add device/control_demo.toit docs/specs/2026-05-24-m2-telemetry-design.md
 git commit -m "test(device): M2.2 down-path hardware-verified on fwkd (control-demo)"
 ```

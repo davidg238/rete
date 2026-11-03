@@ -1,0 +1,6 @@
+name: space-header
+pattern: Facade
+intent: gc.c includes the header that already declares space_gc_trace
+compromise: none
+ops:
+  - declare: {func: space_gc_trace, header: src/space.h}

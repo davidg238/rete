@@ -1,0 +1,6 @@
+name: platform-backend-header
+pattern: Facade
+intent: observer.c includes the header that already declares platform_debug_held
+compromise: none
+ops:
+  - declare: {func: platform_debug_held, header: src/platform_backend.h}

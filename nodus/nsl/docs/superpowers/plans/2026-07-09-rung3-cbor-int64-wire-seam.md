@@ -41,7 +41,7 @@ Newspeak/nsl (`nsl-tuvm/lib/kernel.ns`), Python fixture authoring (`cbor2`), the
 - **Depth bound = 32**, enforced in the nsl walk (encode and decode).
 - **Both-path discipline (from the SDD ledger):** the single-file both-path recipe CLOBBERS
   `tuvm/src/solidified_image.c` + `.stmap` — ALWAYS restore before commit:
-  `git -C /home/david/workspace/tuvm checkout -- src/solidified_image.c src/solidified_image.stmap`
+  `git -C ~/workspace/tuvm checkout -- src/solidified_image.c src/solidified_image.stmap`
 - **Controller owns full-suite runs;** implementers run single-file both-path FOREGROUND only.
 
 ---
@@ -114,10 +114,10 @@ Expected output file `07_largeint_smi_band.expected`:
 - [ ] **Step 2: Run both paths, verify Path B FAILS (wrong sign).**
 
 ```bash
-cd /home/david/workspace/nsl-tuvm/tools
-OEVM_DIR=/home/david/workspace/tuvm OEVM_PATH=AB python3 - <<'PY'
+cd ~/workspace/nsl-tuvm/tools
+OEVM_DIR=~/workspace/tuvm OEVM_PATH=AB python3 - <<'PY'
 from pathlib import Path; import run_tests_oevm as R
-p=Path('/home/david/workspace/nsl-tests/06_limit_tests/07_largeint_smi_band.ns')
+p=Path('~/workspace/nsl-tests/06_limit_tests/07_largeint_smi_band.ns')
 print('A',R.run_test_file(p)); print('B',R.run_test_file_oimg(p))
 PY
 ```
@@ -157,14 +157,14 @@ does — do NOT hard-code `1<<62`.)
 - [ ] **Step 6: Restore byproducts + commit.**
 
 ```bash
-git -C /home/david/workspace/tuvm checkout -- src/solidified_image.c src/solidified_image.stmap
-cd /home/david/workspace/nsl-tests && git add 06_limit_tests/07_largeint_smi_band.* && \
+git -C ~/workspace/tuvm checkout -- src/solidified_image.c src/solidified_image.stmap
+cd ~/workspace/nsl-tests && git add 06_limit_tests/07_largeint_smi_band.* && \
   git commit -m "test(rung3): large-SMI-constant band round-trips on both paths"
-cd /home/david/workspace/tuvm && git add tools/oimg_serialize.py tools/ns_compile_oevm.py && \
+cd ~/workspace/tuvm && git add tools/oimg_serialize.py tools/ns_compile_oevm.py && \
   git commit -m "fix(oimg): correct SMI ref-word tag-capacity bound (tuvm#… large-SMI corruption)"
 ```
 (Note: `tools/` live in the `tuvm` repo. Confirm the path at implementation time; the ledger
-recipe uses `/home/david/workspace/nsl-tuvm/tools` for the harness — verify which repo owns
+recipe uses `~/workspace/nsl-tuvm/tools` for the harness — verify which repo owns
 `oimg_serialize.py`/`ns_compile_oevm.py` and commit there.)
 
 ---
@@ -214,7 +214,7 @@ Register `test_cbor_encode_int` in `test_cbor.c`'s `main`/runner and add `test_c
 `run_c_tests` ENG_COMMON.
 
 - [ ] **Step 2: Run, verify it fails to link** (`PRIM_pf_cborEncodeInt` undefined).
-  Run: `cd /home/david/workspace/tuvm && ./run_c_tests.sh test_cbor` — Expected: compile/link
+  Run: `cd ~/workspace/tuvm && ./run_c_tests.sh test_cbor` — Expected: compile/link
   error `PRIM_pf_cborEncodeInt undeclared`.
 
 - [ ] **Step 3: Register the prim.** `dispatch.c`: append `PRIM_pf_cborEncodeInt,` to the enum
@@ -262,8 +262,8 @@ case PRIM_pf_cborEncodeInt: {
 - [ ] **Step 6: Commit.**
 
 ```bash
-git -C /home/david/workspace/tuvm add src/dispatch.c src/prim_ids.h src/platform.c tests/test_cbor.c run_c_tests.sh
-git -C /home/david/workspace/tuvm commit -m "feat(cbor): cborEncodeInt: leaf (prim 97) — major 0/1 shortest form, SMI+LargeInteger"
+git -C ~/workspace/tuvm add src/dispatch.c src/prim_ids.h src/platform.c tests/test_cbor.c run_c_tests.sh
+git -C ~/workspace/tuvm commit -m "feat(cbor): cborEncodeInt: leaf (prim 97) — major 0/1 shortest form, SMI+LargeInteger"
 ```
 
 ---
@@ -332,7 +332,7 @@ conversion incl. inf/NaN/subnormal; NaN never reaches here — `isValue` rejects
 
 - [ ] **Step 6: Commit.**
 ```bash
-git -C /home/david/workspace/tuvm commit -am "feat(cbor): cborEncodeFloat: leaf (prim 98) — shortest f16/f32/f64"
+git -C ~/workspace/tuvm commit -am "feat(cbor): cborEncodeFloat: leaf (prim 98) — shortest f16/f32/f64"
 ```
 
 ---
@@ -464,7 +464,7 @@ writes `((struct String*)s)->bytes[..]` and array prims write `inst->slots[i]`.)
 
 - [ ] **Step 6: Commit.**
 ```bash
-git -C /home/david/workspace/tuvm commit -am "feat(cbor): decode leaves cborReadHead:/IntFromMajor:/ReadFloat:/utf8Valid: (prims 99-102)"
+git -C ~/workspace/tuvm commit -am "feat(cbor): decode leaves cborReadHead:/IntFromMajor:/ReadFloat:/utf8Valid: (prims 99-102)"
 ```
 
 ---
@@ -500,10 +500,10 @@ Author the expected hex by running `cbor2` with tag-39 symbol keys (documented i
 
 - [ ] **Step 2: Run both paths, verify FAIL** (`Cbor` DNU). Recipe:
 ```bash
-cd /home/david/workspace/nsl-tuvm/tools
-OEVM_DIR=/home/david/workspace/tuvm OEVM_PATH=AB python3 - <<'PY'
+cd ~/workspace/nsl-tuvm/tools
+OEVM_DIR=~/workspace/tuvm OEVM_PATH=AB python3 - <<'PY'
 from pathlib import Path; import run_tests_oevm as R
-p=Path('/home/david/workspace/nsl-tests/14_cbor/02_golden_hex.ns')
+p=Path('~/workspace/nsl-tests/14_cbor/02_golden_hex.ns')
 print('A',R.run_test_file(p)); print('B',R.run_test_file_oimg(p))
 PY
 ```
@@ -558,9 +558,9 @@ and heap values classify uniformly. Verify the `Bytes`/`String` read selectors (
 
 - [ ] **Step 6: Restore byproducts + commit.**
 ```bash
-git -C /home/david/workspace/tuvm checkout -- src/solidified_image.c src/solidified_image.stmap
-git -C /home/david/workspace/nsl-tuvm commit -am "feat(cbor): Cbor encode walk — deterministic bytewise, C int/float leaves"
-git -C /home/david/workspace/nsl-tests add 14_cbor && git -C /home/david/workspace/nsl-tests commit -m "test(cbor): encode golden-hex + bytewise map-order (both-path)"
+git -C ~/workspace/tuvm checkout -- src/solidified_image.c src/solidified_image.stmap
+git -C ~/workspace/nsl-tuvm commit -am "feat(cbor): Cbor encode walk — deterministic bytewise, C int/float leaves"
+git -C ~/workspace/nsl-tests add 14_cbor && git -C ~/workspace/nsl-tests commit -m "test(cbor): encode golden-hex + bytewise map-order (both-path)"
 ```
 
 ---
@@ -655,9 +655,9 @@ Run both paths → A==B PASS.
 
 - [ ] **Step 6: Restore byproducts + commit.**
 ```bash
-git -C /home/david/workspace/tuvm checkout -- src/solidified_image.c src/solidified_image.stmap
-git -C /home/david/workspace/nsl-tuvm commit -am "feat(cbor): Cbor decode walk — total, closed, tag 27/39, dup-key & range rejection"
-git -C /home/david/workspace/nsl-tests add 14_cbor && git -C /home/david/workspace/nsl-tests commit -m "test(cbor): round-trip + rejection corpus (both-path)"
+git -C ~/workspace/tuvm checkout -- src/solidified_image.c src/solidified_image.stmap
+git -C ~/workspace/nsl-tuvm commit -am "feat(cbor): Cbor decode walk — total, closed, tag 27/39, dup-key & range rejection"
+git -C ~/workspace/nsl-tests add 14_cbor && git -C ~/workspace/nsl-tests commit -m "test(cbor): round-trip + rejection corpus (both-path)"
 ```
 
 ---
@@ -694,8 +694,8 @@ GitHub tracking issue.
 
 - [ ] **Step 7: Commit + close.**
 ```bash
-git -C /home/david/workspace/tuvm commit -am "docs(rung3): reconcile cbor.md/errors.md to ratified ±(2^64-1); mark rung-3 done"
-git -C /home/david/workspace/nsl-tests add 14_cbor/05_int_band.* && git -C /home/david/workspace/nsl-tests commit -m "test(cbor): int-band round-trip (both-path)"
+git -C ~/workspace/tuvm commit -am "docs(rung3): reconcile cbor.md/errors.md to ratified ±(2^64-1); mark rung-3 done"
+git -C ~/workspace/nsl-tests add 14_cbor/05_int_band.* && git -C ~/workspace/nsl-tests commit -m "test(cbor): int-band round-trip (both-path)"
 ```
 Merge/push ONLY on David's word (all 3 repos, per the milestone pattern).
 

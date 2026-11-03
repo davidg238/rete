@@ -45,24 +45,17 @@
 #include <stdbool.h>
 #include "reboot_note.h"
 #include "observer_core.h"
+#include "observer.h"
 #include "pulse_backend.h"
+#include "target_backend.h"   /* timer_target_snapshot (invarlint#53) */
+#include "platform.h"         /* platform_app_cad_ms (invarlint#48) */
+#include "platform_backend.h" /* platform_debug_held (rete#311, invarlint#48) */
 
 #ifdef CONFIG_TASK_WDT
 #include <zephyr/drivers/watchdog.h>
 #include <zephyr/sys/reboot.h>
 #include <zephyr/task_wdt/task_wdt.h>
 
-/* Declared across translation units the way platform.c declares bell/ntp/rtc — the tree's
-   idiom for a target leaf that lives in another file. Defined in
-   src/backend/zephyr/timer_zephyr.c. */
-int timer_target_snapshot(uint32_t *period_ms, uint32_t *since_ms, int max);
-
-/* rete#273 D1: the app's declared cadence, defined in src/platform.c beside the prim. */
-uint32_t platform_app_cad_ms(void);
-
-/* rete#311: is the VM blocked in the debug read (a breakpoint, or the boot-time
-   command loop)? Defined in src/backend/zephyr/platform_zephyr.c beside the read. */
-int platform_debug_held(void);
 
 /* rete#269 — OBS_MAX_TIMERS, OBS_WEDGE_SLACK, OBS_MAX_JUDGEABLE_MS, the OBS_COND_*
    enum and the VERDICT ITSELF now live in src/observer_core.h, which is portable C and

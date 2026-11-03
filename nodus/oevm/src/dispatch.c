@@ -39,7 +39,6 @@ oop Symbol_debug_ = NULL;
    capped at 2^64-1; results are demoted back to an SMI when they fit. Portable
    to -m32 (no __int128). */
 oop largeint_alloc(int sign, uint64_t mag) {
-    extern oop gc_allocate(oop vtable, size_t size);
     struct LargeInteger *li = (struct LargeInteger *)gc_allocate(
         LargeIntegerVtable, sizeof(struct LargeInteger));
     li->sign = (sign < 0) ? -1 : 1;
@@ -53,7 +52,6 @@ oop largeint_alloc(int sign, uint64_t mag) {
    shape, but as a single GC-managed heap object instead of a malloc'd C
    array. */
 oop stack_alloc(uint32_t capacity) {
-    extern oop gc_allocate(oop vtable, size_t size);
     size_t bytes = sizeof(struct Stack) + (size_t)capacity * sizeof(oop);
     oop s = gc_allocate(StackVtable, bytes);
     struct Stack *st = (struct Stack *)s;
@@ -70,14 +68,11 @@ oop stack_alloc(uint32_t capacity) {
    across the allocation (a GC during gc_allocate would otherwise sweep it
    before it's linked into the new Context). */
 OEVM_HOT oop context_alloc(uint32_t num_slots, oop outer) {
-    extern oop gc_allocate(oop vtable, size_t size);
-    extern void gc_temp_root_push(oop o);
-    extern int gc_temp_roots_count;
     /* Hardened (Task 2 review carry-forward): context_alloc is now reachable
        from the LIVE interpreter (OP_MK_CONTEXT), where the caller may already
        hold other temp roots. A flat gc_temp_roots_clear() would wipe them;
        save/restore the count instead so we only pop what we pushed here. */
-    int saved = gc_temp_roots_count;
+    int saved = gc_temp_roots_mark();
     int pinned = (outer != NULL && !IS_SMI(outer));
     if (pinned) gc_temp_root_push(outer);
     oop c = gc_allocate(ContextVtable, sizeof(struct Context) + (size_t)num_slots * sizeof(oop));
@@ -85,7 +80,7 @@ OEVM_HOT oop context_alloc(uint32_t num_slots, oop outer) {
     ctx->num_slots = num_slots;
     ctx->outer = outer;
     for (uint32_t i = 0; i < num_slots; i++) ctx->slots[i] = NULL;
-    gc_temp_roots_count = saved;
+    gc_temp_roots_reset(saved);
     return c;
 }
 
@@ -321,9 +316,6 @@ OEVM_HOT int is_truthy(oop obj) {
     return 0;
 }
 
-/* Declare VM interpreter entry point */
-extern oop run_interpreter(oop closure, oop receiver, int argc, oop *args);
-
 #ifndef OEVM_NO_DEBUG_HOOKS
 /* rete#313: methods replaced at runtime. An image's vtables are read-only (the
    blob is mapped PROT_READ, and on a board it is flash), so a replacement is an
@@ -453,7 +445,6 @@ static struct Vtable MessageMockVtable;
 static int message_mock_initialized = 0;
 
 static oop make_message(oop selector) {
-    extern oop gc_allocate(oop vtable, size_t size);
     if (!message_mock_initialized) {
         MessageMockVtable.base.vtable = VtableVtable;
         MessageMockVtable.size = 0;
@@ -636,7 +627,6 @@ static oop run_method_on(oop method, oop self, int argc, oop *args) {
 }
 
 static oop boundclass_construct(oop bc, oop selector, int argc, oop *args, int rule) {
-    extern oop gc_allocate(oop vtable, size_t size);
     struct ObjectInstance *bci = (struct ObjectInstance *)bc;
     oop nested_vtable = bci->slots[0];
     oop outer = bci->slots[1];
@@ -859,21 +849,21 @@ enum {
     PRIM_pf_httpBegin,
     PRIM_pf_httpChunk,
     PRIM_pf_httpEnd,
-    /* AMG8833 thermal rung (2026-07-19): the Tier-1 sensor seam. sensorFrame
-       answers a 64-element Array of centi-degC SMIs (or nil when the device is
-       not ready); sensorArmEventPost:on:threshold: arms the driver's threshold trigger
-       onto a channel via the pulse seam. Appended after httpEnd — no
-       pre-existing id shifts. Counted (not computed) to be the 116th/117th
-       PRIM_NAMES entries. Platform-dispatched (mirrored in prim_ids.h). */
-    PRIM_pf_sensorFrame,
-    PRIM_pf_sensorArmEvent,
+    /* The sensor seam (AMG8833 rung 2026-07-19; generalised rete#436): sensorRead:
+       answers one reading of a kind as an Array of milli-unit SMIs (or nil);
+       sensorArm:post:on:threshold: arms the kind's trigger onto a channel via the
+       pulse seam. Appended after httpEnd — no pre-existing id shifts. Counted (not
+       computed) to be the 116th/117th PRIM_NAMES entries. Platform-dispatched
+       (mirrored in prim_ids.h). */
+    PRIM_pf_sensorRead,
+    PRIM_pf_sensorArm,
     /* tuvm#61 job latency: the span seam. spanBegin:/spanEnd: open and close a
        NAMELESS slot (the name table lives in nsl's Spans class, the timer-seam
        convention); spanStats: snapshots one; spanRecord:us: feeds a sample
        directly — the deterministic test seam, compiled unconditionally because
        gating it behind a test define would fork the parity guard below between
        build flavours, and the only thing it can do is add a sample to a slot.
-       Appended after sensorArmEvent — no pre-existing id shifts. Counted (not
+       Appended after sensorArm — no pre-existing id shifts. Counted (not
        computed) to be the 118th-121st PRIM_NAMES entries. Platform-dispatched
        (mirrored in prim_ids.h). */
     PRIM_pf_spanBegin,
@@ -1082,7 +1072,6 @@ static int classify_selector_name(const char *name) {
    allocate/copy/terminate sequence; making it one function is what makes "a Symbol knows
    its prim id" an invariant rather than six things to remember. */
 oop symbol_new(const char *bytes, size_t len) {
-    extern oop gc_allocate(oop vtable, size_t size);
     oop s = gc_allocate(SymbolVtable, sizeof(struct Symbol) + len + 1);
     if (s == NULL) return NULL;
     struct Symbol *sy = (struct Symbol *)s;
@@ -1108,7 +1097,6 @@ int selector_prim_id(struct Symbol *sym) {
 OEVM_HOT oop make_closure(oop method) {
     extern struct MethodContext *current_frame;
     extern oop *vm_stack;
-    extern oop gc_allocate(oop vtable, size_t size);
     oop cl = gc_allocate(BytecodeClosureVtable, sizeof(struct Closure));
     /* Capture the enclosing frame as a relative home_ctx (growth-ready). NULL when
        there is no current frame, preserving the old (oop)NULL no-home result. */
@@ -1134,7 +1122,6 @@ OEVM_HOT oop make_closure(oop method) {
 
 /* Allocate an immutable String with inline UTF-8 bytes (std-lib 3c-1). */
 static oop make_string(const char *bytes, size_t len) {
-    extern oop gc_allocate(oop vtable, size_t size);
     oop s = gc_allocate(StringVtable, sizeof(struct String) + len);
     ((struct String *)s)->length = len;
     if (len > 0) memcpy(((struct String *)s)->bytes, bytes, len);
@@ -1156,8 +1143,6 @@ static oop make_string(const char *bytes, size_t len) {
    the binding by identity. Fallbacks (pre-capture / helper missing — neither should
    occur) raise the bare text, preserving a sane terminate. */
 static oop build_and_raise(oop tag, oop text) {
-    extern void gc_temp_root_push(oop o);
-    extern int gc_temp_roots_count;
     if (g_kernel_instance == NULL) {
         vm_raise(text);   /* pre-entry: impossible in practice, but keep terminate */
         return NULL;
@@ -1184,12 +1169,12 @@ static oop build_and_raise(oop tag, oop text) {
         vm_raise(text);   /* kernel helper missing: keep terminate */
         return NULL;
     }
-    int saved_roots = gc_temp_roots_count;
+    int saved_roots = gc_temp_roots_mark();
     gc_temp_root_push(tag);
     gc_temp_root_push(text);
     oop args2[2] = { tag, text };   /* crashRecordTag: aTag text: aText */
     oop rec = send(g_kernel_instance, sel, 2, args2);
-    gc_temp_roots_count = saved_roots;
+    gc_temp_roots_reset(saved_roots);
     vm_raise(rec);   /* longjmps when protected; never returns */
     return NULL;
 }
@@ -1207,8 +1192,6 @@ static oop build_and_raise(oop tag, oop text) {
    the g_raised_condition GC root). Fallbacks (pre-capture / helper missing — neither
    should occur) raise the bare text, preserving a sane terminate. */
 static oop build_and_raise_default(oop text) {
-    extern void gc_temp_root_push(oop o);
-    extern int gc_temp_roots_count;
     if (g_kernel_instance == NULL) {
         vm_raise(text);   /* pre-entry: impossible in practice, but keep terminate */
         return NULL;
@@ -1235,11 +1218,11 @@ static oop build_and_raise_default(oop text) {
         vm_raise(text);   /* kernel helper missing: keep terminate */
         return NULL;
     }
-    int saved_roots = gc_temp_roots_count;
+    int saved_roots = gc_temp_roots_mark();
     gc_temp_root_push(text);
     oop args1[1] = { text };   /* crashRecordText: aText */
     oop rec = send(g_kernel_instance, sel, 1, args1);
-    gc_temp_roots_count = saved_roots;
+    gc_temp_roots_reset(saved_roots);
     vm_raise(rec);   /* longjmps when protected; never returns */
     return NULL;
 }
@@ -1462,7 +1445,6 @@ OEVM_HOT oop send_resolve(oop receiver, oop selector, int argc, oop *args,
             break;
             case PRIM_asFloat: {
                 // Integer -> boxed Float; Float -> itself (still boxed fresh).
-                extern oop gc_allocate(oop vtable, size_t size);
                 double v = IS_SMI(receiver) ? (double)UNTAG_SMI(receiver)
                     : ((receiver != NULL && obj_vtable(receiver) == FloatVtable) ? ((struct Float *)receiver)->value : 0.0);
                 struct Float *f = (struct Float *)float_alloc(FloatVtable);
@@ -1473,7 +1455,6 @@ OEVM_HOT oop send_resolve(oop receiver, oop selector, int argc, oop *args,
             case PRIM_sqrt: {
                 // __builtin_sqrt emits the hardware sqrt inline, so we avoid a
                 // libm (-lm) link dependency the test runner does not pass.
-                extern oop gc_allocate(oop vtable, size_t size);
                 double v = IS_SMI(receiver) ? (double)UNTAG_SMI(receiver)
                     : ((receiver != NULL && obj_vtable(receiver) == FloatVtable) ? ((struct Float *)receiver)->value : 0.0);
                 struct Float *f = (struct Float *)float_alloc(FloatVtable);
@@ -1491,7 +1472,6 @@ OEVM_HOT oop send_resolve(oop receiver, oop selector, int argc, oop *args,
                 // Build a BoundClass {nested_vtable=receiver, outer=args[0],
                 // slot_count=args[1]}. Emitted by synthetic nested-class
                 // accessors; consumed by the BoundClass intercept in send().
-                extern oop gc_allocate(oop vtable, size_t size);
                 oop bcvt = ensure_boundclass_vtable();
                 oop bc = gc_allocate(bcvt, sizeof(struct ObjectInstance) + 3 * sizeof(oop));
                 struct ObjectInstance *bci = (struct ObjectInstance *)bc;
@@ -1806,7 +1786,6 @@ OEVM_HOT oop send_resolve(oop receiver, oop selector, int argc, oop *args,
                     // by Object.nsl — fall through to vtable method lookup.
                     break;
                 }
-                extern oop gc_allocate(oop vtable, size_t size);
                 size_t blen = strlen(buf);
                 /* rete#190 stage 2: the bytes are inline, so the separate
                    oevm_malloc for `name` (and its NULL check) is gone — one
@@ -1852,7 +1831,6 @@ OEVM_HOT oop send_resolve(oop receiver, oop selector, int argc, oop *args,
                 if (receiver != NULL && !IS_SMI(receiver) && StringVtable != NULL &&
                     obj_vtable(receiver) == StringVtable &&
                     args[0] != NULL && !IS_SMI(args[0]) && obj_vtable(args[0]) == StringVtable) {
-                    extern oop gc_allocate(oop vtable, size_t size);
                     struct String *a = (struct String *)receiver;
                     struct String *b = (struct String *)args[0];
                     size_t n = a->length + b->length;

@@ -59,7 +59,7 @@ CADENCE_MS=2000
 # moves on, so it costs nothing but log noise — but a human reading a failure
 # dump should not have to wade through it. Filtered from dumps only; never from
 # an assertion.
-NOISY_PEER=${NOISY_PEER:-192.168.0.241}
+NOISY_PEER=${NOISY_PEER:-192.0.2.41}
 
 # The collector's log path and its preflight come from the target harness's
 # shared layer, so there is ONE place on this bench that knows where a board's

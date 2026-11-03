@@ -27,23 +27,10 @@
    ring buffer (ring depth is a work-order sizing detail per the design doc),
    not a correctness bug: FIFO order and exact-match semantics are unaffected. */
 #include "space.h"
+#include "platform.h"
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
-
-/* platform.c's indexable allocator (struct ObjectInstance: slots[0] = TAG_SMI
-   length, slots[1..n] = elements, 1-based) — used both for the snapshot Array
-   of a channel's reaction blocks and the outer {value, snapshot, channelPath}
-   triple space_dequeue answers. Declared extern here rather than a shared
-   header, mirroring src/udp.c's precedent (indexable_new is non-static in
-   platform.c). */
-extern oop indexable_new(intptr_t n);
-
-/* mark_object: gc.c's exported single-oop mark entry point (used already by
-   every test's gc_additional_roots_hook; here it is gc.c's OWN root scan that
-   calls into this module, via space_gc_trace, so the direction is reversed —
-   but the mark primitive is the same one). */
-extern void mark_object(oop ptr);
 
 /* Milestone D Task 2: build the channel-path String for the crash record
    (Space>>drain needs it to post `Record tag: #crash ... with: #channel ->
@@ -51,7 +38,6 @@ extern void mark_object(oop ptr);
    udp_make_string (src/udp.c) / the file-static make_string in dispatch.c —
    gc_allocate(StringVtable, ...) directly, since dispatch.c's make_string is
    file-static and not reachable here. */
-extern oop gc_allocate(oop vtable, size_t size);
 extern oop StringVtable;
 
 oop space_make_string_pub(const char *bytes, size_t len) {
@@ -382,9 +368,7 @@ oop space_dequeue(void) {
              so restore the count rather than clearing the whole set. (The
              reaction blocks copied into the snapshot need no extra pinning —
              the channel table itself keeps them rooted via space_gc_trace.) */
-    extern void gc_temp_root_push(oop o);
-    extern int gc_temp_roots_count;
-    int saved = gc_temp_roots_count;
+    int saved = gc_temp_roots_mark();
 
     /* Snapshot the channel's CURRENT reaction list, taken now (at dequeue),
        not at post time — D-C5: registrations made after this event was
@@ -406,7 +390,7 @@ oop space_dequeue(void) {
     gc_temp_root_push(path_string);
 
     oop result = indexable_new(3);
-    gc_temp_roots_count = saved;
+    gc_temp_roots_reset(saved);
 
     struct ObjectInstance *ri = (struct ObjectInstance *)result;
     ri->slots[1] = value;

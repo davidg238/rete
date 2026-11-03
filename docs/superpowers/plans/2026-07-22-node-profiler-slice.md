@@ -450,15 +450,15 @@ def _result_bytes(n):
 def test_datagram_lands_as_cell_and_event(tmp_path):
     s = Store(str(tmp_path / "p.db"))
     m = Mirror(s, bind_port=0)
-    m.handle_datagram(_result_bytes(7), ("192.168.0.240", 54371), ts=100.0)
-    assert s.latest_cell("192.168.0.240", "diag/spans/result")["n"] == 7
-    assert s.event_count("192.168.0.240") == 1
+    m.handle_datagram(_result_bytes(7), ("192.0.2.40", 54371), ts=100.0)
+    assert s.latest_cell("192.0.2.40", "diag/spans/result")["n"] == 7
+    assert s.event_count("192.0.2.40") == 1
 
 def test_bad_cbor_is_dropped_not_raised(tmp_path):
     s = Store(str(tmp_path / "p.db"))
     m = Mirror(s, bind_port=0)
-    m.handle_datagram(b"\xff\xff\xff", ("192.168.0.240", 54371), ts=100.0)  # garbage
-    assert s.event_count("192.168.0.240") == 0
+    m.handle_datagram(b"\xff\xff\xff", ("192.0.2.40", 54371), ts=100.0)  # garbage
+    assert s.event_count("192.0.2.40") == 0
 ```
 
 - [ ] **Step 2: Run it, verify it fails**
@@ -650,7 +650,7 @@ def make_handler(store, mirror, node_default):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--db", default="porta-lite.db")
-    ap.add_argument("--node", default="192.168.0.240")
+    ap.add_argument("--node", default="192.0.2.40")
     args = ap.parse_args()
     store = Store(args.db)
     mirror = Mirror(store)
@@ -721,7 +721,7 @@ No `<a href>` anywhere — design §8: a browser has nothing to prefetch.
 - [ ] **Step 2: Verify on the flashed/pushed node**
 
 After Task 7's push (or independently), from gw:
-Run: `ssh gw85224-01 'curl -s http://192.168.0.240:18080/hello'`
+Run: `ssh gw85224-01 'curl -s http://192.0.2.40:18080/hello'`
 Expected: one line like `hello tuvm-node 2026-07-22 up 43120ms`, no HTML links.
 
 - [ ] **Step 3: Commit**
@@ -763,13 +763,13 @@ Expected: UDP `:54371` (collector) and TCP `:8086` (profweb) both present.
 
 - [ ] **Step 3: Drive one capture and verify the round trip**
 
-Run: `ssh gw85224-01 'curl -s -X POST "http://localhost:8086/run?node=192.168.0.240" -o /dev/null -w "%{http_code}\n"; sleep 1; curl -s "http://localhost:8086/?node=192.168.0.240"'`
+Run: `ssh gw85224-01 'curl -s -X POST "http://localhost:8086/run?node=192.0.2.40" -o /dev/null -w "%{http_code}\n"; sleep 1; curl -s "http://localhost:8086/?node=192.0.2.40"'`
 Expected: `303`, then HTML containing a span table with non-empty rows (`acquire`, `render`, `egress`, …) and a sample count > 0. If the table says "No capture", check: (a) the node bound `:54370` (`DIAG BIND FAILED` on its console means the `net:` cap failed), (b) `ss -unp` on gw shows a datagram arrived, (c) `mirror` did not drop it (temporarily log `handle_datagram`).
 
 - [ ] **Step 4: Confirm the store is a witness (seeds tuvm#69)**
 
-Run: `ssh gw85224-01 '~/gwprofiler/.venv/bin/python3 -c "import sqlite3; print(sqlite3.connect(\"/home/david/gwprofiler/porta-lite.db\").execute(\"SELECT node_id,path,seq FROM space_events ORDER BY seq DESC LIMIT 3\").fetchall())"'`
-Expected: rows for `192.168.0.240 diag/spans/result` — the append-only run log tuvm#69 asked for (attributable by address until tuvm#74).
+Run: `ssh gw85224-01 '~/gwprofiler/.venv/bin/python3 -c "import sqlite3; print(sqlite3.connect(\"~/gwprofiler/porta-lite.db\").execute(\"SELECT node_id,path,seq FROM space_events ORDER BY seq DESC LIMIT 3\").fetchall())"'`
+Expected: rows for `192.0.2.40 diag/spans/result` — the append-only run log tuvm#69 asked for (attributable by address until tuvm#74).
 
 - [ ] **Step 5: Record the result (no code commit)**
 

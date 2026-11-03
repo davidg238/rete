@@ -7,7 +7,7 @@ We have implemented the core header file and a validation test suite to verify t
 ## Changes Made
 
 ### OEVM Core
-- Created [oevm.h](file:///home/david/workspace/oevm/src/oevm.h) containing definition of:
+- Created [oevm.h](file://~/workspace/oevm/src/oevm.h) containing definition of:
   - `oop`: Object-Oriented Pointer, pointing to `struct Object`.
   - `struct Object`: Base structure starting with a `vtable` pointer.
   - `struct Symbol`: Interned symbol identifier mapping to a selector string.
@@ -18,7 +18,7 @@ We have implemented the core header file and a validation test suite to verify t
   - `struct InlineCache`: Designed to fit the instruction stream's Monomorphic Inline Cache (MIC) slots for acceleration of late-bound sends.
 
 ### Validation Test Suite
-- Updated [test_layout.c](file:///home/david/workspace/oevm/tests/test_layout.c) to also verify layout compatibility of `struct Closure` and size alignment of `struct InlineCache`.
+- Updated [test_layout.c](file://~/workspace/oevm/tests/test_layout.c) to also verify layout compatibility of `struct Closure` and size alignment of `struct InlineCache`.
 
 ## Verification Results
 

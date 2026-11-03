@@ -1,0 +1,38 @@
+{
+  "commit": "31257aab",
+  "revision": "boot-owns",
+  "pattern": "Facade",
+  "before": {
+    "unowned-writer|global:Symbol_debug_|func:kernel_boot": 2,
+    "unowned-writer|global:Symbol_debug_|func:primitive_register_debugger_hook": 2,
+    "unowned-writer|global:Symbol_value|func:kernel_boot": 2,
+    "unowned-writer|global:Symbol_value|func:run_interpreter": 2,
+    "unowned-writer|global:builtin_registry|func:kernel_boot": 18,
+    "unowned-writer|global:g_kernel_instance|func:oimg_bootstrap": 2,
+    "unowned-writer|global:oimg_blob_base|func:oimg_load_blob": 2,
+    "unowned-writer|global:oimg_blob_end|func:oimg_load_blob": 2,
+    "unowned-writer|global:oimg_singleton|func:kernel_boot": 3,
+    "unowned-writer|global:platform_debug_pending|func:src/backend/zephyr/platform_zephyr.c:rl_isr": 2,
+    "unowned-writer|global:platform_debug_pending|func:src/backend/zephyr/platform_zephyr.c:rl_line_taken": 2,
+    "unowned-writer|global:pulse_q|func:pulse_pending": 5,
+    "unowned-writer|global:pulse_q|func:pulse_pump": 5,
+    "unowned-writer|global:pulse_q|func:pulse_pump_nb": 5,
+    "unowned-writer|global:pulse_q|func:src/backend/zephyr/pulse_zephyr.c:pulse_enqueue": 5,
+    "unowned-writer|global:rl_q|func:platform_console_take_line": 3,
+    "unowned-writer|global:rl_q|func:src/backend/zephyr/platform_zephyr.c:rl_getc": 3,
+    "unowned-writer|global:rl_q|func:src/backend/zephyr/platform_zephyr.c:rl_isr": 3
+  },
+  "after": {
+    "owns-violated|global:Symbol_debug_|func:primitive_register_debugger_hook": 1,
+    "owns-violated|global:Symbol_value|func:run_interpreter": 1,
+    "unowned-writer|global:platform_debug_pending|func:src/backend/zephyr/platform_zephyr.c:rl_isr": 2,
+    "unowned-writer|global:platform_debug_pending|func:src/backend/zephyr/platform_zephyr.c:rl_line_taken": 2,
+    "unowned-writer|global:pulse_q|func:pulse_pending": 5,
+    "unowned-writer|global:pulse_q|func:pulse_pump": 5,
+    "unowned-writer|global:pulse_q|func:pulse_pump_nb": 5,
+    "unowned-writer|global:pulse_q|func:src/backend/zephyr/pulse_zephyr.c:pulse_enqueue": 5,
+    "unowned-writer|global:rl_q|func:platform_console_take_line": 3,
+    "unowned-writer|global:rl_q|func:src/backend/zephyr/platform_zephyr.c:rl_getc": 3,
+    "unowned-writer|global:rl_q|func:src/backend/zephyr/platform_zephyr.c:rl_isr": 3
+  }
+}

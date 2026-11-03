@@ -3,7 +3,7 @@ expect:
 health 83
 metrics 108
 cheap 62
-batch 407
+batch 415
 *)
 (* #56 design §9.1, landed as a REGRESSION GUARD.
 
@@ -44,8 +44,9 @@ batch 407
    (rete#214, Metrics gains #pst) -> 396 (rete#199, Health gains #ref, +11 B: a
    3 B label-and-key plus a saturated count, since the worst legal `ref` is as
    large as the wake count of a node refused since boot) -> 407 (rete#232 rider,
-   Health gains #rej for the same 11 B and the same worst-legal reasoning —
-   105 B of headroom remain). Note 385 appears TWICE
+   Health gains #rej for the same 11 B and the same worst-legal reasoning) -> 415
+   (rete#444, each entry's age: 1 B for each of three cells, 5 B for a tel/log row
+   held 30 d — 97 B of headroom remain). Note 385 appears TWICE
    in that series and the two are unrelated: the first is the frame mid-rename,
    the second is the one #199 grew from.
 
@@ -180,8 +181,12 @@ class BatchSize packageUsing: manifest = () (
     ^ platform Record tag: #Log with: #lvl -> #info
                               with: #txt -> 'tick 1296000' )
 
-  row: platform seq: s path: p value: v = (
-    ^ platform List with: s with: p with: 2 with: v )
+  (* rete#444: a push entry's 5th field is its AGE in ms. A cell's is 0; a stream
+     row's is how long it waited in the outbox. Worst legal width for the tel/log
+     row: a row held 30 d (5 B), the same 30 d the other fields use. *)
+  row: platform seq: s path: p value: v = ( ^ self row: platform seq: s path: p value: v age: 0 )
+  row: platform seq: s path: p value: v age: a = (
+    ^ platform List with: s with: p with: 2 with: v with: a )
 
 public main: platform args: args = (
   | cbor rows |
@@ -193,7 +198,7 @@ public main: platform args: args = (
   rows:: platform OrderedCollection new.
   rows add: (self row: platform seq: 1296000 path: 'obs/health' value: (self health: platform)).
   rows add: (self row: platform seq: 1296001 path: 'sys/metrics' value: (self metrics: platform)).
-  rows add: (self row: platform seq: 1296002 path: 'tel/log' value: (self log: platform)).
+  rows add: (self row: platform seq: 1296002 path: 'tel/log' value: (self log: platform) age: 2592000000).
   (* rete#190: publishCheap writes this every check-in, immediately after
      sys/metrics — so it carries the HIGHEST seq of the four and is the first row
      pushFrame's tail-trim drops. It belongs in the frame the guard measures. *)

@@ -94,7 +94,7 @@ Add `test_arena_self_triggers_bound();` in `main` before `printf("ALL TESTS PASS
 
 Run:
 ```bash
-cd /home/david/workspace/oevm
+cd ~/workspace/oevm
 gcc -std=c99 -Isrc tests/test_float_gc.c \
     src/vm.c src/gc.c src/dispatch.c src/oimg_loader.c src/solidified_image.c \
     -lm -o /tmp/tfgc 2>&1 | head
@@ -153,7 +153,7 @@ Leave the rest of the branch (the `malloc` NULL check, `memset` of markbits, `fl
 
 Run:
 ```bash
-cd /home/david/workspace/oevm
+cd ~/workspace/oevm
 gcc -std=c99 -Isrc tests/test_float_gc.c \
     src/vm.c src/gc.c src/dispatch.c src/oimg_loader.c src/solidified_image.c \
     -lm -o /tmp/tfgc && /tmp/tfgc
@@ -165,7 +165,7 @@ Expected: all `test_float_gc:` lines print, including
 
 Run (smaller budget → tighter bound; the test reads the budget via the accessor, so it adapts):
 ```bash
-cd /home/david/workspace/oevm
+cd ~/workspace/oevm
 gcc -std=c99 -Isrc -DOEVM_FLOAT_ARENA_SLAB_BUDGET=4 tests/test_float_gc.c \
     src/vm.c src/gc.c src/dispatch.c src/oimg_loader.c src/solidified_image.c \
     -lm -o /tmp/tfgc4 && /tmp/tfgc4 | grep "self-triggers"
@@ -176,7 +176,7 @@ Expected: `... arena self-triggers + bounded OK (4/4 slabs)` (or `≤ 6`).
 
 Run:
 ```bash
-cd /home/david/workspace/oevm
+cd ~/workspace/oevm
 gcc -std=c99 -Isrc -DOEVM_HEAP_SIZE=65536 tests/test_gc_trigger.c \
     src/vm.c src/gc.c src/dispatch.c src/oimg_loader.c src/solidified_image.c \
     -lm -o /tmp/tgct && /tmp/tgct | tail -1
@@ -189,7 +189,7 @@ Expected: `ALL TESTS PASSED` (test_gc_trigger) and `test_float_arena: OK (...)`.
 - [ ] **Step 8: Commit**
 
 ```bash
-cd /home/david/workspace/oevm
+cd ~/workspace/oevm
 git restore src/solidified_image.c 2>/dev/null
 git add src/gc.c tests/test_float_gc.c
 git commit -m "feat(gc): float_alloc collect-at-cap trigger bounds the arena (W2a.1, GH#5)
@@ -213,8 +213,8 @@ Proves the real goal end-to-end (mandelbrot RSS bounded), runs the conformance +
 
 Run (Model A bench build with the embedded cap; `mandelbrot` shipped main is @750):
 ```bash
-cd /home/david/workspace/oevm
-python3 /home/david/workspace/ns-oevm/tools/ns_compile_oevm.py \
+cd ~/workspace/oevm
+python3 ~/workspace/ns-oevm/tools/ns_compile_oevm.py \
     ../ns-tests/05_somns_benchmarks/04_mandelbrot.ns src/solidified_image.c >/dev/null
 gcc -O2 -DOEVM_APPLIANCE -DOEVM_HEAP_SIZE=262144 -std=c99 \
     src/vm.c src/gc.c src/dispatch.c src/solidified_image.c src/oevm_main.c -o /tmp/oevm_bench_cap -lm
@@ -227,7 +227,7 @@ Expected: **Maximum resident set size** is single-digit MB (a few thousand KB) �
 
 Run:
 ```bash
-cd /home/david/workspace/oevm
+cd ~/workspace/oevm
 /tmp/oevm_bench_cap
 ```
 Expected: mandelbrot prints its normal checksum/`true` verification line (it is self-verifying) — i.e. the bounded run is still correct, not OOM-aborted or wrong.
@@ -236,7 +236,7 @@ Expected: mandelbrot prints its normal checksum/`true` verification line (it is 
 
 Run:
 ```bash
-cd /home/david/workspace/oevm
+cd ~/workspace/oevm
 git restore src/solidified_image.c 2>/dev/null
 gcc -std=c99 -Isrc tests/test_float_gc.c \
     src/vm.c src/gc.c src/dispatch.c src/oimg_loader.c src/solidified_image.c \
@@ -248,7 +248,7 @@ Expected: `ALL TESTS PASSED`.
 
 Run:
 ```bash
-cd /home/david/workspace/oevm
+cd ~/workspace/oevm
 bash tests/test_portability_32.sh
 ```
 Expected: passes as before. (The change adds only a `size_t` comparison and a pointer-overlay draw already exercised by W2a, so it is pointer-width-neutral.) If 32-bit multilib is not installed, record that as an environment limitation and note `test_portability_32.sh` is the authoritative gate.
@@ -257,7 +257,7 @@ Expected: passes as before. (The change adds only a `size_t` comparison and a po
 
 Run:
 ```bash
-cd /home/david/workspace/ns-oevm
+cd ~/workspace/ns-oevm
 OEVM_PATH=AB python3 tools/run_tests_oevm.py 2>&1 | grep -E "Passed|Failed|Skipped"
 ```
 Expected: `Passed: 47`, `Failed: 0`, `Skipped: 1`.
@@ -273,7 +273,7 @@ Mark **W2a.1 (float-arena GC trigger) complete** with the mandelbrot RSS result,
 - [ ] **Step 8: Commit**
 
 ```bash
-cd /home/david/workspace/oevm
+cd ~/workspace/oevm
 git restore src/solidified_image.c 2>/dev/null
 git add nodus/oevm/docs/optimizations.md nodus/oevm/docs/archive/ROADMAP.md
 git commit -m "docs(gp0): W2a.1 done — float arena bounded under cap (mandelbrot 2.35GB -> bounded, GH#5)

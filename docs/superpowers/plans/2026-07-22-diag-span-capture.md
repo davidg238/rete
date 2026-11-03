@@ -25,7 +25,7 @@ Zephyr on an ESP32 WROOM-32 for device verification.
   `~/workspace/nsl-tests`. All three are separate git repos and are committed separately.
 - **Prim ids are counted, never computed.** A new id is `(number of entries in PRIM_NAMES) + 1`
   arrived at by **counting the list**, and it is appended — no existing id may shift.
-- **Path B only.** Run the suite with `OEVM_DIR=/home/david/workspace/tuvm python3 tools/run_tests_oevm.py`
+- **Path B only.** Run the suite with `OEVM_DIR=~/workspace/tuvm python3 tools/run_tests_oevm.py`
   from `~/workspace/nsl-tuvm`. Do **not** enable Path A; the per-test gcc rebuild is too slow.
 - **Read the gate line, not just the failure count.** The suite prints `Passed/Failed/Skipped`
   and then a gate line (`grant · debugger-integration · portability-32 · boot-gc-asan · footprint`).
@@ -127,7 +127,7 @@ public main: platform args: args = (
 - [ ] **Step 2: Run the test and verify it fails**
 
 ```bash
-cd ~/workspace/nsl-tuvm && OEVM_DIR=/home/david/workspace/tuvm python3 tools/run-one.py ~/workspace/nsl-tests/19_latency/06_span_reset.nsl
+cd ~/workspace/nsl-tuvm && OEVM_DIR=~/workspace/tuvm python3 tools/run-one.py ~/workspace/nsl-tests/19_latency/06_span_reset.nsl
 ```
 
 Expected: FAIL — a doesNotUnderstand on `resetAll`. **A SKIP is not a failure and proves
@@ -213,7 +213,7 @@ In `~/workspace/nsl-tuvm/lib/kernel.nsl`, in the `Spans` class, after `failuresA
 - [ ] **Step 7: Run the test and verify it passes**
 
 ```bash
-cd ~/workspace/nsl-tuvm && OEVM_DIR=/home/david/workspace/tuvm python3 tools/run-one.py ~/workspace/nsl-tests/19_latency/06_span_reset.nsl
+cd ~/workspace/nsl-tuvm && OEVM_DIR=~/workspace/tuvm python3 tools/run-one.py ~/workspace/nsl-tests/19_latency/06_span_reset.nsl
 ```
 
 Expected: PASS.
@@ -221,7 +221,7 @@ Expected: PASS.
 - [ ] **Step 8: Run the whole suite**
 
 ```bash
-cd ~/workspace/nsl-tuvm && OEVM_DIR=/home/david/workspace/tuvm python3 tools/run_tests_oevm.py 2>&1 | tail -8
+cd ~/workspace/nsl-tuvm && OEVM_DIR=~/workspace/tuvm python3 tools/run_tests_oevm.py 2>&1 | tail -8
 ```
 
 Expected: `Passed: 208  Failed: 0  Skipped: 14`, and the gate line green except
@@ -377,7 +377,7 @@ public main: platform args: args = (
 - [ ] **Step 2: Run the test and verify it fails**
 
 ```bash
-cd ~/workspace/nsl-tuvm && OEVM_DIR=/home/david/workspace/tuvm python3 tools/run-one.py ~/workspace/nsl-tests/19_latency/07_span_capture.nsl
+cd ~/workspace/nsl-tuvm && OEVM_DIR=~/workspace/tuvm python3 tools/run-one.py ~/workspace/nsl-tests/19_latency/07_span_capture.nsl
 ```
 
 Expected: FAIL — `SpanCapture` does not exist. Again: a SKIP proves nothing.
@@ -491,7 +491,7 @@ before `class ReadStream`:
 - [ ] **Step 4: Run the test and verify it passes**
 
 ```bash
-cd ~/workspace/nsl-tuvm && OEVM_DIR=/home/david/workspace/tuvm python3 tools/run-one.py ~/workspace/nsl-tests/19_latency/07_span_capture.nsl
+cd ~/workspace/nsl-tuvm && OEVM_DIR=~/workspace/tuvm python3 tools/run-one.py ~/workspace/nsl-tests/19_latency/07_span_capture.nsl
 ```
 
 Expected: PASS. If the `#slots` row assertions fail, print `r` to check whether `recordAt:`
@@ -501,7 +501,7 @@ field names differ from those used above — they are `#n`, `#fails`, `#minUs`, 
 - [ ] **Step 5: Run the whole suite**
 
 ```bash
-cd ~/workspace/nsl-tuvm && OEVM_DIR=/home/david/workspace/tuvm python3 tools/run_tests_oevm.py 2>&1 | tail -8
+cd ~/workspace/nsl-tuvm && OEVM_DIR=~/workspace/tuvm python3 tools/run_tests_oevm.py 2>&1 | tail -8
 ```
 
 Expected: `Passed: 209  Failed: 0  Skipped: 14`, gates green except `footprint: SKIP`.
@@ -605,7 +605,7 @@ After the `/stats` route registration (~line 233):
 - [ ] **Step 3: Verify the node still compiles**
 
 ```bash
-cd ~/workspace/nsl-tuvm && OEVM_DIR=/home/david/workspace/tuvm python3 tools/run_tests_oevm.py 2>&1 | tail -8
+cd ~/workspace/nsl-tuvm && OEVM_DIR=~/workspace/tuvm python3 tools/run_tests_oevm.py 2>&1 | tail -8
 ```
 
 Expected: `Passed: 209  Failed: 0  Skipped: 14`. The node file is not covered by the suite,
@@ -629,10 +629,10 @@ bash run.sh --board esp32 --node ThermalHttpNode.nsl --model B --pristine
 Then, with the node on the network:
 
 ```bash
-curl -s http://192.168.0.240:18080/diag/spans/on | head -3
-curl -s http://192.168.0.240:18080/thermal > /dev/null
-curl -s http://192.168.0.240:18080/diag/spans/off | head -3
-curl -s http://192.168.0.240:18080/stats | grep -i -A3 'capture'
+curl -s http://192.0.2.40:18080/diag/spans/on | head -3
+curl -s http://192.0.2.40:18080/thermal > /dev/null
+curl -s http://192.0.2.40:18080/diag/spans/off | head -3
+curl -s http://192.0.2.40:18080/stats | grep -i -A3 'capture'
 ```
 
 Expected: the `on` page says "capturing", the `off` page says "captured", and `/stats` shows
@@ -877,11 +877,11 @@ so there is no other way to reach it.
 - [ ] **Step 7: Suite, then flash and read the page**
 
 ```bash
-cd ~/workspace/nsl-tuvm && OEVM_DIR=/home/david/workspace/tuvm python3 tools/run_tests_oevm.py 2>&1 | tail -8
+cd ~/workspace/nsl-tuvm && OEVM_DIR=~/workspace/tuvm python3 tools/run_tests_oevm.py 2>&1 | tail -8
 cd ~/workspace/tuvm/zephyr && bash run.sh --board esp32 --node ThermalHttpNode.nsl --model B --pristine
 ```
 
-Then open `http://192.168.0.240:18080/stats` in a browser and confirm by eye: the home link
+Then open `http://192.0.2.40:18080/stats` in a browser and confirm by eye: the home link
 sits above `job latency`, numbers carry separators, buckets are dot-separated, the legend
 reads correctly, and the capture table is present.
 

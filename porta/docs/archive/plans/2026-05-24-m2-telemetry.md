@@ -13,9 +13,9 @@
 **Spec:** `docs/specs/2026-05-24-m2-telemetry-design.md`.
 
 **Toolchain & test commands:**
-- Gateway (host, sqlite): `cd /home/david/workspaceToit/porta/gateway && ~/workspaceToit/sqlite/build/bin/toit-sqlite run <file>.toit`
-- Device (host-runnable logic tests): `cd /home/david/workspaceToit/porta && toit run device/<file>.toit`
-- Device compile gate (supervisor — imports esp32/system, not host-runnable): `cd /home/david/workspaceToit/porta && toit compile -s -o /tmp/sup.snapshot device/supervisor.toit`
+- Gateway (host, sqlite): `cd ~/workspaceToit/porta/gateway && ~/workspaceToit/sqlite/build/bin/toit-sqlite run <file>.toit`
+- Device (host-runnable logic tests): `cd ~/workspaceToit/porta && toit run device/<file>.toit`
+- Device compile gate (supervisor — imports esp32/system, not host-runnable): `cd ~/workspaceToit/porta && toit compile -s -o /tmp/sup.snapshot device/supervisor.toit`
 - There is no `toit test` on this SDK; every test is a `main` using `import expect show *`.
 
 **Suggested execution order:** Phase B (gateway, host-TDD) and Phase C tasks C1–C5 (device, host-TDD + compile gate) need no hardware — do them first. Then do Phase A (spike) and Task C6 (verification) together on `fwkb`.
@@ -170,7 +170,7 @@ main:
 
 - [ ] **Step 2: Run it to verify it fails**
 
-Run: `cd /home/david/workspaceToit/porta/gateway && ~/workspaceToit/sqlite/build/bin/toit-sqlite run data_log_test.toit`
+Run: `cd ~/workspaceToit/porta/gateway && ~/workspaceToit/sqlite/build/bin/toit-sqlite run data_log_test.toit`
 Expected: FAIL (no `data_log` table / `insert-data` undefined).
 
 - [ ] **Step 3: Add the table to `init-schema_`**
@@ -224,7 +224,7 @@ In `gateway/store.toit`, after `reports`, add:
 
 - [ ] **Step 5: Run to verify it passes**
 
-Run: `cd /home/david/workspaceToit/porta/gateway && ~/workspaceToit/sqlite/build/bin/toit-sqlite run data_log_test.toit`
+Run: `cd ~/workspaceToit/porta/gateway && ~/workspaceToit/sqlite/build/bin/toit-sqlite run data_log_test.toit`
 Expected: PASS, prints `data_log OK`.
 
 - [ ] **Step 6: Commit**
@@ -280,7 +280,7 @@ main:
 
 - [ ] **Step 2: Run to verify it fails**
 
-Run: `cd /home/david/workspaceToit/porta/gateway && ~/workspaceToit/sqlite/build/bin/toit-sqlite run data_ingest_test.toit`
+Run: `cd ~/workspaceToit/porta/gateway && ~/workspaceToit/sqlite/build/bin/toit-sqlite run data_ingest_test.toit`
 Expected: FAIL (writer-for refuses "data" → throws ACCESS-DENIED).
 
 - [ ] **Step 3: Add `encoding.json` import and extend `writer-for`**
@@ -349,12 +349,12 @@ class DataWriter_ extends io.CloseableWriter:
 
 - [ ] **Step 5: Run to verify it passes**
 
-Run: `cd /home/david/workspaceToit/porta/gateway && ~/workspaceToit/sqlite/build/bin/toit-sqlite run data_ingest_test.toit`
+Run: `cd ~/workspaceToit/porta/gateway && ~/workspaceToit/sqlite/build/bin/toit-sqlite run data_ingest_test.toit`
 Expected: PASS, prints `data ingest OK`.
 
 - [ ] **Step 6: Confirm the existing handler test still passes (no regression)**
 
-Run: `cd /home/david/workspaceToit/porta/gateway && ~/workspaceToit/sqlite/build/bin/toit-sqlite run handler_test.toit`
+Run: `cd ~/workspaceToit/porta/gateway && ~/workspaceToit/sqlite/build/bin/toit-sqlite run handler_test.toit`
 Expected: PASS (report WRQ path unchanged; non-report/non-data still refused).
 
 - [ ] **Step 7: Commit**
@@ -387,7 +387,7 @@ main:
 
 - [ ] **Step 2: Run to verify it fails**
 
-Run: `cd /home/david/workspaceToit/porta/gateway && ~/workspaceToit/sqlite/build/bin/toit-sqlite run monitor_test.toit`
+Run: `cd ~/workspaceToit/porta/gateway && ~/workspaceToit/sqlite/build/bin/toit-sqlite run monitor_test.toit`
 Expected: FAIL (`monitor-line_` undefined / not exported).
 
 - [ ] **Step 3: Add the formatter + command + handler**
@@ -445,12 +445,12 @@ cmd-monitor parsed/cli.Parsed -> none:
 
 - [ ] **Step 4: Run to verify it passes**
 
-Run: `cd /home/david/workspaceToit/porta/gateway && ~/workspaceToit/sqlite/build/bin/toit-sqlite run monitor_test.toit`
+Run: `cd ~/workspaceToit/porta/gateway && ~/workspaceToit/sqlite/build/bin/toit-sqlite run monitor_test.toit`
 Expected: PASS, prints `monitor-line OK`.
 
 - [ ] **Step 5: Smoke-check the CLI wiring compiles/parses**
 
-Run: `cd /home/david/workspaceToit/porta/gateway && ~/workspaceToit/sqlite/build/bin/toit-sqlite run gateway.toit -- --db=/tmp/m2.db monitor --help`
+Run: `cd ~/workspaceToit/porta/gateway && ~/workspaceToit/sqlite/build/bin/toit-sqlite run gateway.toit -- --db=/tmp/m2.db monitor --help`
 Expected: prints the monitor help text (no crash).
 
 - [ ] **Step 6: Commit**
@@ -488,7 +488,7 @@ main:
 
 - [ ] **Step 2: Run to verify it fails**
 
-Run: `cd /home/david/workspaceToit/porta/gateway && ~/workspaceToit/sqlite/build/bin/toit-sqlite run set_console_test.toit`
+Run: `cd ~/workspaceToit/porta/gateway && ~/workspaceToit/sqlite/build/bin/toit-sqlite run set_console_test.toit`
 Expected: FAIL (`VERB-SET-CONSOLE` / `Command.set-console` undefined).
 
 - [ ] **Step 3: Add the verb + factory to `command.toit`**
@@ -509,7 +509,7 @@ Add the factory after `set-poll-interval`:
 
 - [ ] **Step 4: Run to verify it passes**
 
-Run: `cd /home/david/workspaceToit/porta/gateway && ~/workspaceToit/sqlite/build/bin/toit-sqlite run set_console_test.toit`
+Run: `cd ~/workspaceToit/porta/gateway && ~/workspaceToit/sqlite/build/bin/toit-sqlite run set_console_test.toit`
 Expected: PASS, prints `set-console command OK`.
 
 - [ ] **Step 5: Add the CLI verb**
@@ -553,7 +553,7 @@ cmd-device-set-console parsed/cli.Parsed -> none:
 
 - [ ] **Step 6: Smoke-check the CLI wiring**
 
-Run: `cd /home/david/workspaceToit/porta/gateway && ~/workspaceToit/sqlite/build/bin/toit-sqlite run gateway.toit -- --db=/tmp/m2.db device set-console -d aabbccddeeff on`
+Run: `cd ~/workspaceToit/porta/gateway && ~/workspaceToit/sqlite/build/bin/toit-sqlite run gateway.toit -- --db=/tmp/m2.db device set-console -d aabbccddeeff on`
 Expected: prints `aabbccddeeff: enqueued set-console on (command #1)`.
 
 - [ ] **Step 7: Commit**
@@ -605,7 +605,7 @@ main:
 
 - [ ] **Step 2: Run to verify it fails**
 
-Run: `cd /home/david/workspaceToit/porta && toit run device/telemetry_buffer_test.toit`
+Run: `cd ~/workspaceToit/porta && toit run device/telemetry_buffer_test.toit`
 Expected: FAIL (`telemetry_buffer` module / `TelemetryBuffer` undefined).
 
 - [ ] **Step 3: Implement the buffer**
@@ -650,7 +650,7 @@ class TelemetryBuffer:
 
 - [ ] **Step 4: Run to verify it passes**
 
-Run: `cd /home/david/workspaceToit/porta && toit run device/telemetry_buffer_test.toit`
+Run: `cd ~/workspaceToit/porta && toit run device/telemetry_buffer_test.toit`
 Expected: PASS, prints `telemetry buffer OK`.
 
 - [ ] **Step 5: Commit**
@@ -696,7 +696,7 @@ main:
 
 - [ ] **Step 2: Run to verify it fails**
 
-Run: `cd /home/david/workspaceToit/porta && toit run device/telemetry_codec_test.toit`
+Run: `cd ~/workspaceToit/porta && toit run device/telemetry_codec_test.toit`
 Expected: FAIL (`telemetry_codec` / `build-data-body` undefined).
 
 - [ ] **Step 3: Implement the codec**
@@ -719,7 +719,7 @@ build-data-body entries/List -> ByteArray:
 
 - [ ] **Step 4: Run to verify it passes**
 
-Run: `cd /home/david/workspaceToit/porta && toit run device/telemetry_codec_test.toit`
+Run: `cd ~/workspaceToit/porta && toit run device/telemetry_codec_test.toit`
 Expected: PASS, prints `telemetry codec OK`.
 
 - [ ] **Step 5: Commit**
@@ -770,7 +770,7 @@ main:
 
 - [ ] **Step 2: Run to verify it fails**
 
-Run: `cd /home/david/workspaceToit/porta && toit run device/telemetry_service_test.toit`
+Run: `cd ~/workspaceToit/porta && toit run device/telemetry_service_test.toit`
 Expected: FAIL (`telemetry_service` module undefined).
 
 - [ ] **Step 3: Implement the service**
@@ -829,7 +829,7 @@ class TelemetryServiceProvider extends services.ServiceProvider
 
 - [ ] **Step 4: Run to verify it passes**
 
-Run: `cd /home/david/workspaceToit/porta && toit run device/telemetry_service_test.toit`
+Run: `cd ~/workspaceToit/porta && toit run device/telemetry_service_test.toit`
 Expected: PASS, prints `telemetry service OK`.
 
 - [ ] **Step 5: Commit**
@@ -866,7 +866,7 @@ main:
 
 - [ ] **Step 2: Run to verify it fails**
 
-Run: `cd /home/david/workspaceToit/porta && toit run device/set_console_apply_test.toit`
+Run: `cd ~/workspaceToit/porta && toit run device/set_console_apply_test.toit`
 Expected: FAIL (`is-set-console` undefined).
 
 - [ ] **Step 3: Add the verb + helper**
@@ -885,7 +885,7 @@ Add the helper next to `is-set-poll`:
 
 - [ ] **Step 4: Run to verify it passes**
 
-Run: `cd /home/david/workspaceToit/porta && toit run device/set_console_apply_test.toit`
+Run: `cd ~/workspaceToit/porta && toit run device/set_console_apply_test.toit`
 Expected: PASS, prints `set-console decode OK`.
 
 - [ ] **Step 5: Commit**
@@ -1024,12 +1024,12 @@ with:
 
 - [ ] **Step 5: Compile-gate the supervisor**
 
-Run: `cd /home/david/workspaceToit/porta && toit compile -s -o /tmp/sup.snapshot device/supervisor.toit`
+Run: `cd ~/workspaceToit/porta && toit compile -s -o /tmp/sup.snapshot device/supervisor.toit`
 Expected: compiles with no errors (a clean snapshot is written).
 
 - [ ] **Step 6: Re-run the device host tests (no regression)**
 
-Run: `cd /home/david/workspaceToit/porta && for t in node_command report inventory goal_state triggers image_writer telemetry_buffer telemetry_codec telemetry_service set_console_apply; do toit run device/$t\_test.toit; done`
+Run: `cd ~/workspaceToit/porta && for t in node_command report inventory goal_state triggers image_writer telemetry_buffer telemetry_codec telemetry_service set_console_apply; do toit run device/$t\_test.toit; done`
 Expected: every test prints its OK line, no failures.
 
 - [ ] **Step 7: Commit**
@@ -1067,7 +1067,7 @@ main:
 - [ ] **Step 2: Build + flash the supervisor firmware**
 
 ```bash
-cd /home/david/workspaceToit/porta
+cd ~/workspaceToit/porta
 rm -f firmware-esp32.envelope supervisor.image supervisor.snapshot
 bash host/build-envelope.sh
 jag flash firmware-esp32.envelope --exclude-jaguar --wifi-ssid "<SSID>" --wifi-password "<PW>" --port /dev/ttyUSB0
@@ -1078,7 +1078,7 @@ Expected: `firmware show` lists `supervisor`, no `jaguar`. Device boots; `jag mo
 
 ```bash
 export TS=~/workspaceToit/sqlite/build/bin/toit-sqlite
-cd /home/david/workspaceToit/porta/gateway
+cd ~/workspaceToit/porta/gateway
 $TS run gateway.toit -- --db=/tmp/porta-fwkb.db serve --port=6969
 ```
 Confirm the supervisor's `GATEWAY-HOST`/`GATEWAY-PORT` match this host:6969.
@@ -1086,7 +1086,7 @@ Confirm the supervisor's `GATEWAY-HOST`/`GATEWAY-PORT` match this host:6969.
 - [ ] **Step 4: Build the chatty payload image**
 
 ```bash
-cd /home/david/workspaceToit/porta
+cd ~/workspaceToit/porta
 toit compile -s -o chatty.snapshot device/chatty.toit
 toit tool snapshot-to-image -m32 --format=binary -o chatty.bin chatty.snapshot
 ```
@@ -1097,7 +1097,7 @@ Use the node's MAC id (e.g. `30aea41a6208`). Speed up the loop, turn console on,
 
 ```bash
 export TS=~/workspaceToit/sqlite/build/bin/toit-sqlite
-cd /home/david/workspaceToit/porta/gateway
+cd ~/workspaceToit/porta/gateway
 $TS run gateway.toit -- --db=/tmp/porta-fwkb.db device set-poll-interval -d <id> 30s
 $TS run gateway.toit -- --db=/tmp/porta-fwkb.db device set-console -d <id> on
 $TS run gateway.toit -- --db=/tmp/porta-fwkb.db container install chatty ../chatty.bin -d <id> --interval=30s
