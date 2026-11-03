@@ -104,6 +104,7 @@ int ota_write_ready(const uint8_t hash[32], const uint8_t *sig, int sig_len) {
 }
 void ota_touch_confirm(void) { confirm_touches++; }
 void ota_exit_stage_ready(void) { exits++; }   /* recorded, not taken */
+void ota_exit_reboot(void) { exits++; }        /* rete#432: ota_reboot's exit, recorded too */
 void ota_sleep_ms(int ms) { (void)ms; }
 /* rete#233 T9: the fetch asks for a thread; here it runs inline, so the FIRST
    ota_stage answers 0 (started) with the fetch already complete and the second
