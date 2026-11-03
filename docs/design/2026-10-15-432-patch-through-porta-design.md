@@ -4,6 +4,8 @@ _DRAFT, 2026-10-15, for iteration with David. Branch `432-patch-porta`. Q1–Q5 
 all five recommendations"); plan `docs/superpowers/plans/2026-10-15-432-patch-through-porta.md`, which
 corrected five points (below)._
 
+_As built on the host 2026-10-21 (Tasks 1–7, branch `432-patch-porta`); the boards are Task 9, with David. See "As built" at the end._
+
 ## Where it stands
 
 0.1 is *one node, every verb — load, debug, patch, profile — through porta, over the radio, while it sleeps*. Load
@@ -123,3 +125,41 @@ Read from the code while writing the plan (its P1–P10); the text above is edit
 - **A reboot primitive is new.** Q2 needs one; none exists. A Zephyr software reset keeps RTC memory and reads as a
   reboot wake on the MagTag; the host exits with a code its gate relaunches on.
 - **The gate is `sleepy_debug_host.sh`**, the debug-through-porta gate; `porta_sync_host.sh` runs a standard image.
+
+## As built (host, 2026-10-21; merged with master 2026-11-03)
+
+Tasks 1–7 of the plan, gated by `nodus/oevm/tests/sleepy_debug_host.sh` leg P. The boards (Task 9) are not done.
+
+- **The record** (Task 1, `05f2e8a2`). `Debug{sha, breaks, ? patches}`: `patches` is an optional `BlobRef`, the
+  key after `breaks`. The blob is the patch set for `sha`, one VM patch text per line, applied in order, unsigned
+  (RECORDS §4.1, `MANIFEST.cddl`, a golden beside the existing one).
+- **porta's two reads** (Task 2, `dbeedb48`). `GET /blob/{hash}` (404 if absent) and
+  `GET /node/{id}/log?path=P&after=N`, oldest first, each row with its event id. `Store.Events` takes one
+  `space.EventFilter{Limit, Boot, Path, After, Oldest}` instead of positional arguments (P5). porta has no patch code.
+- **The VM** (Task 3, `5a4a1e6a`). `ota_fetch_blob` fetches into memory on the caller's thread, blocking, through the
+  same `fetch_blocks` loop as `ota_stage` (`35030b13`), and checks the size and SHA-256. Its buffer bound is
+  `OTA_BLOB_MAX` = 16384 (16 patches of up to 1 KiB). Prim 165 `fetchBlob:size:host:port:` answers the bytes or nil.
+  Prim 166 `reboot` is `sys_reboot(SYS_REBOOT_WARM)` on Zephyr (RTC memory kept) and `exit(75)` on the host, which the
+  gate reads as "relaunch me". The footprint was re-banked once (host text 78837 → 81437, `0dae73cf`, David). Master's
+  nRF OTA (#449) touched only the fetch thread's guard (`OTA_HAVE_SLOT`, #427), and the blob fetch never passes through
+  it.
+- **The kernel** (Task 4). `DebugLink>>acceptGoal:` keeps the lines it applied this boot. A set they prefix queues
+  `dbg:patch` for the rest, ahead of the breaks. Any other set, once lines are applied, prints the reboot line and
+  reboots. Nothing applied means apply everything, which is the boot replay. A failed fetch answers
+  `dbg:error patches fetch`; breaks still arm, and the fetch is retried at the next check-in.
+- **`patch_method.py --blob`** (Task 5) writes the patch text with no line cap. The cable path keeps its 511 bytes (P8).
+- **custos** (Task 6, `bd2ec903`, `custos/internal/custos/portadebug.go`). A `--porta-node` with a `--map` serves
+  debug and patch. `break`/`clear` rewrite the cell's `breaks` and keep `patches`. Every other verb is one `dbg/req`
+  line, and each answers `{Pending, Seq}` (P9). A poller on `dbg/resp` feeds `/debug/state` (P10).
+  `POST`/`DELETE /debug/patch?method=…` rebuild the set from the cell and `GET /blob`, so custos keeps no state (P6).
+  The set holds one line per method, and a 17th method is refused. custos `POST /blob`s the set and then writes the
+  cell. A porta `load` rewrites the cell to `Debug{sha: <new>, breaks: []}`.
+- **Deviations awaiting David** (Task 6): on a porta node `step`/`next` move one bytecode (a line step is many
+  round trips through a sleeping node); `locals` answers the node's raw `dbg:stack` line; debug needs a `--map` but
+  not `--advertise`.
+- **The gate** (Task 7). Leg P runs a real porta and a real custos over HTTP. A patch is in force at a check-in and
+  reaches custos's state. The relaunched node's first tick is patched. A second patch extends the set with no exit.
+  A `DELETE` exits 75, and the relaunch runs the smaller set. Green on the merged tree, 2026-11-03.
+- **Not done:** Task 9 (gw's porta on the new manifest, the wall bell over Thread and the MagTag over WiFi, Q4's
+  per-wake fetch cost), and the close-out's promotions (RECORDS §4.1 is done; the peer design's 0.1 addendum, paper
+  E §9, the ladder and CLAIMS are not).

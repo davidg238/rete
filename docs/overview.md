@@ -38,7 +38,7 @@ Decided by David, 2026-10-02 (recorded on rete#253 and rete#79):
 | 5 | Change the program and load it without reflashing the firmware | Done on the C6 (#310); over HTTP, `POST /load` and a page (#367) |
 | 6 | Profile the program on the board | Works: a page at `/profile` and an agent path, its cost measured (#312, #364) |
 | 7 | Debug on the board, over the cable | Works with a debug image, held state respected by the watchdog (#311); the standard image leaves the checks out |
-| 8 | Stop, patch a method, restart it, resume | Works in debug builds, for a method using only what the image holds: on the desktop and on a C6 over its cable, `POST /debug/patch` (#313, D17; [result](results/2026-10-06-313-patch-restart-spike.md)) |
+| 8 | Stop, patch a method, restart it, resume | Works in debug builds, for a method using only what the image holds: on the desktop and on a C6 over its cable, `POST /debug/patch` (#313, D17; [result](results/2026-10-06-313-patch-restart-spike.md)); through porta on the host, the patch set replayed at every boot (#432; boards pending) |
 | 9 | See the gateway mirror a node | Works with the desktop node: [tutorial 3](tutorials/03-porta.md), and with both demo boards over their radios |
 
 Then the same node over the radio, through porta:
