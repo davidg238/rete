@@ -16,6 +16,7 @@ implemented_by:
   - c: http_write
   # src/ota_backend.h
   - c: ota_env
+  - c: ota_exit_reboot
   - c: ota_exit_stage_ready
   - c: ota_note_running_hash
   - c: ota_sleep_ms

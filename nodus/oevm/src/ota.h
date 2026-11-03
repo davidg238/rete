@@ -74,11 +74,6 @@ int  ota_fetch_blob(const char *host, int port, const uint8_t hash[32], long siz
  * would move it. */
 #define OTA_BLOB_MAX  16384
 
-/* rete#432: restart the node, keeping what a software reset keeps (RTC memory on
- * Zephyr); the host exits 75, "relaunch me". Prim 166. Does not return where the
- * backend can leave. */
-void ota_reboot(void);
-
 /* Touch the confirm marker — "this trial image works". Becomes
  * boot_write_img_confirmed() on target. Idempotent; never fails loudly. */
 void ota_confirm(void);

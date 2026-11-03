@@ -18,6 +18,7 @@
 static uint32_t s_app_cad_ms = 0;
 uint32_t platform_app_cad_ms(void) { return s_app_cad_ms; }
 #include "ota.h"             /* rete#25: the image-push seam, prims 145-150 */
+#include "ota_backend.h"     /* rete#432: ota_exit_reboot, prim 166 */
 #include "reboot_note.h"    /* rete#215: the retained panic note, prims 153-154 */
 #include <stdio.h>
 #include <stdlib.h>
@@ -1605,7 +1606,7 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
         return 1;
     }
     case PRIM_pf_reboot:
-        ota_reboot();                    /* does not return where the backend can leave */
+        ota_exit_reboot();               /* does not return where the backend can leave */
         *out = platform_object();
         return 1;
     case PRIM_pf_otaConfirm:

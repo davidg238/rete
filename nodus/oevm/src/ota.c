@@ -474,10 +474,6 @@ void ota_confirm(void) {
     say("confirmed");
 }
 
-void ota_reboot(void) {
-    ota_exit_reboot();
-}
-
 void ota_activate(const uint8_t hash[32], const uint8_t *sig, int sig_len) {
     if (!hash) return;
     if (!sig || sig_len < 0) sig_len = 0;
