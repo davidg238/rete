@@ -59,6 +59,10 @@ record in `settings` (code-push design §10). `image-0` and `image-1` are 1024K 
 | ESP32-C6 devkit | `program_a` | `0x220000` | 768K | `nodus/oevm/zephyr/boards/esp32c6_devkitc_esp32c6_hpcore.overlay` | `zephyr/run.sh` (from the build's `zephyr.dts`); `custos/internal/load` (a copy that cites this row) |
 | ESP32-C6 devkit | `program_b` | `0x2E0000` | 768K | the same overlay | `ota_zephyr.c` (`FIXED_PARTITION_ID`, no copy) |
 | ESP32-S2 (MagTag) | `program_a` / `program_b` | the same | the same | `nodus/oevm/zephyr/boards/esp32s2_saola_esp32s2.overlay` (rete#379; the same carve — the S2's default 4 MB table is the C6's) | the same readers |
+| nRF52840 DK profile (DK, ACC01, OCM.1) | `program_a` | `0x80000` | 252K | `nodus/oevm/zephyr/pm_static_dk.yml` (rete#449: the NCS partition manager owns the map, so slots are PM partitions, not dts) | `zephyr/run.sh` (from the build's `partitions.yml`); `blob.S` assembles nothing when `pm_config.h` names the slot |
+| nRF52840 DK profile | `program_b` | `0xBF000` | 252K | the same file | `ota_zephyr.c` (`FIXED_PARTITION_ID` reads PM partitions under NCS) |
+
+On the nRF52840 a program must compile to ≤ 252K: `--layout=nodus/oevm/zephyr/layout-nrf52840.json`.
 
 `blob_size` (§2) is the number of bytes the slot holds. An erased slot reads
 `0xFFFFFFFF` there, and the firmware's loader refuses it by name. After a load, the
