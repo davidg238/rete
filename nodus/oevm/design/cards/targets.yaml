@@ -5,6 +5,11 @@ root: true
 does:
   - the board facilities the core dispatches prims to (gpio, display, bell, ntp, wallclock, reboot note)
 implemented_by:
-  - c: "*_target_*"
+  - c: "bell_target_*"
+  - c: "display_target_*"
+  - c: "gpio_target_level"
+  - c: "gpio_target_set"
+  - c: "ntp_target_*"
+  - c: "wallclock_target_*"
   - c: reboot_note_read
   - c: reboot_note_ack

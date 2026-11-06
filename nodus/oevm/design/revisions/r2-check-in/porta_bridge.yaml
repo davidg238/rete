@@ -7,11 +7,15 @@ knows:
     # porta/docs/design/2026-08-01-porta-space-sync-rewrite-design.md; docs/design/2026-11-04-440-vm-zephyr-seam-crc-design.md: The check-in as reactions
   - "the app's radio policy: always on, per exchange, or off"
     # docs/design/2026-11-04-440-vm-zephyr-seam-crc-design.md: Radio
+  - "its Timers, from construction, so a wait always has a wake"
+    # docs/design/2026-11-04-440-vm-zephyr-seam-crc-design.md: The check-in as reactions
 does:
   - "starts an exchange if idle and returns at once; never waits"
     # docs/design/2026-11-04-440-vm-zephyr-seam-crc-design.md: Decided by David (2026-11-05)
   - "moves the exchange on from three events: the cadence, a datagram's doorbell, the budget"
     # docs/design/2026-11-04-440-vm-zephyr-seam-crc-design.md: The check-in as reactions
+  - "reads a socket to empty in every reaction that owns it"
+    # docs/design/2026-11-04-440-vm-zephyr-seam-crc-design.md: Arrivals
   - "says when an exchange has finished, on a channel"
     # docs/design/2026-11-04-440-vm-zephyr-seam-crc-design.md: Decided by David (2026-11-05)
 collaborators:
