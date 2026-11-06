@@ -5,7 +5,7 @@ stereotype: coordinator
 knows:
   - "one exchange at a time: pull, then push, idempotent by cursor"
     # porta/docs/design/2026-08-01-porta-space-sync-rewrite-design.md; docs/design/2026-11-04-440-vm-zephyr-seam-crc-design.md: The check-in as reactions
-  - "the app's radio policy: always on, per exchange, or off"
+  - "the app's radio policy: always on, per exchange, or off for a duration"
     # docs/design/2026-11-04-440-vm-zephyr-seam-crc-design.md: Radio
   - "its Timers, from construction, so a wait always has a wake"
     # docs/design/2026-11-04-440-vm-zephyr-seam-crc-design.md: The check-in as reactions

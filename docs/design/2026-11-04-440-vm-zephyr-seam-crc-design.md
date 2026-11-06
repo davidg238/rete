@@ -43,8 +43,11 @@ block, or where an arrival turns into an event.
 - **A check-in starts an exchange if idle and returns at once.** Apps do their work before it: the health row
   rides the same push it rides today (`nodus/nsl/lib/kernel.nsl`, the `obs/health` note in the trim comment),
   with fresher values. Only work that truly needs the end reacts to "finished".
-- **The radio is an app policy the bridge carries out:** always on, per exchange, or off.
-- **ttgm's check-in cadence is 60 s.** The builder changes the chair apps in ttgm's own repo, nothing copied
+- **The radio is an app policy the bridge carries out:** always on, per exchange, or off for a duration.
+- **Off always has a duration.** A bug in an app's turn-back-on code must not strand a node, so an app can only
+  say "off for N"; when N expires the bridge does one exchange whatever the app does, and a fix can arrive.
+- **ttgm's check-in cadence is 60 s, with 4 allowed misses**, so porta calls a dead chair node dead in about 4
+  minutes. The builder changes the chair apps in ttgm's own repo, nothing copied
   into rete. The BLE transport is already wholly in rete (`udp_ble.c`, `relay_frame.h`,
   `protocol/RELAY-BLE.md`, `relay/android/`); only applications live in ttgm.
 - **Current measurement is delayed:** David has the tools but it is significant setup. No gate here waits on
@@ -232,10 +235,11 @@ One verb at the seam, `radio_*`; one cell, `sys/radio`, holding the state, so th
 |---|---|---|
 | **always** (default) | nothing; skips a check-in while the link is down | any time the link is up |
 | **per exchange** | radio on for each check-in, off when it finishes | at the check-in, so within one cadence |
-| **off** | one last exchange to carry the cell, then off; check-ins are counted and nothing is sent | nobody, until the app turns it back on (no goals, no OTA, no debugger) |
+| **off for N** | one last exchange to carry the cell, then off; check-ins are counted and nothing is sent; at N, one exchange whatever the app does | nobody until N or the app turns it on (no goals, no OTA, no debugger), so a fix waits at most N |
 
-- An app that goes silent re-declares its expected gap first with the existing `bridge liveness:misses:`, so the
-  silence is not read as death. porta is untouched.
+- N is a timer, like every deadline, and the one number: the bridge re-declares the expected gap from it with the
+  existing liveness declaration, so the silence is not read as death. porta is untouched. The kernel invents no
+  period.
 - `linkBudget` is one number, set from the first reconnect measured at R3. Until R3, per exchange does not
   exist, so nothing needs a guess. What would earn a second number: a transport whose reconnect differs enough
   to matter, measured.
@@ -247,7 +251,7 @@ One verb at the seam, `radio_*`; one cell, `sys/radio`, holding the state, so th
 |---|---|---|
 | **R0 cards** | the cards and context cards above; on this branch | invarlint PASS, new 0, stale 0; debt named per card |
 | **R1 arrivals** (C) | Net: BLE `recv_cb` posts after `ring_put`; the reader on Zephyr sockets; posix posts from `poll()` inside the pump. Http: the same reader. `pulse_pump_nb` and `http_poll`-in-`pumpEvents` deleted | nsl suite, `porta_sync_host.sh`, `http_roundtrip_host.sh`; new host tests for invariant 4 (two datagrams under one doorbell; a miss, then a reply), because the non-blocking host pump cannot otherwise see a lost restore; the C6 http board scenario and `PulseNode` idle on the C6 (no bridge: the kernel still spins in `awaitReply:` until R2) |
-| **R2 check-in** (nsl) | the state machine, the held loop, every app in the table; `awaitReply:` deleted; the OTA fetch untouched. In ttgm's repo: the chair apps' new order, flush and 60 s cadence | `porta_sync_host.sh` PORTA SYNC OK; `tutorial-porta`; the debugger host gate; the `porta-*` board scenarios; `CONFIG_BT_LONG_WQ_PRIO=0` dropped and pairing still succeeds; **J-Link PC samples on OCM.1 land in idle between check-ins**, with rete's `PortaBridgeNodeBle` and then the chair app |
+| **R2 check-in** (nsl) | the state machine, the held loop, every app in the table; `awaitReply:` deleted; the OTA fetch untouched. In ttgm's repo: the chair apps' new order, flush, 60 s cadence and `misses: 4` | `porta_sync_host.sh` PORTA SYNC OK; `tutorial-porta`; the debugger host gate; the `porta-*` board scenarios; `CONFIG_BT_LONG_WQ_PRIO=0` dropped and pairing still succeeds; **J-Link PC samples on OCM.1 land in idle between check-ins**, with rete's `PortaBridgeNodeBle` and then the chair app |
 | **R3 radio** (#458) | `Radio` card; the verb, `sys/radio`, the policy; `sys/net/link` | OCM.1: off, on, reconnects through the Pixel relay; the reconnect time measured, which sets `linkBudget` |
 | **R4 measure** (#459) | delayed by David: OCM.1 always-on, idle, per exchange at 60 s, radio off, against the 90 µA line | the numbers in #459; #457 earns itself or closes |
 | **R5 OTA fetch** | reactions in the kernel, one state per block; the OTA thread and `ota_sleep_ms` deleted | `host_ota` gate; #449's OTA over BLE re-run |
