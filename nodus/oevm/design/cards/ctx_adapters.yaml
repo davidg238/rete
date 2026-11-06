@@ -1,0 +1,6 @@
+name: adapters
+kind: context
+files:
+  - "src/backend/zephyr/*"
+units:
+  - src/backend/zephyr

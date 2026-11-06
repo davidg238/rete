@@ -1,0 +1,14 @@
+name: Timer
+stereotype: interfacer
+root: true
+context: adapters
+knows:
+  - "monotonic time; virtual by default on the host, real on a target"
+    # src/timer_backend.h: file comment
+  - "a full table is a crash today, with OEVM_MAX_TARGET_TIMERS slots"
+    # src/backend/zephyr/timer_zephyr.c: timer_start; #81
+does:
+  - "holds every deadline in the system; an expiry posts a pulse"
+    # docs/design/2026-11-04-440-vm-zephyr-seam-crc-design.md: The rule, in one sentence; src/timer_backend.h: file comment
+implemented_by:
+  - c: "timer_backend_*"
