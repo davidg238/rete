@@ -1,0 +1,6 @@
+name: core
+kind: context
+files:
+  - "src/*"
+units:
+  - src

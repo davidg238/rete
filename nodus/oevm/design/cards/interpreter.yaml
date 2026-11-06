@@ -4,6 +4,8 @@
 name: Interpreter
 does:
   - runs the bytecode and owns the running frame
+collaborators:
+  - {to: Console, mode: sync-command}   # the 38 console sites; declared for the record, no C rule reads it yet
 owns:
   - global:current_frame
   - global:vm_stack_ptr

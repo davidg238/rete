@@ -1,0 +1,20 @@
+name: Http
+stereotype: interfacer
+root: true
+context: adapters
+knows:
+  - "the listener and its open connections"
+    # src/http_backend.h: file comment
+does:
+  - "rings the listener's channel when a client is ready, and reads nothing itself; accept, read and parse stay on the VM thread"
+    # docs/design/2026-11-04-440-vm-zephyr-seam-crc-design.md: Arrivals
+  - "writes a framed reply and closes the connection"
+    # src/http_backend.h: http_write, http_close
+implemented_by:
+  - c: http_accept_failures
+  - c: http_close
+  - c: http_emit
+  - c: http_is_listening
+  - c: http_listen
+  - c: http_poll
+  - c: http_write

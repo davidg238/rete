@@ -1,0 +1,13 @@
+# Lands in design/cards with R3's code: an unbound card fails the gate, so it waits for radio_* to exist.
+name: Radio
+stereotype: interfacer
+root: true
+context: adapters
+knows:
+  - "whether the radio is on"
+    # docs/design/2026-11-04-440-vm-zephyr-seam-crc-design.md: Radio; #458
+does:
+  - "switches the radio off and on with the VM live, by one verb across BLE, Thread and WiFi"
+    # docs/design/2026-11-04-440-vm-zephyr-seam-crc-design.md: Decided by David (2026-11-04); #458
+implemented_by:
+  - c: "radio_*"

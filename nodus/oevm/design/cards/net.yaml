@@ -1,0 +1,23 @@
+name: Net
+stereotype: interfacer
+root: true
+context: adapters
+knows:
+  - "the sockets, over Thread, WiFi, the BLE relay or posix; addresses are plain strings and the backend owns the family"
+    # src/udp_backend.h: file comment; docs/design/2026-10-23-439-ble-relay-design.md: The mechanism
+  - "whether the link is up"
+    # docs/design/2026-11-04-440-vm-zephyr-seam-crc-design.md: The cards (intended); #458
+does:
+  - "rings a socket's channel when a datagram has arrived, after the datagram can be read, and once until the VM has read to empty"
+    # docs/design/2026-11-04-440-vm-zephyr-seam-crc-design.md: Arrivals
+  - "rings the link channel when the link goes up or down"
+    # docs/design/2026-11-04-440-vm-zephyr-seam-crc-design.md: Arrivals
+  - "hands over a waiting datagram without blocking, and answers when none waits"
+    # src/udp_backend.h: udp_receive
+implemented_by:
+  - c: udp_close
+  - c: udp_open
+  - c: udp_receive
+  - c: udp_send
+  - c: udp_socket_bind
+  - c: "net_link_*"
