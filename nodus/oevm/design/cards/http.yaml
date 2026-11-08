@@ -16,7 +16,6 @@ implemented_by:
   - c: http_accept_failures
   - c: http_close
   - c: http_emit
-  - c: http_is_listening
   - c: http_listen
   - c: http_poll
   - c: http_write
