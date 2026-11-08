@@ -127,6 +127,14 @@ listener. The cost, conceded: the read is bounded at 200 ms on the one VM thread
 *service* of a UDP doorbell by that much, though never its post. Moving the request-line read to the reader
 earns itself if that is ever measured to matter.
 
+**Closing a socket waits for the reader** (R1): the fd is never closed under an active poll, so `udp_close` waits,
+bounded by one pass of the reader, for it to drop the socket. The one wait on the VM thread outside the pump.
+
+**A listener that cannot accept pauses** (David, 2026-11-07, PR #462). When accept fails for want of buffers (#65),
+the listener counts it, stops listening and listens again after a one-shot timer, so a wedged node idles rather than
+spins. Every socket a program may open is pollable, and a socket that cannot get a doorbell fails its bind loudly:
+a socket that never rings is a deaf node.
+
 ## The cards (intended)
 
 One card per seam, each a root of the `adapters` context, each an interfacer unless marked. The sentences,
@@ -279,6 +287,8 @@ gaps go to invarlint by issue: invarlint#154, #176, #177.
 - **nRF System OFF (#457)** earns itself if R4 measures System ON idle with the radio off above the
   budget share the chair node can afford. Then one verb, `deepSleep:`, grows the nRF body.
 - **The reader thread's priority and stack** copy the log tee's until measured.
+- **The listener's pause after a failed accept is 1 s**, chosen without a measurement. Earned back by measuring how
+  long the #65 condition takes to clear under the burst that caused it.
 - **The pending bound stays 64 rows.** At one row per 60 s tick that is about an hour of outage before
   oldest-first eviction bites, sooner in a motion burst. #443's flash store is what earns more.
 - **"invarlint PASS" means the ESP32-C6 photograph.** `udp_ble.c`, the nRF build and all of the nsl are not in

@@ -14,6 +14,11 @@ does:
     # docs/design/2026-11-04-440-vm-zephyr-seam-crc-design.md: Arrivals
   - "hands over a waiting datagram without blocking, and answers when none waits"
     # src/udp_backend.h: udp_receive
+  - "closes a VM socket only once the reader has let go of it: the one wait on the VM thread outside the pump, bounded by one pass of the reader"
+    # src/backend/zephyr/udp_zephyr.c: bell_forget; docs/design/2026-11-04-440-vm-zephyr-seam-crc-design.md: Arrivals
+owns:
+  - global:src/backend/zephyr/udp_zephyr.c:*
+  - global:net_reader_stack
 implemented_by:
   - c: udp_close
   - c: udp_doorbell
@@ -22,3 +27,4 @@ implemented_by:
   - c: udp_send
   - c: udp_socket_bind
   - c: "net_link_*"
+  - c: src/backend/zephyr/udp_zephyr.c:net_reader
