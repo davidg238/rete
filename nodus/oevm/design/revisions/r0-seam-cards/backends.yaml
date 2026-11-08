@@ -1,0 +1,5 @@
+# whatif stub only: no op retires a card (invarlint#154). The real commit deletes the file.
+name: ZephyrBackends
+does:
+  - retired in R0
+implemented_by: []

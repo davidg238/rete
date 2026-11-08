@@ -1,0 +1,10 @@
+name: Span
+stereotype: service-provider
+root: true
+context: adapters
+does:
+  - "stamps a moment, and answers the microseconds since a stamp; the unit is its own and holds no state"
+    # src/span_backend.h: span_stamp, span_elapsed_us
+implemented_by:
+  - c: span_elapsed_us
+  - c: span_stamp

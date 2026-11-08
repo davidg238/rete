@@ -1,15 +1,15 @@
-# Accepted by David, 2026-10-18 (proposed by Claude 2026-10-17 from the 49 root-bypassed keys; a declared port accepts the crossing, it does not fix it).
-# Group 1 (21 keys): the core's platform_dispatch calls the app's target functions by extern
-# (src/platform.c:170, :274 declare them; platform.c also holds the host stubs). A port with
-# two adapters and no header; the code fix is a src/target_backend.h.
+# Accepted by David, 2026-10-18 (a declared port accepts the crossing, it does not fix it); the RTC and sleep
+# leaves moved to Sleep (rete#440 R0). The code fix is R6: the leaves leave main.c.
 name: Targets
 root: true
 does:
-  - the board facilities the core dispatches prims to (gpio, display, bell, ntp, rtc, wallclock, sleep, reboot note)
+  - the board facilities the core dispatches prims to (gpio, display, bell, ntp, wallclock, reboot note)
 implemented_by:
-  - c: "*_target_*"
-  - c: deep_sleep_target
-  - c: rtc_alarm_arm
-  - c: reset_cause_timer_wake
+  - c: "bell_target_*"
+  - c: "display_target_*"
+  - c: "gpio_target_level"
+  - c: "gpio_target_set"
+  - c: "ntp_target_*"
+  - c: "wallclock_target_*"
   - c: reboot_note_read
   - c: reboot_note_ack

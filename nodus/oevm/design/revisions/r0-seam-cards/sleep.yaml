@@ -1,0 +1,15 @@
+name: Sleep
+stereotype: interfacer
+root: true
+context: adapters
+knows:
+  - "whether this boot is a timer wake, and the wake clock"
+    # docs/design/2026-07-24-magtag-deep-sleep-clock-design.md: 3. Retained state, 6. New prims
+does:
+  - "on ESP32, sleeps deep and loses RAM; on nRF52840, idling is the sleep and the verb arms nothing"
+    # docs/design/2026-11-04-440-vm-zephyr-seam-crc-design.md: Decided by David (2026-11-04)
+implemented_by:
+  - c: deep_sleep_target
+  - c: reset_cause_timer_wake
+  - c: "rtc_target_*"
+  - c: rtc_alarm_arm

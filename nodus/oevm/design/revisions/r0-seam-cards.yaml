@@ -1,0 +1,22 @@
+name: r0-seam-cards
+pattern: Port
+intent: one root card per VM↔Zephyr seam in an adapters context, the four contexts drawn; cards only (rete #440)
+compromise: ZephyrBackends is stubbed empty in the prediction, not deleted (invarlint#154)
+ops:
+  - card: {file: backends.yaml}
+  - card: {file: console.yaml}
+  - card: {file: ctx_adapters.yaml}
+  - card: {file: ctx_app.yaml}
+  - card: {file: ctx_core.yaml}
+  - card: {file: ctx_host.yaml}
+  - card: {file: http.yaml}
+  - card: {file: identity.yaml}
+  - card: {file: net.yaml}
+  - card: {file: ota.yaml}
+  - card: {file: pulse.yaml}
+  - card: {file: sensor.yaml}
+  - card: {file: serial.yaml}
+  - card: {file: sleep.yaml}
+  - card: {file: span.yaml}
+  - card: {file: targets.yaml}
+  - card: {file: timer.yaml}
