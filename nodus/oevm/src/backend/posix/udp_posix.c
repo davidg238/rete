@@ -22,6 +22,8 @@
    timeout; the behaviour, a bell on arrival and silence until read to empty, is the
    target's. */
 
+/* The host can open far more sockets than this; the bound is the table's, and a
+   registration past it fails the bind (udp.c), so nothing is silently deaf. */
 #define BELLS_MAX 16
 static struct { int fd; int chan; int parked; } bells[BELLS_MAX];
 static int bells_n = 0;
@@ -31,16 +33,17 @@ static int bell_find(int fd) {
     return -1;
 }
 
-void udp_doorbell(int sock, int chan_id) {
+int udp_doorbell(int sock, int chan_id) {
     int i = bell_find(sock);
     if (i < 0) {
         if (bells_n >= BELLS_MAX) {
-            fprintf(stderr, "net: no doorbell slot for fd %d (%d registered)\n", sock, bells_n);
-            return;
+            fprintf(stderr, "net: no doorbell for fd %d (%d registered): bind refused\n", sock, bells_n);
+            return -1;
         }
         i = bells_n++;
     }
     bells[i].fd = sock; bells[i].chan = chan_id; bells[i].parked = 0;
+    return 0;
 }
 
 /* Restore: the VM has read this socket to empty, so it may ring again. */

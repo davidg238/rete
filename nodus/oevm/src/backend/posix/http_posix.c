@@ -65,7 +65,9 @@ int http_listen(int port, int chan_id) {
     }
     fcntl(listen_fd, F_SETFL, O_NONBLOCK);   /* accept() returns EWOULDBLOCK when idle */
     listen_chan = chan_id;
-    udp_doorbell(listen_fd, listen_chan);
+    if (udp_doorbell(listen_fd, listen_chan) < 0) {   /* a listener with no bell is deaf */
+        close(listen_fd); listen_fd = -1; return -1;
+    }
     return 0;
 }
 
@@ -82,7 +84,10 @@ int http_poll(void) {
     if (listen_fd < 0) return 0;
     int fd = accept(listen_fd, NULL, NULL);
     if (fd < 0) {                            /* EWOULDBLOCK -> nothing pending: re-arm */
-        udp_doorbell(listen_fd, listen_chan);
+        /* Every failure re-arms here, unlike the zephyr pause: the host pump never
+           blocks, so a listener that cannot accept costs the host nothing it was not
+           already spending, and there is no #65 buffer pool to recover. */
+        (void)udp_doorbell(listen_fd, listen_chan);
         return 0;
     }
     struct timeval tv = { .tv_sec = 0, .tv_usec = 200000 };  /* 200 ms */

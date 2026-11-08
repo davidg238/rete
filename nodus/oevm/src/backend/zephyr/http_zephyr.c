@@ -33,6 +33,20 @@
 static int listen_fd = -1;
 static int listen_chan = -1;
 
+/* A listener that cannot accept pauses (David, 2026-11-07, PR #462; design, Arrivals).
+   When accept fails for want of buffers (#65) the listener stays parked, not re-armed,
+   and listens again after this one-shot delay, so a wedged node idles rather than
+   spins on a level-triggered listener it cannot drain. Delayable work, not a VM timer
+   (the VM's table is #81's problem) and not a k_timer (udp_doorbell takes a mutex,
+   which an expiry handler in ISR context may not). 1 s is chosen without a
+   measurement: design, "Degenerate cases shipped", the listener's pause line. */
+#define HTTP_ACCEPT_PAUSE_MS 1000
+static void listen_resume(struct k_work *w) {
+    (void)w;
+    if (listen_fd >= 0) (void)udp_doorbell(listen_fd, listen_chan);
+}
+static K_WORK_DELAYABLE_DEFINE(listen_pause, listen_resume);
+
 /* Send every byte in bounded chunks. Tight TX net-buf pools can't absorb a 4 KB
    body at once, so zsock_send returns partial counts or a transient buffer error
    (EAGAIN/EWOULDBLOCK/ENOMEM) until segments are ACKed and buffers recycle — retry
@@ -137,7 +151,9 @@ int http_listen(int port, int chan_id) {
     }
     zsock_fcntl(listen_fd, F_SETFL, O_NONBLOCK);
     listen_chan = chan_id;
-    udp_doorbell(listen_fd, listen_chan);
+    if (udp_doorbell(listen_fd, listen_chan) < 0) {   /* a listener with no bell is deaf */
+        zsock_close(listen_fd); listen_fd = -1; return -1;
+    }
     return 0;
 }
 
@@ -166,14 +182,18 @@ int http_poll(void) {
            wedged node says something without flooding a console that may be the
            only way in). Not fatal: the keep-alive reaper armed in http_listen is
            what actually clears the condition, and this is how an operator — or a
-           supervisor policy — can see that it happened. */
+           supervisor policy — can see that it happened. Meanwhile the listener
+           pauses (HTTP_ACCEPT_PAUSE_MS above): re-arming it now would ring at once
+           on the same unacceptable connection, which is the spin. */
         if (errno != EAGAIN && errno != EWOULDBLOCK) {
             if (accept_fail_count % 1000 == 0)
                 printk("http: accept failed errno=%d (n=%u) — listener cannot accept, "
                        "likely RX packet exhaustion\n", errno, accept_fail_count + 1);
             accept_fail_count++;
+            (void)k_work_schedule(&listen_pause, K_MSEC(HTTP_ACCEPT_PAUSE_MS));
+            return 0;
         }
-        udp_doorbell(listen_fd, listen_chan);
+        (void)udp_doorbell(listen_fd, listen_chan);
         return 0;
     }
     /* bound the read so a silent client can't wedge the reactor */

@@ -114,4 +114,11 @@ config ZVFS_OPEN_MAX
 	default 17 if OEVM_NET_READER && (WIFI_NM_WPA_SUPPLICANT || POSIX_API)
 	default 5 if OEVM_NET_READER
 
+# Every fd the build can open is pollable by the reader (PR #462 review): a socket the
+# reader has no room for fails its bind, and this is what keeps that from happening.
+# The reader's own stack and priority (2048 B, K_PRIO_PREEMPT(10)) copy the console
+# tee's (log_udp.c, also 2048 B at K_PRIO_PREEMPT(10)); see udp_zephyr.c.
+config ZVFS_POLL_MAX
+	default ZVFS_OPEN_MAX if OEVM_NET_READER
+
 source "Kconfig.zephyr"

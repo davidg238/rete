@@ -30,12 +30,19 @@ void udp_open(void) { /* net stack is brought up by Kconfig/boot */ }
    The set changes under a reader blocked in zsock_poll, so an eventfd sits in the set
    and every change writes it. Chosen over net_context receive callbacks, which the
    socket layer already owns (zsock_received_cb), so taking them means reimplementing
-   the socket's queue; this costs one eventfd, one fd slot and one thread whose
-   priority and stack copy the console tee's (log_udp.c) until measured (design,
-   "Degenerate cases shipped"). The set holds what zsock_poll can take
-   (CONFIG_ZVFS_POLL_MAX) less the eventfd; a registration past that is refused
-   loudly and that socket never rings. No reader timeout: that would be a poll. */
+   the socket's queue; this costs one eventfd, one fd slot and one thread.
+
+   CAPACITY: the set holds what zsock_poll can take (CONFIG_ZVFS_POLL_MAX) less the
+   eventfd, and zephyr/Kconfig sizes ZVFS_POLL_MAX to ZVFS_OPEN_MAX, so every other fd
+   the build can open fits. A registration that still finds no room answers -1 and its
+   bind fails (udp.c): a socket that never rings is a deaf node. No reader timeout:
+   that would be a poll. */
 #define NET_BELLS_MAX (CONFIG_ZVFS_POLL_MAX - 1)
+BUILD_ASSERT(CONFIG_ZVFS_POLL_MAX >= CONFIG_ZVFS_OPEN_MAX,
+             "the Net reader must be able to poll every fd the build can open");
+/* Copied from the console tee's thread (log_udp.c: K_THREAD_DEFINE(log_udp_tid, 2048, ...,
+   K_PRIO_PREEMPT(10), ...)): stack 2048 B, priority K_PRIO_PREEMPT(10), until measured
+   (design, "Degenerate cases shipped"). */
 #define NET_READER_STACK 2048
 #define NET_READER_PRIO  K_PRIO_PREEMPT(10)
 
@@ -97,14 +104,14 @@ static void net_reader(void *a, void *b, void *c) {
     }
 }
 
-void udp_doorbell(int sock, int chan_id) {
+int udp_doorbell(int sock, int chan_id) {
     k_mutex_lock(&bell_lock, K_FOREVER);
     if (wake_fd < 0) {                      /* the first registration starts the reader */
         wake_fd = zvfs_eventfd(0, ZVFS_EFD_NONBLOCK);
         if (wake_fd < 0) {
             k_mutex_unlock(&bell_lock);
-            printk("net: no eventfd (%d), no doorbells\n", wake_fd);
-            return;
+            printk("net: no eventfd (%d): bind refused\n", wake_fd);
+            return -1;
         }
         k_thread_create(&net_reader_thread, net_reader_stack,
                         K_THREAD_STACK_SIZEOF(net_reader_stack), net_reader,
@@ -115,8 +122,8 @@ void udp_doorbell(int sock, int chan_id) {
     if (i < 0) {
         if (bells_n >= NET_BELLS_MAX) {
             k_mutex_unlock(&bell_lock);
-            printk("net: no doorbell slot for fd %d (%d registered)\n", sock, NET_BELLS_MAX);
-            return;
+            printk("net: no doorbell for fd %d (%d registered): bind refused\n", sock, NET_BELLS_MAX);
+            return -1;
         }
         i = bells_n++;
     }
@@ -124,6 +131,7 @@ void udp_doorbell(int sock, int chan_id) {
     bells[i].fd = sock; bells[i].chan = chan_id; bells[i].parked = false;
     k_mutex_unlock(&bell_lock);
     if (changed) reader_wake();
+    return 0;
 }
 
 /* Restore: the VM has read sock to empty, so it may ring again. */

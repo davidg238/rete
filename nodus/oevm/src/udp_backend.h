@@ -21,6 +21,8 @@ void udp_close(int sock);
    which restores it. The token is TAG_SMI(sock), a constant per channel, so a burst
    coalesces into one pending wakeup. Registering a sock already registered re-arms
    it: that is how a listener restores (http_poll answering 0). Only the VM's sockets
-   (udp.c basicBind:) and the http listener register; udp_close forgets one. */
-void udp_doorbell(int sock, int chan_id);
+   (udp.c basicBind:) and the http listener register; udp_close forgets one.
+   Answers 0, or -1 when sock cannot have a bell (no room, no reader): a socket that
+   never rings is a deaf node, so the caller fails its bind rather than keep it. */
+int  udp_doorbell(int sock, int chan_id);
 #endif

@@ -311,10 +311,12 @@ int udp_receive(int sock, uint8_t *buf, int buf_cap,
     return n;
 }
 
-void udp_doorbell(int sock, int chan_id) {
+int udp_doorbell(int sock, int chan_id) {
+    if (sock < 0 || sock >= MAX_SOCKS) return -1;         /* every socket this backend opens has a slot */
     k_mutex_lock(&ring_lock, K_FOREVER);                  /* recv_cb reads it under ring_lock */
-    if (sock >= 0 && sock < MAX_SOCKS) sock_chan[sock] = chan_id + 1;
+    sock_chan[sock] = chan_id + 1;
     k_mutex_unlock(&ring_lock);
+    return 0;
 }
 
 void udp_close(int sock) {

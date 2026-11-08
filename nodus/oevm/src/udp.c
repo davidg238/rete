@@ -72,7 +72,10 @@ oop udp_dispatch(oop selector, int argc, oop *args) {
         if (fd >= 0) {
             char path[24];
             int n = snprintf(path, sizeof path, "sys/net/%d", fd);
-            udp_doorbell(fd, space_intern(path, (size_t)n));
+            if (udp_doorbell(fd, space_intern(path, (size_t)n)) < 0) {
+                udp_close(fd);                         /* no bell: fail the bind, loudly */
+                fd = -1;
+            }
         }
         return TAG_SMI(fd);
     }

@@ -90,7 +90,7 @@ static void send1(int tx, uint8_t b) {
 static void two_under_one_bell(void) {
     int rx = udp_socket_bind(BELL_PORT), tx = udp_socket_bind(0);
     assert(rx >= 0 && tx >= 0);
-    udp_doorbell(rx, BELL_CHAN);
+    assert(udp_doorbell(rx, BELL_CHAN) == 0);
     assert(poll_quiet() == 0 && "nothing arrived: no bell");
 
     send1(tx, 'a'); send1(tx, 'b');
@@ -113,7 +113,7 @@ static void two_under_one_bell(void) {
 static void miss_then_reply(void) {
     int rx = udp_socket_bind(BELL_PORT), tx = udp_socket_bind(0);
     assert(rx >= 0 && tx >= 0);
-    udp_doorbell(rx, BELL_CHAN);
+    assert(udp_doorbell(rx, BELL_CHAN) == 0);
 
     send1(tx, 'x');                      /* an earlier exchange's reply rings and parks */
     assert(poll_for_bell() == 1);
@@ -135,6 +135,25 @@ static void miss_then_reply(void) {
     udp_close(again); udp_close(tx);
 }
 
+/* PR #462 review: a socket that cannot get a bell is refused, never kept deaf. The host
+   table is bounded (udp_posix.c BELLS_MAX), so fill it with real sockets until a
+   registration answers -1 (udp.c then fails the bind), and check that the refusal is
+   the table's: a re-registration still answers 0, and a forgotten slot is reusable. */
+static void full_table_refuses(void) {
+    int socks[64], n = 0, refused = -1;
+    while (n < 64) {
+        int s = udp_socket_bind(0);
+        assert(s >= 0);
+        socks[n++] = s;
+        if (udp_doorbell(s, BELL_CHAN) < 0) { refused = s; break; }
+    }
+    assert(refused >= 0 && "a full table refuses the next socket");
+    assert(n > 1 && udp_doorbell(socks[0], BELL_CHAN) == 0 && "a registered socket re-arms");
+    udp_close(socks[0]);                         /* forgets its bell */
+    assert(udp_doorbell(refused, BELL_CHAN) == 0 && "a freed slot takes the refused socket");
+    for (int i = 1; i < n; i++) udp_close(socks[i]);
+}
+
 int main(void) {
     udp_open();
     roundtrip("127.0.0.1");   /* IPv4 (v4-mapped onto the dual-stack socket) */
@@ -142,6 +161,7 @@ int main(void) {
     assert(posts == 0 && "an unregistered socket (OTA, the tee) never rings");
     two_under_one_bell();
     miss_then_reply();
+    full_table_refuses();
     printf("test_udp OK\n");
     return 0;
 }
