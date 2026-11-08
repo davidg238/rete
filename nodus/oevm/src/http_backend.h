@@ -61,9 +61,11 @@ void http_respond(int id, int status, const char *body, int body_len);
 int  http_inflight_count(void);
 void http_backend_reset(void);
 
-/* Bind a TCP listener on port (non-blocking) so http_poll can accept on it.
-   Returns 0 on success, -1 on any socket setup failure. */
-int  http_listen(int port);
+/* Bind a TCP listener on port (non-blocking) and register it with the Net doorbells
+   (udp_backend.h udp_doorbell) on chan_id, so a pending connection rings that channel
+   (rete#440: readiness only; the listener's reaction calls http_poll). Returns 0 on
+   success, -1 on any socket setup failure. */
+int  http_listen(int port, int chan_id);
 
 /* Count of accept() failures that were NOT "nothing pending" (#65). Non-zero means
    the listener could not accept despite work being available — resource
@@ -71,17 +73,14 @@ int  http_listen(int port);
    this way. */
 uint32_t http_accept_failures(void);
 
-/* 1 once http_listen has bound a listener, else 0. pumpEvents uses this to decide
-   whether it must poll http every tick (and therefore must NOT block in the pulse
-   pump) — see pulse_pump_nb(). 0 for injected-only/test use and non-http nodes. */
-int  http_is_listening(void);
-
 /* Per-target transport hooks (implemented in src/backend/<target>/http_<target>.c).
-   After the poll unification there is no accept thread: http_poll runs on the VM
-   reactor thread inside pumpEvents. */
+   There is no accept thread: http_poll runs on the VM thread, in the prim
+   (`platform httpAccept`) that the listener's doorbell reaction calls (rete#440). */
 /* Accept+read at most one pending connection (non-blocking) and admit it via
-   http_accept_request. No-op when nothing is pending. */
-void http_poll(void);
+   http_accept_request. Answers 1 when it accepted a connection (whether or not the
+   request line parsed), 0 when none was pending; a 0 also re-arms the listener's
+   doorbell, so the reaction loops until 0 (it reads the listener to empty). */
+int  http_poll(void);
 /* Write a framed response (header block hdr[0..hlen) then body[0..body_len)) to
    the transport for fd. fd == -1 is the host "injected" sink (stdout on posix,
    discarded on device). */

@@ -588,4 +588,9 @@
    port did not parse (the tee is then unchanged). Appended after basicReplace; 164 by
    COUNTING PRIM_NAMES (163 entries before this). Platform-dispatched. */
 #define PRIM_pf_consoleTee        164
+/* rete#440: `httpAccept` — accept, read and admit at most one pending http connection
+   (http_backend.h http_poll). Answers true when it accepted, false when none waited, which
+   also restores the listener's doorbell; the kernel's `sys/http/listen` reaction loops until
+   false. Appended after consoleTee; 165 by COUNTING PRIM_NAMES. Platform-dispatched. */
+#define PRIM_pf_httpAccept        165
 #endif /* OEVM_PRIM_IDS_H */

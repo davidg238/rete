@@ -21,9 +21,16 @@
    channel) or EAGAIN (no buffer), so the console tee can tell dead from busy.
 
    TWO CALLERS: the VM thread and the console tee's thread (log_udp.c) both use the
-   seam, so the socket table and the transmit path are under sock_lock. */
+   seam, so the socket table and the transmit path are under sock_lock.
+
+   rete#440, THE DOORBELL: recv_cb rings a VM socket's channel after the frame is in its
+   ring (readable before the bell). It runs once per frame on the Bluetooth thread, so
+   nothing here can spin, and the constant token coalesces a burst into one pending
+   wakeup: no reader thread and no parking, and udp_receive's empty answer needs no
+   restore. */
 #include "udp_backend.h"
 #include "relay_frame.h"
+#include "../../pulse_backend.h"
 #include <errno.h>
 #include <string.h>
 #include <zephyr/kernel.h>
@@ -50,6 +57,7 @@ static struct bt_l2cap_le_chan le_chan;
 static volatile bool chan_up;
 static bool inited;
 static int sock_port[MAX_SOCKS];      /* 0 = free; under sock_lock */
+static int sock_chan[MAX_SOCKS];      /* rete#440: the doorbell's channel + 1; 0 = none (OTA, the tee) */
 static K_MUTEX_DEFINE(sock_lock);
 
 /* Received datagrams, whole frames, each stored as [u16 len][frame], ONE RING PER SOCKET,
@@ -92,12 +100,15 @@ static int recv_cb(struct bt_l2cap_chan *chan, struct net_buf *buf) {
     int s = -1;
     if (relay_frame_parse(buf->data, len, &f) == 0)
         for (int i = 0; i < MAX_SOCKS; i++) if (sock_port[i] == f.local_port) { s = i; break; }
+    int bell = 0;
     if (s >= 0 && rings[s].used + 2 + len <= RING_PER_SOCK) {
         uint8_t l[2]; sys_put_be16(len, l);
         ring_put(s, l, 2);
         ring_put(s, buf->data, len);
+        bell = sock_chan[s];
     }
     k_mutex_unlock(&ring_lock);
+    if (bell) pulse_post_isr_value(bell - 1, TAG_SMI(s));   /* after ring_put: readable first */
     return 0;                                             /* the stack frees buf */
 }
 
@@ -300,12 +311,19 @@ int udp_receive(int sock, uint8_t *buf, int buf_cap,
     return n;
 }
 
+void udp_doorbell(int sock, int chan_id) {
+    k_mutex_lock(&ring_lock, K_FOREVER);                  /* recv_cb reads it under ring_lock */
+    if (sock >= 0 && sock < MAX_SOCKS) sock_chan[sock] = chan_id + 1;
+    k_mutex_unlock(&ring_lock);
+}
+
 void udp_close(int sock) {
     k_mutex_lock(&sock_lock, K_FOREVER);
     if (sock >= 0 && sock < MAX_SOCKS) {
         sock_port[sock] = 0;
         k_mutex_lock(&ring_lock, K_FOREVER);          /* the next binding starts empty */
         rings[sock].head = rings[sock].tail = rings[sock].used = 0;
+        sock_chan[sock] = 0;
         k_mutex_unlock(&ring_lock);
     }
     k_mutex_unlock(&sock_lock);

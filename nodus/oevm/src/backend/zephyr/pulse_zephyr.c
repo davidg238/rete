@@ -110,20 +110,3 @@ int pulse_pump(void) {
     mb_drained += (uint32_t)drained;
     return drained;
 }
-
-/* Non-blocking drain (K_NO_WAIT throughout): used by pumpEvents when a second
-   event source (an HTTP listener, #46) shares the run-to-completion loop and the
-   reactor must NOT sleep in pulse_pump's K_FOREVER, or http_poll would never run
-   again after the first tick. A pure pulse/timer node still uses the blocking
-   pulse_pump() above and sleeps efficiently until its ISR fires. */
-int pulse_pump_nb(void) {
-    struct PulseItem it;
-    int drained = 0;
-    while (k_msgq_get(&pulse_q, &it, K_NO_WAIT) == 0) {
-        shadow_pop();
-        oop o = pulse_payload(&it);
-        if (o) { space_post_id(it.chan_id, o); drained++; } else mb_stale++;   /* rete#214 */
-    }
-    mb_drained += (uint32_t)drained;
-    return drained;
-}

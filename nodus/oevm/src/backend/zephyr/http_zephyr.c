@@ -1,5 +1,8 @@
 /* Zephyr HTTP transport hooks: a non-blocking TCP listener over the Zephyr net
-   stack (IPv4, WiFi/DHCP), polled from the VM reactor thread. All framing/ring/
+   stack (IPv4, WiFi/DHCP). rete#440: readiness only. The Net reader (udp_zephyr.c)
+   rings the listener's channel when a client is pending and reads nothing; accept,
+   read and parse stay here, on the VM thread, in http_poll, which the listener's
+   reaction calls until it answers 0. All framing/ring/
    in-flight logic lives in src/http_core.c. Mirrors udp_zephyr.c's non-blocking
    idiom (ZSOCK_MSG_DONTWAIT jitter aside, this uses a bounded SO_RCVTIMEO read
    instead, since a request line — unlike a datagram — can arrive in more than
@@ -16,6 +19,7 @@
       (it never includes posix/fcntl.h) — <zephyr/posix/fcntl.h> is included here
       explicitly for zsock_fcntl(). */
 #include "http_backend.h"
+#include "udp_backend.h"   /* udp_doorbell: the listener rings like a socket */
 #include <zephyr/kernel.h>       /* k_yield / k_msleep, printk */
 
 #ifdef CONFIG_NET_SOCKETS
@@ -27,6 +31,7 @@
 #include <errno.h>               /* EAGAIN (partial-send retry) */
 
 static int listen_fd = -1;
+static int listen_chan = -1;
 
 /* Send every byte in bounded chunks. Tight TX net-buf pools can't absorb a 4 KB
    body at once, so zsock_send returns partial counts or a transient buffer error
@@ -68,7 +73,7 @@ void http_emit(int fd, const char *hdr, int hlen, const char *body, int body_len
     http_close(fd);
 }
 
-int http_listen(int port) {
+int http_listen(int port, int chan_id) {
     listen_fd = zsock_socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (listen_fd < 0) return -1;
     int one = 1;
@@ -87,7 +92,7 @@ int http_listen(int port) {
        backlog alone could pin the whole RX slab, and once it is empty
        zsock_accept() can never succeed again — the deadlock below. This does not
        reduce the number of connections served, only how many may queue
-       un-accepted; http_poll() drains one per reactor tick either way. */
+       un-accepted; the listener's reaction drains them all either way. */
     if (zsock_listen(listen_fd, 2) < 0) {
         zsock_close(listen_fd); listen_fd = -1; return -1;
     }
@@ -131,6 +136,8 @@ int http_listen(int port) {
         zsock_setsockopt(listen_fd, IPPROTO_TCP, TCP_KEEPCNT,   &cnt,   sizeof cnt);
     }
     zsock_fcntl(listen_fd, F_SETFL, O_NONBLOCK);
+    listen_chan = chan_id;
+    udp_doorbell(listen_fd, listen_chan);
     return 0;
 }
 
@@ -139,18 +146,14 @@ int http_listen(int port) {
 static uint32_t accept_fail_count;
 uint32_t http_accept_failures(void) { return accept_fail_count; }
 
-int http_is_listening(void) { return listen_fd >= 0; }
-
-void http_poll(void) {
-    if (listen_fd < 0) return;
+int http_poll(void) {
+    if (listen_fd < 0) return 0;
     int fd = zsock_accept(listen_fd, NULL, NULL);
     if (fd < 0) {
-        /* EAGAIN/EWOULDBLOCK is the ONLY benign case: nothing pending. The nsl
-           reactor loop `[ true ] whileTrue: [ pumpEvents. space drain ]`
-           busy-spins with no sleep; on Zephyr that starves the cooperative
-           WiFi/TCP driver threads, so responses never flush and new connections
-           never get accepted. Yield the CPU here (idle path only) so the net
-           stack runs — a device-transport concern, invisible to nsl.
+        /* EAGAIN/EWOULDBLOCK is the ONLY benign case: nothing pending, so the reaction
+           has read the listener to empty and the doorbell is re-armed (rete#440). The
+           k_msleep(1) that sat here is gone with the busy-spin it softened: the VM now
+           blocks in the pulse pump and the net stack runs while it does.
 
            Anything else is resource exhaustion, and folding it into the same
            early return is what made #65 silent: with the RX packet slab empty
@@ -170,19 +173,20 @@ void http_poll(void) {
                        "likely RX packet exhaustion\n", errno, accept_fail_count + 1);
             accept_fail_count++;
         }
-        k_msleep(1);
-        return;
+        udp_doorbell(listen_fd, listen_chan);
+        return 0;
     }
     /* bound the read so a silent client can't wedge the reactor */
     struct zsock_timeval tv = { .tv_sec = 0, .tv_usec = 200000 };
     zsock_setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof tv);
     char buf[1024];
     int n = (int)zsock_recv(fd, buf, sizeof buf - 1, 0);
-    if (n <= 0) { zsock_close(fd); return; }
+    if (n <= 0) { zsock_close(fd); return 1; }
     buf[n] = '\0';
     char method[HTTP_METHOD_MAX] = {0}, path[HTTP_PATH_MAX] = {0};
-    if (!http_parse_reqline(buf, method, HTTP_METHOD_MAX, path, HTTP_PATH_MAX)) { zsock_close(fd); return; }
+    if (!http_parse_reqline(buf, method, HTTP_METHOD_MAX, path, HTTP_PATH_MAX)) { zsock_close(fd); return 1; }
     http_accept_request(fd, method, (int)strlen(method), path, (int)strlen(path));
+    return 1;
 }
 
 #else  /* !CONFIG_NET_SOCKETS */
@@ -194,9 +198,8 @@ void http_close(int fd) { (void)fd; }
 void http_emit(int fd, const char *hdr, int hlen, const char *body, int body_len) {
     (void)fd; (void)hdr; (void)hlen; (void)body; (void)body_len;
 }
-int http_listen(int port) { (void)port; return -1; }
+int http_listen(int port, int chan_id) { (void)port; (void)chan_id; return -1; }
 uint32_t http_accept_failures(void) { return 0; }
-int http_is_listening(void) { return 0; }
-void http_poll(void) {}
+int http_poll(void) { return 0; }
 
 #endif /* CONFIG_NET_SOCKETS */

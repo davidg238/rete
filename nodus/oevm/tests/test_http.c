@@ -12,6 +12,9 @@
    assertion rather than a timing race. */
 static uint64_t stub_ms;
 uint64_t timer_backend_millis(void) { return stub_ms; }
+/* rete#440: http_posix.c registers its listener with the Net doorbells; this test never
+   listens, and linking udp_posix.c would drag in the pulse pump, so the seam is stubbed. */
+void udp_doorbell(int sock, int chan_id) { (void)sock; (void)chan_id; }
 
 static void test_frame_200(void) {
     char buf[512];

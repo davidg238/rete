@@ -98,4 +98,20 @@ config OEVM_OTA_INCHANNEL
 	  longer than a whole transfer — the deep-sleep MagTag. If this is set in an
 	  always-on build, that build is wrong.
 
+# rete#440 R1: the Net reader (src/backend/zephyr/udp_zephyr.c) waits in zsock_poll over
+# the VM's sockets and the http listener, plus one eventfd that wakes it when that set
+# changes. Every socket build links udp_zephyr.c (a Bluetooth build links udp_ble.c,
+# which needs no reader), so this is not a choice: it follows the backend. The eventfd
+# takes one descriptor, so the table grows by exactly one over Zephyr's own defaults
+# (these defaults are read first, the app Kconfig being parsed before Kconfig.zephyr).
+config OEVM_NET_READER
+	bool
+	default y if NET_SOCKETS && !BT
+	select ZVFS
+	select ZVFS_EVENTFD
+
+config ZVFS_OPEN_MAX
+	default 17 if OEVM_NET_READER && (WIFI_NM_WPA_SUPPLICANT || POSIX_API)
+	default 5 if OEVM_NET_READER
+
 source "Kconfig.zephyr"
