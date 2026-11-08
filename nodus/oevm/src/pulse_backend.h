@@ -83,15 +83,11 @@ uint32_t pulse_drained(void);
 /* Thread context, at the run-to-completion safe point. Drains every queued item
    (posix: returns 0 at once when empty; zephyr: blocks for the first item, then
    drains all) and for each calls space_post_id(chan_id, handle_get(handle_idx)).
-   Returns the number of items delivered. */
+   Returns the number of items delivered.
+   rete#440: the ONE place the VM thread blocks, with no deadline (a deadline is a
+   timer). Every arrival rings a doorbell into this mailbox — timers, edges, the
+   console line, and the sockets and the http listener (udp_backend.h udp_doorbell) —
+   so nothing is left that would need polling, and there is no non-blocking variant. */
 int pulse_pump(void);
 
-/* Non-blocking variant: drains every currently-queued item and returns
-   immediately (0 when empty) — never blocks for a first item. The blocking
-   pulse_pump() assumes pulse is the ONLY event source (a pure pulse/timer node
-   can sleep until its ISR fires). When a second source must be polled in the same
-   run-to-completion loop (e.g. an HTTP listener — #46), the pump must not block on
-   pulse, or the other source is never serviced; pumpEvents uses this variant then.
-   On posix (already non-blocking) it is identical to pulse_pump(). */
-int pulse_pump_nb(void);
 #endif /* OEVM_PULSE_BACKEND_H */

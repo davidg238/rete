@@ -1636,15 +1636,12 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
         *out = r; return 1;
     }
     case PRIM_pf_pumpEvents: {
-        http_poll();                            /* accept/read pending sockets -> request ring */
         if (platform_console_service() && g_console_chan >= 0)   /* rete#312: the host's line */
             pulse_post_isr_value(g_console_chan, TAG_SMI(++g_console_seq & 0xffff));
-        /* With an HTTP listener active, pulse must be drained NON-BLOCKING: the
-           reactor has to loop back to http_poll every tick, so it cannot sleep in
-           pulse_pump's K_FOREVER (zephyr) waiting for a pulse event that never comes.
-           A pure pulse/timer node (no listener) keeps the blocking pump and sleeps
-           efficiently until its ISR fires. On posix both are non-blocking. (#46) */
-        int n = http_is_listening() ? pulse_pump_nb() : pulse_pump();
+        /* rete#440: the one wait. Every arrival, the http listener included, rings a
+           doorbell into the mailbox, so the pump always blocks (zephyr K_FOREVER; posix
+           never blocks, the suite drives the clock). */
+        int n = pulse_pump();
         timer_backend_poll();                   /* wall-clock host mode: fire due timers here.
                                                    No-op under the default virtual clock and on
                                                    target, whose expiry ISR posts via pulse. */
@@ -1652,10 +1649,16 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
         *out = TAG_SMI(n);
         return 1;
     }
-    case PRIM_pf_httpListen: {                 /* platform httpListen: port -> self (binds; http_poll accepts) */
+    case PRIM_pf_httpListen: {                 /* platform httpListen: port -> self (binds; rings sys/http/listen) */
         int port = IS_SMI(args[0]) ? (int)UNTAG_SMI(args[0]) : 0;
-        http_listen(port);
+        http_listen(port, space_intern("sys/http/listen", 15));
         *out = platform_object();
+        return 1;
+    }
+    case PRIM_pf_httpAccept: {                 /* rete#440: platform httpAccept -> true | false */
+        /* The listener's doorbell reaction calls this until it answers false: accept,
+           read and parse stay on the VM thread; false also restores the doorbell. */
+        *out = http_poll() ? true_symbol : false_symbol;
         return 1;
     }
     case PRIM_pf_httpRespond: {                /* httpRespondId: id status: n body: s */

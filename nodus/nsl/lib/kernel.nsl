@@ -4346,7 +4346,16 @@ class Kernel usingPlatform: platform = (
      work (framing, ring, in-flight table) lives entirely in src/http.c +
      src/backend/<target>/http_<target>.c; this Kernel instance is just the
      capability the user's nsl code actually holds as `platform`. *)
-  public httpListen: port = ( ^ platform httpListen: port )
+  (* rete#440: the listener rings 'sys/http/listen' when a client is pending and reads
+     nothing; this reaction does the accept, the read and the parse on the VM thread,
+     one connection per `httpAccept`, until it answers false. False also re-arms the
+     doorbell, so the listener is always read to empty (invariant 4). *)
+  public httpListen: port = ( | r |
+    r:: platform httpListen: port.
+    (self space channel: 'sys/http/listen') whenever: '' do: [ :bell |
+      [ platform httpAccept ] whileTrue: [ ] ].
+    ^ r )
+  public httpAccept = ( ^ platform httpAccept )
   public httpRespondId: id status: st body: b = ( ^ platform httpRespondId: id status: st body: b )
   public httpInject: m path: p = ( ^ platform httpInject: m path: p )
   public httpBeginId: id status: st = ( ^ platform httpBeginId: id status: st )

@@ -127,6 +127,14 @@ listener. The cost, conceded: the read is bounded at 200 ms on the one VM thread
 *service* of a UDP doorbell by that much, though never its post. Moving the request-line read to the reader
 earns itself if that is ever measured to matter.
 
+**Closing a socket waits for the reader** (R1): the fd is never closed under an active poll, so `udp_close` waits,
+bounded by one pass of the reader, for it to drop the socket. The one wait on the VM thread outside the pump.
+
+**A listener that cannot accept pauses** (David, 2026-11-07, PR #462). When accept fails for want of buffers (#65),
+the listener counts it, stops listening and listens again after a one-shot timer, so a wedged node idles rather than
+spins. Every socket a program may open is pollable, and a socket that cannot get a doorbell fails its bind loudly:
+a socket that never rings is a deaf node.
+
 ## The cards (intended)
 
 One card per seam, each a root of the `adapters` context, each an interfacer unless marked. The sentences,
@@ -250,7 +258,7 @@ One verb at the seam, `radio_*`; one cell, `sys/radio`, holding the state, so th
 | R | Scope | Gate |
 |---|---|---|
 | **R0 cards** | the cards and context cards above; on this branch | invarlint PASS, new 0, stale 0; debt named per card |
-| **R1 arrivals** (C) | Net: BLE `recv_cb` posts after `ring_put`; the reader on Zephyr sockets; posix posts from `poll()` inside the pump. Http: the same reader. `pulse_pump_nb` and `http_poll`-in-`pumpEvents` deleted | nsl suite, `porta_sync_host.sh`, `http_roundtrip_host.sh`; new host tests for invariant 4 (two datagrams under one doorbell; a miss, then a reply), because the non-blocking host pump cannot otherwise see a lost restore; the C6 http board scenario and `PulseNode` idle on the C6 (no bridge: the kernel still spins in `awaitReply:` until R2) |
+| **R1 arrivals** (C) | Net: BLE `recv_cb` posts after `ring_put`; the reader on Zephyr sockets; posix posts from `poll()` inside the pump. Http: the same reader. `pulse_pump_nb` and `http_poll`-in-`pumpEvents` deleted | nsl suite, `porta_sync_host.sh`, `http_roundtrip_host.sh`; new host tests for invariant 4 (two datagrams under one doorbell; a miss, then a reply), because the non-blocking host pump cannot otherwise see a lost restore; `bridge-health` on a C6 (PASS 3/3, 2026-11-08). As built, David 2026-11-08: the C6 http scenario does not exist (#463) and nothing on the C6 measures idle, so idle evidence is R2's J-Link gate |
 | **R2 check-in** (nsl) | the state machine, the held loop, every app in the table; `awaitReply:` deleted; the OTA fetch untouched. In ttgm's repo: the chair apps' new order, flush, 60 s cadence and `misses: 4` | `porta_sync_host.sh` PORTA SYNC OK; `tutorial-porta`; the debugger host gate; the `porta-*` board scenarios; `CONFIG_BT_LONG_WQ_PRIO=0` dropped and pairing still succeeds; **J-Link PC samples on OCM.1 land in idle between check-ins**, with rete's `PortaBridgeNodeBle` and then the chair app |
 | **R3 radio** (#458) | `Radio` card; the verb, `sys/radio`, the policy; `sys/net/link` | OCM.1: off, on, reconnects through the Pixel relay; the reconnect time measured, which sets `linkBudget` |
 | **R4 measure** (#459) | delayed by David: OCM.1 always-on, idle, per exchange at 60 s, radio off, against the 90 µA line | the numbers in #459; #457 earns itself or closes |
@@ -279,6 +287,8 @@ gaps go to invarlint by issue: invarlint#154, #176, #177.
 - **nRF System OFF (#457)** earns itself if R4 measures System ON idle with the radio off above the
   budget share the chair node can afford. Then one verb, `deepSleep:`, grows the nRF body.
 - **The reader thread's priority and stack** copy the log tee's until measured.
+- **The listener's pause after a failed accept is 1 s**, chosen without a measurement. Earned back by measuring how
+  long the #65 condition takes to clear under the burst that caused it.
 - **The pending bound stays 64 rows.** At one row per 60 s tick that is about an hour of outage before
   oldest-first eviction bites, sooner in a motion burst. #443's flash store is what earns more.
 - **"invarlint PASS" means the ESP32-C6 photograph.** `udp_ble.c`, the nRF build and all of the nsl are not in

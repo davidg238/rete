@@ -1,11 +1,25 @@
-/* Standalone smoke test for the UDP backend (real dual-stack loopback). Not part
-   of the conformance runner; build + run manually from the oevm repo root:
-     gcc -std=c99 -Isrc tests/test_udp.c src/backend/posix/udp_posix.c -o /tmp/test_udp && /tmp/test_udp
-   Links only the backend (the seam funcs) — not udp.c, which needs the full VM. */
+/* Unit test for the UDP backend (real dual-stack loopback), registered in
+   nodus/nsl/tools/run_tests_oevm.py C_UNIT_TESTS. Links only the backend (the seam
+   funcs) — not udp.c, which needs the full VM — so the pulse mailbox the doorbells
+   ring is stubbed below and records every post.
+
+   rete#440 invariant 4: every reaction that owns a socket reads it to empty, and the
+   socket's doorbell stays parked until it has. The host pump cannot otherwise see a
+   lost restore (it never blocks), so these tests drive the posix poll by hand and
+   assert the bell: one per arrival burst, none while parked, again after the read
+   to empty. */
+#define _POSIX_C_SOURCE 200809L
 #include "../src/udp_backend.h"
+#include "../src/backend/posix/udp_posix.h"
 #include <assert.h>
 #include <string.h>
 #include <stdio.h>
+#include <time.h>
+
+static int posts, last_chan, last_token;
+void pulse_posix_ring(int chan_id, int fd) {
+    posts++; last_chan = chan_id; last_token = fd;
+}
 
 static void roundtrip(const char *loop) {
     int rx = udp_socket_bind(0);          /* ephemeral receiver */
@@ -37,10 +51,117 @@ static void roundtrip(const char *loop) {
     udp_close(rx); udp_close(rxp); udp_close(tx);
 }
 
+/* ---- rete#440 doorbells ------------------------------------------------------------ */
+
+#define BELL_PORT 54338
+#define BELL_CHAN 7
+
+/* Poll until the bell rings or ~1 s passes; answers how many posts the polls made. */
+static int poll_for_bell(void) {
+    int before = posts;
+    struct timespec ms = { 0, 1000000 };
+    for (int i = 0; i < 1000 && posts == before; i++) { udp_posix_poll(); nanosleep(&ms, NULL); }
+    return posts - before;
+}
+
+/* Poll a few times with no wait for an arrival: answers how many posts they made. */
+static int poll_quiet(void) {
+    int before = posts;
+    struct timespec ms = { 0, 1000000 };
+    for (int i = 0; i < 20; i++) { udp_posix_poll(); nanosleep(&ms, NULL); }
+    return posts - before;
+}
+
+/* The reaction, as R2's kernel will run it: read until empty. Answers datagrams read. */
+static int read_to_empty(int sock, uint8_t *first) {
+    uint8_t buf[2048]; char host[64]; int port = 0, got = 0, n;
+    while ((n = udp_receive(sock, buf, sizeof buf, host, sizeof host, &port)) >= 0) {
+        if (got < 4 && first) first[got] = buf[0];
+        got++;
+    }
+    return got;
+}
+
+static void send1(int tx, uint8_t b) {
+    assert(udp_send(tx, "::1", BELL_PORT, &b, 1) == 1);
+}
+
+/* Two datagrams under one doorbell are both read, and the socket rings again after. */
+static void two_under_one_bell(void) {
+    int rx = udp_socket_bind(BELL_PORT), tx = udp_socket_bind(0);
+    assert(rx >= 0 && tx >= 0);
+    assert(udp_doorbell(rx, BELL_CHAN) == 0);
+    assert(poll_quiet() == 0 && "nothing arrived: no bell");
+
+    send1(tx, 'a'); send1(tx, 'b');
+    assert(poll_for_bell() == 1 && "a burst rings once");
+    assert(last_chan == BELL_CHAN && last_token == rx && "the constant token");
+    assert(poll_quiet() == 0 && "parked: an unread socket does not ring again");
+
+    uint8_t got[4] = {0};
+    assert(read_to_empty(rx, got) == 2 && got[0] == 'a' && got[1] == 'b' && "both read");
+
+    send1(tx, 'c');
+    assert(poll_for_bell() == 1 && "read to empty restored the bell");
+    assert(read_to_empty(rx, got) == 1 && got[0] == 'c');
+    udp_close(rx); udp_close(tx);
+}
+
+/* A miss (the budget expires with nothing read: the reaction still reads, finds the
+   socket empty), then a late reply: the reply must ring. A lost restore leaves the
+   socket parked, and the reply is never heard. */
+static void miss_then_reply(void) {
+    int rx = udp_socket_bind(BELL_PORT), tx = udp_socket_bind(0);
+    assert(rx >= 0 && tx >= 0);
+    assert(udp_doorbell(rx, BELL_CHAN) == 0);
+
+    send1(tx, 'x');                      /* an earlier exchange's reply rings and parks */
+    assert(poll_for_bell() == 1);
+    assert(read_to_empty(rx, NULL) == 1);
+
+    assert(read_to_empty(rx, NULL) == 0 && "the miss: the expiry's read finds nothing");
+    send1(tx, 'y');                      /* the reply, after the miss */
+    assert(poll_for_bell() == 1 && "a reply after a miss still rings");
+    uint8_t got[4] = {0};
+    assert(read_to_empty(rx, got) == 1 && got[0] == 'y');
+
+    /* A closed socket is forgotten: its fd, reused by the next bind, rings nothing
+       until that bind registers it. */
+    udp_close(rx);
+    int again = udp_socket_bind(BELL_PORT);
+    assert(again >= 0);
+    send1(tx, 'z');
+    assert(poll_quiet() == 0 && "an unregistered socket never rings");
+    udp_close(again); udp_close(tx);
+}
+
+/* PR #462 review: a socket that cannot get a bell is refused, never kept deaf. The host
+   table is bounded (udp_posix.c BELLS_MAX), so fill it with real sockets until a
+   registration answers -1 (udp.c then fails the bind), and check that the refusal is
+   the table's: a re-registration still answers 0, and a forgotten slot is reusable. */
+static void full_table_refuses(void) {
+    int socks[64], n = 0, refused = -1;
+    while (n < 64) {
+        int s = udp_socket_bind(0);
+        assert(s >= 0);
+        socks[n++] = s;
+        if (udp_doorbell(s, BELL_CHAN) < 0) { refused = s; break; }
+    }
+    assert(refused >= 0 && "a full table refuses the next socket");
+    assert(n > 1 && udp_doorbell(socks[0], BELL_CHAN) == 0 && "a registered socket re-arms");
+    udp_close(socks[0]);                         /* forgets its bell */
+    assert(udp_doorbell(refused, BELL_CHAN) == 0 && "a freed slot takes the refused socket");
+    for (int i = 1; i < n; i++) udp_close(socks[i]);
+}
+
 int main(void) {
     udp_open();
     roundtrip("127.0.0.1");   /* IPv4 (v4-mapped onto the dual-stack socket) */
     roundtrip("::1");         /* IPv6 */
+    assert(posts == 0 && "an unregistered socket (OTA, the tee) never rings");
+    two_under_one_bell();
+    miss_then_reply();
+    full_table_refuses();
     printf("test_udp OK\n");
     return 0;
 }

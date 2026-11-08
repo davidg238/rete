@@ -1,0 +1,8 @@
+# space.h is the core's port (David, 2026-10-17): space_intern names a space path at arg 0.
+name: SpaceIntern
+kind: primitive
+resource: path
+mode: write
+arg: 0
+implemented_by:
+  - c: space_intern

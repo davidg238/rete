@@ -1,0 +1,8 @@
+# oevm's own Zephyr app (zephyr/src): its port is main. Portable code calling into it by an
+# extern bypasses every *_backend.h seam (the design's expected first findings).
+name: App
+root: true
+does:
+  - boots the board and the VM
+implemented_by:
+  - c: main

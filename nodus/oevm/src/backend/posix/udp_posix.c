@@ -1,5 +1,7 @@
 #define _POSIX_C_SOURCE 200809L
 #include "udp_backend.h"
+#include "udp_posix.h"
+#include <poll.h>
 #include <sys/socket.h>
 #include <netdb.h>
 #include <netinet/in.h>
@@ -12,7 +14,64 @@
 /* POSIX (x86-linux / macOS desktop) UDP backend: real dual-stack sockets. Each
    bound socket is AF_INET6 with IPV6_V6ONLY=0, so one socket receives both IPv6
    and IPv4 (v4-mapped) datagrams. Non-blocking (O_NONBLOCK): udp_receive returns
-   -1 when nothing is queued. Pure POSIX; udp_zephyr.c replaces it on device. */
+   -1 when nothing is queued. Pure POSIX; udp_zephyr.c replaces it on device.
+
+   rete#440, the doorbells: a socket table of every registered socket (the VM's and the
+   http listener), polled by udp_posix_poll from inside the pulse pump. The host pump
+   stays non-blocking (the suite drives a virtual clock), so this is poll() with a zero
+   timeout; the behaviour, a bell on arrival and silence until read to empty, is the
+   target's. */
+
+/* The host can open far more sockets than this; the bound is the table's, and a
+   registration past it fails the bind (udp.c), so nothing is silently deaf. */
+#define BELLS_MAX 16
+static struct { int fd; int chan; int parked; } bells[BELLS_MAX];
+static int bells_n = 0;
+
+static int bell_find(int fd) {
+    for (int i = 0; i < bells_n; i++) if (bells[i].fd == fd) return i;
+    return -1;
+}
+
+int udp_doorbell(int sock, int chan_id) {
+    int i = bell_find(sock);
+    if (i < 0) {
+        if (bells_n >= BELLS_MAX) {
+            fprintf(stderr, "net: no doorbell for fd %d (%d registered): bind refused\n", sock, bells_n);
+            return -1;
+        }
+        i = bells_n++;
+    }
+    bells[i].fd = sock; bells[i].chan = chan_id; bells[i].parked = 0;
+    return 0;
+}
+
+/* Restore: the VM has read this socket to empty, so it may ring again. */
+static void bell_restore(int fd) {
+    int i = bell_find(fd);
+    if (i >= 0) bells[i].parked = 0;
+}
+
+static void bell_forget(int fd) {
+    int i = bell_find(fd);
+    if (i >= 0) bells[i] = bells[--bells_n];
+}
+
+void udp_posix_poll(void) {
+    struct pollfd p[BELLS_MAX];
+    int idx[BELLS_MAX], n = 0;
+    for (int i = 0; i < bells_n; i++) {
+        if (bells[i].parked) continue;
+        p[n].fd = bells[i].fd; p[n].events = POLLIN; p[n].revents = 0; idx[n++] = i;
+    }
+    if (n == 0 || poll(p, (nfds_t)n, 0) <= 0) return;
+    for (int k = 0; k < n; k++) {
+        if (!p[k].revents) continue;
+        int i = idx[k];
+        bells[i].parked = 1;
+        pulse_posix_ring(bells[i].chan, bells[i].fd);
+    }
+}
 
 void udp_open(void) { /* nothing global to init */ }
 
@@ -58,7 +117,7 @@ int udp_receive(int sock, uint8_t *buf, int buf_cap,
     socklen_t slen = sizeof src;
     ssize_t n = recvfrom(sock, buf, (size_t)buf_cap, 0,
                          (struct sockaddr *)&src, &slen);
-    if (n < 0) return -1;                  /* EWOULDBLOCK/EAGAIN -> nothing queued */
+    if (n < 0) { bell_restore(sock); return -1; }   /* EWOULDBLOCK/EAGAIN -> nothing queued */
     char h[1025];  /* NI_MAXHOST (1025) without depending on that macro */
     int port = 0;
     if (getnameinfo((struct sockaddr *)&src, slen, h, sizeof h,
@@ -79,4 +138,4 @@ int udp_receive(int sock, uint8_t *buf, int buf_cap,
     return (int)n;
 }
 
-void udp_close(int sock) { if (sock >= 0) close(sock); }
+void udp_close(int sock) { if (sock >= 0) { bell_forget(sock); close(sock); } }

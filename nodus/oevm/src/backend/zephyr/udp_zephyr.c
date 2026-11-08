@@ -7,11 +7,156 @@
    (API names target Zephyr/NCS BSD sockets; adjust to the installed SDK if a
    symbol differs — the S2 build is the gate.) */
 #include "udp_backend.h"
+#include "../../pulse_backend.h"
+#include <zephyr/kernel.h>
 #include <zephyr/net/socket.h>
 #include <zephyr/net/net_ip.h>
+#include <zephyr/zvfs/eventfd.h>
 #include <string.h>
 
 void udp_open(void) { /* net stack is brought up by Kconfig/boot */ }
+
+/* ---- rete#440: the doorbells, one reader thread over zsock_poll ---------------------
+
+   Every registered socket (the VM's, from udp.c basicBind:, and the http listener) is in
+   one poll set, served by one thread. zsock_poll is LEVEL-triggered: a socket left in the
+   set with an unread datagram would ring forever, which is the spin this exists to
+   remove. So a socket that rings is PARKED (dropped from the set) until the VM reads it
+   to empty, when udp_receive restores it; the listener restores by re-registering
+   (http_poll answering 0). A datagram landing between that empty answer and the restore
+   is seen at once on the next poll, because the poll is level-triggered. One socket
+   parked never silences another.
+
+   The set changes under a reader blocked in zsock_poll, so an eventfd sits in the set
+   and every change writes it. Chosen over net_context receive callbacks, which the
+   socket layer already owns (zsock_received_cb), so taking them means reimplementing
+   the socket's queue; this costs one eventfd, one fd slot and one thread.
+
+   CAPACITY: the set holds what zsock_poll can take (CONFIG_ZVFS_POLL_MAX) less the
+   eventfd, and zephyr/Kconfig sizes ZVFS_POLL_MAX to ZVFS_OPEN_MAX, so every other fd
+   the build can open fits. A registration that still finds no room answers -1 and its
+   bind fails (udp.c): a socket that never rings is a deaf node. No reader timeout:
+   that would be a poll. */
+#define NET_BELLS_MAX (CONFIG_ZVFS_POLL_MAX - 1)
+BUILD_ASSERT(CONFIG_ZVFS_POLL_MAX >= CONFIG_ZVFS_OPEN_MAX,
+             "the Net reader must be able to poll every fd the build can open");
+/* Copied from the console tee's thread (log_udp.c: K_THREAD_DEFINE(log_udp_tid, 2048, ...,
+   K_PRIO_PREEMPT(10), ...)): stack 2048 B, priority K_PRIO_PREEMPT(10), until measured
+   (design, "Degenerate cases shipped"). */
+#define NET_READER_STACK 2048
+#define NET_READER_PRIO  K_PRIO_PREEMPT(10)
+
+static struct { int fd; int chan; bool parked; } bells[NET_BELLS_MAX];
+static int bells_n;
+static K_MUTEX_DEFINE(bell_lock);
+static int wake_fd = -1;
+static bool forget_pending;                 /* udp_close waits for the reader to drop an fd */
+static K_SEM_DEFINE(forgot, 0, 1);
+K_THREAD_STACK_DEFINE(net_reader_stack, NET_READER_STACK);
+static struct k_thread net_reader_thread;
+
+static void reader_wake(void) {
+    if (wake_fd >= 0) (void)zvfs_eventfd_write(wake_fd, 1);
+}
+
+static int bell_find(int fd) {
+    for (int i = 0; i < bells_n; i++) if (bells[i].fd == fd) return i;
+    return -1;
+}
+
+static void net_reader(void *a, void *b, void *c) {
+    (void)a; (void)b; (void)c;
+    struct zsock_pollfd p[NET_BELLS_MAX + 1];
+    for (;;) {
+        int n = 0;
+        p[n].fd = wake_fd; p[n].events = ZSOCK_POLLIN; p[n].revents = 0; n++;
+        k_mutex_lock(&bell_lock, K_FOREVER);
+        for (int i = 0; i < bells_n; i++) {
+            if (bells[i].parked) continue;
+            p[n].fd = bells[i].fd; p[n].events = ZSOCK_POLLIN; p[n].revents = 0; n++;
+        }
+        if (forget_pending) { forget_pending = false; k_sem_give(&forgot); }
+        k_mutex_unlock(&bell_lock);
+
+        if (zsock_poll(p, n, -1) < 0) {
+            /* Not a timeout: an fd the set named went bad under it. The set is rebuilt
+               from the table, which udp_close has already corrected; yield once so a
+               persistent error cannot starve the VM. */
+            k_yield();
+            continue;
+        }
+        if (p[0].revents) { zvfs_eventfd_t v; (void)zvfs_eventfd_read(wake_fd, &v); }
+        for (int k = 1; k < n; k++) {
+            if (!p[k].revents) continue;
+            /* POLLNVAL: the fd is no socket any more. Parked without a bell, or the set
+               would return at once forever; a re-registration brings it back. */
+            bool ring = !(p[k].revents & ZSOCK_POLLNVAL);
+            k_mutex_lock(&bell_lock, K_FOREVER);
+            int i = bell_find(p[k].fd);
+            int chan = -1;
+            if (i >= 0 && !bells[i].parked) {
+                bells[i].parked = true;
+                if (ring) chan = bells[i].chan;
+            }
+            k_mutex_unlock(&bell_lock);
+            if (chan >= 0) pulse_post_isr_value(chan, TAG_SMI(p[k].fd));
+        }
+    }
+}
+
+int udp_doorbell(int sock, int chan_id) {
+    k_mutex_lock(&bell_lock, K_FOREVER);
+    if (wake_fd < 0) {                      /* the first registration starts the reader */
+        wake_fd = zvfs_eventfd(0, ZVFS_EFD_NONBLOCK);
+        if (wake_fd < 0) {
+            k_mutex_unlock(&bell_lock);
+            printk("net: no eventfd (%d): bind refused\n", wake_fd);
+            return -1;
+        }
+        k_thread_create(&net_reader_thread, net_reader_stack,
+                        K_THREAD_STACK_SIZEOF(net_reader_stack), net_reader,
+                        NULL, NULL, NULL, NET_READER_PRIO, 0, K_NO_WAIT);
+        k_thread_name_set(&net_reader_thread, "net_reader");
+    }
+    int i = bell_find(sock);
+    if (i < 0) {
+        if (bells_n >= NET_BELLS_MAX) {
+            k_mutex_unlock(&bell_lock);
+            printk("net: no doorbell for fd %d (%d registered): bind refused\n", sock, NET_BELLS_MAX);
+            return -1;
+        }
+        i = bells_n++;
+    }
+    bool changed = bells[i].fd != sock || bells[i].parked || bells[i].chan != chan_id;
+    bells[i].fd = sock; bells[i].chan = chan_id; bells[i].parked = false;
+    k_mutex_unlock(&bell_lock);
+    if (changed) reader_wake();
+    return 0;
+}
+
+/* Restore: the VM has read sock to empty, so it may ring again. */
+static void bell_restore(int sock) {
+    bool was = false;
+    k_mutex_lock(&bell_lock, K_FOREVER);
+    int i = bell_find(sock);
+    if (i >= 0 && bells[i].parked) { bells[i].parked = false; was = true; }
+    k_mutex_unlock(&bell_lock);
+    if (was) reader_wake();
+}
+
+/* Forget sock and wait until the reader has rebuilt its set without it, so the fd is
+   never closed (and reused) under a poll that still names it. */
+static void bell_forget(int sock) {
+    k_mutex_lock(&bell_lock, K_FOREVER);
+    int i = bell_find(sock);
+    if (i < 0) { k_mutex_unlock(&bell_lock); return; }
+    bells[i] = bells[--bells_n];
+    forget_pending = true;
+    k_sem_reset(&forgot);
+    k_mutex_unlock(&bell_lock);
+    reader_wake();
+    (void)k_sem_take(&forgot, K_FOREVER);
+}
 
 int udp_socket_bind(int port) {
     int fd = zsock_socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
@@ -77,7 +222,7 @@ int udp_receive(int sock, uint8_t *buf, int buf_cap,
     socklen_t slen = sizeof src;
     ssize_t n = zsock_recvfrom(sock, buf, (size_t)buf_cap, ZSOCK_MSG_DONTWAIT,
                                (struct sockaddr *)&src, &slen);
-    if (n < 0) return -1;                          /* EWOULDBLOCK -> nothing queued */
+    if (n < 0) { bell_restore(sock); return -1; }  /* EWOULDBLOCK -> nothing queued */
     *sender_port = ntohs(src.sin6_port);
     /* Zephyr's net_addr_ntop ignores `size` in kernel context, so guard the
        buffer ourselves (the POSIX backend bounds via snprintf). INET6_ADDRSTRLEN
@@ -95,4 +240,4 @@ int udp_receive(int sock, uint8_t *buf, int buf_cap,
     return (int)n;
 }
 
-void udp_close(int sock) { if (sock >= 0) zsock_close(sock); }
+void udp_close(int sock) { if (sock >= 0) { bell_forget(sock); zsock_close(sock); } }

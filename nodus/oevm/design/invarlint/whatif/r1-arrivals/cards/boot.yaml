@@ -1,0 +1,19 @@
+# Accepted by David, 2026-10-18 (proposed by Claude 2026-10-17 from the 49 root-bypassed keys; a declared port accepts the crossing, it does not fix it).
+# Group 3 (6 keys): the app's main (and runner's hash_slot) start the core: kernel boot, image load, OTA hash.
+name: Boot
+root: true
+does:
+  - the core's boot API — start the kernel, load and root the image, hash a slot
+implemented_by:
+  - c: kernel_boot
+  - c: oimg_bootstrap
+  - c: oimg_load_blob
+  - c: oimg_root
+  - c: ota_sha256
+# owns: accepted by David, 2026-10-18 (invarlint#48, proposal row 5); Symbol_* moved to WellKnownSymbols.
+owns:
+  - global:builtin_registry
+  - global:oimg_singleton
+  - global:g_kernel_instance
+  - global:oimg_blob_base
+  - global:oimg_blob_end

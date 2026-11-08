@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Task 6 host integration: the webserver-channel-device spike over REAL posix
-# sockets. Bakes ThermalHttpNode.oimg, builds the image VM (http_poll runs inside
-# pumpEvents on the single reactor thread — no accept thread), runs it listening
+# sockets. Bakes ThermalHttpNode.oimg, builds the image VM (http_poll runs in the
+# listener's sys/http/listen reaction on the one VM thread — no accept thread), runs it listening
 # on 8080, and drives it with curl:
 #   GET /thermal -> 200 with an SVG heat-grid (body contains rgb()),
 #   GET /nope    -> 404,
@@ -22,7 +22,7 @@ gcc -std=c99 -Isrc tools/dump_layout.c -o /tmp/dl
 echo "[2/5] compile ThermalHttpNode.nsl -> .oimg"
 python3 "$NSL" zephyr/ThermalHttpNode.nsl /tmp/http_server.oimg --format=oimg --layout=/tmp/layout.json
 
-echo "[3/5] build image VM (http_poll, no accept thread)"
+echo "[3/5] build image VM (the listener rings sys/http/listen; no accept thread)"
 gcc -Wall -std=c99 -Isrc \
     src/vm.c src/gc.c src/dispatch.c src/platform.c src/space.c src/handles.c \
     src/span.c \

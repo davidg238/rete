@@ -10,8 +10,19 @@ int  udp_socket_bind(int port);            /* fd >=0, or -1; port 0 = ephemeral 
 int  udp_send(int sock, const char *host, int port,
               const uint8_t *data, int len);   /* bytes sent, or -1 */
 /* Non-blocking. Fills buf (payload), host_out (numeric sender, NUL-terminated),
-   *sender_port. Returns payload length (>=0), or -1 when no datagram waiting. */
+   *sender_port. Returns payload length (>=0), or -1 when no datagram waiting, which
+   restores the socket's doorbell (udp_doorbell below). */
 int  udp_receive(int sock, uint8_t *buf, int buf_cap,
                  char *host_out, int host_cap, int *sender_port);
 void udp_close(int sock);
+/* rete#440, the doorbell. Ring chan_id once a datagram on sock can be read (never
+   before: the reaction reads until empty, so a bell that overtook its payload would
+   lose the wakeup), then leave sock alone until udp_receive answers empty on it,
+   which restores it. The token is TAG_SMI(sock), a constant per channel, so a burst
+   coalesces into one pending wakeup. Registering a sock already registered re-arms
+   it: that is how a listener restores (http_poll answering 0). Only the VM's sockets
+   (udp.c basicBind:) and the http listener register; udp_close forgets one.
+   Answers 0, or -1 when sock cannot have a bell (no room, no reader): a socket that
+   never rings is a deaf node, so the caller fails its bind rather than keep it. */
+int  udp_doorbell(int sock, int chan_id);
 #endif

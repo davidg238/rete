@@ -12,6 +12,7 @@
 #include "udp.h"
 #include "platform.h"
 #include "udp_backend.h"
+#include "space.h"
 #include "oimg.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -62,7 +63,21 @@ oop udp_dispatch(oop selector, int argc, oop *args) {
 
     if (strcmp(sel, "basicBind:") == 0) {              /* SMI port -> SMI fd / SMI -1 */
         int port = IS_SMI(args[0]) ? (int)UNTAG_SMI(args[0]) : 0;
-        return TAG_SMI(udp_socket_bind(port));
+        int fd = udp_socket_bind(port);
+        /* rete#440: a VM socket rings `sys/net/<fd>` whenever a datagram can be read.
+           Registered here, not in the backend's bind, because the OTA fetch and the
+           console tee bind sockets too and read them on their own threads; and before
+           the first datagram can land, so the channel exists when it does. Keyed by fd
+           because BLE's port-0 bind picks a port the core never learns. */
+        if (fd >= 0) {
+            char path[24];
+            int n = snprintf(path, sizeof path, "sys/net/%d", fd);
+            if (udp_doorbell(fd, space_intern(path, (size_t)n)) < 0) {
+                udp_close(fd);                         /* no bell: fail the bind, loudly */
+                fd = -1;
+            }
+        }
+        return TAG_SMI(fd);
     }
     if (strcmp(sel, "basicSend:to:port:data:") == 0) { /* fd, hostStr, portSMI, dataBytesLeaf */
         int fd = (int)UNTAG_SMI(args[0]);

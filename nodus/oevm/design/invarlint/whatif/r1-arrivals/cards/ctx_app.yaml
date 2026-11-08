@@ -1,0 +1,6 @@
+name: app
+kind: context
+files:
+  - "zephyr/src/*"
+units:
+  - zephyr/src

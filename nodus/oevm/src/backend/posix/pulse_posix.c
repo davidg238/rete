@@ -6,6 +6,7 @@
 #include "../../pulse_backend.h"
 #include "../../space.h"
 #include "../../handles.h"
+#include "udp_posix.h"
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -57,8 +58,13 @@ void pulse_post_isr_value(int chan_id, oop immediate) {
     pulse_enqueue(chan_id, PULSE_BY_VALUE, immediate);
 }
 
+void pulse_posix_ring(int chan_id, int fd) {
+    pulse_post_isr_value(chan_id, TAG_SMI(fd));
+}
+
 int pulse_pump(void) {
     int drained = 0;
+    udp_posix_poll();          /* rete#440: the sockets' doorbells, as a target's reader rings them */
     while (mb_count > 0) {
         struct PulseItem it = mailbox[mb_head];
         mb_head = (mb_head + 1) % OEVM_PULSE_MAILBOX_DEPTH;
@@ -72,9 +78,6 @@ int pulse_pump(void) {
     mb_drained += (uint32_t)drained;
     return drained;
 }
-
-/* Posix pulse_pump is already non-blocking, so the nb variant is identical. */
-int pulse_pump_nb(void) { return pulse_pump(); }
 
 uint32_t pulse_drops(void)     { return mb_drops; }
 uint32_t pulse_drained(void)   { return mb_drained; }
