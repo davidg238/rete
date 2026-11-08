@@ -16,6 +16,7 @@ does:
     # src/udp_backend.h: udp_receive
 implemented_by:
   - c: udp_close
+  - c: udp_doorbell
   - c: udp_open
   - c: udp_receive
   - c: udp_send

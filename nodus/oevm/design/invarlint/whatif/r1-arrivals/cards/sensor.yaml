@@ -1,0 +1,13 @@
+name: Sensor
+stereotype: interfacer
+root: true
+context: adapters
+knows:
+  - "a kind's device is the devicetree alias <kind>0, and a reading is in milli-SI"
+    # docs/design/2026-10-23-sensor-seam-design.md: The seam; nodus/oevm/docs/vm.md: The reactor, the space and the wire
+does:
+  - "answers a reading; an armed trigger posts a pulse"
+    # src/sensor_backend.h: sensor_read, sensor_arm
+implemented_by:
+  - c: sensor_arm
+  - c: sensor_read

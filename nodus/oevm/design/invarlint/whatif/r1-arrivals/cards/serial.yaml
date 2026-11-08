@@ -1,0 +1,12 @@
+name: Serial
+stereotype: interfacer
+root: true
+context: adapters
+does:
+  - "opens the byte port, reads and writes one byte, and answers whether a byte waits"
+    # src/serial_backend.h
+implemented_by:
+  - c: serial_at_end
+  - c: serial_open
+  - c: serial_read_byte
+  - c: serial_write_byte

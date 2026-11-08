@@ -1,0 +1,9 @@
+name: Identity
+stereotype: information-holder
+root: true
+context: adapters
+knows:
+  - "the board's name, its node id and this boot's id"
+    # src/platform_backend.h: platform_backend_board_name, platform_backend_node_id, platform_backend_boot_id
+implemented_by:
+  - c: "platform_backend_*"

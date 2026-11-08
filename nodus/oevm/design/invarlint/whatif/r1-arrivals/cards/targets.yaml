@@ -1,0 +1,15 @@
+# Accepted by David, 2026-10-18 (a declared port accepts the crossing, it does not fix it); the RTC and sleep
+# leaves moved to Sleep (rete#440 R0). The code fix is R6: the leaves leave main.c.
+name: Targets
+root: true
+does:
+  - the board facilities the core dispatches prims to (gpio, display, bell, ntp, wallclock, reboot note)
+implemented_by:
+  - c: "bell_target_*"
+  - c: "display_target_*"
+  - c: "gpio_target_level"
+  - c: "gpio_target_set"
+  - c: "ntp_target_*"
+  - c: "wallclock_target_*"
+  - c: reboot_note_read
+  - c: reboot_note_ack

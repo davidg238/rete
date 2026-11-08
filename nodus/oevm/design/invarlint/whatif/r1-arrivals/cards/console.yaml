@@ -1,0 +1,17 @@
+name: Console
+stereotype: interfacer
+root: true
+context: adapters
+knows:
+  - "the console, both directions, and whether a person has spoken on the cable"
+    # src/platform_backend.h: platform_console_write, platform_console_arm; src/backend/zephyr/platform_zephyr.c: A CABLE NOBODY HAS SPOKEN ON
+does:
+  - "writes bytes out, flushes them, and tees them to a UDP collector"
+    # src/platform_backend.h: platform_console_write, platform_console_tee; docs/design/2026-08-03-device-console-collector-design.md
+  - "rings the console channel when a whole line has arrived"
+    # src/platform_backend.h: platform_console_arm
+implemented_by:
+  - c: "platform_console_*"
+  - c: platform_debug_enabled
+  - c: platform_debug_held
+  - c: platform_debug_readline

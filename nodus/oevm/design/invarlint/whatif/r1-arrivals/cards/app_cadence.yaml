@@ -1,0 +1,10 @@
+# Proposed by Claude 2026-10-18 (invarlint#48), by the TimerSnapshot precedent (the observer reads the
+# timer adapter's schedule): the observer reads the cadence the program declared (src/platform.c:18,
+# zephyr/src/observer.c:145,317). Left out of observer.yaml for David; decided here, reversible by
+# deleting this card. A declared port accepts the crossing, it does not fix it.
+name: AppCadence
+root: true
+does:
+  - the program's declared cadence, read by the liveness observer
+implemented_by:
+  - c: platform_app_cad_ms

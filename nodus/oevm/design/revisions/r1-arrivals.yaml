@@ -1,0 +1,8 @@
+name: r1-arrivals
+pattern: Observer
+intent: every arrival posts a doorbell on its channel (UDP, BLE, HTTP); the VM thread blocks only in the pulse pump; pulse_pump_nb and the poll in pumpEvents are deleted (rete #440, design 2026-11-04 Arrivals and R1)
+compromise: code only; the cards drawn at R0 already state the end state (Pulse, Net, Http). udp_ble.c and the posix backend are outside the C6 photograph, so the BLE doorbell and the host pump are held by the suite and the board, not by this prediction
+ops:
+  # basicBind: (src/udp.c, core) registers the VM socket's doorbell on sys/net/<fd>: one new core→adapters crossing,
+  # which must land on Net's root, so Net gains the implementer before the code
+  - bind: {card: Net, func: udp_doorbell}

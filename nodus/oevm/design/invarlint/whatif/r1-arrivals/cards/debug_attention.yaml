@@ -1,0 +1,11 @@
+# Accepted by David, 2026-10-18 (invarlint#48): platform_debug_pending is the seam's attention
+# flag (platform_backend.h): the console ISR raises it on the debugger's break byte, taking the
+# line lowers it, and vm.c's interpreter loop reads it.
+name: DebugAttention
+does:
+  - tells the interpreter the debugger wants it, from the console ISR
+owns:
+  - global:platform_debug_pending
+implemented_by:
+  - c: src/backend/zephyr/platform_zephyr.c:rl_isr
+  - c: src/backend/zephyr/platform_zephyr.c:rl_line_taken

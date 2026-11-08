@@ -1,0 +1,20 @@
+# Accepted by David, 2026-10-18 (invarlint#48, proposal row 4): the interpreter's running state —
+# the frame, the stack pointer, the raised condition and the boot send in flight — written only by
+# the vm.c functions that run, enter or unwind a frame. gc.c and dispatch.c read it.
+name: Interpreter
+does:
+  - runs the bytecode and owns the running frame
+collaborators:
+  - {to: Console, mode: sync-command}   # the 38 console sites; declared for the record, no C rule reads it yet
+owns:
+  - global:current_frame
+  - global:vm_stack_ptr
+  - global:g_raised_condition
+  - global:g_boot_inflight_*
+implemented_by:
+  - c: run_interpreter
+  - c: src/vm.c:push_frame
+  - c: vm_ensure
+  - c: vm_on_do
+  - c: vm_protected_fire
+  - c: vm_raise
