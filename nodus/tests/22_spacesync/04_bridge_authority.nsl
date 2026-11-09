@@ -21,7 +21,7 @@ class BridgeAuthority packageUsing: manifest = () (
     | space bridge bytes spans |
     space:: platform space.
     spans:: platform Spans new.
-    bridge:: platform PortaBridge socket: nil space: space id: 'n1' peer: '::1' port: 6969 spans: spans.
+    bridge:: platform PortaBridge socket: nil space: space id: 'n1' peer: '::1' port: 6969 spans: spans timers: platform timers.
 
     bytes:: platform Cbor encode:
       (platform Record tag: #batch

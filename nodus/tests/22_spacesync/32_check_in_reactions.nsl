@@ -1,0 +1,132 @@
+(*
+porta space-sync — THE CHECK-IN AS REACTIONS (rete#440 R2, design 2026-11-04 "The
+check-in as reactions"). `checkIn` starts an exchange and returns at once; the socket's
+doorbell and the budget's expiry move it on. Driven here on the virtual clock: a ring
+is a post on the fake socket's channel, an expiry is `advanceMillis:` past the 2 s
+budget.
+
+What is asserted, and why each is falsifiable:
+
+- `sent 1 pulling true` — the check-in sent its PULL and returned without a reply.
+  A check-in that still waited would have read the (empty) socket and scored a miss.
+- `ignored 1` — a check-in while an exchange is in flight sends nothing.
+- `armed 1` — the waiting state holds exactly one budget one-shot on the bridge's
+  Timers (the tick is not armed here).
+- `pull miss 1 pushing true sent 2` — the budget lapsed with nothing to read: a miss,
+  and the PUSH goes anyway (a pull miss still pushes).
+- `read first 1 idle true` — the push leg's budget lapsed with an #ack WAITING but its
+  doorbell lost: the expiry reads first, so the reply is an arrival, not a miss
+  (`misses` stays 1), and the exchange leaves.
+- `finished 1 armed 0` — leaving says so once on sys/porta/exchange, and cancels the
+  budget, so no one-shot is left behind.
+- `stale crossed 1` — a reply landing while idle is read and discarded, counted.
+- `late expiry ignored true` — an expiry for a leg the exchange already left does not
+  score a miss: the budget's leg number guards it.
+- `held 1` — the held loop (`heldStep`, run by a stopped debugger) starts its own
+  exchange from idle, moves it on without a reaction, scores each lapse against the
+  clock, and ends it quietly, counted as held.
+- `continue armed 0 misses 3 finished 2` — the held steps cancelled their budgets, so
+  the expiries queued while held are dropped at the continue's drain instead of
+  scoring more misses, and the held exchange said no `finished` (two: the app's).
+expect:
+sent 1 pulling true
+ignored 1
+armed 1
+pull miss 1 pushing true sent 2
+read first 1 idle true
+finished 1 armed 0
+stale crossed 1
+late expiry ignored true
+held 1
+continue armed 0 misses 3 finished 2
+*)
+class CheckInReactions packageUsing: manifest = () (
+
+  public class FakeDatagram = ( | private data | ) (
+    public setData: d = ( data:: d. ^ self )
+    public data = ( ^ data )
+  ) : (
+    public on: d = ( ^ self new setData: d )
+  )
+
+  (* One queued datagram, answered once by `receive`; then nil, an emptied socket.
+     `sends` counts the frames the bridge sent. *)
+  public class FakeSocket = ( | private queued private sends ::= 0. | ) (
+    public doorbell = ( ^ 'test/net' )
+    public hold: bytes = ( queued:: bytes. ^ self )
+    public sends = ( ^ sends )
+    public sendTo: host port: p data: bytes = ( sends:: sends + 1. ^ self )
+    public receive = ( | q |
+      queued == nil ifTrue: [ ^ nil ].
+      q:: queued. queued:: nil.
+      ^ FakeDatagram on: q )
+  ) : ()
+
+  public main: platform args: args = (
+    | space timers bridge sock ack batch finished |
+    space:: platform space.
+    timers:: platform timers.
+    space whenever: 'sys/timer' do: [ :t | timers dispatch: t ].
+    finished:: 0.
+    (space channel: 'sys/porta/exchange') whenever: '' do: [ :v | finished:: finished + 1 ].
+    space put: 'obs/health' value: 11.
+    ack:: platform Cbor encode: (platform Record tag: #ack with: #hw -> 1).
+    batch:: platform Cbor encode: (platform Record tag: #batch with: #hi -> 0
+      with: #ent -> (platform List with: (platform List with: 1 with: 'goal/name' with: 2 with: 'x'))).
+
+    sock:: FakeSocket new.
+    bridge:: platform PortaBridge socket: sock space: space id: 'n1' peer: '::1' port: 6969
+      spans: platform Spans new timers: timers.
+
+    bridge checkIn.
+    ('sent ' , sock sends printString , ' pulling ' , (bridge state = #pulling) printString) println.
+    bridge checkIn.
+    ('ignored ' , sock sends printString) println.
+    ('armed ' , timers pendingCount printString) println.
+
+    platform advanceMillis: 2000.
+    space drain.
+    ('pull miss ' , bridge misses printString , ' pushing ' , (bridge state = #pushing) printString
+      , ' sent ' , sock sends printString) println.
+
+    sock hold: ack.                      (* the reply is there; its doorbell is lost *)
+    platform advanceMillis: 2000.
+    space drain.
+    ('read first ' , bridge misses printString , ' idle ' , (bridge state = #idle) printString) println.
+    ('finished ' , finished printString , ' armed ' , timers pendingCount printString) println.
+
+    sock hold: batch.
+    space out: 'test/net' value: 1.
+    space drain.
+    ('stale crossed ' , bridge crossed printString) println.
+
+    (* A late expiry: the budget fires and is dispatched, and before its post reaches
+       the bridge a reply moves the exchange on. Here: arm, let the expiry fire into
+       the space ahead of a reply's ring, so `Timers>>dispatch:` passes it on (the
+       token is still pending) and the ring's reaction moves the exchange on before
+       the bridge's budget reaction sees the post. *)
+    bridge checkIn.
+    platform advanceMillis: 2000.
+    sock hold: batch.
+    space out: 'test/net' value: 1.
+    space drain.
+    sock hold: ack.
+    space out: 'test/net' value: 1.
+    space drain.
+    ('late expiry ignored ' , (bridge misses = 1 and: [ bridge state = #idle ]) printString) println.
+
+    (* The held loop, as a stopped debugger runs it: no drain between steps. *)
+    bridge heldStep.                     (* idle: starts its own exchange, pumps, nothing to read *)
+    platform advanceMillis: 2000.        (* the pull budget's deadline passes *)
+    bridge heldStep.                     (* the clock lapses the pull: a miss, then PUSH *)
+    platform advanceMillis: 2000.
+    bridge heldStep.                     (* the push lapses too: a miss, and it leaves *)
+    ('held ' , bridge heldExchanges printString) println.
+    space drain.                         (* the continue *)
+    ('continue armed ' , timers pendingCount printString , ' misses ' , bridge misses printString
+      , ' finished ' , finished printString) println.
+    ^ 0
+  )
+) : (
+  public packageUsing: manifest = ( ^ self new )
+)

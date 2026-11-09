@@ -50,7 +50,7 @@ class ConsoleTee usingPlatform: platform net: net = () (
   public main: k args: args = (
     | space bridge rx log got |
     space:: k space.
-    bridge:: k PortaBridge socket: nil space: space id: 'n1' peer: '::1' port: 6969 spans: k Spans new.
+    bridge:: k PortaBridge socket: nil space: space id: 'n1' peer: '::1' port: 6969 spans: k Spans new timers: k timers.
     rx:: net udpBindPort: 54344.
     rx == nil ifTrue: [ 'no socket' println. ^ 1 ].
     'before' println.

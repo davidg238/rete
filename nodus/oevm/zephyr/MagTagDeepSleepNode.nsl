@@ -2,11 +2,12 @@
 MagTagDeepSleepNode — the ship's-bell clock as a RUN-ONCE deep-sleep appliance that
 talks to porta (tuvm#94 stage 5; rete#379, #380).
 
-THE REACTOR IS GONE. Between wakes the CPU is off and THE VM DOES NOT EXIST: each timer
-wake is a fresh boot that lives a few seconds and dies. There is no drain loop, no
-channel, no VM timer — deepSleep: IS the idle point. This also DELETES the timer-instance
-bug class that cost the stage 2 overnight run (a timer registered on one Timers,
-dispatched on another): there are no VM timers left to misregister.
+Between wakes the CPU is off and THE VM DOES NOT EXIST: each timer wake is a fresh boot
+that lives a few seconds and dies, and deepSleep: is the idle point. Within a wake the
+node is event-driven like every other program (rete#440 R2): set up, check in, run the
+reactor; the reaction to the exchange's `finished` (sys/porta/exchange) takes the next
+step, and the last step is the sleep. The only VM timers are the bridge's reply budgets,
+on the one `platform timers` this node dispatches.
 
 THE PROGRAM IS ITS CLASSES (rete#380, David 2026-10-09). The clock's rules live in
 lib/Bells.nsl, one responsibility each — Dial (the 48 slots and the modular ratchet,
@@ -23,15 +24,17 @@ completion before anything else (design §8), and the ratchet accounts for the w
 window afterwards. A watch end (8 bells) then syncs and paints, a cold boot syncs and
 paints without striking. Only then does the node join porta: bind, bridge, one check-in
 — at which the `goal/debug/main` cell is replayed into this fresh boot, so a breakpoint
-set from porta arms here and stops the work that follows (rete#375, #379) — the wake's row
-on `tel/log`, a second check-in, and the sleep arithmetic last, so that `awakeSinceBasis`
-has seen every second this wake spent, exchanges included. Held, the node runs held
+set from porta arms here and stops the work that follows (rete#375, #379) — then, when
+that exchange has finished, the wake's row on `tel/log` and a second check-in, and when
+that one has, the sleep arithmetic last, so that `awakeSinceBasis` has seen every second
+this wake spent, exchanges included. Held, the node runs held
 exchanges through the same link (rete#377): a stop on a node that was asleep half an hour
 ago is stepped and inspected from porta with no cable on the board.
 
 No porta is not an error. `net udpBindPort:` nil (no radio in the image, or the host
 gate's OEVM_NO_NET) gives the bridge `socket: nil`, the #274 construction: it checks in
-nowhere, publishes locally, and the clock runs exactly as it did before it was bridged.
+nowhere and never finishes an exchange, so the node reports and sleeps at once, and the
+clock runs exactly as it did before it was bridged.
 The declared liveness is one slot plus an awake window, so porta reads a node that is
 asleep as live until it misses four of them.
 
@@ -67,7 +70,8 @@ sleep: arming 1804 s
 uses: lib/Bells.nsl
 *)
 class MagTagDeepSleepNode usingPlatform: platform net: net = (
-  | private dial private record private drift private clock private space private bridge private summary |
+  | private dial private record private drift private clock private space private bridge private summary
+    private timers private linked ::= false. private exchanges ::= 0. |
 ) (
   gwAddr    = ( ^ 'fd3f:2e87:5f7:5554:6662:66ff:fe2f:710' )   (* gw85224-01 by its stable ULA (rete#390) *)
   gwPort    = ( ^ 6969 )
@@ -88,9 +92,17 @@ class MagTagDeepSleepNode usingPlatform: platform net: net = (
       ifFalse: [ self coldBoot ].
 
     self joinPorta.            (* the first check-in replays the breakpoint set *)
-    self report.
-    space drain.               (* the row above is captured by a reaction; only a drain runs it *)
-    bridge checkIn.
+    linked ifFalse: [ self report. ^ self sleep ].   (* no porta: NEVER RETURNS *)
+    [ true ] whileTrue: [ platform pumpEvents. space drain ].
+    ^ self
+  )
+
+  (* The wake's steps, one per finished exchange: the first exchange's end reports and
+     checks in again, so the row rides the second push (the push is built after the
+     reactions that captured it have run, so no hand drain); the second's end sleeps. *)
+  exchanged = (
+    exchanges:: exchanges + 1.
+    exchanges = 1 ifTrue: [ self report. ^ bridge checkIn ].
     ^ self sleep               (* NEVER RETURNS *)
   )
 
@@ -159,16 +171,20 @@ class MagTagDeepSleepNode usingPlatform: platform net: net = (
     (StatsPage on: disp record: record clock: clock heap: platform heapStats) paint.
     ^ self )
 
-  (* Bind, bridge, declare, check in. Over IPv6 to the gateway's ULA: the bridge awaits
+  (* Bind, bridge, declare, check in. Over IPv6 to the gateway's ULA: the bridge reads
      porta's reply on the socket it bound, and only over IPv6 do the send and the reply
      share that one socket on this board (rete#390). *)
   joinPorta = (
     | sock |
     sock:: net udpBindPort: self localPort.
     sock == nil ifTrue: [ 'no net: running unbridged' out ].
+    linked:: (sock == nil) not.
+    timers:: platform timers.
+    space whenever: 'sys/timer' do: [ :e | timers dispatch: e ].
+    (space channel: 'sys/porta/exchange') whenever: '' do: [ :v | self exchanged ].
     bridge:: platform PortaBridge
       socket: sock space: space id: platform nodeId peer: self gwAddr port: self gwPort
-      spans: platform Spans new.
+      spans: platform Spans new timers: timers.
     bridge subscribeStream: 'tel/log'.
     bridge liveness: self cadenceMillis misses: 4.
     bridge publishBuild: self chip.

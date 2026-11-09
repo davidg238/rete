@@ -42,10 +42,10 @@ class RearmProbeC6 packageUsing: manifest = (
     tickCh whenever: '' do: [ :m | self tick ].
 
     bridge:: plat PortaBridge socket: nil space: space id: 'rearm' peer: '::1' port: 1
-      spans: plat Spans new.
+      spans: plat Spans new timers: timers.
     bridge liveness: 2000 misses: 8.
     lastMs:: 0 millis.
-    bridge startTicking: timers on: tickCh.
+    bridge startTickingOn: tickCh.
     'rearm-probe armed 2000' out.
 
     [ true ] whileTrue: [ plat pumpEvents. space drain ].

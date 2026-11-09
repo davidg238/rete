@@ -27,8 +27,8 @@ into a 512 B batch that #150 already reports trimming, and the first row
 `ota staged` log line, the only trace the node leaves before it exits.
 
 The ONE `Spans` instance stays, because `PortaBridge`'s constructor requires it
-(kernel.nsl, `socket:space:id:peer:port:spans:` — a bridge must not be able to
-ship uninstrumented). Nothing starts a capture, so it costs six registered slot
+(kernel.nsl, `socket:space:id:peer:port:spans:timers:` — a bridge must not be able
+to ship uninstrumented). Nothing starts a capture, so it costs six registered slot
 names and no cells on the wire.
 
 `gwPort` is 26969 and NOT 16969: porta_sync_host.sh owns the 16969/16970 pair,
@@ -66,9 +66,11 @@ class OtaBridgeNode usingPlatform: platform net: net = (
     sock:: net udpBindPort: self localPort.
     sock == nil ifTrue: [ ^ self fail: 'bind' ].
     spans:: platform Spans new.
+    timers:: platform timers.     (* hold ONE instance — it owns the pending registry,
+                                     and the bridge arms its budget on it (rete#440 R2) *)
     bridge:: platform PortaBridge
       socket: sock space: space id: self nodeId peer: self gwAddr port: self gwPort
-      spans: spans.
+      spans: spans timers: timers.
     bridge subscribeStream: 'tel/log'.
     bridge subscribeStream: 'sys/reset'.
 
@@ -80,7 +82,6 @@ class OtaBridgeNode usingPlatform: platform net: net = (
       with: #chip -> self chip
       with: #build -> ('v' , self version printString)).
 
-    timers:: platform timers.     (* hold ONE instance — it owns the pending registry *)
     space whenever: 'sys/timer' do: [ :e | timers dispatch: e ].
     tickChan:: space channel: 'sys/tick'.
     tickChan whenever: '' do: [ :m | self tick ].
@@ -93,17 +94,17 @@ class OtaBridgeNode usingPlatform: platform net: net = (
     ^ 0
   )
 
-  (* One check-in, then one report. In that order: applying goal/** first means
-     the health this node publishes describes the state porta just asked for.
-     `checkIn` carries the ota tail (kernel.nsl `otaCheck`) — confirm, activate,
-     stage — so a rollout needs nothing at all in this file. *)
+  (* One report, then one check-in (rete#440 R2): the check-in returns at once and
+     the health rides its push. The exchange carries the ota tail as it leaves
+     (kernel.nsl `otaCheck`) — confirm, activate, stage — so a rollout needs nothing
+     at all in this file. *)
   tick = (
     ticks:: ticks + 1.
-    bridge checkIn.
     self publishHealth.
     space out: 'tel/log' value:
       (platform Record tag: #Log with: #lvl -> #info
                                  with: #txt -> ('tick ' , ticks printString)).
+    bridge checkIn.
     ^ self
   )
 

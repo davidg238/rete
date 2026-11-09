@@ -28,7 +28,7 @@ class LivenessDeclared packageUsing: manifest = () (
        was written and cannot fail. Every seq read here is `seq`. *)
     before:: space seq.
     bridge:: platform PortaBridge socket: nil space: space id: 'test' peer: '::1' port: 1
-      spans: platform Spans new.
+      spans: platform Spans new timers: platform timers.
 
     bridge publishLiveness.
     rec:: (space channel: 'obs/liveness') peek: '' ifAbsent: [ nil ].

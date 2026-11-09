@@ -42,7 +42,7 @@ class OtaWantedFrom packageUsing: manifest = () (
   public main: platform args: args = (
     | bridge hash sig |
     bridge:: platform PortaBridge socket: nil space: platform space id: 'n1'
-               peer: '::1' port: 6969 spans: platform Spans new.
+               peer: '::1' port: 6969 spans: platform Spans new timers: platform timers.
     hash:: platform ByteArray fromHex: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'.
     sig::  platform ByteArray fromHex:
       'ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00'.

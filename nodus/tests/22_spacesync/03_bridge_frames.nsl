@@ -27,7 +27,7 @@ class BridgeFrames packageUsing: manifest = () (
     | space bridge pull batch push rows spans |
     space:: platform space.
     spans:: platform Spans new.
-    bridge:: platform PortaBridge socket: nil space: space id: 'n1' peer: '::1' port: 6969 spans: spans.
+    bridge:: platform PortaBridge socket: nil space: space id: 'n1' peer: '::1' port: 6969 spans: spans timers: platform timers.
 
     (* --- the pull frame ---
        `=` and not printString: printing a Symbol MASKS the identity question, and

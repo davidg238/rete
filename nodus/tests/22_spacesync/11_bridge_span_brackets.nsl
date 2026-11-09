@@ -1,6 +1,6 @@
 (*
-porta space-sync — `checkIn` is SIX spans and `pushBuild` is three more nested
-inside it, and each one fires exactly once per check-in.
+porta space-sync — an exchange is SIX spans and `pushBuild` is three more nested
+inside it, and each one fires exactly once per exchange.
 
 Why this exists: the first span capture off c6-bench
 (docs/results/2026-08-05-c6-span-capture-first.md) found a check-in costing ~300 ms
@@ -9,15 +9,16 @@ versus VM, send versus wait, all invisible, because `checkIn` was one span measu
 from the app. The breakdown needs spans INSIDE PortaBridge, which is what this
 test pins.
 
-The six PARTITION `checkIn` exactly, so `checkIn - (sum of six)` is un-bracketed
-time and any gap is a bug in the bracketing rather than a finding about the mesh:
+The six PARTITION the exchange, which since rete#440 R2 is spread over three
+reactions — the check-in, the #batch's doorbell, the #ack's doorbell — so the
+waits run from a send to the reaction that receives the reply:
 
   pullSend   encode the #pull frame and send it
-  pullWait   wait for the #batch
+  pullWait   from the send to the reaction that receives the #batch
   applyIn    apply the batch, publish sys/metrics
   pushBuild  collectOutbound + encode + the trim re-encodes
   pushSend   send the #push frame
-  pushWait   wait for the #ack and apply it
+  pushWait   from the send to the reaction that applies the #ack
 
 And tuvm#161 splits `pushBuild` the same way, because it measured 62% of the
 check-in on c6-bench and the source says a value is CBOR-encoded three or more
@@ -47,7 +48,7 @@ What is asserted, and why each is falsifiable:
   different set of cells at stop than the set that existed at start.
 - `virgin ... 0` — registration alone records no sample. Falsifies a bracket that
   fires at register: time.
-- `after two ... 2` — one sample per span per check-in, across TWO check-ins. A
+- `after two ... 2` — one sample per span per exchange, across TWO exchanges. A
   bracket left open across the boundary records nothing on the next `begin:`
   (span_end no-ops on a closed slot), so it would read 1, not 2.
 - `pushTrim` reading 2 IS AN ASSERTION, not a side effect. This frame is far
@@ -55,9 +56,9 @@ What is asserted, and why each is falsifiable:
   has to fire, because a conditional bracket would make "the loop never ran" and
   "the span is missing" the same reading in the capture.
 
-The fake socket alternates #batch, #ack, #batch, #ack — the real reply sequence,
-which is what lets two whole check-ins run without any wait burning its 2 s
-budget.
+The fake socket is doorbell-driven: the test hands it the next reply and rings
+its channel, and the bridge reads it to empty — #batch, then #ack, twice, the
+real reply sequence, so no leg ever reaches its budget.
 
 expect:
 slots 11
@@ -67,8 +68,8 @@ after two 2 2 2 2 2 2 2 2 2
 class BridgeSpanBrackets packageUsing: manifest = () (
 
   (* Duck-typed stand-ins, as in 06_reply_tag_match: PortaBridge only ever sends
-     `sendTo:port:data:` and `receive` to its socket, and `data` to what receive
-     answers. *)
+     `sendTo:port:data:`, `receive` and `doorbell` to its socket, and `data` to
+     what receive answers. *)
   public class FakeDatagram = ( | private data | ) (
     public setData: d = ( data:: d. ^ self )
     public data = ( ^ data )
@@ -76,19 +77,23 @@ class BridgeSpanBrackets packageUsing: manifest = () (
     public on: d = ( ^ self new setData: d )
   )
 
-  (* Alternates the two replies rather than stepping a fixed list of slots: the
-     legs ask in a strict batch/ack order, so a toggle serves any number of
-     check-ins and no wait ever times out. A flag, not `n \\ 2`. *)
-  public class FakeSocket = ( | private batch private ack private wantAck | ) (
-    public setBatch: b ack: a = ( batch:: b. ack:: a. wantAck:: false. ^ self )
+  (* One queued datagram: `hold:` queues it, `receive` answers it once and then
+     nil, which is what an emptied socket looks like. *)
+  public class FakeSocket = ( | private queued | ) (
+    public doorbell = ( ^ 'test/net' )
+    public hold: bytes = ( queued:: bytes. ^ self )
     public sendTo: host port: p data: bytes = ( ^ self )
-    public receive = (
-      wantAck ifTrue: [ wantAck:: false. ^ FakeDatagram on: ack ].
-      wantAck:: true.
-      ^ FakeDatagram on: batch )
-  ) : (
-    public batch: b ack: a = ( ^ self new setBatch: b ack: a )
-  )
+    public receive = ( | q |
+      queued == nil ifTrue: [ ^ nil ].
+      q:: queued. queued:: nil.
+      ^ FakeDatagram on: q )
+  ) : ()
+
+  ring: sock with: bytes space: space = (
+    sock hold: bytes.
+    space out: 'test/net' value: 1.
+    space drain.
+    ^ self )
 
   (* register: is idempotent by name, so this answers the slot the BRIDGE was
      given rather than a new one — which is also the only way a test can ask for
@@ -126,15 +131,19 @@ class BridgeSpanBrackets packageUsing: manifest = () (
             (platform List with: 7 with: 'goal/name' with: 2 with: 'bench'))).
     ack:: platform Cbor encode: (platform Record tag: #ack with: #hw -> 1).
 
-    sock:: FakeSocket batch: batch ack: ack.
+    sock:: FakeSocket new.
     bridge:: platform PortaBridge
-      socket: sock space: space id: 'n1' peer: '::1' port: 6969 spans: spans.
+      socket: sock space: space id: 'n1' peer: '::1' port: 6969 spans: spans timers: platform timers.
 
     ('slots ' , spans slotCount printString) println.
     (self line: 'virgin' spans: spans) println.
 
     bridge checkIn.
+    self ring: sock with: batch space: space.
+    self ring: sock with: ack space: space.
     bridge checkIn.
+    self ring: sock with: batch space: space.
+    self ring: sock with: ack space: space.
     (self line: 'after two' spans: spans) println.
     ^ 0
   )

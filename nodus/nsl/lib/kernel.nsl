@@ -1545,6 +1545,9 @@ class Kernel usingPlatform: platform = (
       t == nil ifTrue: [ ^ nil ].
       ^ Datagram data: (Bytes overRaw: (t basicAt: 1)) senderHost: (t basicAt: 2) senderPort: (t basicAt: 3) )
     public close = ( port basicClose: handle. ^ self )
+    (* rete#440: the channel this socket's doorbell rings, registered by `basicBind:`
+       (udp.c) before the first datagram can land. Keyed by fd, not port. *)
+    public doorbell = ( ^ 'sys/net/' , handle printString )
   ) : (
     public onPort: aPort handle: h = ( ^ self new setPort: aPort handle: h )
   )
@@ -1635,9 +1638,8 @@ class Kernel usingPlatform: platform = (
      every unexpected tag and every out-of-authority path is a counted drop. *)
   (* #342 spike: the debugger's lines through the space. `accept:` is fed by the
      bridge's applyEntry: (dbg/req), `say:` offers dbg/resp rows to the bridge's
-     next push, and `readLine` answers the next line, running held exchanges while
-     there is none. nil (the debugger's EOF, which resumes) when an exchange is
-     already on the stack. *)
+     next push, and `readLine` answers the next line, running the held loop while
+     there is none (rete#440 R2: a stop is always served). *)
   class DebugLink = ( | private bridge private space private lines private armed | ) (
     public setBridge: b space: s = (
       bridge:: b. space:: s.
@@ -1682,9 +1684,10 @@ class Kernel usingPlatform: platform = (
     public pending = ( ^ lines isEmpty not )
     public next = ( ^ lines removeFirst )
     public say: s = ( bridge offer: 'dbg/resp' value: s. ^ self )
-    (* One pull and one push; false when an exchange is already on the stack. The
-       Supervisor's readLine (rete#376) looks at the cable between exchanges. *)
-    public heldExchange = ( ^ bridge heldExchange )
+    (* One step of the held loop: block in the pump, then move the exchange on
+       (PortaBridge>>heldStep). The Supervisor's readLine (rete#376) looks at the
+       link and the cable between steps. *)
+    public heldStep = ( ^ bridge heldStep )
     (* obs/debug (rete#375): held, and where. A cell, so the next push carries it —
        the held exchange's own push while stopped, the tick's after a continue. The
        blob is -1 in a Path A image (no blob); the wire says uint, so 0 stands in. *)
@@ -1705,9 +1708,21 @@ class Kernel usingPlatform: platform = (
       private cursor ::= 0. private acked ::= 0. private rejected ::= 0. private misses ::= 0. private dropped ::= 0.
       private crossed ::= 0.
       (* The debugger's link through the space (rete#376: set at construction in
-         a debug image, nil in a standard one), and whether an exchange is on the
-         stack — a stop inside one must not start another. *)
-      private dbgLink ::= nil. private exchanging ::= false. private heldExchanges ::= 0.
+         a debug image, nil in a standard one). `holding` is true while the held
+         loop runs the bridge (`heldStep`); `quiet` marks an exchange the held loop
+         started, which ends without a debugger wake, an otaCheck or a `finished`
+         (rete#440 R2, design "While the program is stopped"). *)
+      private dbgLink ::= nil. private heldExchanges ::= 0. private holding ::= false. private quiet ::= false.
+      (* rete#440 R2 — the exchange as a state machine (design 2026-11-04, "The
+         check-in as reactions"). `state` is #idle, #pulling or #pushing (#linking
+         is R3's). `timers` is the bridge's, from construction, so every state that
+         waits holds an armed one-shot: `budgetToken`, posting `leg` on
+         sys/porta/budget. `leg` counts every arm, so an expiry that was already on
+         its way when a reply moved the exchange on is recognised and ignored.
+         `deadline` is the same expiry read against the clock, for the held loop,
+         where no reaction runs. `exchangeCh` is sys/porta/exchange, `finished`. *)
+      private timers private state ::= #idle. private budgetToken ::= nil. private leg ::= 0. private deadline ::= 0.
+      private budgetCh private exchangeCh
       (* rete#272 D3.3 — this boot's check-ins, counted in `checkIn` and sent as
          #wak in every pull. Per-boot and deliberately not persisted. *)
       private wakes ::= 0.
@@ -1784,17 +1799,17 @@ class Kernel usingPlatform: platform = (
          that does under pushFrame's tail-trim. A declaration or an accepted goal
          clears it, which is the only way the value can move. *)
       private cadMs ::= 30000. private missBudget ::= 8. private appCadDeclared ::= 0. private livenessPublished ::= false.
-      (* rete#231 D1 — the base tick the KERNEL owns. `tickTimers` is the app's
-         Timers instance, handed in and never minted here. Since rete#244
-         `platform timers` answers the per-kernel singleton, so handing it is
-         convention rather than load-bearing — but an explicitly-constructed
-         private registry (Timers usingSpace:seam:) still aliases the global
-         C registry, so the handed-in shape stays. `tickToken` is what makes the registration
+      (* rete#231 D1 — the base tick the KERNEL owns, registered on the bridge's own
+         `timers` (handed in at construction since rete#440 R2, never minted here).
+         Since rete#244 `platform timers` answers the per-kernel singleton, so handing
+         it is convention rather than load-bearing — but an explicitly-constructed
+         private registry (Timers usingSpace:seam:) still aliases the global C
+         registry, so the handed-in shape stays. `tickToken` is what makes the registration
          once-per-boot observable, and it is what adoptCad:misses:'s re-arm cancels
          now that the cadence half of goal/liveness is honoured (rete#240.2). *)
-      private tickTimers ::= nil. private tickChannel ::= nil. private tickToken ::= nil.
+      private tickChannel ::= nil. private tickToken ::= nil.
       private pending ::= OrderedCollection new.
-      (* tuvm#107 follow-on: the six spans that decompose `checkIn`. See the
+      (* tuvm#107 follow-on: the six spans that decompose an exchange. See the
          bracket comment on checkIn for what each one covers and why the sends are
          separated from the waits.
          tuvm#161: three more NESTED inside `pushBuild`, which measured 62% of the
@@ -1821,9 +1836,13 @@ class Kernel usingPlatform: platform = (
        table is complete before any capture window opens: SpanCapture publishes one
        cell per slot, and a table that grew mid-window would publish a different set
        of cells at stop than existed at start. *)
-    public setSocket: s space: sp id: anId peer: h port: p spans: sn = (
+    (* `timers` is a constructor argument for the reason `spans` is (rete#440 R2):
+       every state that waits on the network holds an armed budget on it, so a
+       bridge cannot exist in a shape that waits forever. It must be the Timers the
+       app dispatches `sys/timer` to — `platform timers`, the singleton. *)
+    public setSocket: s space: sp id: anId peer: h port: p spans: sn timers: t = (
       socket:: s. space:: sp. nodeId:: anId. peerHost:: h. peerPort:: p.
-      spans:: sn.
+      spans:: sn. timers:: t.
       (* rete#162 — read ONCE, here, for the reason the bracket comment on
          `bootId` gives: this send is what performs the NVS write, and it must
          not happen inside a measured check-in. *)
@@ -1856,12 +1875,22 @@ class Kernel usingPlatform: platform = (
          not be constructible without. A standard image has no debugger and the
          bridge is an ordinary bridge. The link's lines are dbg/req rows and the
          goal/debug cell; its replies are dbg/resp rows. While the program is
-         stopped no reaction runs, so the link drives `heldExchange` itself: one
-         pull and one push, back to back, until a line arrives on it or on the
-         cable (Supervisor `Debugger>>readLine`). *)
+         stopped no reaction runs, so the link drives `heldStep` itself, exchange
+         after exchange, blocking in the pump between events, until a line arrives
+         on it or on the cable (Supervisor `Debugger>>readLine`). *)
       outer debugger == nil ifFalse: [
         dbgLink:: DebugLink onBridge: self space: space.
         outer debugger useLink: dbgLink ].
+      (* rete#440 R2: the three events that move an exchange on — the cadence's
+         `checkIn` (a send, below), the socket's doorbell and the budget's expiry —
+         are subscribed here, with the rest of what a bridge must not be
+         constructible without. The doorbell is `sys/net/<fd>`, rung by the VM
+         (udp.c `basicBind:`) whenever the socket can be read. *)
+      budgetCh:: space channel: 'sys/porta/budget'.
+      budgetCh whenever: '' do: [ :n | self budgetLapsed: n ].
+      exchangeCh:: space channel: 'sys/porta/exchange'.
+      socket == nil ifFalse: [
+        (space channel: socket doorbell) whenever: '' do: [ :bell | self readSocket ] ].
       ^ self )
 
     (* bootId rides the batch envelope, not every record — it is constant for
@@ -1897,7 +1926,7 @@ class Kernel usingPlatform: platform = (
     maxBatchBytes = ( ^ 512 )
     maxValueBytes = ( ^ 256 )
     maxRows = ( ^ 8 )
-    replyBudget = ( ^ 2000 )   (* ms to wait for one reply before scoring a miss *)
+    replyBudget = ( ^ 2000 )   (* ms one leg's budget runs before it scores a miss *)
 
     (* The pending queue is BOUNDED. Found on hardware: with the gateway
        unreachable, applyAck: never runs and this queue is the only thing that
@@ -1947,19 +1976,24 @@ class Kernel usingPlatform: platform = (
       v size < 4 ifTrue: [ ^ false ].
       ^ (v at: 1) = 100 and: [ (v at: 2) = 98 and: [ (v at: 3) = 103 and: [ (v at: 4) = 58 ] ] ] )
     public offer: absolutePath value: v = ( self capture: absolutePath value: v. ^ self )
-    public heldExchange = (
-      | reply |
-      exchanging ifTrue: [ ^ false ].
-      exchanging:: true.
-      socket sendTo: peerHost port: peerPort data: self pullFrame.
-      reply:: self awaitReply: #batch.
-      reply == nil
-        ifTrue: [ misses:: misses + 1 ]
-        ifFalse: [ self applyBatch: reply ].
-      self pushOnce.
-      heldExchanges:: heldExchanges + 1.
-      exchanging:: false.
-      ^ true )
+    (* The held loop's one step (rete#440 R2, design "While the program is
+       stopped"). A stop holds the stack, so no reaction runs and the bridge is
+       serviced here directly: start an exchange if idle, block in the pump — the
+       same block every program idles in — then read the socket and the clock
+       against the budget's deadline. The budget armed in every waiting state is
+       what guarantees the pump wakes; a held VM is exempt from the liveness
+       observer, so nothing else would. Whatever else the pump delivers queues in
+       the space for the continue, and the budget is cancelled as each leg ends,
+       so its expiry is dropped by `Timers>>dispatch:` there. An exchange in flight
+       when the program stopped is finished here, so a stop is always served. *)
+    public heldStep = (
+      holding:: true.
+      (state = #idle and: [ (socket == nil) not ]) ifTrue: [ self startExchange ].
+      platform pumpEvents.
+      self readSocket.
+      ((state = #idle) not and: [ platform monotonicMillis >= deadline ]) ifTrue: [ self lapse ].
+      holding:: false.
+      ^ self )
     public heldExchanges = ( ^ heldExchanges )
 
     public subscribeStream: absolutePath = (
@@ -2171,9 +2205,9 @@ class Kernel usingPlatform: platform = (
 
        REORDERING cannot help either way: metrics are written last precisely so they
        are fresh, and freshness and trim-survival are the same axis pointing opposite
-       ways. obs/health is written after checkIn returns, so it always rides the
-       FOLLOWING check-in with an older seq — metrics are newest wherever inside
-       checkIn they are published.
+       ways. obs/health is written before `checkIn` starts the exchange (rete#440
+       R2), so it rides the SAME push with an older seq — metrics are newest
+       wherever inside the exchange they are published.
 
        So if the cap binds, the answer is to RESERVE bytes for sys/ before filling
        from obs/, or to trim BY TYPE and protect the write-once and must-deliver
@@ -2211,7 +2245,7 @@ class Kernel usingPlatform: platform = (
        near-zero mean against a full sample count is exactly the reading that says
        the loop never fired, where a conditional bracket would report the same
        thing as a missing span. The one place the partition breaks is the empty
-       early return, which is the same unreachable-in-practice case `pushOnce`
+       early return, which is the same unreachable-in-practice case `pushStart`
        documents: publishMetrics writes sys/metrics every check-in, so there is
        always a row. *)
     (* THE FRAME IS NEVER ENCODED LARGER THAN IT WILL BE SENT (rete#161/rete#199).
@@ -2417,7 +2451,7 @@ class Kernel usingPlatform: platform = (
       bad ifTrue: [ ^ false ].
       (outer rankOf: r) = 9 ifFalse: [ ^ false ].
       (* rete#199 — an #err is porta's REAL terminal answer, and it is a different
-         fact from a timeout. Counted here rather than in `pushOnce` because this
+         fact from a timeout. Counted here rather than in `pushed:` because this
          is the one place the reply is decoded, and because it makes the property
          testable with no socket in sight (22_spacesync/16). *)
       (r tag = #err) ifTrue: [ ^ self noteRefused: r ].
@@ -2460,21 +2494,36 @@ class Kernel usingPlatform: platform = (
       ^ (lastErrMsg = msg) not )
 
     (* ---- one check-in ----------------------------------------------------- *)
-    (* PULL, apply, PUSH, ack. Each leg waits a bounded time and then GIVES UP,
-       counting a miss: a node that blocks forever on a silent gateway is a node
-       that has stopped doing its actual job. The next check-in re-pulls the same
-       range and re-pushes the same entries, so a miss costs latency and nothing
-       else — which is the whole reason there is no retransmit layer. *)
-    (* THE SIX SPANS PARTITION THIS METHOD EXACTLY, which is the property that
-       makes them readable: `checkIn - (sum of the six)` is un-bracketed time, so a
-       gap is a bug in the bracketing rather than a finding about the mesh.
+    (* PULL, apply, PUSH, ack — as reactions (rete#440 R2, design 2026-11-04 "The
+       check-in as reactions"). `checkIn` starts an exchange if idle and returns at
+       once; nothing here waits. Three events move the exchange on: this send, the
+       socket's doorbell (`readSocket`) and the budget's expiry (`budgetLapsed:`).
+
+         state     checkIn        doorbell (read to empty)          budget
+         idle      send PULL,     discard all (stale, counted        —
+                   → pulling      crossed)
+         pulling   ignored        #batch → apply, publish, PUSH,     read first; else a
+                                  → pushing; #ack → crossed          miss, PUSH anyway
+         pushing   ignored        #ack → applyAck, leave;            read first; else a
+                                  #batch → crossed                   miss, leave
+
+       Each leg gives up after `replyBudget` and counts a miss: the next check-in
+       re-pulls the same range and re-pushes the same entries, so a miss costs
+       latency and nothing else — the whole reason there is no retransmit layer.
+       An #err answers whichever leg asked and is not skipped; undecodable traffic
+       is discarded. A crossed reply (the OTHER leg's tag, tuvm#108) is discarded,
+       never applied: the exchange is idempotent by cursor, so it is cheaper to
+       re-ask than to let a reply move state in a leg that did not ask for it. *)
+    (* THE SIX SPANS PARTITION THE EXCHANGE, which is the property that makes them
+       readable: an exchange is now spread over three reactions, and the six cover
+       it from the PULL send to the leaving.
 
          pullSend   encode the #pull frame and send it
-         pullWait   wait for the #batch
+         pullWait   from the send to the reaction that receives the #batch
          applyIn    apply the batch, publish sys/metrics
          pushBuild  collectOutbound + encode + the trim re-encodes
          pushSend   send the #push frame
-         pushWait   wait for the #ack and apply it
+         pushWait   from the send to the reaction that applies the #ack
 
        `pushBuild` is itself split three ways by tuvm#161 — pushCollect /
        pushEncode / pushTrim, nested inside it and bracketed in pushFrame. Those
@@ -2483,39 +2532,87 @@ class Kernel usingPlatform: platform = (
        WHY THE SENDS ARE SEPARATED FROM THE WAITS. The first capture off c6-bench
        (docs/results/2026-08-05-c6-span-capture-first.md) found a check-in costing
        ~300 ms and being 97% of the tick, with no way to say whether that was radio
-       or VM. The tempting cheap split is "wait versus everything else" — and it is
-       wrong, because it puts both sends on the VM side of the line. The pull frame
-       is ~40 B and rides one 6LoWPAN fragment; a push frame runs to the 512 B cap
-       and rides five or six, and a datagram survives only if every fragment does.
-       So `pushSend` is the one stretch where fragmentation and MAC retries can
-       hide, and a coarser split would report that cost as interpreter cost.
-
-       The two small VM tails ride with their leg rather than getting slots of
-       their own: the pull frame's encode is inside `pullSend` (five fields), and
-       `applyAck:` is inside `pushWait` (one small record). Said out loud because
-       neither span is therefore PURE radio, and a reader comparing pullWait
-       against pushWait should know which one carries a decode. *)
+       or VM. The pull frame is ~40 B and rides one 6LoWPAN fragment; a push frame
+       runs to the 512 B cap and rides five or six, and a datagram survives only if
+       every fragment does. So `pushSend` is the one stretch where fragmentation and
+       MAC retries can hide. The waits are now time the VM spends elsewhere or
+       idle, and still read as the round trip. `applyAck:` is inside `pushWait`. *)
     public checkIn = (
-      | frame reply |
       (* Counted before the socket test: the count is of TICKS the reactor ran, and
          a node with no socket still ticked (rete#272 D3.3). *)
       wakes:: wakes + 1.
       socket == nil ifTrue: [ ^ self ].
-      exchanging:: true.
+      state = #idle ifFalse: [ ^ self ].
+      ^ self startExchange )
+
+    public state = ( ^ state )
+
+    (* The budget is armed FIRST: `timers after:` raises `timer table full` (#81) in
+       the job that armed it, and armed first a full table leaves the bridge idle and
+       the next check-in tries again, rather than waiting with no wake. *)
+    startExchange = (
+      self armBudget.
+      quiet:: holding.
       spans begin: sPullSend.
-      frame:: self pullFrame.
-      socket sendTo: peerHost port: peerPort data: frame.
+      socket sendTo: peerHost port: peerPort data: self pullFrame.
       spans end: sPullSend.
       spans begin: sPullWait.
-      reply:: self awaitReply: #batch.
+      state:: #pulling.
+      ^ self )
+
+    (* One one-shot per waiting state, against OEVM_MAX_TARGET_TIMERS. The old one is
+       cancelled first, so a re-arm frees the slot it takes. The deadline is read
+       BEFORE arming: the timer cannot then fire before the clock says it is due,
+       so the held loop's comparison never misses the wake that woke it. *)
+    armBudget = (
+      self cancelBudget.
+      leg:: leg + 1.
+      deadline:: platform monotonicMillis + self replyBudget.
+      budgetToken:: timers after: self replyBudget post: leg on: budgetCh.
+      ^ self )
+
+    cancelBudget = (
+      budgetToken == nil ifFalse: [ timers cancel: budgetToken. budgetToken:: nil ].
+      ^ self )
+
+    (* The doorbell's reaction, and invariant 4 (design "Arrivals"): read the socket
+       to EMPTY, on every path, handling each datagram in the state it finds. The
+       reader re-arms the doorbell only on an empty answer, so a read that stopped
+       early would leave the node alive, idle and deaf. *)
+    readSocket = (
+      | dg |
+      socket == nil ifTrue: [ ^ self ].
+      dg:: socket receive.
+      [ dg == nil ] whileFalse: [
+        self arrived: dg data.
+        dg:: socket receive ].
+      ^ self )
+
+    (* `=` and never `==` on the tags: a decoded Symbol is not the image's interned
+       one (tuvm#75). *)
+    arrived: bytes = (
+      | tag |
+      tag:: self tagOf: bytes.
+      tag == nil ifTrue: [ ^ self ].
+      state = #pulling ifTrue: [
+        tag = #ack ifTrue: [ crossed:: crossed + 1. ^ self ].
+        ^ self pulled: bytes ].
+      state = #pushing ifTrue: [
+        tag = #batch ifTrue: [ crossed:: crossed + 1. ^ self ].
+        ^ self pushed: bytes ].
+      (tag = #batch or: [ tag = #ack ]) ifTrue: [ crossed:: crossed + 1 ].
+      ^ self )
+
+    (* The pull leg's end: `bytes` is the reply, or nil for a miss. A pull miss
+       still pushes, as it always has. *)
+    pulled: bytes = (
       spans end: sPullWait.
       spans begin: sApplyIn.
-      reply == nil
+      bytes == nil
         ifTrue: [ misses:: misses + 1 ]
-        ifFalse: [ self applyBatch: reply ].
+        ifFalse: [ self applyBatch: bytes ].
       (* In THIS order: applying goal/** first means the metrics published here
-         describe the state porta just asked for, not the one before it — the same
-         reasoning PortaBridgeNodeC6>>tick already gives for publishHealth. *)
+         describe the state porta just asked for, not the one before it. *)
       (* publishApps BEFORE publishMetrics, and that order is not arbitrary:
          pushFrame trims from the TAIL of an ascending-seq frame, so the LAST
          cell written before the push is the first one dropped under batch
@@ -2529,29 +2626,85 @@ class Kernel usingPlatform: platform = (
          lose a sample. *)
       self publishApps.
       self offerPanic.
-      (* BEFORE publishLiveness, so a request arriving on this tick is answered on
-         this tick rather than the next: adoptCad:misses: clears livenessPublished
-         and the publish below is what carries the answer back. *)
+      (* BEFORE publishLiveness, so a request arriving on this exchange is answered
+         on this exchange rather than the next: adoptCad:misses: clears
+         livenessPublished and the publish below is what carries the answer back. *)
       self applyLivenessGoal.
       self publishLiveness.
       self publishMetrics.
       self publishCheap.
       spans end: sApplyIn.
-      self pushOnce.
-      exchanging:: false.
-      (* #342 spike: lines that arrived for the debugger stop the program HERE,
-         after the exchange, so the stop's own held exchanges never nest in one. *)
-      (dbgLink == nil or: [ dbgLink pending not ]) ifFalse: [ outer debugger wake ].
-      (* AFTER the exchange, and outside all six spans — otaCheck is not exchange
-         time, and `checkIn - (sum of the six)` must stay readable as un-bracketed
-         VM time. The position is the whole timing mechanism (design D6): a stage
-         on tick T writes `tel/log 'ota staged'` here, the reaction captures it
-         before tick T+1, and T+1's push delivers it BEFORE T+1's otaCheck
-         activates. Activation exits the process, so a log line written on the
-         exit tick would die unpushed in the in-RAM pending queue — the one-tick
-         delay is what makes a rollout's last words reach the gateway, and it
-         costs no timer, no state machine and no cadence knob. *)
-      ^ self otaCheck )
+      ^ self pushStart )
+
+    (* This early return is the ONE place the six stop partitioning the exchange, and
+       in practice it is unreachable: publishMetrics writes sys/metrics on every
+       exchange and `collectOutbound` scans sys/**, so there is always at least one
+       row. A bridge that has nothing to say must not send an empty frame. *)
+    pushStart = (
+      | frame |
+      spans begin: sPushBuild.
+      frame:: self pushFrame.
+      spans end: sPushBuild.
+      frame == nil ifTrue: [ ^ self leave ].
+      self armBudget.
+      spans begin: sPushSend.
+      socket sendTo: peerHost port: peerPort data: frame.
+      spans end: sPushSend.
+      spans begin: sPushWait.
+      state:: #pushing.
+      ^ self )
+
+    (* The push leg's end: `bytes` is the reply, or nil for a miss. *)
+    pushed: bytes = (
+      bytes == nil
+        ifTrue: [ misses:: misses + 1 ]
+        ifFalse: [ self applyAck: bytes ].
+      spans end: sPushWait.
+      ^ self leave )
+
+    (* The budget's reaction. `n` is the leg it was armed for: an expiry already on
+       its way when a reply moved the exchange on names an older leg, and is
+       ignored — `Timers>>dispatch:` drops a cancelled token, but not one it had
+       already dispatched before the reply's reaction cancelled it. *)
+    budgetLapsed: n = (
+      (n = leg and: [ (state = #idle) not ]) ifFalse: [ ^ self ].
+      ^ self lapse )
+
+    (* Read first: a reply found is an arrival, not a miss. Only a leg the read did
+       not move on is a miss. *)
+    lapse = (
+      | was |
+      was:: leg.
+      self readSocket.
+      (leg = was and: [ (state = #idle) not ]) ifFalse: [ ^ self ].
+      state = #pulling ifTrue: [ ^ self pulled: nil ].
+      ^ self pushed: nil )
+
+    (* Leaving an exchange — the moment the tail of the old blocking `checkIn` ran.
+       Idle FIRST: waking the debugger stops the program at its next bytecode, which
+       is in this method, and the held loop must then find an idle bridge, not one
+       still pushing with its budget cancelled. Then wake the debugger if lines
+       arrived; then `otaCheck`, after the push on the same exchange (design D6);
+       then `finished`. An exchange the held loop started (`quiet`) does none of
+       these; while held, the app's own exchange skips the wake and the otaCheck —
+       the debugger is already stopped, and an activation would exit under it — but
+       still says it finished, because a run-once node is waiting to hear it. *)
+    leave = (
+      self cancelBudget.
+      state:: #idle.
+      quiet ifTrue: [ quiet:: false. heldExchanges:: heldExchanges + 1. ^ self ].
+      holding ifFalse: [
+        (dbgLink == nil or: [ dbgLink pending not ]) ifFalse: [ outer debugger wake ].
+        (* Outside all six spans: otaCheck is not exchange time. The position is the
+           whole timing mechanism (design D6): a stage on exchange T writes
+           `tel/log 'ota staged'` here, the reaction captures it before exchange
+           T+1, and T+1's push delivers it BEFORE T+1's otaCheck activates.
+           Activation exits the process, so a log line written on the exit
+           exchange would die unpushed in the in-RAM pending queue — the one-tick
+           delay is what makes a rollout's last words reach the gateway. *)
+        self otaCheck ].
+      exchangeCh out: '' value: #finished.
+      ^ self )
 
     (* #56 capability (3): "metrics die with the node", and /stats is a PULL, which
        is a human affordance — an agent arrives after the corpse is cold.
@@ -2718,11 +2871,11 @@ class Kernel usingPlatform: platform = (
       missBudget:: n.
       (* rete#240.2 — an adopted cadence is a KEPT cadence: re-arm the base tick
          at the new period, and re-declare the app cadence, whose default rides
-         on it. Guarded on tickToken so a pre-startTicking: declaration just sets
-         the period startTicking: will use. *)
+         on it. Guarded on tickToken so a pre-startTickingOn: declaration just sets
+         the period startTickingOn: will use. *)
       (cadMoved and: [ (tickToken == nil) not ]) ifTrue: [
-        tickTimers cancel: tickToken.
-        tickToken:: tickTimers every: cadMs post: #go on: tickChannel.
+        timers cancel: tickToken.
+        tickToken:: timers every: cadMs post: #go on: tickChannel.
         self declareAppCad ].
       (* The pair moved, so the published cell is stale. Clearing the flag is the
          whole of the re-publish mechanism — no second path, no dirty list. *)
@@ -2731,14 +2884,14 @@ class Kernel usingPlatform: platform = (
 
     (* The app's declaration of how often it will speak and how many misses it
        tolerates. A SETTER and not a constructor argument, on purpose (see
-       startTicking:). *)
+       startTickingOn:). *)
     public liveness: aCadMs misses: aMisses = ( ^ self adoptCad: aCadMs misses: aMisses )
 
     (* rete#273 D1 — the app's declaration of how long its event dispatch may go
        without running. 0 withdraws it and the bridge's default (telCad x 8) is
        back in force. Clamped to the same 24 h ceiling, published to the OBSERVER
        only — this number never rides the wire. Takes effect at once if the tick
-       is already armed, otherwise at startTicking:. *)
+       is already armed, otherwise at startTickingOn:. *)
     public appLiveness: aMs = (
       | ms |
       ms:: aMs.
@@ -2767,7 +2920,8 @@ class Kernel usingPlatform: platform = (
        check-in. A node whose app declares no repeating timer of its own stops
        being invisible to the detector, which is the case nothing could see before.
 
-       THE TIMERS INSTANCE IS HANDED IN. Before rete#244 `platform timers`
+       THE TIMERS INSTANCE IS HANDED IN, at construction since rete#440 R2 (it
+       was this method's argument). Before rete#244 `platform timers`
        answered a FRESH instance per send, and a bridge that minted its own
        registered tokens the app's dispatcher had never heard of — every tick
        dropped in silence. The accessor answers the singleton now, so the
@@ -2780,11 +2934,10 @@ class Kernel usingPlatform: platform = (
        The app still owns what a tick DOES — it keeps its own reaction on the
        channel. What moves here is the period and the fact that a period exists at
        all, which is the half the detector needs and the half an app can forget. *)
-    public startTicking: aTimers on: aChannel = (
+    public startTickingOn: aChannel = (
       tickToken == nil ifFalse: [ ^ self ].
-      tickTimers:: aTimers.
       tickChannel:: aChannel.
-      tickToken:: aTimers every: cadMs post: #go on: aChannel.
+      tickToken:: timers every: cadMs post: #go on: aChannel.
       self declareAppCad.
       ^ self )
 
@@ -2846,10 +2999,10 @@ class Kernel usingPlatform: platform = (
       livenessPublished:: true.
       ^ self )
 
-    (* rete#25 — the ENTIRE image-update policy, run once per check-in from the
-       tail of `checkIn`. No timer, no job, no state machine and no `whenever:`
-       reaction: the cadence is the check-in's cadence, and the ordering the
-       design needs falls out of the call site (see checkIn). A `whenever:` on
+    (* rete#25 — the ENTIRE image-update policy, run once per exchange as it
+       leaves (`leave`). No timer, no job and no `whenever:` reaction of its own:
+       the cadence is the check-in's cadence, and the ordering the design needs
+       falls out of the call site (see leave). A `whenever:` on
        `goal/apps/main` would buy nothing but an unpredictable moment to exit the
        process in.
 
@@ -3014,63 +3167,8 @@ class Kernel usingPlatform: platform = (
       sig isBytes ifFalse: [ ^ nil ].
       ^ List with: hash with: sig )
 
-    pushOnce = (
-      | frame reply |
-      spans begin: sPushBuild.
-      frame:: self pushFrame.
-      spans end: sPushBuild.
-      (* This early return is the ONE place the six stop partitioning checkIn, and
-         in practice it is unreachable: publishMetrics writes sys/metrics on every
-         check-in and `collectOutbound` scans sys/**, so there is always at least
-         one row. Left as written — a bridge that has nothing to say must not send
-         an empty frame — but a reader should not expect to see pushSend and
-         pushWait ever lag pushBuild. *)
-      frame == nil ifTrue: [ ^ self ].
-      spans begin: sPushSend.
-      socket sendTo: peerHost port: peerPort data: frame.
-      spans end: sPushSend.
-      spans begin: sPushWait.
-      reply:: self awaitReply: #ack.
-      reply == nil
-        ifTrue: [ misses:: misses + 1 ]
-        ifFalse: [ self applyAck: reply ].
-      spans end: sPushWait.
-      ^ self )
-
-    (* Wait for a reply TO THE LEG THAT ASKED (tuvm#108). Both legs share one
-       socket and one budget, so answering the first datagram to arrive crosses
-       them: a #batch delayed past the pull's budget lands in the push's wait, is
-       handed to applyAck:, is rejected — and the real #ack is then never read,
-       costing a re-push. On loopback that window is microseconds wide, which is
-       why the host gate and the C6 gate could both be green with it open.
-
-       Only a KNOWN reply tag meant for the other leg is walked past. Everything
-       else comes straight back, which is deliberate: an #err is porta's real
-       terminal answer to whichever leg asked, and skipping it would turn a
-       one-datagram rejection into a full budget burnt and a miss scored. Garbage
-       likewise ends the wait exactly as it did before — applyBatch:/applyAck:
-       reject it, and a real reply displaced behind it is picked up as a crossed
-       skip on the next leg rather than being lost.
-
-       A skipped datagram is DISCARDED, not applied on the way past, and that is
-       safe for the same reason the protocol carries no retransmit layer: the
-       exchange is idempotent by cursor in both directions. The dropped #batch is
-       re-sent on the next pull because the cursor never moved; the dropped #ack
-       costs one re-push that porta dedupes by seq. Applying it here would mean a
-       reply moving state in a leg that did not ask for it — cheaper to re-ask. *)
-    awaitReply: expected = (
-      | deadline dg |
-      deadline:: platform monotonicMillis + self replyBudget.
-      [ platform monotonicMillis < deadline ] whileTrue: [
-        dg:: socket receive.
-        dg == nil ifFalse: [
-          (self isCrossed: (self tagOf: dg data) expecting: expected)
-            ifTrue: [ crossed:: crossed + 1 ]
-            ifFalse: [ ^ dg data ] ] ].
-      ^ nil )
-
-    (* The tag, or nil for anything that is not a decodable Record — nil is never
-       crossed, so undecodable traffic keeps its old fail-fast behaviour. *)
+    (* The tag, or nil for anything that is not a decodable Record — which `arrived:`
+       discards. *)
     tagOf: aBytes = (
       | bad r |
       bad:: false.
@@ -3079,18 +3177,9 @@ class Kernel usingPlatform: platform = (
       (outer rankOf: r) = 9 ifFalse: [ ^ nil ].
       ^ r tag )
 
-    (* `=` and never `==`: a decoded Symbol is not the image's interned one
-       (tuvm#75), and identity would silently never match — the same trap
-       applyBatch:/applyAck: document. `== nil` is identity on purpose. *)
-    isCrossed: tag expecting: expected = (
-      tag == nil ifTrue: [ ^ false ].
-      tag = expected ifTrue: [ ^ false ].
-      tag = #batch ifTrue: [ ^ true ].
-      tag = #ack ifTrue: [ ^ true ].
-      ^ false )
   ) : (
-    public socket: s space: sp id: anId peer: h port: p spans: sn = (
-      ^ self new setSocket: s space: sp id: anId peer: h port: p spans: sn )
+    public socket: s space: sp id: anId peer: h port: p spans: sn timers: t = (
+      ^ self new setSocket: s space: sp id: anId peer: h port: p spans: sn timers: t )
   )
 
   public serialOn: aPort = ( ^ Serial onPort: aPort )

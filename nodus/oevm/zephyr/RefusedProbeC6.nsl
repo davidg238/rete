@@ -44,7 +44,7 @@ reaction block is a one-line self-send.
 class RefusedProbeC6 usingPlatform: platform net: net = (
   | private space private bridge private timers private ticks ::= 0.
     private verdictDone ::= false. private tapPass ::= 0. private tapFail ::= 0.
-    private spans private sTick private sCheckIn private sPublish |
+    private spans private sTick private sPublish |
 ) (
   public nodeId    = ( ^ platform nodeId )
   (* gw85224-01's mesh-local EID — the SAME literal as PortaBridgeNodeC6; the
@@ -72,25 +72,25 @@ class RefusedProbeC6 usingPlatform: platform net: net = (
     sock:: net udpBindPort: self localPort.
     sock == nil ifTrue: [ ^ self fail: 'bind' ].
     spans:: platform Spans new.
+    timers:: platform timers.     (* hold ONE instance — it owns the pending registry,
+                                     and the bridge arms its budget on it (rete#440 R2) *)
     bridge:: platform PortaBridge
       socket: sock space: space id: self nodeId peer: self gwAddr port: self gwPort
-      spans: spans.
+      spans: spans timers: timers.
     bridge subscribeStream: 'tel/log'.
     bridge subscribeStream: 'sys/reset'.
     (* rete#273 D2: telCad and the fleet-default miss allowance. *)
     bridge liveness: self cadence misses: 8.
 
     sTick::     spans register: #jobTick.
-    sCheckIn::  spans register: #checkIn.
     sPublish::  spans register: #publish.
 
     bridge publishBuild: self chip.
 
-    timers:: platform timers.
     space whenever: 'sys/timer' do: [ :e | timers dispatch: e ].
     tickChan:: space channel: 'sys/tick'.
     tickChan whenever: '' do: [ :m | self tick ].
-    bridge startTicking: timers on: tickChan.
+    bridge startTickingOn: tickChan.
 
     'PORTA NODE READY' println.
     self tapPlan: 2.
@@ -104,9 +104,6 @@ class RefusedProbeC6 usingPlatform: platform net: net = (
   tick = (
     ticks:: ticks + 1.
     spans begin: sTick.
-    spans begin: sCheckIn.
-    bridge checkIn.
-    spans end: sCheckIn.
     spans begin: sPublish.
     self publishHealth.
     space out: 'tel/log' value:
@@ -114,6 +111,7 @@ class RefusedProbeC6 usingPlatform: platform net: net = (
                                  with: #txt -> ('tick ' , ticks printString)).
     spans end: sPublish.
     self report.
+    bridge checkIn.
     spans end: sTick.
     self checkVerdict.
     ^ self

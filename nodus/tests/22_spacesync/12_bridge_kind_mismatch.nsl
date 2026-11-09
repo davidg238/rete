@@ -51,7 +51,7 @@ class BridgeKindMismatch packageUsing: manifest = () (
     | space bridge spans log |
     space:: platform space.
     spans:: platform Spans new.
-    bridge:: platform PortaBridge socket: nil space: space id: 'n1' peer: '::1' port: 6969 spans: spans.
+    bridge:: platform PortaBridge socket: nil space: space id: 'n1' peer: '::1' port: 6969 spans: spans timers: platform timers.
 
     (* goal/name becomes a CELL, pinned by this first write. *)
     bridge applyBatch: (self batch: platform hi: 4 seq: 1 path: 'goal/name' kind: 2 value: 'pinned').

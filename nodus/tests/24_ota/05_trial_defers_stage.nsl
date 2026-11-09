@@ -52,7 +52,7 @@ class TrialDefersStage packageUsing: manifest = () (
     | space bridge rec |
     space:: platform space.
     bridge:: platform PortaBridge socket: nil space: space id: 'n1'
-               peer: '::1' port: 6969 spans: platform Spans new.
+               peer: '::1' port: 6969 spans: platform Spans new timers: platform timers.
     bridge subscribeStream: 'tel/log'.
 
     (* The runner says this boot is unproven. Everything below hangs off it. *)

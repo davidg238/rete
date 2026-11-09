@@ -30,7 +30,7 @@ class PendingBound packageUsing: manifest = () (
     | space bridge cap n last rows sawOld spans |
     space:: platform space.
     spans:: platform Spans new.
-    bridge:: platform PortaBridge socket: nil space: space id: 'n1' peer: '::1' port: 6969 spans: spans.
+    bridge:: platform PortaBridge socket: nil space: space id: 'n1' peer: '::1' port: 6969 spans: spans timers: platform timers.
     bridge subscribeStream: 'tel/log'.
 
     ('pending starts ' , bridge pendingSize printString) out.

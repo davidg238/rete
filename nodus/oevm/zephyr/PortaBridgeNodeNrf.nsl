@@ -56,7 +56,7 @@ tick 1 misses 0 acked 0
 class PortaBridgeNodeNrf usingPlatform: platform net: net = (
   | private space private bridge private timers private ticks ::= 0.
     (* tuvm#107: the span table. ONE window per boot — see `main:args:`. *)
-    private spans private capture private sTick private sCheckIn private sPublish private capturing ::= false. |
+    private spans private capture private sTick private sPublish private capturing ::= false. |
 ) (
   (* rete#241: `platform nodeId`, same one-liner as the C6 twin. #186 kept a literal
      here because host answered the slot-shaped "host" for every VM at once; d5b5545
@@ -95,9 +95,11 @@ class PortaBridgeNodeNrf usingPlatform: platform net: net = (
        registers its own six slots at construction. Two instances would both
        allocate from 2 and silently share samples. *)
     spans:: platform Spans new.
+    timers:: platform timers.     (* hold ONE instance — it owns the pending registry,
+                                     and the bridge arms its budget on it (rete#440 R2) *)
     bridge:: platform PortaBridge
       socket: sock space: space id: self nodeId peer: self gwAddr port: self gwPort
-      spans: spans.
+      spans: spans timers: timers.
     bridge subscribeStream: 'tel/log'.
     bridge subscribeStream: 'sys/reset'.
 
@@ -120,10 +122,11 @@ class PortaBridgeNodeNrf usingPlatform: platform net: net = (
 
        Remote control of the window is a different question, blocked on tuvm#159:
        porta may write only goal/** and dbg/req, so it cannot drive diag/spans/ctl. *)
-    (* `spans` was minted above, with the bridge, which holds slots 2-7 for its own
-       six-way decomposition of checkIn; these three land at 8-10. *)
+    (* `spans` was minted above, with the bridge, which holds slots 2-10 for its own
+       six-way decomposition of the exchange and tuvm#161's split of pushBuild; these
+       two land at 11-12. The app's `checkIn` span is gone (rete#440 R2): it
+       bracketed a call that now returns at once, and measured nothing. *)
     sTick::     spans register: #jobTick.     (* the whole timer -> publish job *)
-    sCheckIn::  spans register: #checkIn.     (* pull + push, the network round trip *)
     sPublish::  spans register: #publish.     (* the health and log writes *)
     capture::   platform SpanCapture onSpace: space spans: spans.
     capture start.
@@ -143,7 +146,6 @@ class PortaBridgeNodeNrf usingPlatform: platform net: net = (
        manifest pin (rete#243). *)
     bridge publishBuild: self chip.
 
-    timers:: platform timers.     (* hold ONE instance — it owns the pending registry *)
     space whenever: 'sys/timer' do: [ :e | timers dispatch: e ].
     tickChan:: space channel: 'sys/tick'.
     tickChan whenever: '' do: [ :m | self tick ].
@@ -154,7 +156,7 @@ class PortaBridgeNodeNrf usingPlatform: platform net: net = (
        own, and a heartbeat this node stops emitting when it wedges is a heartbeat
        whose absence means something. The bridge is HANDED this instance: two
        Timers alias each other's tokens and drop every dispatch silently. *)
-    bridge startTicking: timers on: tickChan.
+    bridge startTickingOn: tickChan.
 
     'PORTA NODE READY' println.
     [ true ] whileTrue: [
@@ -163,29 +165,28 @@ class PortaBridgeNodeNrf usingPlatform: platform net: net = (
     ^ 0
   )
 
-  (* One check-in, then one report. In that order: applying goal/** first means the
-     health this node publishes describes the state porta just asked for, not the
-     one before it. *)
+  (* One report, then one check-in (rete#440 R2). The check-in starts an exchange and
+     returns at once, so the health row rides this tick's push with fresher values,
+     and the counters printed are the LAST exchange's. A goal porta sends is applied
+     by the exchange's reaction, so the health describes it from the next tick. *)
   tick = (
     ticks:: ticks + 1.
     spans begin: sTick.
-    spans begin: sCheckIn.
-    bridge checkIn.
-    spans end: sCheckIn.
     spans begin: sPublish.
     self publishHealth.
     space out: 'tel/log' value:
       (platform Record tag: #Log with: #lvl -> #info
                                  with: #txt -> ('tick ' , ticks printString)).
     spans end: sPublish.
-    (* jobTick closes BEFORE the window does, so the tick that ends the window is
-       itself measured — otherwise the last sample would be the one missing. *)
-    spans end: sTick.
     (* difference 4 — the console line. `misses` and `acked` are the two numbers
        that separate "the mesh is up and porta answers" from "the mesh is up and
        porta does not", and neither is visible from the gateway side. *)
     ('tick ' , ticks printString , ' misses ' , bridge misses printString
              , ' acked ' , bridge acked printString) println.
+    bridge checkIn.
+    (* jobTick closes BEFORE the window does, so the tick that ends the window is
+       itself measured — otherwise the last sample would be the one missing. *)
+    spans end: sTick.
     self closeWindowIfAcked.
     ^ self
   )

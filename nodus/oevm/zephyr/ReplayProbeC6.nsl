@@ -57,7 +57,7 @@ class ReplayProbeC6 usingPlatform: platform net: net = (
     private obsConverged ::= false.
     private verdictDone ::= false. private tapPass ::= 0. private tapFail ::= 0.
     (* tuvm#107: the span table. ONE window per boot — see `main:args:`. *)
-    private spans private capture private sTick private sCheckIn private sPublish | 
+    private spans private capture private sTick private sPublish | 
 ) (
   (* rete#186: THE ID IS THE BOARD, and it is baked at build time rather than written
      here. This method used to answer a string literal, and the literal was the bug:
@@ -94,9 +94,11 @@ class ReplayProbeC6 usingPlatform: platform net: net = (
        registers its own six slots at construction. Two instances would both
        allocate from 2 and silently share samples. *)
     spans:: platform Spans new.
+    timers:: platform timers.     (* hold ONE instance — it owns the pending registry,
+                                     and the bridge arms its budget on it (rete#440 R2) *)
     bridge:: platform PortaBridge
       socket: sock space: space id: self nodeId peer: self gwAddr port: self gwPort
-      spans: spans.
+      spans: spans timers: timers.
     bridge subscribeStream: 'tel/log'.
     bridge subscribeStream: 'sys/reset'.
 
@@ -120,13 +122,11 @@ class ReplayProbeC6 usingPlatform: platform net: net = (
        porta may write only goal/** and dbg/req, so it cannot drive diag/spans/ctl
        at all today. *)
     (* `spans` was minted above, with the bridge. The bridge holds slots 2-10 (its
-       six-way decomposition of checkIn, plus tuvm#161's three-way split of
-       pushBuild nested inside it); these three land at 11-13, of
-       OEVM_SPAN_SLOTS = 16. sCheckIn stays even though it now brackets six inner
-       spans — it is the only way to see UN-BRACKETED time inside the bridge, and
-       `sCheckIn - (sum of six)` should read as zero. *)
+       six-way decomposition of the exchange, plus tuvm#161's three-way split of
+       pushBuild nested inside it); these two land at 11-12, of
+       OEVM_SPAN_SLOTS = 16. The app's `checkIn` span is gone (rete#440 R2): it
+       bracketed a call that now returns at once, and measured nothing. *)
     sTick::     spans register: #jobTick.     (* the whole timer -> report job *)
-    sCheckIn::  spans register: #checkIn.     (* pull + push, the radio round trip *)
     sPublish::  spans register: #publish.     (* the health and log writes *)
     capture::   platform SpanCapture onSpace: space spans: spans.
     capture start.
@@ -147,7 +147,6 @@ class ReplayProbeC6 usingPlatform: platform net: net = (
 
     obsCap:: space channel: 'obs'.
 
-    timers:: platform timers.     (* hold ONE instance — it owns the pending registry *)
     space whenever: 'sys/timer' do: [ :e | timers dispatch: e ].
     tickChan:: space channel: 'sys/tick'.
     tickChan whenever: '' do: [ :m | self tick ].
@@ -158,7 +157,7 @@ class ReplayProbeC6 usingPlatform: platform net: net = (
        own, and a heartbeat this node stops emitting when it wedges is a heartbeat
        whose absence means something. The bridge is HANDED this instance: two
        Timers alias each other's tokens and drop every dispatch silently. *)
-    bridge startTicking: timers on: tickChan.
+    bridge startTickingOn: tickChan.
 
     'PORTA NODE READY' println.
     (* The plan is declared BEFORE the first tick, and before the mesh has even
@@ -179,11 +178,8 @@ class ReplayProbeC6 usingPlatform: platform net: net = (
   tick = (
     ticks:: ticks + 1.
     spans begin: sTick.
-    spans begin: sCheckIn.
-    bridge checkIn.
-    spans end: sCheckIn.
-    (* MEASURED HERE, between the check-in and the next health write, and nowhere
-       else: `publishHealth` below immediately makes obs/ unacked again, so a
+    (* MEASURED HERE, after the last exchange and before the next health write, and
+       nowhere else: `publishHealth` below immediately makes obs/ unacked again, so a
        reading taken after it would never be 0 and the assertion would be
        unfalsifiable in the wrong direction — permanently red instead of
        permanently green, but just as meaningless. *)
@@ -195,6 +191,7 @@ class ReplayProbeC6 usingPlatform: platform net: net = (
                                  with: #txt -> ('tick ' , ticks printString)).
     spans end: sPublish.
     self report.
+    bridge checkIn.
     (* jobTick closes BEFORE checkVerdict, so the tick that ends the window is
        itself measured — otherwise the last sample would be the one missing. *)
     spans end: sTick.

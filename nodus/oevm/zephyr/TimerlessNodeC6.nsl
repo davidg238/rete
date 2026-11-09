@@ -14,7 +14,7 @@ TAP timerless done
    for a sensor.
 
    THIS NODE DECLARES NO TIMER. It constructs a bridge and hands it the app's one Timers
-   instance; the KERNEL registers the base tick (`PortaBridge>>startTicking:on:`), and
+   instance; the KERNEL registers the base tick (`PortaBridge>>startTickingOn:`), and
    that registration is what puts a deadline in the snapshot. The heartbeat therefore
    rides the reactor rather than a C thread, which is the whole of D1: a heartbeat a
    wedged node can still emit is `port=up` with better manners — the exact lie #152 is
@@ -105,7 +105,7 @@ class TimerlessNodeC6 usingPlatform: platform net: net = (
       'timerless: bind FAILED — still ticking and still judgeable, but reporting to nobody. Check the image has a radio layer (CONF_EXTRA prj_esp32c6_thread.conf).' out ].
     bridge:: plat PortaBridge
       socket: sock space: space id: self nodeId peer: self gwAddr port: self gwPort
-      spans: spans.
+      spans: spans timers: timers.
     bridge subscribeStream: 'tel/log'.
     (* rete#259: the bridge owns obs/build; #man rides iff the image
        carries a manifest pin (rete#243). *)
@@ -119,7 +119,7 @@ class TimerlessNodeC6 usingPlatform: platform net: net = (
        purely reactive node was in before this rung. *)
     tickCh:: space channel: 'sys/tick'.
     tickCh whenever: '' do: [ :m | self tick ].
-    bridge startTicking: timers on: tickCh.
+    bridge startTickingOn: tickCh.
 
     'TIMERLESS NODE READY' out.
     [ true ] whileTrue: [ plat pumpEvents. space drain ].

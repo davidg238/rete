@@ -56,7 +56,7 @@ class TrimIsMaximal packageUsing: manifest = () (
     | space bridge spans frame ent i lo maxSeq minSeq |
     space:: platform space.
     spans:: platform Spans new.
-    bridge:: platform PortaBridge socket: nil space: space id: 'n1' peer: '::1' port: 6969 spans: spans.
+    bridge:: platform PortaBridge socket: nil space: space id: 'n1' peer: '::1' port: 6969 spans: spans timers: platform timers.
 
     (* One row's cost, so the expectations below can be read rather than trusted. *)
     ('one row ' , (platform Cbor encode:

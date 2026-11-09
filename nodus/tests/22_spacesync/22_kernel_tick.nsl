@@ -13,7 +13,7 @@ answers a FRESH instance every send and the C timer registry is keyed globally, 
 two instances alias each other's tokens and misfire silently. `pendingCount` on the
 instance the APP holds is what proves the bridge used that one.
 
-ONCE. A second startTicking: must not register a second timer — two timers at the
+ONCE. A second startTickingOn: must not register a second timer — two timers at the
 same period is two check-ins per tick forever, and the second one is invisible until
 someone counts radio wakeups.
 
@@ -30,11 +30,11 @@ class KernelTick packageUsing: manifest = () (
     timers:: platform timers.
     tickChan:: space channel: 'sys/tick'.
     bridge:: platform PortaBridge socket: nil space: space id: 'test' peer: '::1' port: 1
-      spans: platform Spans new.
+      spans: platform Spans new timers: timers.
     bridge liveness: 2000 misses: 8.
 
     ('before ' , timers pendingCount printString) println.
-    bridge startTicking: timers on: tickChan.
+    bridge startTickingOn: tickChan.
     ('after ' , timers pendingCount printString) println.
 
     (* The registration landed on the instance the APP holds, which is the whole
@@ -42,7 +42,7 @@ class KernelTick packageUsing: manifest = () (
        0 and dispatch would silently drop every tick. *)
     ('handed instance ' , timers pendingCount printString) println.
 
-    bridge startTicking: timers on: tickChan.
+    bridge startTickingOn: tickChan.
     ('idempotent ' , timers pendingCount printString) println.
   )
 ) : (
