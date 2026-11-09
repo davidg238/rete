@@ -346,7 +346,7 @@ echo "  sys/metrics accumulates in the event log: $METRICS_ROWS rows — the run
 # The node closes its one window on the first tick where the gateway has acked, so this
 # waits rather than assuming a tick count.
 # This leg is where the pipefail/SIGPIPE class (see [7/9] above) was found:
-# diag/spans/checkIn matches on row 2 of a 16-row dump, maximum exposure, and
+# diag/spans/checkIn (then the app's) matched on row 2 of a 16-row dump, maximum exposure, and
 # rete#243's slightly slower store Open shifted the scheduling enough to trip
 # it three runs out of three on 2026-08-25. rete#260 swept the rest.
 for _ in $(seq 1 60); do
@@ -357,11 +357,14 @@ done
   /tmp/porta get --db "$DB" "$NODE"; cat /tmp/porta_serve.log; exit 1; }
 
 # The summary alone would pass while every row was silently dropped at the value cap —
-# which is the failure this whole change exists to remove. Assert a ROW, by name.
+# which is the failure this whole change exists to remove. Assert a ROW, by name: the
+# bridge's pullWait, the span that now runs from the PULL send to the reaction that
+# receives the #batch (rete#440 R2 deleted the app's checkIn span, which bracketed a
+# call that returns at once).
 for _ in $(seq 1 60); do
-  /tmp/porta get --db "$DB" "$NODE" diag 2>/dev/null | grep "diag/spans/checkIn" >/dev/null && break; sleep 0.4
+  /tmp/porta get --db "$DB" "$NODE" diag 2>/dev/null | grep "diag/spans/pullWait" >/dev/null && break; sleep 0.4
 done
-/tmp/porta get --db "$DB" "$NODE" diag | grep "diag/spans/checkIn" >/dev/null || {
+/tmp/porta get --db "$DB" "$NODE" diag | grep "diag/spans/pullWait" >/dev/null || {
   echo "FAIL: no per-slot span cell reached porta — only the summary did"
   /tmp/porta get --db "$DB" "$NODE" diag; exit 1; }
 SPAN_ROWS=$(/tmp/porta get --db "$DB" "$NODE" diag | grep -c "diag/spans/")

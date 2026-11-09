@@ -3,17 +3,19 @@ MagTagSleepyDebugNode — rete#379: the deep-sleeping node that talks to porta, 
 board. The MagTag (ESP32-S2, WiFi) twin of SleepyDebugNode (the host, whose VM stays
 alive between check-ins) and of DebugHoldProbeC6 (the C6, over Thread). Here the VM
 DIES between wakes: every wake is a cold boot that associates, checks in once, works,
-reports and deep-sleeps. There is no reactor, no timer and no drain loop — sleeping
-IS the idle point, as MagTagDeepSleepNode established.
+reports and deep-sleeps. Sleeping is the idle point, as MagTagDeepSleepNode established;
+within a wake the node is event-driven (rete#440 R2): set up, check in, run the reactor,
+and each finished exchange (sys/porta/exchange) takes the next step.
 
 The breakpoint cannot live in the VM, which is gone by the next wake. It lives in the
 `goal/debug/main` CELL — `Debug{sha, breaks: [[blob off]…]}` (rete#375) — which porta
 replays to every fresh boot's cursor 0. The first check-in applies it before `work:`
 runs (PortaBridge>>applyEntry:, not a reaction), the debugger is woken at the end of
-that exchange, arms the set, continues, and `work:` stops. Held, the node runs held
-exchanges through the same link (rete#377), so a stop on a node that was asleep a
-minute ago is stepped and inspected from porta with no cable on the board. The
-continue lets `work:` finish; the second check-in pushes the wake's row; then sleep.
+that exchange, arms the set, continues, and the exchange's `finished` runs `work:`,
+which stops. Held, the node runs held exchanges through the same link (rete#377), so a
+stop on a node that was asleep a minute ago is stepped and inspected from porta with no
+cable on the board. The continue lets `work:` finish; the second check-in pushes the
+wake's row; its `finished` sleeps.
 
 The cadence is demo-scale: `sleepSec` asleep plus an awake window of a few seconds
 (boot, WiFi association, DHCP). The declared liveness is one such period, so porta
@@ -31,7 +33,8 @@ expect (console):
 SLEEPY NODE READY
 *)
 class MagTagSleepyDebugNode usingPlatform: platform net: net = (
-  | private space private bridge private wakes ::= 0. private total ::= 0. |
+  | private space private bridge private timers private wakes ::= 0. private total ::= 0.
+    private exchanges ::= 0. |
 ) (
   public nodeId    = ( ^ platform nodeId )
   (* gw85224-01 on the LAN the MagTag's WiFi joins: the real gateway, not an injector —
@@ -64,31 +67,40 @@ class MagTagSleepyDebugNode usingPlatform: platform net: net = (
 
     sock:: net udpBindPort: self localPort.
     sock == nil ifTrue: [ 'bind' println. ^ 1 ].
+    timers:: platform timers.
+    space whenever: 'sys/timer' do: [ :e | timers dispatch: e ].
+    (space channel: 'sys/porta/exchange') whenever: '' do: [ :v | self exchanged ].
     bridge:: platform PortaBridge
       socket: sock space: space id: self nodeId peer: self gwAddr port: self gwPort
-      spans: platform Spans new.
+      spans: platform Spans new timers: timers.
     bridge subscribeStream: 'tel/log'.
     bridge liveness: self cadence misses: 4.
     bridge publishBuild: self chip.
     ('SLEEPY NODE READY wake ' , wakes printString) println.
 
-    (* The first exchange of the wake: the goal cell is replayed here, so the
-       breakpoint set is armed before work: runs. *)
+    (* The first exchange of the wake: the goal cell is replayed in it, so the
+       breakpoint set is armed before work: runs, at its `finished`. *)
     bridge checkIn.
-    total:: self work: wakes.
-    platform rtcPut: self rtcTotal value: total.
-    space out: 'tel/log' value:
-      (platform Record tag: #Log with: #lvl -> #info
-         with: #txt -> ('wake ' , wakes printString , ' total ' , total printString
-                        , ' held ' , bridge heldExchanges printString)).
-    (* The row above is captured by the subscription's reaction, which only a drain
-       runs. No pumpEvents: on a board it blocks until an event, and this node
-       declares none. *)
-    space drain.
-    bridge checkIn.
+    [ true ] whileTrue: [ platform pumpEvents. space drain ].
+    ^ 0
+  )
+
+  (* One step per finished exchange: the first's end works, reports and checks in
+     again, so the row rides the second push (built after the reaction that captured
+     it); the second's end sleeps. *)
+  exchanged = (
+    exchanges:: exchanges + 1.
+    exchanges = 1 ifTrue: [
+      total:: self work: wakes.
+      platform rtcPut: self rtcTotal value: total.
+      space out: 'tel/log' value:
+        (platform Record tag: #Log with: #lvl -> #info
+           with: #txt -> ('wake ' , wakes printString , ' total ' , total printString
+                          , ' held ' , bridge heldExchanges printString)).
+      ^ bridge checkIn ].
     ('deep sleep ' , self sleepSec printString , ' s') println.
     platform deepSleep: self sleepSec.   (* NEVER RETURNS *)
-    ^ 0
+    ^ self
   )
 
   (* The breakpoint's home. A local and an argument, so a stop has names to show. *)

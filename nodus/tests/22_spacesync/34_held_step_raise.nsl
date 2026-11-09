@@ -1,0 +1,78 @@
+(*
+porta space-sync — A RAISE INSIDE A HELD STEP DOES NOT LEAVE THE BRIDGE "HOLDING"
+(rete#440 R2, second review of #470).
+
+`heldStep` sets `holding` while a stopped debugger runs the bridge, and `leave` reads it
+to skip the debugger wake and `otaCheck`. If anything in the step raises — here the
+socket's send, standing in for `applyEntry:` on a bad row or a full timer table — the
+flag must still be cleared, or every exchange for the rest of the boot leaves silently:
+no wake, and no image update ever again.
+
+`goal/apps/main` holds junk, so `otaCheck` logs `ota bad record` on tel/log each time it
+runs. That row is the witness that it ran.
+
+What is asserted, and why each is falsifiable:
+
+- `raised true` — the held step really did raise (a test that never raised would pass
+  with or without the fix).
+- `otaCheck ran 1` — the app's next exchange, after the raise, ran `otaCheck` as it left.
+  With `holding` stuck true it reads 0.
+- `held 0` — that exchange was the app's, not counted as a held one.
+expect:
+raised true
+otaCheck ran 1
+held 0
+*)
+class HeldStepRaise packageUsing: manifest = () (
+
+  public class FakeDatagram = ( | private data | ) (
+    public setData: d = ( data:: d. ^ self )
+    public data = ( ^ data )
+  ) : (
+    public on: d = ( ^ self new setData: d )
+  )
+
+  (* The first send raises; after that, one queued datagram per `hold:`. *)
+  public class FakeSocket = ( | private queued private boom ::= true. | ) (
+    public doorbell = ( ^ 'test/net' )
+    public hold: bytes = ( queued:: bytes. ^ self )
+    public sendTo: host port: p data: bytes = (
+      boom ifTrue: [ boom:: false. ^ self error: 'send failed' ].
+      ^ self )
+    public receive = ( | q |
+      queued == nil ifTrue: [ ^ nil ].
+      q:: queued. queued:: nil.
+      ^ FakeDatagram on: q )
+  ) : ()
+
+  public main: platform args: args = (
+    | space timers bridge sock batch ack raised otaRuns |
+    space:: platform space.
+    timers:: platform timers.
+    space whenever: 'sys/timer' do: [ :t | timers dispatch: t ].
+    otaRuns:: 0.
+    (space channel: 'tel/log') whenever: '' do: [ :r |
+      (r at: #txt ifAbsent: [ '' ]) = 'ota bad record' ifTrue: [ otaRuns:: otaRuns + 1 ] ].
+    space put: 'goal/apps/main' value: 'junk'.
+    space put: 'obs/health' value: 11.
+    batch:: platform Cbor encode: (platform Record tag: #batch with: #hi -> 0
+      with: #ent -> (platform List with: (platform List with: 1 with: 'goal/name' with: 2 with: 'x'))).
+    ack:: platform Cbor encode: (platform Record tag: #ack with: #hw -> 1).
+    sock:: FakeSocket new.
+    bridge:: platform PortaBridge socket: sock space: space id: 'n1' peer: '::1' port: 6969
+      spans: platform Spans new timers: timers.
+
+    raised:: [ bridge heldStep. false ] on: [ :e | true ] do: [ :e | true ].
+    ('raised ' , raised printString) println.
+    space drain.
+
+    bridge checkIn.
+    sock hold: batch. space out: 'test/net' value: 1. space drain.
+    sock hold: ack. space out: 'test/net' value: 1. space drain.
+    ('otaCheck ran ' , otaRuns printString) println.
+    ('held ' , bridge heldExchanges printString) println.
+    ^ 0
+  )
+) : (
+  public packageUsing: manifest = ( ^ self new )
+)

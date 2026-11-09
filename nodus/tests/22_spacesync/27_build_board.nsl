@@ -11,7 +11,7 @@ class BuildBoardTest packageUsing: manifest = () (
   public main: platform args: args = (
     | b rows row v bd |
     b:: platform PortaBridge socket: nil space: platform space id: 'test' peer: '::1' port: 1
-        spans: platform Spans new.
+        spans: platform Spans new timers: platform timers.
     b publishBuild: #host.
     rows:: platform space changedSince: 0 max: 8.
     row:: rows at: 1.

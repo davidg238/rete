@@ -5,21 +5,28 @@ stereotype: coordinator
 knows:
   - "one exchange at a time: pull, then push, idempotent by cursor"
     # porta/docs/design/2026-08-01-porta-space-sync-rewrite-design.md; docs/design/2026-11-04-440-vm-zephyr-seam-crc-design.md: The check-in as reactions
-  - "the app's radio policy: always on, per exchange, or off for a duration"
-    # docs/design/2026-11-04-440-vm-zephyr-seam-crc-design.md: Radio
+  - "a pull miss still pushes"
+    # docs/design/2026-11-04-440-vm-zephyr-seam-crc-design.md: The check-in as reactions (the pulling row, budget timer)
   - "its Timers, from construction, so a wait always has a wake"
     # docs/design/2026-11-04-440-vm-zephyr-seam-crc-design.md: The check-in as reactions
+  - "the leg its budget was armed for, so a late expiry is not a miss"
+    # docs/design/2026-11-04-440-vm-zephyr-seam-crc-design.md: The check-in as reactions (a reply and an expiry); nodus/nsl/lib/kernel.nsl: PortaBridge
 does:
   - "starts an exchange if idle and returns at once; never waits"
     # docs/design/2026-11-04-440-vm-zephyr-seam-crc-design.md: Decided by David (2026-11-05)
   - "moves the exchange on from three events: the cadence, a datagram's doorbell, the budget"
     # docs/design/2026-11-04-440-vm-zephyr-seam-crc-design.md: The check-in as reactions
-  - "reads a socket to empty in every reaction that owns it"
-    # docs/design/2026-11-04-440-vm-zephyr-seam-crc-design.md: Arrivals
-  - "says when an exchange has finished, on a channel"
-    # docs/design/2026-11-04-440-vm-zephyr-seam-crc-design.md: Decided by David (2026-11-05)
+  - "reads a socket to empty in every reaction that owns it, a budget expiry and an idle discard included"
+    # docs/design/2026-11-04-440-vm-zephyr-seam-crc-design.md: Arrivals; The check-in as reactions (the idle row, read first)
+  - "ignores a check-in while an exchange is in flight, and counts the tick"
+    # docs/design/2026-11-04-440-vm-zephyr-seam-crc-design.md: The check-in as reactions (the check-in column); nodus/nsl/lib/kernel.nsl: PortaBridge>>checkIn (#272 D3.3)
+  - "a raise with no budget armed (a full table at the push re-arm, or anything in the lapse stretch) ends the exchange, logged, and the next check-in retries"
+    # docs/design/2026-11-04-440-vm-zephyr-seam-crc-design.md: The check-in as reactions (a reply and an expiry); nodus/nsl/lib/kernel.nsl: PortaBridge>>pushStart, budgetLapsed:; nodus/tests/22_spacesync/33, 35
+  - "says when an exchange has finished, on sys/porta/exchange; an exchange the held loop started ends silently"
+    # docs/design/2026-11-04-440-vm-zephyr-seam-crc-design.md: Decided by David (2026-11-05); The check-in as reactions (Leaving); nodus/nsl/lib/kernel.nsl: PortaBridge>>leave
+  - "serves a stop: one held step blocks in the pump, then moves the exchange on"
+    # docs/design/2026-11-04-440-vm-zephyr-seam-crc-design.md: While the program is stopped; nodus/nsl/lib/kernel.nsl: PortaBridge>>heldStep
 collaborators:
   - {to: Net, mode: async-event}
   - {to: Timer, mode: async-event}
-  - {to: Radio, mode: sync-command}
 implemented_by: []

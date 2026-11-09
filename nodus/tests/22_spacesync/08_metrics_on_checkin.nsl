@@ -31,7 +31,7 @@ class MetricsOnCheckIn packageUsing: manifest = () (
     spans:: platform Spans new.
     before:: space seq.
 
-    bridge:: platform PortaBridge socket: nil space: space id: 'test' peer: '::1' port: 1 spans: spans.
+    bridge:: platform PortaBridge socket: nil space: space id: 'test' peer: '::1' port: 1 spans: spans timers: platform timers.
     bridge publishMetrics.
 
     m:: (space channel: 'sys/metrics') peek: '' ifAbsent: [ nil ].

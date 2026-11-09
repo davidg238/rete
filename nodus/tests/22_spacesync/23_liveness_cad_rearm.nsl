@@ -24,9 +24,9 @@ class LivenessCadRearm packageUsing: manifest = ( | private ticks ::= 0. | ) (
     tickChan:: space channel: 'sys/tick'.
     tickChan whenever: '' do: [ :m | ticks:: ticks + 1. ('tick ' , ticks printString) out ].
     bridge:: platform PortaBridge socket: nil space: space id: 'test' peer: '::1' port: 1
-      spans: platform Spans new.
+      spans: platform Spans new timers: timers.
     bridge liveness: 2000 misses: 8.
-    bridge startTicking: timers on: tickChan.
+    bridge startTickingOn: tickChan.
     ('armed ' , timers pendingCount printString) out.
 
     platform advanceMillis: 2000. space drain.        (* tick 1 at clock 2000 *)

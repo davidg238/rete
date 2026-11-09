@@ -81,18 +81,29 @@ class Supervisor usingMirror: mirror = () (
        by the bridge in a bridged image. With a link, a stop is served by WHICHEVER
        speaks first: the link's queued lines, then a line already on the cable
        (`consoleLine`, never blocking -- a cable line is what stopped the program
-       when porta did not), else one held exchange and look again. Without a link
-       the cable read blocks, as before. Every reply is echoed to the console as
-       well, so a board's log still shows the session. *)
+       when porta did not), else one step of the held loop and look again: the
+       bridge blocks in the pump — a line on the cable wakes it as a datagram or
+       the budget does — and moves its exchange on (rete#440 R2). An exchange in
+       flight at the stop is finished there, so a stop is always served. Without a
+       link the cable read blocks, as before. Every reply is echoed to the console
+       as well, so a board's log still shows the session. *)
     public useLink: aLink = ( link:: aLink. ^ self )
+    (* A raise out of the held step (a socket send, a bad row, a full timer table) has
+       no handler above this loop: escaping the hook it ABORTS the VM (measured,
+       test_held_raise.py: `Error: …`, SIGABRT), killing a stopped program. So it is
+       caught here, reported on the link and the console as `dbg:error held <text>`,
+       and the step's wait is kept by one pump, so the stop goes on being served. *)
     public readLine = (
-      | l |
+      | l r |
       link == nil ifTrue: [ ^ io readLine ].
       [ true ] whileTrue: [
         link pending ifTrue: [ ^ link next ].
         l:: io consoleLine.
         (l == nil or: [ l == false ]) ifFalse: [ ^ l ].
-        link heldExchange ifFalse: [ ^ nil ] ] )
+        r:: [ link heldStep. nil ] on: [ :e | true ] do: [ :e | e ].
+        r == nil ifFalse: [
+          self say: 'dbg:error held ' , (r at: #text ifAbsent: [ 'raised' ]).
+          io pumpEvents ] ] )
     public say: s = (
       s println.
       link == nil ifFalse: [ link say: s ].

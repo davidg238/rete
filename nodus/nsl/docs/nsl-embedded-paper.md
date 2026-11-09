@@ -988,13 +988,13 @@ class ShipsBellNodeC6 usingPlatform: platform net: net = (   (* Ref 1 *)
     sock == nil ifTrue: [ 'porta: bind FAILED — ringing on, ticking on, reporting nothing' out ].
     bridge:: platform PortaBridge
       socket: sock space: space id: platform nodeId peer: self gwAddr port: self gwPort
-      spans: platform Spans new.
+      spans: platform Spans new timers: timers.
     bridge subscribeStream: 'tel/log'.
     bridge liveness: self cadence misses: 8.
     bridge publishBuild: self chip.
     beatCh:: space channel: 'sys/tick'.
     beatCh whenever: '' do: [ :m | self checkIn ].
-    bridge startTicking: timers on: beatCh.
+    bridge startTickingOn: beatCh.
     ('porta: check-in every ' , (self cadence // 1000) printString , ' s as ' , platform nodeId) out.
     ^ self )
 

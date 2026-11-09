@@ -28,7 +28,7 @@ idempotent true
 class LivenessGrid packageUsing: manifest = () (
   bridgeOn: platform = (
     ^ platform PortaBridge socket: nil space: platform space id: 'test' peer: '::1' port: 1
-        spans: platform Spans new )
+        spans: platform Spans new timers: platform timers )
 
   show: label bridge: b = (
     (label , ' ' , b cadMs printString , ' ' , b missBudget printString , ' ' , b budMs printString) println.

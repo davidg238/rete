@@ -14,7 +14,7 @@ class LivenessAppCad packageUsing: manifest = () (
   bridgeOn: platform = (
     | b |
     b:: platform PortaBridge socket: nil space: platform space id: 'test' peer: '::1' port: 1
-        spans: platform Spans new.
+        spans: platform Spans new timers: platform timers.
     b liveness: 2000 misses: 8.
     ^ b )
 

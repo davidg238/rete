@@ -1,0 +1,5 @@
+name: r2-check-in
+pattern: Observer
+intent: "the porta check-in becomes reactions — PortaBridge a state machine moved on by the cadence, a datagram's doorbell and its budget timer; awaitReply deleted; the held loop blocks in the pump; every bridged app in the design's table (rete #440, design 2026-11-04 The check-in as reactions, R2)"
+compromise: "nsl only, so the C6 photograph does not move and no op is predicted; PortaBridge waits as an unbound card under r2-check-in/ until invarlint reads nsl (invarlint#177). The suite, porta_sync_host.sh, the porta-* board scenarios and the OCM.1 J-Link samples hold R2, not the ratchet"
+ops: []

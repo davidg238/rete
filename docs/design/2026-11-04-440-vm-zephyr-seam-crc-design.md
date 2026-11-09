@@ -188,15 +188,24 @@ changes is the node's shape: `PortaBridge` becomes a state machine driven by eve
 | **pushing** | ignored | — | read; `#ack` → applyAck, → *leaving*; `#batch` → crossed, discard | read first, as above. Else miss, → *leaving* |
 
 **Leaving** an exchange, in this order, is the same moment as today's tail of `checkIn`, so `otaCheck` still runs
-after the push on the same exchange: wake the debugger if
-lines arrived; `otaCheck` (its one-tick delay, design D6, is kept); per-exchange policy turns the radio off;
-→ idle; post `finished`.
+after the push on the same exchange: cancel the budget and → idle; wake the debugger if lines arrived;
+`otaCheck` (its one-tick delay, design D6, is kept); per-exchange policy turns the radio off; post `finished`.
+Idle comes first (as built, R2, PR #470): the wake stops the program at its next bytecode, inside the leaving
+itself, so the held loop must find an idle bridge, not one still pushing with no budget armed. An exchange the
+held loop started ends silently (no wake, no `otaCheck`, no `finished`); an app's exchange that ends while held
+skips the wake and `otaCheck` but still posts `finished`.
 
 - `awaitReply:`, `replyBudget`'s clock loop, `isCrossed:expecting:` as a loop test, and the
   `exchanging` flag's busy-wait meaning are deleted; `tagOf:` and the crossed count stay.
-- **A reply and an expiry can both be pending; `Timers` already settles it.** The bridge cancels the budget on
-  every transition, and `Timers>>dispatch:` drops a token no longer pending (`kernel.nsl`), so a stale expiry
-  never reaches the bridge. Tokens are never reused.
+- **A reply and an expiry can both be pending; the budget post names its leg.** The bridge cancels the budget on
+  every transition and `Timers>>dispatch:` drops a token no longer pending, but that is not enough (as built, R2,
+  PR #470): an expiry already dispatched onto `sys/porta/budget` can sit in the space while a doorbell reaction
+  moves the exchange on. Each arm counts a leg and the post carries it; a post for an older leg is ignored
+  (`22_spacesync/32_check_in_reactions.nsl`). The budget is armed before the PULL is sent, so a full timer
+  table (#81) leaves the bridge idle rather than waiting with no wake; a full table at the push re-arm ends the
+  exchange, logs `timer table full`, and the next check-in retries (`22_spacesync/33_check_in_table_full.nsl`). Any raise in the
+  stretch between the pull budget's expiry and the push re-arm, when no budget is armed, does the same, logged as
+  `exchange raised` (`22_spacesync/35_lapse_raise.nsl`).
 - The six spans survive: `pullWait` opens at the PULL send and closes in the reaction that receives the
   BATCH. An app's `sCheckIn` bracket around a call that returns at once measures nothing and is deleted.
 - **The bridge takes its `Timers` at construction**, the `spans` precedent, so a bridge cannot exist in a shape

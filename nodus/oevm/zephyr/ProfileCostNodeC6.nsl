@@ -115,7 +115,7 @@ reaction block is a one-line self-send.
 *)
 class ProfileCostNodeC6 usingPlatform: platform net: net = (
   | private space private bridge private timers private ticks ::= 0.
-    private spans private sTick private sCheckIn private sPublish private sHanoi
+    private spans private sTick private sPublish private sHanoi
     (* the arm sequencer. phase 0 = settling, 1 = off-a, 2 = on, 3 = off-b,
        then round + 1 and back to 1. `round` is on every printed line, because
        a triple is only a triple if its three blocks can be paired back up. *)
@@ -167,9 +167,11 @@ class ProfileCostNodeC6 usingPlatform: platform net: net = (
        own six slots at construction. Two instances would both allocate from 2
        and silently share samples. *)
     spans:: platform Spans new.
+    timers:: platform timers.     (* hold ONE instance — it owns the pending registry,
+                                     and the bridge arms its budget on it (rete#440 R2) *)
     bridge:: platform PortaBridge
       socket: sock space: space id: self nodeId peer: self gwAddr port: self gwPort
-      spans: spans.
+      spans: spans timers: timers.
     bridge subscribeStream: 'tel/log'.
     bridge subscribeStream: 'sys/reset'.
 
@@ -177,7 +179,6 @@ class ProfileCostNodeC6 usingPlatform: platform net: net = (
     bridge liveness: self cadence misses: 8.
 
     sTick::     spans register: #jobTick.
-    sCheckIn::  spans register: #checkIn.
     sPublish::  spans register: #publish.
     (* rete#166's arm. Slot 14 of OEVM_SPAN_SLOTS = 16 — ONE spare left, and a
        15th registration would silently answer an index the C side ignores. *)
@@ -187,7 +188,6 @@ class ProfileCostNodeC6 usingPlatform: platform net: net = (
        manifest pin (rete#243). *)
     bridge publishBuild: self chip.
 
-    timers:: platform timers.     (* hold ONE instance — it owns the pending registry *)
     space whenever: 'sys/timer' do: [ :e | timers dispatch: e ].
     tickChan:: space channel: 'sys/tick'.
     tickChan whenever: '' do: [ :m | self tick ].
@@ -198,7 +198,7 @@ class ProfileCostNodeC6 usingPlatform: platform net: net = (
        own, and a heartbeat this node stops emitting when it wedges is a heartbeat
        whose absence means something. The bridge is HANDED this instance: two
        Timers alias each other's tokens and drop every dispatch silently. *)
-    bridge startTicking: timers on: tickChan.
+    bridge startTickingOn: tickChan.
 
     'PROFILE COST NODE READY' println.
 
@@ -215,9 +215,6 @@ class ProfileCostNodeC6 usingPlatform: platform net: net = (
   tick = (
     ticks:: ticks + 1.
     spans begin: sTick.
-    spans begin: sCheckIn.
-    bridge checkIn.
-    spans end: sCheckIn.
     spans begin: sPublish.
     self publishHealth.
     space out: 'tel/log' value:
@@ -225,6 +222,7 @@ class ProfileCostNodeC6 usingPlatform: platform net: net = (
                                  with: #txt -> ('tick ' , ticks printString)).
     spans end: sPublish.
     self report.
+    bridge checkIn.
     spans end: sTick.
     (* OUTSIDE jobTick, deliberately: this burst is not the workload, it is a
        second probe carried by the same arms, and folding it into the bridge's

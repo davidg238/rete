@@ -21,9 +21,14 @@ class ThreadSensorNode usingPlatform: platform net: net = (
        (goal/...) and pushes what the node reports (obs/..., tel/...). *)
     sock:: net udpBindPort: 16970.
     sock == nil ifTrue: [ 'bind failed' println. ^ 1 ].
+    (* Timers, like everything else, come from the platform. Their interrupts post to
+       sys/timer; one reaction hands each to the timer that owns it. The bridge is
+       handed them too: every wait for porta's reply is a timer, never a loop. *)
+    timers:: platform timers.
+    space whenever: 'sys/timer' do: [ :e | timers dispatch: e ].
     bridge:: platform PortaBridge
       socket: sock space: space id: platform nodeId peer: self gwAddr port: self gwPort
-      spans: platform Spans new.
+      spans: platform Spans new timers: timers.
     bridge subscribeStream: 'tel/log'.               (* push every row of this stream *)
     bridge liveness: self cadence misses: 16.        (* tell porta when to call us silent *)
     bridge publishBuild: #nrf52840.
@@ -31,25 +36,23 @@ class ThreadSensorNode usingPlatform: platform net: net = (
     (* porta writes a name at goal/name; the node answers at obs/name. *)
     (space channel: 'goal/name') whenever: '' do: [ :v | space put: 'obs/name' value: v ].
 
-    (* Timers, like everything else, come from the platform. Their interrupts post to
-       sys/timer; one reaction hands each to the timer that owns it. *)
-    timers:: platform timers.
-    space whenever: 'sys/timer' do: [ :e | timers dispatch: e ].
     tickChan:: space channel: 'sys/tick'.
     tickChan whenever: '' do: [ :m | self tick ].
-    bridge startTicking: timers on: tickChan.        (* one tick per cadence *)
+    bridge startTickingOn: tickChan.                 (* one tick per cadence *)
 
     (* The reactor: wait for an event, run the reactions it queued, repeat. *)
     [ true ] whileTrue: [ platform pumpEvents. space drain ].
     ^ 0
   )
 
-  (* Each tick: exchange with porta, then add one row to the log stream. *)
+  (* Each tick: add one row to the log stream, then check in with porta. The check-in
+     starts an exchange and returns at once; the reply moves it on in a later
+     reaction, so the row rides this tick's push. *)
   tick = (
     ticks:: ticks + 1.
-    bridge checkIn.
     space out: 'tel/log' value: (platform Record tag: #Log
       with: #lvl -> #info with: #txt -> ('tick ' , ticks printString)).
+    bridge checkIn.
     ^ self
   )
 ) : (

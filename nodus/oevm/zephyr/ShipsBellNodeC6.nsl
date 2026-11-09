@@ -171,19 +171,22 @@ class ShipsBellNodeC6 usingPlatform: platform net: net = (
     sock == nil ifTrue: [ 'porta: bind FAILED — ringing on, ticking on, reporting nothing' out ].
     bridge:: platform PortaBridge
       socket: sock space: space id: platform nodeId peer: self gwAddr port: self gwPort
-      spans: platform Spans new.
+      spans: platform Spans new timers: timers.
     bridge subscribeStream: 'tel/log'.
     bridge liveness: self cadence misses: 8.
     bridge publishBuild: self chip.
     beatCh:: space channel: 'sys/tick'.
     beatCh whenever: '' do: [ :m | self checkIn ].
-    bridge startTicking: timers on: beatCh.
+    bridge startTickingOn: beatCh.
     ('porta: check-in every ' , (self cadence // 1000) printString , ' s as ' , platform nodeId) out.
     ^ self )
 
-  (* ONE check-in, guarded on the striker: `checkIn` is a UDP round trip with a budget,
-     and blocking inside a reaction while a pattern is in flight stretches the gap between
-     strokes. A missed check-in is idempotent — the next carries the same cells, by cursor
+  (* ONE check-in, guarded on the striker. The guard's reason was that `checkIn` was a
+     UDP round trip with a budget, and blocking inside a reaction while a pattern is in
+     flight stretches the gap between strokes. Since rete#440 R2 the check-in starts an
+     exchange and returns at once, so that reason is gone; the guard stays until a bench
+     run on the bell shows the strokes unchanged without it (the design leaves its
+     removal to the board). A missed check-in is idempotent — the next carries the same cells, by cursor
      — but a bell that pauses mid-pattern is audibly wrong. A raised check-in is counted
      and carried, never propagated: the bell outranks its own telemetry. Printed every
      time, with the bridge's counters: a proof of life that cannot be told from silence is

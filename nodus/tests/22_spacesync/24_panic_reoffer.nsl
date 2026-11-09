@@ -49,7 +49,7 @@ class PanicReoffer packageUsing: manifest = () (
     | space bridge spans seq ack |
     space:: platform space.
     spans:: platform Spans new.
-    bridge:: platform PortaBridge socket: nil space: space id: 'n1' peer: '::1' port: 6969 spans: spans.
+    bridge:: platform PortaBridge socket: nil space: space id: 'n1' peer: '::1' port: 6969 spans: spans timers: platform timers.
     bridge subscribeStream: 'tel/log'.
 
     ('panic nil at boot ' , (platform panic == nil) printString) out.

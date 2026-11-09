@@ -32,7 +32,7 @@ class ProfileCellTest packageUsing: manifest = (
     timers:: platform timers.
     space whenever: 'sys/timer' do: [ :e | timers dispatch: e ].
     (space channel: 'sys/profileEnd') whenever: '' do: [ :m | ends:: ends + 1 ].
-    bridge:: platform PortaBridge socket: nil space: space id: 'n1' peer: '::1' port: 6969 spans: platform Spans new.
+    bridge:: platform PortaBridge socket: nil space: space id: 'n1' peer: '::1' port: 6969 spans: platform Spans new timers: timers.
 
     bridge applyBatch: (self batch: platform hi: 1 value: (platform Record tag: #Profile with: #id -> 7 with: #ms -> 100)).
     platform advanceMillis: 50. space drain.

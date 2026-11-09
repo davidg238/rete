@@ -40,7 +40,7 @@ class RefusedNode packageUsing: manifest = () (
     | space bridge spans f1 f2 f3 err err2 ack junk |
     space:: platform space.
     spans:: platform Spans new.
-    bridge:: platform PortaBridge socket: nil space: space id: 'n1' peer: '::1' port: 6969 spans: spans.
+    bridge:: platform PortaBridge socket: nil space: space id: 'n1' peer: '::1' port: 6969 spans: spans timers: platform timers.
 
     (* Something to say, so the frame is not the empty early return. *)
     space put: 'obs/name' value: 'bench'.

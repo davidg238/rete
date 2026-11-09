@@ -36,17 +36,17 @@ class DebugHoldProbeC6 usingPlatform: platform net: net = (
     space:: platform space.
     sock:: net udpBindPort: self localPort.
     sock == nil ifTrue: [ 'bind' println. ^ 1 ].
+    timers:: platform timers.
     bridge:: platform PortaBridge
       socket: sock space: space id: self nodeId peer: self gwAddr port: self gwPort
-      spans: platform Spans new.
+      spans: platform Spans new timers: timers.
     bridge subscribeStream: 'tel/log'.
     bridge liveness: self cadence misses: 8.
     bridge publishBuild: self chip.
-    timers:: platform timers.
     space whenever: 'sys/timer' do: [ :e | timers dispatch: e ].
     tickChan:: space channel: 'sys/tick'.
     tickChan whenever: '' do: [ :m | self tick ].
-    bridge startTicking: timers on: tickChan.
+    bridge startTickingOn: tickChan.
     'SLEEPY NODE READY' println.
     [ true ] whileTrue: [
       platform pumpEvents.
@@ -54,15 +54,16 @@ class DebugHoldProbeC6 usingPlatform: platform net: net = (
     ^ 0
   )
 
+  (* Work, report, then check in (rete#440 R2), as SleepyDebugNode. *)
   tick = (
     | line |
     ticks:: ticks + 1.
-    bridge checkIn.
     total:: self work: ticks.
     line:: 'tick ' , ticks printString , ' total ' , total printString , ' held ' , bridge heldExchanges printString.
     line println.
     space out: 'tel/log' value:
       (platform Record tag: #Log with: #lvl -> #info with: #txt -> line).
+    bridge checkIn.
     ^ self
   )
 

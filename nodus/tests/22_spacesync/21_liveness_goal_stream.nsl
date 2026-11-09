@@ -20,7 +20,7 @@ class LivenessGoalStream packageUsing: manifest = () (
   public main: platform args: args = (
     | b |
     b:: platform PortaBridge socket: nil space: platform space id: 'test' peer: '::1' port: 1
-        spans: platform Spans new.
+        spans: platform Spans new timers: platform timers.
     b liveness: 2000 misses: 8.
     (platform space channel: 'goal/liveness') out: '' value: 'nonsense'.
     b applyLivenessGoal.

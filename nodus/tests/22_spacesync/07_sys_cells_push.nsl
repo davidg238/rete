@@ -36,7 +36,7 @@ class SysCellsPush packageUsing: manifest = () (
     space put: 'sys/metrics' value: 22.
 
     (* A nil socket is legal here and never reached: collectOutbound does no I/O. *)
-    bridge:: platform PortaBridge socket: nil space: space id: 'test' peer: '::1' port: 1 spans: spans.
+    bridge:: platform PortaBridge socket: nil space: space id: 'test' peer: '::1' port: 1 spans: spans timers: platform timers.
     rows:: bridge collectOutbound.
 
     ('rows ' , rows size printString) println.
