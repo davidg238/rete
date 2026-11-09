@@ -2677,8 +2677,17 @@ class Kernel usingPlatform: platform = (
        ignored — `Timers>>dispatch:` drops a cancelled token, but not one it had
        already dispatched before the reply's reaction cancelled it. *)
     budgetLapsed: n = (
+      | raised |
       (n = leg and: [ (state = #idle) not ]) ifFalse: [ ^ self ].
-      ^ self lapse )
+      (* From here to the push leg's re-arm (`pulled: nil` → publish → `pushFrame`) no
+         budget is armed: this expiry was it. A raise in that stretch, swallowed by the
+         reaction's `protectedFire:`, would leave the bridge waiting with no wake, so it
+         leaves the exchange instead (idle, `finished` posted) and says so on tel/log. *)
+      raised:: [ self lapse. false ] on: [ :e | true ] do: [ :e | true ].
+      (raised and: [ (state = #idle) not ]) ifTrue: [
+        self telLog: #error text: 'exchange raised'.
+        self leave ].
+      ^ self )
 
     (* Read first: a reply found is an arrival, not a miss. Only a leg the read did
        not move on is a miss. *)

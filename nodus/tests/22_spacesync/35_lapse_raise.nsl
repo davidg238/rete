@@ -1,0 +1,57 @@
+(*
+porta space-sync — A RAISE BETWEEN THE PULL BUDGET'S EXPIRY AND THE PUSH RE-ARM LEAVES
+THE EXCHANGE (rete#440 R2, third review of #470).
+
+When the pull leg's budget lapses, `budgetLapsed:` runs `pulled: nil` → publish →
+`pushStart` with NO budget armed: the expiry being handled was it. A raise there is
+swallowed by the reaction's `protectedFire:`, and the bridge would sit in #pulling with no
+wake, ignoring every later check-in. Here the raise is real: `sys/metrics` is made a
+STREAM before the lapse, so `publishMetrics`'s `put:` raises (a cell write to a pinned
+stream).
+
+What is asserted, and why each is falsifiable:
+
+- `idle true finished 1 logged 1` — the raise left the exchange: idle, `finished` posted
+  once, and `exchange raised` on tel/log. Unguarded it reads `idle false finished 0`.
+- `next sent 2` — the next check-in sends a PULL. Unguarded the bridge is still in
+  #pulling and the check-in is ignored (`sent 1`).
+expect:
+idle true finished 1 logged 1
+next sent 2
+*)
+class LapseRaise packageUsing: manifest = () (
+
+  public class FakeSocket = ( | private sends ::= 0. | ) (
+    public doorbell = ( ^ 'test/net' )
+    public sends = ( ^ sends )
+    public sendTo: host port: p data: bytes = ( sends:: sends + 1. ^ self )
+    public receive = ( ^ nil )
+  ) : ()
+
+  public main: platform args: args = (
+    | space timers bridge sock finished logged |
+    space:: platform space.
+    timers:: platform timers.
+    space whenever: 'sys/timer' do: [ :t | timers dispatch: t ].
+    finished:: 0. logged:: 0.
+    (space channel: 'sys/porta/exchange') whenever: '' do: [ :v | finished:: finished + 1 ].
+    (space channel: 'tel/log') whenever: '' do: [ :r |
+      (r at: #txt ifAbsent: [ '' ]) = 'exchange raised' ifTrue: [ logged:: logged + 1 ] ].
+    sock:: FakeSocket new.
+    bridge:: platform PortaBridge socket: sock space: space id: 'n1' peer: '::1' port: 6969
+      spans: platform Spans new timers: timers.
+
+    space out: 'sys/metrics' value: 1.     (* pinned a stream: publishMetrics's put: raises *)
+    space drain.
+    bridge checkIn.
+    platform advanceMillis: 2000.          (* the pull lapses: pulled: nil → publish raises *)
+    space drain.
+    ('idle ' , (bridge state = #idle) printString , ' finished ' , finished printString
+      , ' logged ' , logged printString) println.
+    bridge checkIn.
+    ('next sent ' , sock sends printString) println.
+    ^ 0
+  )
+) : (
+  public packageUsing: manifest = ( ^ self new )
+)
