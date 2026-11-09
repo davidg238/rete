@@ -683,8 +683,8 @@
   {
     "rule": "context-coupling",
     "subject": "context:app -\u003e context:adapters",
-    "message": "app uses 11 functions of adapters from 13 sites",
-    "count": 11,
+    "message": "app uses 12 functions of adapters from 14 sites",
+    "count": 12,
     "sites": [
       {
         "func": "func:main",
@@ -705,6 +705,11 @@
         "func": "func:main",
         "loc": "zephyr/src/main.c:1946",
         "via": "ota_env"
+      },
+      {
+        "func": "func:main",
+        "loc": "zephyr/src/main.c:1979",
+        "via": "oevm_thread_bringup"
       },
       {
         "func": "func:zephyr/src/observer.c:obs_trace_record",
@@ -890,7 +895,7 @@
   {
     "rule": "context-map",
     "subject": "context:adapters",
-    "message": "adapters: 2 units (src/backend/zephyr, zephyr/src), 128 funcs, 0 handlers, writes 0 tables, calls into 2 contexts (core, zephyr/src/ed25519)"
+    "message": "adapters: 2 units (src/backend/zephyr, zephyr/src), 131 funcs, 0 handlers, writes 0 tables, calls into 2 contexts (core, zephyr/src/ed25519)"
   },
   {
     "rule": "context-map",
@@ -2701,13 +2706,18 @@
   {
     "rule": "context-size",
     "subject": "context:app",
-    "message": "app: 34 funcs, 603 lines; median 9, p90 38, longest 169 (main)",
+    "message": "app: 34 funcs, 655 lines; median 9, p90 39, longest 169 (main)",
     "count": 169,
     "sites": [
       {
         "func": "func:main",
         "loc": "zephyr/src/main.c:1833",
         "via": "169"
+      },
+      {
+        "func": "func:ntp_target_sync",
+        "loc": "zephyr/src/main.c:204",
+        "via": "53"
       },
       {
         "func": "func:wallclock_target_read",
@@ -2851,12 +2861,7 @@
       },
       {
         "func": "func:ntp_target_date",
-        "loc": "zephyr/src/main.c:264",
-        "via": "1"
-      },
-      {
-        "func": "func:ntp_target_sync",
-        "loc": "zephyr/src/main.c:263",
+        "loc": "zephyr/src/main.c:258",
         "via": "1"
       },
       {
@@ -2879,7 +2884,7 @@
   {
     "rule": "context-size",
     "subject": "context:adapters",
-    "message": "adapters: 128 funcs, 1389 lines; median 7, p90 25, longest 109 (log_udp_thread)",
+    "message": "adapters: 131 funcs, 1455 lines; median 7, p90 26, longest 109 (log_udp_thread)",
     "count": 109,
     "sites": [
       {
@@ -2948,6 +2953,11 @@
         "via": "27"
       },
       {
+        "func": "func:oevm_thread_bringup",
+        "loc": "src/backend/zephyr/thread_bringup.c:34",
+        "via": "26"
+      },
+      {
         "func": "func:src/backend/zephyr/timer_zephyr.c:timer_start",
         "loc": "src/backend/zephyr/timer_zephyr.c:67",
         "via": "25"
@@ -2998,6 +3008,11 @@
         "via": "17"
       },
       {
+        "func": "func:src/backend/zephyr/runner.c:key_init",
+        "loc": "src/backend/zephyr/runner.c:60",
+        "via": "17"
+      },
+      {
         "func": "func:src/backend/zephyr/log_udp.c:net_tx_busy",
         "loc": "src/backend/zephyr/log_udp.c:326",
         "via": "16"
@@ -3036,6 +3051,16 @@
         "func": "func:log_udp_start",
         "loc": "src/backend/zephyr/log_udp.c:579",
         "via": "13"
+      },
+      {
+        "func": "func:oevm_thread_free_buffers",
+        "loc": "src/backend/zephyr/thread_bringup.c:61",
+        "via": "12"
+      },
+      {
+        "func": "func:oevm_thread_tx_queued",
+        "loc": "src/backend/zephyr/thread_bringup.c:75",
+        "via": "12"
       },
       {
         "func": "func:src/backend/zephyr/log_udp.c:ring_get",
@@ -3480,11 +3505,6 @@
       {
         "func": "func:serial_open",
         "loc": "src/backend/zephyr/serial_zephyr.c:16",
-        "via": "1"
-      },
-      {
-        "func": "func:src/backend/zephyr/runner.c:key_init",
-        "loc": "src/backend/zephyr/runner.c:80",
         "via": "1"
       },
       {
@@ -9049,6 +9069,34 @@
   },
   {
     "rule": "global-flow",
+    "subject": "global:src/backend/zephyr/runner.c:have_key",
+    "message": "src/backend/zephyr/runner.c:have_key: written by 1, read by 3 functions",
+    "count": 4,
+    "sites": [
+      {
+        "func": "func:runner_has_key",
+        "loc": "src/backend/zephyr/runner.c:82",
+        "via": "reads"
+      },
+      {
+        "func": "func:runner_ready",
+        "loc": "src/backend/zephyr/runner.c:256",
+        "via": "reads"
+      },
+      {
+        "func": "func:src/backend/zephyr/runner.c:key_init",
+        "loc": "src/backend/zephyr/runner.c:75",
+        "via": "writes"
+      },
+      {
+        "func": "func:src/backend/zephyr/runner.c:verified",
+        "loc": "src/backend/zephyr/runner.c:163",
+        "via": "reads"
+      }
+    ]
+  },
+  {
+    "rule": "global-flow",
     "subject": "global:src/backend/zephyr/udp_zephyr.c:bell_lock",
     "message": "src/backend/zephyr/udp_zephyr.c:bell_lock: written by 4, read by 0 functions",
     "count": 4,
@@ -9826,29 +9874,6 @@
   },
   {
     "rule": "global-flow",
-    "subject": "global:src/backend/zephyr/runner.c:have_key",
-    "message": "src/backend/zephyr/runner.c:have_key: written by 0, read by 3 functions; no writer in the module",
-    "count": 3,
-    "sites": [
-      {
-        "func": "func:runner_has_key",
-        "loc": "src/backend/zephyr/runner.c:82",
-        "via": "reads"
-      },
-      {
-        "func": "func:runner_ready",
-        "loc": "src/backend/zephyr/runner.c:256",
-        "via": "reads"
-      },
-      {
-        "func": "func:src/backend/zephyr/runner.c:verified",
-        "loc": "src/backend/zephyr/runner.c:163",
-        "via": "reads"
-      }
-    ]
-  },
-  {
-    "rule": "global-flow",
     "subject": "global:src/backend/zephyr/sensor_zephyr.c:kinds",
     "message": "src/backend/zephyr/sensor_zephyr.c:kinds: written by 1, read by 2 functions",
     "count": 3,
@@ -10449,6 +10474,29 @@
       {
         "func": "func:rtc_target_valid",
         "loc": "zephyr/src/main.c:293",
+        "via": "reads"
+      }
+    ]
+  },
+  {
+    "rule": "global-flow",
+    "subject": "global:zephyr/src/main.c:ntp_last_date",
+    "message": "zephyr/src/main.c:ntp_last_date: written by 1, read by 2 functions",
+    "count": 3,
+    "sites": [
+      {
+        "func": "func:ntp_target_date",
+        "loc": "zephyr/src/main.c:258",
+        "via": "reads"
+      },
+      {
+        "func": "func:ntp_target_sync",
+        "loc": "zephyr/src/main.c:252",
+        "via": "writes"
+      },
+      {
+        "func": "func:ntp_target_sync",
+        "loc": "zephyr/src/main.c:254",
         "via": "reads"
       }
     ]
@@ -11328,6 +11376,24 @@
         "func": "func:src/backend/zephyr/runner.c:map_slot",
         "loc": "src/backend/zephyr/runner.c:150",
         "via": "reads"
+      }
+    ]
+  },
+  {
+    "rule": "global-flow",
+    "subject": "global:src/backend/zephyr/runner.c:pubkey",
+    "message": "src/backend/zephyr/runner.c:pubkey: written by 2, read by 0 functions",
+    "count": 2,
+    "sites": [
+      {
+        "func": "func:src/backend/zephyr/runner.c:key_init",
+        "loc": "src/backend/zephyr/runner.c:73",
+        "via": "writes"
+      },
+      {
+        "func": "func:src/backend/zephyr/runner.c:verified",
+        "loc": "src/backend/zephyr/runner.c:164",
+        "via": "writes"
       }
     ]
   },
@@ -14187,7 +14253,7 @@
   {
     "rule": "stereotype-asfound",
     "subject": "card:Targets",
-    "message": "Targets: undeclared, as found mixed; 15 implementers, 15 differ; writes own 0, other 3; reads own 0, other 7; calls into 1 card (SharedKernel); derives 0; handlers 0; spawns 0",
+    "message": "Targets: undeclared, as found mixed; 15 implementers, 15 differ; writes own 0, other 4; reads own 0, other 9; calls into 1 card (SharedKernel); derives 0; handlers 0; spawns 0",
     "count": 15,
     "sites": [
       {
@@ -14237,13 +14303,13 @@
       },
       {
         "func": "func:ntp_target_date",
-        "loc": "zephyr/src/main.c:264",
-        "via": "none: w0+0 r0+0 c0 d0"
+        "loc": "zephyr/src/main.c:258",
+        "via": "mixed: w0+0 r0+1 c0 d0"
       },
       {
         "func": "func:ntp_target_sync",
-        "loc": "zephyr/src/main.c:263",
-        "via": "none: w0+0 r0+0 c0 d0"
+        "loc": "zephyr/src/main.c:204",
+        "via": "mixed: w0+1 r0+1 c0 d0"
       },
       {
         "func": "func:reboot_note_ack",
@@ -14727,6 +14793,29 @@
   },
   {
     "rule": "stereotype-asfound",
+    "subject": "card:AdapterStart",
+    "message": "AdapterStart: undeclared, as found mixed; 3 implementers, 3 differ; writes own 0, other 15; reads own 0, other 25; calls into 0 cards; derives 0; handlers 0; spawns 0",
+    "count": 3,
+    "sites": [
+      {
+        "func": "func:log_udp_start",
+        "loc": "src/backend/zephyr/log_udp.c:579",
+        "via": "mixed: w0+1 r0+6 c0 d0"
+      },
+      {
+        "func": "func:oevm_thread_bringup",
+        "loc": "src/backend/zephyr/thread_bringup.c:34",
+        "via": "none: w0+0 r0+0 c0 d0"
+      },
+      {
+        "func": "func:runner_select",
+        "loc": "src/backend/zephyr/runner.c:195",
+        "via": "mixed: w0+14 r0+19 c0 d0"
+      }
+    ]
+  },
+  {
+    "rule": "stereotype-asfound",
     "subject": "card:CoreCallbacks",
     "message": "CoreCallbacks: undeclared, as found mixed; 3 implementers, 3 differ; writes own 0, other 7; reads own 0, other 5; calls into 1 card (Span); derives 0; handlers 0; spawns 0",
     "count": 3,
@@ -14768,24 +14857,6 @@
         "func": "func:platform_backend_node_id",
         "loc": "src/backend/zephyr/platform_zephyr.c:425",
         "via": "mixed: w0+0 r0+0 c1 d0"
-      }
-    ]
-  },
-  {
-    "rule": "stereotype-asfound",
-    "subject": "card:AdapterStart",
-    "message": "AdapterStart: undeclared, as found mixed; 2 implementers, 2 differ; writes own 0, other 15; reads own 0, other 25; calls into 0 cards; derives 0; handlers 0; spawns 0",
-    "count": 2,
-    "sites": [
-      {
-        "func": "func:log_udp_start",
-        "loc": "src/backend/zephyr/log_udp.c:579",
-        "via": "mixed: w0+1 r0+6 c0 d0"
-      },
-      {
-        "func": "func:runner_select",
-        "loc": "src/backend/zephyr/runner.c:195",
-        "via": "mixed: w0+14 r0+19 c0 d0"
       }
     ]
   },
@@ -17825,6 +17896,37 @@
   },
   {
     "rule": "writer-set",
+    "subject": "global:src/backend/zephyr/runner.c:pubkey",
+    "message": "global:src/backend/zephyr/runner.c:pubkey is written from 3 functions",
+    "count": 3,
+    "sites": [
+      {
+        "func": "func:runner_select",
+        "loc": "src/backend/zephyr/runner.c:198",
+        "via": "calls key_init"
+      },
+      {
+        "func": "func:runner_select",
+        "loc": "src/backend/zephyr/runner.c:206",
+        "via": "calls verified"
+      },
+      {
+        "func": "func:runner_select",
+        "loc": "src/backend/zephyr/runner.c:237",
+        "via": "calls verified"
+      },
+      {
+        "func": "func:src/backend/zephyr/runner.c:key_init",
+        "loc": "src/backend/zephyr/runner.c:73"
+      },
+      {
+        "func": "func:src/backend/zephyr/runner.c:verified",
+        "loc": "src/backend/zephyr/runner.c:164"
+      }
+    ]
+  },
+  {
+    "rule": "writer-set",
     "subject": "global:src/backend/zephyr/sensor_zephyr.c:kinds",
     "message": "global:src/backend/zephyr/sensor_zephyr.c:kinds is written from 3 functions",
     "count": 3,
@@ -18539,6 +18641,23 @@
       {
         "func": "func:src/backend/zephyr/pulse_zephyr.c:shadow_pop",
         "loc": "src/backend/zephyr/pulse_zephyr.c:81"
+      }
+    ]
+  },
+  {
+    "rule": "writer-set",
+    "subject": "global:src/backend/zephyr/runner.c:have_key",
+    "message": "global:src/backend/zephyr/runner.c:have_key is written from 2 functions",
+    "count": 2,
+    "sites": [
+      {
+        "func": "func:runner_select",
+        "loc": "src/backend/zephyr/runner.c:198",
+        "via": "calls key_init"
+      },
+      {
+        "func": "func:src/backend/zephyr/runner.c:key_init",
+        "loc": "src/backend/zephyr/runner.c:75"
       }
     ]
   },
@@ -20566,6 +20685,18 @@
       {
         "func": "func:rtc_target_put",
         "loc": "zephyr/src/main.c:295"
+      }
+    ]
+  },
+  {
+    "rule": "writer-set",
+    "subject": "global:zephyr/src/main.c:ntp_last_date",
+    "message": "global:zephyr/src/main.c:ntp_last_date is written from 1 functions",
+    "count": 1,
+    "sites": [
+      {
+        "func": "func:ntp_target_sync",
+        "loc": "zephyr/src/main.c:252"
       }
     ]
   },

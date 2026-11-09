@@ -1,5 +1,5 @@
 {
-  "commit": "e81fb0eb",
+  "commit": "f8a237ba",
   "root": "/tmp/claude-1000/-home-david-workspace-rete-nodus-oevm/40f2824e-efc0-469b-8057-2614fa3890f4/scratchpad/reloc/nodus/oevm",
   "config": "build-esp32c6-B",
   "partial": false,
@@ -1124,7 +1124,7 @@
     {
       "id": "func:ntp_target_date",
       "kind": "func",
-      "loc": "zephyr/src/main.c:264",
+      "loc": "zephyr/src/main.c:258",
       "attrs": {
         "exported": "true",
         "is_handler": "false",
@@ -1136,11 +1136,11 @@
     {
       "id": "func:ntp_target_sync",
       "kind": "func",
-      "loc": "zephyr/src/main.c:263",
+      "loc": "zephyr/src/main.c:204",
       "attrs": {
         "exported": "true",
         "is_handler": "false",
-        "loc_count": "1",
+        "loc_count": "53",
         "sig": "int (int)",
         "unit": "unit:zephyr/src"
       }
@@ -1358,6 +1358,42 @@
         "sig": "void *(void *, size_t)",
         "type": "void *(void *, unsigned int)",
         "unit": "unit:src"
+      }
+    },
+    {
+      "id": "func:oevm_thread_bringup",
+      "kind": "func",
+      "loc": "src/backend/zephyr/thread_bringup.c:34",
+      "attrs": {
+        "exported": "true",
+        "is_handler": "false",
+        "loc_count": "26",
+        "sig": "void (void)",
+        "unit": "unit:src/backend/zephyr"
+      }
+    },
+    {
+      "id": "func:oevm_thread_free_buffers",
+      "kind": "func",
+      "loc": "src/backend/zephyr/thread_bringup.c:61",
+      "attrs": {
+        "exported": "true",
+        "is_handler": "false",
+        "loc_count": "12",
+        "sig": "int (void)",
+        "unit": "unit:src/backend/zephyr"
+      }
+    },
+    {
+      "id": "func:oevm_thread_tx_queued",
+      "kind": "func",
+      "loc": "src/backend/zephyr/thread_bringup.c:75",
+      "attrs": {
+        "exported": "true",
+        "is_handler": "false",
+        "loc_count": "12",
+        "sig": "int (void)",
+        "unit": "unit:src/backend/zephyr"
       }
     },
     {
@@ -3469,11 +3505,11 @@
     {
       "id": "func:src/backend/zephyr/runner.c:key_init",
       "kind": "func",
-      "loc": "src/backend/zephyr/runner.c:80",
+      "loc": "src/backend/zephyr/runner.c:60",
       "attrs": {
         "exported": "false",
         "is_handler": "false",
-        "loc_count": "1",
+        "loc_count": "17",
         "sig": "void (void)",
         "unit": "unit:src/backend/zephyr"
       }
@@ -7512,9 +7548,9 @@
     {
       "id": "global:src/backend/zephyr/runner.c:have_key",
       "kind": "global",
-      "loc": "src/backend/zephyr/runner.c:79",
+      "loc": "src/backend/zephyr/runner.c:59",
       "attrs": {
-        "type": "const int",
+        "type": "int",
         "unit": "unit:src/backend/zephyr"
       }
     },
@@ -7548,9 +7584,9 @@
     {
       "id": "global:src/backend/zephyr/runner.c:pubkey",
       "kind": "global",
-      "loc": "src/backend/zephyr/runner.c:78",
+      "loc": "src/backend/zephyr/runner.c:58",
       "attrs": {
-        "type": "const uint8_t[32]",
+        "type": "uint8_t[32]",
         "unit": "unit:src/backend/zephyr"
       }
     },
@@ -8919,6 +8955,15 @@
       "loc": "zephyr/src/main.c:1430",
       "attrs": {
         "type": "const struct gpio_dt_spec[1]",
+        "unit": "unit:zephyr/src"
+      }
+    },
+    {
+      "id": "global:zephyr/src/main.c:ntp_last_date",
+      "kind": "global",
+      "loc": "zephyr/src/main.c:202",
+      "attrs": {
+        "type": "int",
         "unit": "unit:zephyr/src"
       }
     },
@@ -10523,6 +10568,12 @@
     {
       "kind": "calls",
       "from": "func:main",
+      "to": "func:oevm_thread_bringup",
+      "loc": "zephyr/src/main.c:1979"
+    },
+    {
+      "kind": "calls",
+      "from": "func:main",
       "to": "func:oimg_bootstrap",
       "loc": "zephyr/src/main.c:1986"
     },
@@ -11020,6 +11071,24 @@
     },
     {
       "kind": "calls",
+      "from": "func:ntp_target_sync",
+      "to": "func:printk",
+      "loc": "zephyr/src/main.c:225"
+    },
+    {
+      "kind": "calls",
+      "from": "func:ntp_target_sync",
+      "to": "func:printk",
+      "loc": "zephyr/src/main.c:254"
+    },
+    {
+      "kind": "calls",
+      "from": "func:ntp_target_sync",
+      "to": "func:sntp_simple",
+      "loc": "zephyr/src/main.c:224"
+    },
+    {
+      "kind": "calls",
       "from": "func:observer_halt",
       "to": "func:arch_irq_lock",
       "loc": "zephyr/src/observer.c:337"
@@ -11281,6 +11350,132 @@
       "from": "func:oevm_realloc",
       "to": "func:realloc",
       "loc": "src/gc.c:131"
+    },
+    {
+      "kind": "calls",
+      "from": "func:oevm_thread_bringup",
+      "to": "func:k_msleep",
+      "loc": "src/backend/zephyr/thread_bringup.c:56"
+    },
+    {
+      "kind": "calls",
+      "from": "func:oevm_thread_bringup",
+      "to": "func:net_if_get_default",
+      "loc": "src/backend/zephyr/thread_bringup.c:39"
+    },
+    {
+      "kind": "calls",
+      "from": "func:oevm_thread_bringup",
+      "to": "func:net_if_up",
+      "loc": "src/backend/zephyr/thread_bringup.c:44"
+    },
+    {
+      "kind": "calls",
+      "from": "func:oevm_thread_bringup",
+      "to": "func:openthread_get_default_context",
+      "loc": "src/backend/zephyr/thread_bringup.c:38"
+    },
+    {
+      "kind": "calls",
+      "from": "func:oevm_thread_bringup",
+      "to": "func:openthread_get_default_instance",
+      "loc": "src/backend/zephyr/thread_bringup.c:47"
+    },
+    {
+      "kind": "calls",
+      "from": "func:oevm_thread_bringup",
+      "to": "func:openthread_init",
+      "loc": "src/backend/zephyr/thread_bringup.c:35"
+    },
+    {
+      "kind": "calls",
+      "from": "func:oevm_thread_bringup",
+      "to": "func:openthread_mutex_lock",
+      "loc": "src/backend/zephyr/thread_bringup.c:49"
+    },
+    {
+      "kind": "calls",
+      "from": "func:oevm_thread_bringup",
+      "to": "func:openthread_mutex_unlock",
+      "loc": "src/backend/zephyr/thread_bringup.c:51"
+    },
+    {
+      "kind": "calls",
+      "from": "func:oevm_thread_bringup",
+      "to": "func:openthread_run",
+      "loc": "src/backend/zephyr/thread_bringup.c:36"
+    },
+    {
+      "kind": "calls",
+      "from": "func:oevm_thread_bringup",
+      "to": "func:otThreadGetDeviceRole",
+      "loc": "src/backend/zephyr/thread_bringup.c:50"
+    },
+    {
+      "kind": "calls",
+      "from": "func:oevm_thread_bringup",
+      "to": "func:printk",
+      "loc": "src/backend/zephyr/thread_bringup.c:45"
+    },
+    {
+      "kind": "calls",
+      "from": "func:oevm_thread_bringup",
+      "to": "func:printk",
+      "loc": "src/backend/zephyr/thread_bringup.c:53"
+    },
+    {
+      "kind": "calls",
+      "from": "func:oevm_thread_bringup",
+      "to": "func:printk",
+      "loc": "src/backend/zephyr/thread_bringup.c:58"
+    },
+    {
+      "kind": "calls",
+      "from": "func:oevm_thread_free_buffers",
+      "to": "func:openthread_get_default_instance",
+      "loc": "src/backend/zephyr/thread_bringup.c:63"
+    },
+    {
+      "kind": "calls",
+      "from": "func:oevm_thread_free_buffers",
+      "to": "func:openthread_mutex_lock",
+      "loc": "src/backend/zephyr/thread_bringup.c:69"
+    },
+    {
+      "kind": "calls",
+      "from": "func:oevm_thread_free_buffers",
+      "to": "func:openthread_mutex_unlock",
+      "loc": "src/backend/zephyr/thread_bringup.c:71"
+    },
+    {
+      "kind": "calls",
+      "from": "func:oevm_thread_free_buffers",
+      "to": "func:otMessageGetBufferInfo",
+      "loc": "src/backend/zephyr/thread_bringup.c:70"
+    },
+    {
+      "kind": "calls",
+      "from": "func:oevm_thread_tx_queued",
+      "to": "func:openthread_get_default_instance",
+      "loc": "src/backend/zephyr/thread_bringup.c:77"
+    },
+    {
+      "kind": "calls",
+      "from": "func:oevm_thread_tx_queued",
+      "to": "func:openthread_mutex_lock",
+      "loc": "src/backend/zephyr/thread_bringup.c:83"
+    },
+    {
+      "kind": "calls",
+      "from": "func:oevm_thread_tx_queued",
+      "to": "func:openthread_mutex_unlock",
+      "loc": "src/backend/zephyr/thread_bringup.c:85"
+    },
+    {
+      "kind": "calls",
+      "from": "func:oevm_thread_tx_queued",
+      "to": "func:otMessageGetBufferInfo",
+      "loc": "src/backend/zephyr/thread_bringup.c:84"
     },
     {
       "kind": "calls",
@@ -17291,6 +17486,12 @@
     {
       "kind": "calls",
       "from": "func:src/backend/zephyr/log_udp.c:net_tx_busy",
+      "to": "func:oevm_thread_tx_queued",
+      "loc": "src/backend/zephyr/log_udp.c:332"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/log_udp.c:net_tx_busy",
       "to": "func:src/backend/zephyr/log_udp.c:net_tx_held",
       "loc": "src/backend/zephyr/log_udp.c:328"
     },
@@ -17429,6 +17630,18 @@
     {
       "kind": "calls",
       "from": "func:src/backend/zephyr/log_udp.c:wait_for_radio",
+      "to": "func:k_msleep",
+      "loc": "src/backend/zephyr/log_udp.c:287"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/log_udp.c:wait_for_radio",
+      "to": "func:oevm_thread_free_buffers",
+      "loc": "src/backend/zephyr/log_udp.c:286"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/log_udp.c:wait_for_radio",
       "to": "func:src/backend/zephyr/log_udp.c:net_tx_held",
       "loc": "src/backend/zephyr/log_udp.c:279"
     },
@@ -17437,6 +17650,24 @@
       "from": "func:src/backend/zephyr/log_udp.c:wait_for_radio",
       "to": "func:src/backend/zephyr/log_udp.c:net_tx_held",
       "loc": "src/backend/zephyr/log_udp.c:298"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/ota_zephyr.c:ota_entry",
+      "to": "func:k_current_get",
+      "loc": "src/backend/zephyr/ota_zephyr.c:186"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/ota_zephyr.c:ota_entry",
+      "to": "func:k_thread_stack_space_get",
+      "loc": "src/backend/zephyr/ota_zephyr.c:186"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/ota_zephyr.c:ota_entry",
+      "to": "func:printk",
+      "loc": "src/backend/zephyr/ota_zephyr.c:187"
     },
     {
       "kind": "calls",
@@ -17617,6 +17848,24 @@
       "from": "func:src/backend/zephyr/runner.c:hash_slot",
       "to": "func:src/backend/zephyr/runner.c:map_slot",
       "loc": "src/backend/zephyr/runner.c:157"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/runner.c:key_init",
+      "to": "func:printk",
+      "loc": "src/backend/zephyr/runner.c:62"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/runner.c:key_init",
+      "to": "func:printk",
+      "loc": "src/backend/zephyr/runner.c:71"
+    },
+    {
+      "kind": "calls",
+      "from": "func:src/backend/zephyr/runner.c:key_init",
+      "to": "func:strlen",
+      "loc": "src/backend/zephyr/runner.c:62"
     },
     {
       "kind": "calls",
@@ -27433,6 +27682,18 @@
     },
     {
       "kind": "reads_global",
+      "from": "func:ntp_target_date",
+      "to": "global:zephyr/src/main.c:ntp_last_date",
+      "loc": "zephyr/src/main.c:258"
+    },
+    {
+      "kind": "reads_global",
+      "from": "func:ntp_target_sync",
+      "to": "global:zephyr/src/main.c:ntp_last_date",
+      "loc": "zephyr/src/main.c:254"
+    },
+    {
+      "kind": "reads_global",
       "from": "func:observer_halt",
       "to": "global:zephyr/src/observer.c:g_hw_wdt",
       "loc": "zephyr/src/observer.c:333"
@@ -33663,6 +33924,15 @@
     },
     {
       "kind": "writes_global",
+      "from": "func:ntp_target_sync",
+      "to": "global:zephyr/src/main.c:ntp_last_date",
+      "loc": "zephyr/src/main.c:252",
+      "attrs": {
+        "op": "assign"
+      }
+    },
+    {
+      "kind": "writes_global",
       "from": "func:observer_start",
       "to": "global:observer_stack",
       "loc": "zephyr/src/observer.c:415",
@@ -35994,6 +36264,24 @@
     },
     {
       "kind": "writes_global",
+      "from": "func:src/backend/zephyr/runner.c:key_init",
+      "to": "global:src/backend/zephyr/runner.c:have_key",
+      "loc": "src/backend/zephyr/runner.c:75",
+      "attrs": {
+        "op": "assign"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:src/backend/zephyr/runner.c:key_init",
+      "to": "global:src/backend/zephyr/runner.c:pubkey",
+      "loc": "src/backend/zephyr/runner.c:73",
+      "attrs": {
+        "op": "assign"
+      }
+    },
+    {
+      "kind": "writes_global",
       "from": "func:src/backend/zephyr/runner.c:m_load",
       "to": "global:src/backend/zephyr/runner.c:m",
       "loc": "src/backend/zephyr/runner.c:124",
@@ -36215,6 +36503,15 @@
       "loc": "src/backend/zephyr/runner.c:141",
       "attrs": {
         "op": "addr"
+      }
+    },
+    {
+      "kind": "writes_global",
+      "from": "func:src/backend/zephyr/runner.c:verified",
+      "to": "global:src/backend/zephyr/runner.c:pubkey",
+      "loc": "src/backend/zephyr/runner.c:164",
+      "attrs": {
+        "op": "decay"
       }
     },
     {

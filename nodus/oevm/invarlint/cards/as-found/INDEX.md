@@ -1,4 +1,4 @@
-# as-found cards — invarlint distill @ e81fb0eb; regenerated on every run, do not edit.
+# as-found cards — invarlint distill @ f8a237ba; regenerated on every run, do not edit.
 
 0 cards from 0 tables; 0 merged; 0 vocabularies; 0 tables with no Go writer.
 
