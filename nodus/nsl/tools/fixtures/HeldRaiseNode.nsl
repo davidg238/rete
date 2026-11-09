@@ -1,0 +1,53 @@
+(*
+HeldRaiseNode — rete#440 R2, fourth review of #470: what a stop does when the held loop
+raises. A debug image (OEVM_DEBUG=1) builds a bridge, so its debugger has a link. The
+program stops itself (`platform debugger wake`), and the stop is served by
+`Debugger>>readLine`, which runs `PortaBridge>>heldStep`. The fake socket's FIRST send
+raises (inside `startExchange`); its next PULL is answered with a #batch carrying a
+`dbg/req` row `dbg:continue`, as porta would deliver it. So the stop must survive the
+raise to read the continue, and the program must then finish. Driven by
+test_held_raise.py.
+*)
+class HeldRaiseNode packageUsing: manifest = () (
+
+  public class FakeDatagram = ( | private data | ) (
+    public setData: d = ( data:: d. ^ self )
+    public data = ( ^ data )
+  ) : (
+    public on: d = ( ^ self new setData: d )
+  )
+
+  public class FakeSocket = ( | private sends ::= 0. private reply private queued | ) (
+    public setReply: r = ( reply:: r. ^ self )
+    public doorbell = ( ^ 'test/net' )
+    public sendTo: host port: p data: bytes = (
+      sends:: sends + 1.
+      sends = 1 ifTrue: [ ^ self error: 'send failed' ].
+      sends = 2 ifTrue: [ queued:: reply ].
+      ^ self )
+    public receive = ( | q |
+      queued == nil ifTrue: [ ^ nil ].
+      q:: queued. queued:: nil.
+      ^ FakeDatagram on: q )
+    public sends = ( ^ sends )
+  ) : ()
+
+  public main: platform args: args = (
+    | space timers bridge sock |
+    space:: platform space.
+    timers:: platform timers.
+    space whenever: 'sys/timer' do: [ :t | timers dispatch: t ].
+    sock:: FakeSocket new.
+    sock setReply: (platform Cbor encode: (platform Record tag: #batch with: #hi -> 1
+      with: #ent -> (platform List with: (platform List with: 1 with: 'dbg/req' with: 1 with: 'dbg:continue')))).
+    bridge:: platform PortaBridge socket: sock space: space id: 'n1' peer: '::1' port: 6969
+      spans: platform Spans new timers: timers.
+    'HELD RAISE READY' println.
+    platform debugger wake.
+    ('after the stop, sends ' , sock sends printString) println.
+    'done' println.
+    ^ 0
+  )
+) : (
+  public packageUsing: manifest = ( ^ self new )
+)

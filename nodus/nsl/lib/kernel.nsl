@@ -2683,8 +2683,11 @@ class Kernel usingPlatform: platform = (
          budget is armed: this expiry was it. A raise in that stretch, swallowed by the
          reaction's `protectedFire:`, would leave the bridge waiting with no wake, so it
          leaves the exchange instead (idle, `finished` posted) and says so on tel/log. *)
-      raised:: [ self lapse. false ] on: [ :e | true ] do: [ :e | true ].
-      (raised and: [ (state = #idle) not ]) ifTrue: [
+      raised:: [ self lapse. nil ] on: [ :e | true ] do: [ :e | e ].
+      (raised == nil or: [ state = #idle ]) ifFalse: [
+        (* The tel/log text stays fixed, so a query can count it; the raise's own text,
+           which the supervisor's crash line used to carry, goes to the console. *)
+        ('porta: exchange raised: ' , (raised at: #text ifAbsent: [ 'unknown' ])) out.
         self telLog: #error text: 'exchange raised'.
         self leave ].
       ^ self )

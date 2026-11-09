@@ -15,7 +15,9 @@ What is asserted, and why each is falsifiable:
   once, and `exchange raised` on tel/log. Unguarded it reads `idle false finished 0`.
 - `next sent 2` — the next check-in sends a PULL. Unguarded the bridge is still in
   #pulling and the check-in is ignored (`sent 1`).
+- `porta: exchange raised: not a cell` — the raise's own text reaches the console.
 expect:
+porta: exchange raised: not a cell
 idle true finished 1 logged 1
 next sent 2
 *)

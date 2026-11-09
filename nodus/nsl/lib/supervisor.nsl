@@ -88,14 +88,22 @@ class Supervisor usingMirror: mirror = () (
        link the cable read blocks, as before. Every reply is echoed to the console
        as well, so a board's log still shows the session. *)
     public useLink: aLink = ( link:: aLink. ^ self )
+    (* A raise out of the held step (a socket send, a bad row, a full timer table) has
+       no handler above this loop: escaping the hook it ABORTS the VM (measured,
+       test_held_raise.py: `Error: …`, SIGABRT), killing a stopped program. So it is
+       caught here, reported on the link and the console as `dbg:error held <text>`,
+       and the step's wait is kept by one pump, so the stop goes on being served. *)
     public readLine = (
-      | l |
+      | l r |
       link == nil ifTrue: [ ^ io readLine ].
       [ true ] whileTrue: [
         link pending ifTrue: [ ^ link next ].
         l:: io consoleLine.
         (l == nil or: [ l == false ]) ifFalse: [ ^ l ].
-        link heldStep ] )
+        r:: [ link heldStep. nil ] on: [ :e | true ] do: [ :e | e ].
+        r == nil ifFalse: [
+          self say: 'dbg:error held ' , (r at: #text ifAbsent: [ 'raised' ]).
+          io pumpEvents ] ] )
     public say: s = (
       s println.
       link == nil ifFalse: [ link say: s ].
