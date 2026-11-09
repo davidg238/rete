@@ -43,7 +43,7 @@ the bell fragment brings the panel, the speaker and SNTP back after it, the ota 
 is the program-slot runner — rete#233 §10 T10: the stage in-channel, the registry sized
 from the `space: N of M channels` line this node prints at every deep sleep, the public
 key porta signs with):
-  OEVM_IRAM_HOT=0 VM_STACK_INIT_WORDS=2048 OEVM_HEAP_SIZE=36864 \
+  OEVM_IRAM_HOT=0 VM_STACK_INIT_WORDS=2048 OEVM_HEAP_SIZE=34816 \
   METHOD_CACHE_SIZE=128 SERIAL_FIFO_CAP=256 OEVM_DEBUG_HOOKS=1 OEVM_METHOD_PROFILE=1 \
   OEVM_NTP_SERVER6=<the LAN's NTP by IPv6 literal> \
   OEVM_SPACE_MAX_CHANNELS=16 OEVM_MARK_STACK_SIZE=256 \
@@ -54,6 +54,8 @@ key porta signs with):
   halved (-1 KB, an overflow is a rescan, never a fault) and the registry sized from the count
   (`space: 11 of 32` on two wake kinds, 2026-10-10: 16 frees 2,432 B, the profiler's 256 slots
   back). Linked 2026-10-12 at dram0 220,048 of 222,208; the first boot read `space: 11 of 16`.
+  Arena 36,864 -> 34,816 (rete#471, 2026-11-09): R1's socket reader overflowed dram0 by 720 B;
+  relinked at 220,816 of 222,208. R2 timer wake read lb 28,232 of 34,816, lfb 1,628.
   A program PUSH after that goes through porta (`goal/apps/main`); the first check-in of
   the wake that reads it stages, the second activates; the new program's boot is a
   reboot wake (no strike), and its first check-in confirms the trial.
