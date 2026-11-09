@@ -2646,7 +2646,14 @@ class Kernel usingPlatform: platform = (
       frame:: self pushFrame.
       spans end: sPushBuild.
       frame == nil ifTrue: [ ^ self leave ].
-      self armBudget.
+      (* A re-arm can find the table full (#81): after a lapse the fired one-shot
+         freed nothing this reaction can count on, and another job may have taken
+         the slot. Raised here it would strand the bridge in #pulling with no wake,
+         so the exchange leaves instead (idle, `finished` posted) and the next
+         check-in tries again. The push it would have sent rides that one. *)
+      ([ self armBudget. true ] on: [ :e | true ] do: [ :e | false ]) ifFalse: [
+        self telLog: #error text: 'timer table full'.
+        ^ self leave ].
       spans begin: sPushSend.
       socket sendTo: peerHost port: peerPort data: frame.
       spans end: sPushSend.

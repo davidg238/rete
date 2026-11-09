@@ -13,7 +13,8 @@ exchange starts every second or third tick.
 WHAT THIS PROBE CAUGHT was not the failure it was written to catch. It reproduced a
 node wedging at 111.7 s under a silent uplink — and the node turned out to be
 healthy. The wedge detector judged the pulse mailbox's DEPTH AT A SAMPLING INSTANT,
-which aliases: at this cadence the tick costs ~4 s of awaitReply spin, so the
+which aliases: at this cadence the tick then cost ~4 s of the old awaitReply: spin
+(deleted by rete#440 R2), so the
 mailbox empties for ~1 s inside every 4.007 s tick, while the observer samples every
 1001 ms — four samples span 4004 ms against a 4007 ms cycle, and the 3 ms beat walks
 the one sample that catches the empty window out of it. The dump's trace ring showed

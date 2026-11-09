@@ -1,0 +1,68 @@
+(*
+porta space-sync — A FULL TIMER TABLE AT THE PUSH LEG'S RE-ARM DOES NOT STRAND THE
+BRIDGE (rete#440 R2, review of #470; #81 makes a full table raise in the arming job).
+
+The pull leg's budget lapses: its one-shot has fired, so `cancelBudget` frees nothing
+in the reaction that re-arms for the push. Here every slot is taken between the fire
+and that reaction, so `timers after:` raises `timer table full` inside `pushStart`.
+Before the guard the raise left the bridge in #pulling with no budget armed and no
+doorbell coming — a check-in ignored forever. Now the exchange leaves.
+
+What is asserted, and why each is falsifiable:
+
+- `stranded false idle true` — the raise ended the exchange instead of leaving it in
+  #pulling.
+- `finished 1 sent 1` — leaving said so once, and no PUSH went out without a budget.
+- `retry sent 2 pulling true` — with a slot freed, the next check-in starts a new
+  exchange: the bridge is not wedged.
+expect:
+full true
+stranded false idle true
+finished 1 sent 1
+retry sent 2 pulling true
+*)
+class CheckInTableFull packageUsing: manifest = () (
+
+  public class FakeSocket = ( | private sends ::= 0. | ) (
+    public doorbell = ( ^ 'test/net' )
+    public sends = ( ^ sends )
+    public sendTo: host port: p data: bytes = ( sends:: sends + 1. ^ self )
+    public receive = ( ^ nil )
+  ) : ()
+
+  public main: platform args: args = (
+    | space timers bridge sock finished filler ch r toks n |
+    space:: platform space.
+    timers:: platform timers.
+    space whenever: 'sys/timer' do: [ :t | timers dispatch: t ].
+    finished:: 0.
+    (space channel: 'sys/porta/exchange') whenever: '' do: [ :v | finished:: finished + 1 ].
+    space put: 'obs/health' value: 11.
+    sock:: FakeSocket new.
+    bridge:: platform PortaBridge socket: sock space: space id: 'n1' peer: '::1' port: 6969
+      spans: platform Spans new timers: timers.
+
+    bridge checkIn.
+    platform advanceMillis: 2000.        (* the pull budget fires; its post waits in the space *)
+
+    (* Take every slot before the bridge's budget reaction runs. *)
+    ch:: space channel: 'test/fill'.
+    toks:: platform OrderedCollection new.
+    r:: nil. n:: 0.
+    [ r == nil and: [ n < 1000 ] ] whileTrue: [
+      n:: n + 1.
+      r:: platform protectedFire: [ :v | toks add: (timers every: 100000 post: #x on: ch) ] value: nil ].
+    ('full ' , (r == nil) not printString) println.
+
+    space drain.                         (* the lapse: a miss, then the push leg's re-arm *)
+    ('stranded ' , (bridge state = #pulling) printString , ' idle ' , (bridge state = #idle) printString) println.
+    ('finished ' , finished printString , ' sent ' , sock sends printString) println.
+
+    timers cancel: (toks at: 1).
+    bridge checkIn.
+    ('retry sent ' , sock sends printString , ' pulling ' , (bridge state = #pulling) printString) println.
+    ^ 0
+  )
+) : (
+  public packageUsing: manifest = ( ^ self new )
+)

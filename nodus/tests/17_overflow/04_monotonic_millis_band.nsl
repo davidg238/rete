@@ -7,22 +7,23 @@ true
 done
 *)
 (* rete#224 — `platform monotonicMillis` past the SMI band answers a POSITIVE
-   integer, and the awaitReply: arithmetic (deadline := now + budget; spin while
-   now < deadline) stays correct across the band edge.
+   integer, and a reply budget's deadline arithmetic (`PortaBridge>>armBudget`:
+   deadline := now + budget, which the held loop reads the clock against) stays
+   correct across the band edge.
 
    Before the fix the prim was TAG_SMI((long)ms) with no range check: the bit
    above the SMI payload shifted into the sign bit, so the clock went NEGATIVE
    at 2^30 ms (12 d 10 h) on the 32-bit C6, and a deadline computed just before
-   the flip was never reached — an unanswered leg spun in the interpreter until
-   the observer rebooted the node as a wedge.
+   the flip was never reached — then an unanswered leg spun in the interpreter
+   (the old awaitReply: loop) until the observer rebooted the node as a wedge.
 
    The band edge is 2^62 on this 64-bit host and 2^30 on the target; the prim is
    the same code, so pushing the HOST clock past ITS edge exercises the one
    mechanism the fix adds (box what does not fit). Two advances (each an SMI,
    since advanceMillis: takes an SMI) park the clock 1000 ms BEFORE the host
    edge, the deadline is computed there, and the clock is then walked ACROSS
-   the edge — the straddle that awaitReply: performs once per 49.7 days on a
-   C6. Host-only: the virtual clock starts at 0 and only advanceMillis: moves
+   the edge — the straddle a held loop's budget performs once per 49.7 days on
+   a C6. Host-only: the virtual clock starts at 0 and only advanceMillis: moves
    it (timer_posix.c). *)
 class MonotonicMillisBand packageUsing: manifest = () (
 public main: platform args: args = (
@@ -30,7 +31,7 @@ public main: platform args: args = (
   platform advanceMillis: 2305843009213693952.   (* 2^61 *)
   platform advanceMillis: 2305843009213692952.   (* 2^61 - 1000 -> clock = 2^62 - 1000 *)
   t0:: platform monotonicMillis.
-  deadline:: t0 + 2000.                          (* awaitReply:'s shape; promotes past the band *)
+  deadline:: t0 + 2000.                          (* armBudget's shape; promotes past the band *)
   platform advanceMillis: 1000.
   t1:: platform monotonicMillis.                 (* clock = 2^62, exactly one past the band *)
   (t1 > 0) println.                              (* was negative *)
