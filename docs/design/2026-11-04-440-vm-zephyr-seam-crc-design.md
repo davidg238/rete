@@ -3,7 +3,7 @@
 2026-11-04, settled 2026-11-05 · #440 (P0, the busy-poll), #458 (radio off with the VM live), #459 (nRF idle
 vs System OFF), #457 (nRF System OFF, deferred) · the engineering half of the 2026-11-03 review ("the model
 is elegant, the C has accreted: 56 sites of the core reaching into the Zephyr backend, 91 case arms, nine
-lists"). Made under the `invarlint-designer` skill: the cards under `nodus/oevm/design/cards/` are the design
+lists"). Made under the `invarlint-designer` skill: the cards under `nodus/oevm/invarlint/cards/` are the design
 of record for the seam, and this document is the why.
 
 ## Why
@@ -143,7 +143,7 @@ bound is left unbound.
 
 | Card | Responsibility | Where |
 |---|---|---|
-| **Pulse** | the mailbox; the one place the VM thread blocks | `nodus/oevm/design/cards/pulse.yaml` |
+| **Pulse** | the mailbox; the one place the VM thread blocks | `nodus/oevm/invarlint/cards/pulse.yaml` |
 | **Timer** | monotonic time; every deadline in the system | `timer.yaml` |
 | **Net** | the sockets over any transport; the doorbell; the link state | `net.yaml` |
 | **Http** | the listener and the response path; readiness only | `http.yaml` |
@@ -154,8 +154,8 @@ bound is left unbound.
 | **Ota** | the stage; the fetch's 5 ms poll is named debt until R5 | `ota.yaml` |
 | **Span** (service-provider) | stamps and elapsed time; no state | `span.yaml` |
 | **Identity** (information-holder) | board name, boot id, node id | `identity.yaml` |
-| **Radio** | the radio on and off, with the VM live | `nodus/oevm/design/revisions/r3-radio/`, lands with R3's code |
-| **PortaBridge** (coordinator, nsl) | one exchange at a time, moved on by events | `nodus/oevm/design/revisions/r2-check-in/`, waits for invarlint to read nsl (invarlint#177) |
+| **Radio** | the radio on and off, with the VM live | `nodus/oevm/invarlint/revisions/r3-radio/`, lands with R3's code |
+| **PortaBridge** (coordinator, nsl) | one exchange at a time, moved on by events | `nodus/oevm/invarlint/revisions/r2-check-in/`, waits for invarlint to read nsl (invarlint#177) |
 | **Targets, Boot, App, CoreCallbacks, TimerSnapshot, Space, Interpreter, WellKnownSymbols** | as today | `Targets`' leaves leave `main.c` in R6 |
 
 Context cards: `core` = `src/*` (one segment, so the inline functions in `src/*.h` are core too), `adapters` =
@@ -170,7 +170,7 @@ app→adapters 12 from 14, app→core 9 from 13, adapters→core 7 from 9, every
 stopped being sanctioned, which is what "cards only" should read. core→app 15 is by card, not by code: Sleep's
 six leaves are still in `main.c`, so the code's number stays 21 until R6. The guard was broken to prove it: narrowing
 `Pulse`'s binding fires 29 keys, and taking `root` off `Console` fires 21. The prediction is
-`nodus/oevm/design/invarlint/whatif/r0-seam-cards/`.
+`nodus/oevm/invarlint/out/whatif/r0-seam-cards/`.
 
 ## The check-in as reactions (shape B)
 
@@ -316,5 +316,5 @@ porta gates are green on host and board.
 ## Promotion
 
 `nodus/oevm/docs/vm.md` "The reactor, the space and the wire" is rewritten to the one-sentence rule;
-the cards under `nodus/oevm/design/cards/` are the design of record for the seam; the ladder
+the cards under `nodus/oevm/invarlint/cards/` are the design of record for the seam; the ladder
 (`review/program-sequence.md`) and `review/tests/CLAIMS.md` take the power claim once R4 has the number.
