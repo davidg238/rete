@@ -203,7 +203,9 @@ skips the wake and `otaCheck` but still posts `finished`.
   moves the exchange on. Each arm counts a leg and the post carries it; a post for an older leg is ignored
   (`22_spacesync/32_check_in_reactions.nsl`). The budget is armed before the PULL is sent, so a full timer
   table (#81) leaves the bridge idle rather than waiting with no wake; a full table at the push re-arm ends the
-  exchange, logs `timer table full`, and the next check-in retries (`22_spacesync/33_check_in_table_full.nsl`).
+  exchange, logs `timer table full`, and the next check-in retries (`22_spacesync/33_check_in_table_full.nsl`). Any raise in the
+  stretch between the pull budget's expiry and the push re-arm, when no budget is armed, does the same, logged as
+  `exchange raised` (`22_spacesync/35_lapse_raise.nsl`).
 - The six spans survive: `pullWait` opens at the PULL send and closes in the reaction that receives the
   BATCH. An app's `sCheckIn` bracket around a call that returns at once measures nothing and is deleted.
 - **The bridge takes its `Timers` at construction**, the `spans` precedent, so a bridge cannot exist in a shape
