@@ -3687,16 +3687,16 @@ class Kernel usingPlatform: platform = (
     public after: ms post: aMessage on: aChannel = (
       | tok |
       tok:: self allocateToken.
+      (seam timerAfter: ms token: tok) ifFalse: [ ^ self error: 'timer table full' ].   (* #81 *)
       pending at: tok put: (Pending chan: aChannel msg: aMessage repeating: false).
-      seam timerAfter: ms token: tok.
       ^ tok
     )
 
     public every: ms post: aMessage on: aChannel = (
       | tok |
       tok:: self allocateToken.
+      (seam timerEvery: ms token: tok) ifFalse: [ ^ self error: 'timer table full' ].   (* #81 *)
       pending at: tok put: (Pending chan: aChannel msg: aMessage repeating: true).
-      seam timerEvery: ms token: tok.
       ^ tok
     )
 

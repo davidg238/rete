@@ -200,9 +200,9 @@ lines arrived; `otaCheck` (its one-tick delay, design D6, is kept); per-exchange
 - The six spans survive: `pullWait` opens at the PULL send and closes in the reaction that receives the
   BATCH. An app's `sCheckIn` bracket around a call that returns at once measures nothing and is deleted.
 - **The bridge takes its `Timers` at construction**, the `spans` precedent, so a bridge cannot exist in a shape
-  that blocks forever. Budget is one one-shot, against `OEVM_MAX_TARGET_TIMERS` (8). A full table is a crash today
-  (`timer_zephyr.c`, #81), so a bridged node's standing slots are named on the `Timer` card and #81's priority is
-  worth a look before R2.
+  that blocks forever. Budget is one one-shot, against `OEVM_MAX_TARGET_TIMERS`. Since #81 a full table raises
+  `timer table full` in the job that armed it and the node lives (`timer_backend.h`); a bridged node's standing
+  slots are still named on the `Timer` card.
 
 ### What an app does
 

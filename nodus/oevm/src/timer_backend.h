@@ -47,8 +47,12 @@
    --------------------------------------------------------------------------- */
 #include <stdint.h>
 
-void     timer_backend_after(int token, uint64_t ms);   /* one-shot */
-void     timer_backend_every(int token, uint64_t ms);   /* repeating */
+/* Arm a timer. Answers 1 if armed, 0 if the backend's table is full (#81). A full
+   table is the caller's to raise on: nsl's `Timers` fails the job that asked, the node
+   lives. A backend never aborts and never drops silently — the same rule pulse_backend.h
+   states for a full mailbox (G2/#20). */
+int      timer_backend_after(int token, uint64_t ms);   /* one-shot */
+int      timer_backend_every(int token, uint64_t ms);   /* repeating */
 void     timer_backend_cancel(int token);               /* MUST release any M6 handle it holds */
 uint64_t timer_backend_millis(void);                    /* monotonic ms */
 

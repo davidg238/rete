@@ -13,7 +13,7 @@ error, so a missing module reads as `no rtc` and not as a crash.)
 
 Cancels its repeater before returning, for TimerNode's reason: this node RETURNS
 from main:, so it stops draining, and an uncancelled repeater then fills the
-16-deep pulse mailbox and k_oops()es the node a few seconds later. The token IS
+pulse mailbox, and every fire after that is a counted shed (pulse_drops). The token IS
 the right to cancel; holding it is the point.
 
 Until rete#244 `platform timers` answered a FRESH Timers each call — each owning the nsl-side pending

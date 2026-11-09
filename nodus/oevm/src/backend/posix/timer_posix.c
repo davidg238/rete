@@ -34,7 +34,7 @@ static int use_wallclock(void);
 static uint64_t monotonic_ms(void);
 static uint64_t wall_base_ms;
 
-static void host_timer_add(int token, uint64_t ms, int repeating) {
+static int host_timer_add(int token, uint64_t ms, int repeating) {
     int i;
     /* In wall-clock mode host_clock_ms is only refreshed by timer_backend_poll, so a
        registration arriving between polls would compute due_ms off a stale base and fire
@@ -53,7 +53,7 @@ static void host_timer_add(int token, uint64_t ms, int repeating) {
             host_timers[i].interval_ms = ms;
             host_timers[i].repeating = repeating;
             host_timers[i].live = 1;
-            return;
+            return 1;
         }
     }
     if (host_n_timers < HOST_MAX_TIMERS) {
@@ -63,12 +63,13 @@ static void host_timer_add(int token, uint64_t ms, int repeating) {
         host_timers[host_n_timers].repeating = repeating;
         host_timers[host_n_timers].live = 1;
         host_n_timers++;
+        return 1;
     }
-    /* else: silently drop — host test rig; on-target uses the real timer facility */
+    return 0;   /* full: the caller raises (#81) — never a silent drop */
 }
 
-void timer_backend_after(int token, uint64_t ms) { host_timer_add(token, ms, 0); }
-void timer_backend_every(int token, uint64_t ms) { host_timer_add(token, ms, 1); }
+int timer_backend_after(int token, uint64_t ms) { return host_timer_add(token, ms, 0); }
+int timer_backend_every(int token, uint64_t ms) { return host_timer_add(token, ms, 1); }
 
 void timer_backend_cancel(int token) {
     int i;
