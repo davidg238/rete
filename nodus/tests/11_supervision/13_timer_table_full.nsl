@@ -1,0 +1,35 @@
+(*
+expect:
+full-timer table full
+pending-matches
+rearm-ok
+survived
+*)
+(* #81 — a full timer table raises in the job that asked, and the node lives. Before
+   #81 the target k_oops()ed the whole node and the host dropped the timer silently, so
+   it never fired. Now both backends answer "full" through the seam, and
+   `Timers after:`/`every:` raise `timer table full` without leaving an entry in
+   `pending`. The test never names the table size (it is a backend constant): it arms
+   until the seam refuses, then checks that the refused arm left no residue and that a
+   cancel frees a slot. *)
+class TimerTableFull packageUsing: manifest = () (
+public main: platform args: args = (
+  | space timers ch armed r toks n |
+  space:: platform space.
+  timers:: Timers usingSpace: space seam: platform.
+  ch:: space channel: 'ping'.
+  toks:: OrderedCollection new.
+  armed:: 0. r:: nil. n:: 0.
+  [ r == nil and: [ n < 1000 ] ] whileTrue: [
+    n:: n + 1.
+    r:: platform protectedFire: [ :v | toks add: (timers every: 1000 post: #x on: ch) ] value: nil.
+    r == nil ifTrue: [ armed:: armed + 1 ] ].
+  ('full-' , (r == nil ifTrue: [ 'NEVER' ] ifFalse: [ r at: #text ifAbsent: [ '?' ] ])) out.
+  (timers pendingCount = armed ifTrue: [ 'pending-matches' ] ifFalse: [ 'pending-WRONG' ]) out.
+  timers cancel: (toks at: 1).
+  r:: platform protectedFire: [ :v | timers after: 10 post: #y on: ch ] value: nil.
+  (r == nil ifTrue: [ 'rearm-ok' ] ifFalse: [ 'rearm-WRONG' ]) out.
+  'survived' out.
+)
+) : (
+)

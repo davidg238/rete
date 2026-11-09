@@ -1053,17 +1053,19 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
        src/timer_backend.h: a virtual clock on host, a real k_timer on target).
        args order mirrors the keyword selector left-to-right
        (spaceRegister:block:owner: convention above): `timerAfter: ms token: tok`
-       -> args[0]=ms, args[1]=tok. answers the platform capability where there is
+       -> args[0]=ms, args[1]=tok. timerAfter:/timerEvery: answer whether the timer
+       was armed (#81); timerCancel: answers the platform capability where there is
        no more natural answer (same convention as spaceRegister/spaceDropReactions-
        OwnedBy above); monotonicMillis/advanceMillis: answer their own SMI
        result instead. */
     case PRIM_pf_timerAfter:
-        timer_backend_after(UNTAG_SMI(args[1]), (uint64_t)UNTAG_SMI(args[0]));
-        *out = platform_object();
+        /* #81: answers true if armed, false if the backend's table is full. */
+        *out = timer_backend_after(UNTAG_SMI(args[1]), (uint64_t)UNTAG_SMI(args[0]))
+               ? true_symbol : false_symbol;
         return 1;
     case PRIM_pf_timerEvery:
-        timer_backend_every(UNTAG_SMI(args[1]), (uint64_t)UNTAG_SMI(args[0]));
-        *out = platform_object();
+        *out = timer_backend_every(UNTAG_SMI(args[1]), (uint64_t)UNTAG_SMI(args[0]))
+               ? true_symbol : false_symbol;
         return 1;
     case PRIM_pf_timerCancel:
         timer_backend_cancel(UNTAG_SMI(args[0]));

@@ -21,7 +21,7 @@ class TimerNodeHost packageUsing: manifest = ( | private ticks ::= 0. | ) (
     'TIMER OK' println.
 
     (* THE GATE: cancel, then advance 5 more intervals. A live repeater would tick
-       5 more times (and on target would k_oops the node at mailbox depth 16). *)
+       5 more times (and on target would shed into pulse_drops once the mailbox is full). *)
     timers cancel: tok.
     before:: ticks.
     platform advanceMillis: 1000. platform pumpEvents. space drain.

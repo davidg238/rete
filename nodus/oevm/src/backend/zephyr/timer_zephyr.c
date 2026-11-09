@@ -64,7 +64,7 @@ static void timer_expiry(struct k_timer *t) {
     if (!e->repeating) e->live = 0;   /* the slot is reusable; the post is self-contained */
 }
 
-static void timer_start(int token, uint64_t ms, int repeating) {
+static int timer_start(int token, uint64_t ms, int repeating) {
     for (int i = 0; i < OEVM_MAX_TARGET_TIMERS; i++) {
         struct TargetTimer *e = &target_timers[i];
         if (!e->live) {
@@ -80,15 +80,18 @@ static void timer_start(int token, uint64_t ms, int repeating) {
                                                       trips at once */
             k_timer_init(&e->t, timer_expiry, NULL);
             k_timer_start(&e->t, K_MSEC(ms), repeating ? K_MSEC(ms) : K_NO_WAIT);
-            return;
+            return 1;
         }
     }
-    printk("timer table full\n");
-    k_oops();   /* Tier-2 crash, exactly as pulse_post_isr does when its mailbox is full */
+    /* #81: a full table is answered, not crashed on. Which timers are live depends on
+       traffic (a one-shot armed per message), so a full table can be a load condition,
+       and G2/#20 settled that a load condition must not kill the node. nsl's `Timers`
+       raises in the job that asked; the supervisor decides from there. */
+    return 0;
 }
 
-void timer_backend_after(int token, uint64_t ms) { timer_start(token, ms, 0); }
-void timer_backend_every(int token, uint64_t ms) { timer_start(token, ms, 1); }
+int timer_backend_after(int token, uint64_t ms) { return timer_start(token, ms, 0); }
+int timer_backend_every(int token, uint64_t ms) { return timer_start(token, ms, 1); }
 
 void timer_backend_cancel(int token) {
     for (int i = 0; i < OEVM_MAX_TARGET_TIMERS; i++) {
