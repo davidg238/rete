@@ -1,0 +1,87 @@
+(*
+expect:
+TAP tablefull done
+*)
+(* rete#81 on a board — a FULL timer table raises in the job that armed the timer,
+   and the node lives. The host suite (11_supervision/13, 22_spacesync/33) never runs
+   timer_zephyr.c, whose full table was a k_oops before #81.
+
+   Leg A, in main under protectedFire: arm `every: 600000` until the seam refuses; the
+   raise must read `timer table full`.
+   Leg B, the arming job is a REACTION: at beat 3 the heartbeat's own reaction arms a
+   one-shot into the full table, unprotected. drain's protectedFire must catch it and
+   post a sys/crash record naming the channel; the beat keeps coming.
+   Leg C: cancel one filler, arm `after: 10`, and it must fire.
+   Then `tablefull tick N` once a second, forever: the observation window. *)
+class TimerTableFullProbeC6 packageUsing: manifest = (
+  | private plat private space private timers private beatCh private fireCh
+    private beats ::= 0. private crashes ::= 0. private crashText ::= ''.
+    private fired ::= 0. private toks private armed ::= 0. private fullText ::= 'NEVER'.
+    private tapPass ::= 0. private tapFail ::= 0. |
+) (
+  public main: platform args: args = (
+    | r n |
+    plat:: platform.
+    space:: plat space.
+    timers:: plat timers.
+    space whenever: 'sys/timer' do: [ :e | timers dispatch: e ].
+    space whenever: 'sys/crash' do: [ :c |
+      crashes:: crashes + 1.
+      crashText:: (c at: #text ifAbsent: [ '?' ]).
+      ('tablefull crash channel=' , (c at: #channel ifAbsent: [ '?' ]) printString ,
+        ' text=' , crashText) out ].
+    beatCh:: space channel: 'probe/beat'.
+    beatCh whenever: '' do: [ :m | self onBeat ].
+    fireCh:: space channel: 'probe/fire'.
+    fireCh whenever: '' do: [ :m | fired:: fired + 1. 'tablefull rearm fired' out ].
+    timers every: 1000 post: #b on: beatCh.
+    self tapPlan: 3.
+
+    (* Leg A *)
+    toks:: OrderedCollection new.
+    r:: nil. n:: 0.
+    [ r == nil and: [ n < 100 ] ] whileTrue: [
+      n:: n + 1.
+      r:: plat protectedFire: [ :v | toks add: (timers every: 600000 post: #x on: fireCh) ] value: nil.
+      r == nil ifTrue: [ armed:: armed + 1 ] ].
+    r == nil ifFalse: [ fullText:: r at: #text ifAbsent: [ '?' ] ].
+    ('tablefull legA armed=' , armed printString , ' raise=' , fullText) out.
+    self tap: 1 named: 'full table raises in main' ok: fullText = 'timer table full'
+         detail: ('armed=' , armed printString).
+
+    [ true ] whileTrue: [ plat pumpEvents. space drain ].
+    ^ self )
+
+  onBeat = (
+    beats:: beats + 1.
+    ('tablefull tick ' , beats printString , ' crashes ' , crashes printString ,
+      ' fired ' , fired printString) out.
+    beats = 3 ifTrue: [
+      'tablefull legB arming into a full table inside a reaction' out.
+      timers after: 5 post: #y on: fireCh.
+      'tablefull legB NOT RAISED (this line must not print)' out ].
+    beats = 5 ifTrue: [
+      self tap: 2 named: 'reaction raise caught, node lives' ok: (crashes = 1 and: [ crashText = 'timer table full' ])
+           detail: ('crashes=' , crashes printString , ' text=' , crashText).
+      timers cancel: (toks at: 1).
+      timers after: 10 post: #z on: fireCh ].
+    beats = 7 ifTrue: [
+      self tap: 3 named: 'a freed slot re-arms and fires' ok: fired = 1
+           detail: ('fired=' , fired printString).
+      self tapDone ].
+    ^ self )
+
+  scenarioName = ( ^ 'tablefull' )
+  tapPlan: n = ( ('TAP ' , self scenarioName , ' plan=' , n printString) out. ^ self )
+  tap: idx named: nm ok: passed detail: d = (
+    passed
+      ifTrue:  [ tapPass:: tapPass + 1.
+                 ('TAP ' , self scenarioName , ' ok ' , idx printString , ' ' , nm , ' ' , d) out ]
+      ifFalse: [ tapFail:: tapFail + 1.
+                 ('TAP ' , self scenarioName , ' not ok ' , idx printString , ' ' , nm , ' ' , d) out ].
+    ^ self )
+  tapDone = (
+    ('TAP ' , self scenarioName , ' done pass=' , tapPass printString , ' fail=' , tapFail printString) out.
+    ^ self )
+) : (
+)

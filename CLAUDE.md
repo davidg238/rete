@@ -151,7 +151,7 @@ cd nodus/oevm && bash tests/porta_sync_host.sh      # PORTA SYNC OK
   staleness in this file, never a missing test.
 - The suite, `run-one.py` and `porta_sync_host.sh` share one lock (`/tmp/rete-nsl-suite.lock`) and refuse to run
   beside each other (#314).
-- Board scenarios (`nodus/oevm/tests/target/run.sh`, fourteen of them, ~70–100 min, `porta-*` need a hand-started
+- Board scenarios (`nodus/oevm/tests/target/run.sh`, fifteen of them, ~70–100 min, `porta-*` need a hand-started
   injector) are NOT run by the suite. `CLASS=disruptive` means a disposable board only (`c6spare`); resolve boards
   through the collector env files, never a table.
 - Detail loads with the directory: `nodus/nsl/CLAUDE.md` (the aux gates), `nodus/oevm/tests/target/CLAUDE.md`
