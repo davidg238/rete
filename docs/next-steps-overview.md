@@ -984,7 +984,8 @@ the third is approved and next** — kept here in order because the order is the
   265/0 and hung a C6 in six check-ins).
 
   **Task 10's host half also landed (`b728260`): the kernel owns the base tick.**
-  `PortaBridge>>startTicking:on:` registers the period once per boot on the Timers instance it is
+  `PortaBridge>>startTickingOn:` (`startTicking:on:` until rete#440 R2 handed the bridge its
+  Timers at construction) registers the period once per boot on the Timers instance it is
   handed, the four bridged apps hand theirs over, and `TimerlessNodeC6.nsl` — a node whose app
   declares **no** repeating timer, the shape #215's detector could not see at all — drives the new
   `liveness-heartbeat` target scenario. `run.sh` discovers it without a registration edit; the nsl

@@ -20,7 +20,7 @@ do.** `prj.conf` alone has `NETWORKING/IPV6/UDP/SOCKETS` but **no L2**, so a C6 
 never notice — `WedgeProbeC6`, `SlowTimerNodeC6`, `PulseCoalesceProbeC6` and `StaleHandleProbeC6`
 arm `timers every:` directly and open nothing. `PortaBridgeNodeC6` and `TimerlessNodeC6` bind. **The bind is
 no longer load-bearing for `TimerlessNodeC6`** (#274, 2026-08-29): the bridge is now constructed
-with `socket: nil` and `startTicking:` runs unconditionally, so a failed bind costs the node its
+with `socket: nil` and `startTickingOn:` runs unconditionally, so a failed bind costs the node its
 reporting and not its base tick, its wedge or its deadline. `liveness-noradio` is the gate that
 holds that — the same node with no `CONF_EXTRA` at all, verified on a board 2026-08-29
 (`deadline=16000ms`, 18.03 s of silence, `pass=2 fail=0`). What a radio still buys is EVIDENCE:

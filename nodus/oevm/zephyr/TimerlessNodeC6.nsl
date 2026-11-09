@@ -84,7 +84,7 @@ class TimerlessNodeC6 usingPlatform: platform net: net = (
     spans:: plat Spans new.
     (* THE BIND IS NOT UPSTREAM OF THE BASE TICK, AND THAT IS THE WHOLE OF rete#274.
        The bridge is constructed with whatever `net udpBindPort:` answered — a socket
-       or nil — and `liveness:` + `startTicking:` run either way, because the base tick
+       or nil — and `liveness:` + `startTickingOn:` run either way, because the base tick
        must not sit downstream of anything that can fail at boot. That is the reasoning
        `abc6c4f` (rete#231) already applied once; it fixed the manifest and the message
        and left this path, which is the half that actually registers the timer.

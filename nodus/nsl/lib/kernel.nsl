@@ -1986,13 +1986,16 @@ class Kernel usingPlatform: platform = (
        the space for the continue, and the budget is cancelled as each leg ends,
        so its expiry is dropped by `Timers>>dispatch:` there. An exchange in flight
        when the program stopped is finished here, so a stop is always served. *)
+    (* `holding` is cleared by `ensure:`, on every exit: a raise inside the step
+       (`applyEntry:` on a bad row, a full timer table) would otherwise leave it set for
+       the rest of the boot, and every later `leave` would skip the wake and otaCheck. *)
     public heldStep = (
       holding:: true.
-      (state = #idle and: [ (socket == nil) not ]) ifTrue: [ self startExchange ].
-      platform pumpEvents.
-      self readSocket.
-      ((state = #idle) not and: [ platform monotonicMillis >= deadline ]) ifTrue: [ self lapse ].
-      holding:: false.
+      [ (state = #idle and: [ (socket == nil) not ]) ifTrue: [ self startExchange ].
+        platform pumpEvents.
+        self readSocket.
+        ((state = #idle) not and: [ platform monotonicMillis >= deadline ]) ifTrue: [ self lapse ] ]
+        ensure: [ holding:: false ].
       ^ self )
     public heldExchanges = ( ^ heldExchanges )
 
