@@ -19,7 +19,7 @@ does:
   - "reads a socket to empty in every reaction that owns it, a budget expiry and an idle discard included"
     # docs/design/2026-11-04-440-vm-zephyr-seam-crc-design.md: Arrivals; The check-in as reactions (the idle row, read first)
   - "ignores a check-in while an exchange is in flight, and counts the tick"
-    # docs/design/2026-11-04-440-vm-zephyr-seam-crc-design.md: The check-in as reactions (the check-in column)
+    # docs/design/2026-11-04-440-vm-zephyr-seam-crc-design.md: The check-in as reactions (the check-in column); nodus/nsl/lib/kernel.nsl: PortaBridge>>checkIn (#272 D3.3)
   - "a full table at the push re-arm ends the exchange, logged, and the next check-in retries"
     # docs/design/2026-11-04-440-vm-zephyr-seam-crc-design.md: The check-in as reactions (a reply and an expiry); nodus/nsl/lib/kernel.nsl: PortaBridge>>pushStart
   - "says when an exchange has finished, on sys/porta/exchange; an exchange the held loop started ends silently"
