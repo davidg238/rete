@@ -746,7 +746,7 @@ def run_invarlint_gate() -> str:
 
     nodus/oevm/tests/invarlint_gate.sh extracts facts from clang's AST of the C6 build's
     compile database and fails when a key is new or stale against
-    invarlint/findings.baseline.json. It reads build output, so it needs the C6 built
+    invarlint/out/findings.baseline.json. It reads build output, so it needs the C6 built
     in the configuration the baseline was photographed from (the script's header says which);
     without the binary, clang or the database it answers SKIP (exit 77), which fails the
     suite like every aux SKIP. Returns "PASS", "SKIP" or "FAIL"."""

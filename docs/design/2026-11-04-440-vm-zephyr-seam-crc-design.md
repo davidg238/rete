@@ -170,7 +170,7 @@ app→adapters 12 from 14, app→core 9 from 13, adapters→core 7 from 9, every
 stopped being sanctioned, which is what "cards only" should read. core→app 15 is by card, not by code: Sleep's
 six leaves are still in `main.c`, so the code's number stays 21 until R6. The guard was broken to prove it: narrowing
 `Pulse`'s binding fires 29 keys, and taking `root` off `Console` fires 21. The prediction is
-`nodus/oevm/invarlint/whatif/r0-seam-cards/`.
+`nodus/oevm/invarlint/out/whatif/r0-seam-cards/`.
 
 ## The check-in as reactions (shape B)
 

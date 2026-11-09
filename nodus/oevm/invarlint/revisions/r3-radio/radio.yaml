@@ -1,4 +1,4 @@
-# Lands in design/cards with R3's code: an unbound card fails the gate, so it waits for radio_* to exist.
+# Lands in invarlint/cards with R3's code: an unbound card fails the gate, so it waits for radio_* to exist.
 name: Radio
 stereotype: interfacer
 root: true
