@@ -1,6 +1,6 @@
 # Accepted by David, 2026-10-18 (invarlint#48, proposal row 4): the interpreter's running state —
 # the frame, the stack pointer, the raised condition and the boot send in flight — written only by
-# the vm.c functions that run, enter or unwind a frame. gc.c and dispatch.c read it.
+# the vm.c functions that run, enter or unwind a frame. dispatch.c reads it; gc.c rewrites it when it slides (rete#477).
 name: Interpreter
 does:
   - runs the bytecode and owns the running frame
@@ -13,6 +13,8 @@ owns:
   - global:g_boot_inflight_*
 implemented_by:
   - c: run_interpreter
+  - c: gc_collect      # rete#477: the moving collector rewrites every root it relocates (David, 2026-11-10)
+  - c: gc_compact
   - c: src/vm.c:push_frame
   - c: vm_ensure
   - c: vm_on_do
