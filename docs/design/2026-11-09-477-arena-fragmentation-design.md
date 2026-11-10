@@ -165,6 +165,9 @@ scatter was not the cost, and this design is wrong.
   stays whole). Worse: with no slide the check-in app fails at 22 KB, which passes today (8.1 KB free in 62 pieces,
   largest 652 B); with the slide, 19 KB still fails. Placement does not help once survivors are scattered, as the
   segregation spike found.
-- **Open, David's call:** (1) the invarlint keys the slide adds (the collector rewrites root globals that Boot,
-  Interpreter and WellKnownSymbols own); (2) re-bank the footprint ratchet (+1.2 KB text); (3) whether to earn
-  compaction at allocation failure (slots in `vm_protected_fire`/`vm_on_do`/`vm_ensure` and the allocating prim).
+- **Decided (David, 2026-11-10):** (1) `gc_collect` and `gc_compact` are implementers of Boot, Interpreter and
+  WellKnownSymbols (a moving collector writes every root it relocates); the 30 unowned-writer keys on the
+  `*Vtable` globals (`kernel_boot` and `gc.c:visit_roots`) are banked in the invarlint baseline. (2) Footprint
+  re-banked (the headers of `nodus/oevm/tools/footprint*-baseline.txt` attribute the bytes). (3) **Stop at
+  20 KB:** compaction at allocation failure is not built. What would earn it: a board app that fails on
+  fragmentation (free space sufficient, no piece large enough) at an allocation inside a reaction.
