@@ -69,7 +69,7 @@ extern oop  gc_allocate(oop vtable, size_t size);
 extern void gc_collect(void);
 extern void heap_init(void);
 extern int  gc_is_live(oop);
-extern void mark_object(oop);
+extern void gc_root(oop *slot);
 extern void gc_temp_root_push(oop o);
 extern void (*gc_additional_roots_hook)(void);
 extern void init_solidified_vtables(void);   /* src/solidified_image.c — sets SymbolVtable */
@@ -83,7 +83,7 @@ extern void init_solidified_vtables(void);   /* src/solidified_image.c — sets 
 static oop g_roots[MAX_ROOTS];
 static void roots_hook(void) {
     for (int i = 0; i < MAX_ROOTS; i++)
-        if (g_roots[i] != NULL) mark_object(g_roots[i]);
+        if (g_roots[i] != NULL) gc_root(&g_roots[i]);
 }
 
 static oop make_symbol(const char *text, size_t len) {

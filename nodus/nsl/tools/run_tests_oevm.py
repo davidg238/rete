@@ -166,6 +166,8 @@ C_UNIT_TESTS = [
     ("test_arena",            ENG_A, [], None),
     ("test_float_arena",      ENG_A, [], None),
     ("test_coalesce",         ENG_A, ["-DOEVM_HEAP_SIZE=8192"], None),
+    # rete#477: safe-point compaction — slide, Stack pin, trigger, identity-hash refusal.
+    ("test_compact",          ENG_A, ["-DOEVM_HEAP_SIZE=8192"], None),
     # G3/M2: heap telemetry counters (live_bytes/high_water/largest_free_block/
     # gc_cycles) — the fragmentation early-warning API.
     ("test_heap_stats",       ENG_A, ["-DOEVM_HEAP_SIZE=65536"], None),

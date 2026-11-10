@@ -14,12 +14,12 @@ extern const struct Symbol Symbol_increment;
 extern uintptr_t flash_rom_start;
 extern uintptr_t flash_rom_end;
 extern void (*gc_additional_roots_hook)(void);
-extern void mark_object(oop ptr);
+extern void gc_root(oop *slot);
 extern void gc_collect(void);
 
 static void test_roots_callback(void) {
-    mark_object(CounterVtable);
-    mark_object((oop)&Symbol_increment);
+    gc_root(&CounterVtable);
+    gc_root(&(oop)&Symbol_increment);
 }
 
 int main(void) {

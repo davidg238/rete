@@ -30,7 +30,7 @@
 extern oop    float_alloc(oop vtable);
 extern void   gc_collect(void);
 extern void   heap_init(void);
-extern void   mark_object(oop);
+extern void   gc_root(oop *slot);
 extern void (*gc_additional_roots_hook)(void);
 extern size_t float_arena_slab_count(void);
 
@@ -57,7 +57,7 @@ void *__wrap_malloc(size_t n) {
  * keeping these alive, so reclaim is proven precise rather than a blanket sweep. */
 #define KEEP 4
 static oop kept[KEEP];
-static void keep_roots(void) { for (int i = 0; i < KEEP; i++) mark_object(kept[i]); }
+static void keep_roots(void) { for (int i = 0; i < KEEP; i++) gc_root(&kept[i]); }
 
 int main(void) {
     heap_init();

@@ -34,7 +34,7 @@ extern void heap_init(void);
 extern int  gc_is_live(oop);
 extern oop (*oevm_oom_handler)(size_t);
 extern void (*gc_additional_roots_hook)(void);
-extern void mark_object(oop);
+extern void gc_root(oop *slot);
 
 /* Roots: the test pins a fill of blocks via this array so they truly exhaust the
    bump region (an unrooted fill would be reclaimed by gc_allocate's auto-collect
@@ -44,7 +44,7 @@ static oop g_blocks[MAX_BLOCKS];
 static int g_nblocks = 0;
 static void roots_hook(void) {
     for (int i = 0; i < g_nblocks; i++)
-        if (g_blocks[i] != NULL) mark_object(g_blocks[i]);
+        if (g_blocks[i] != NULL) gc_root(&g_blocks[i]);
 }
 
 static jmp_buf oom_jmp;

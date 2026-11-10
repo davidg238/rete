@@ -1678,6 +1678,7 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
         /* rete#440: the one wait. Every arrival, the http listener included, rings a
            doorbell into the mailbox, so the pump always blocks (zephyr K_FOREVER; posix
            never blocks, the suite drives the clock). */
+        gc_safe_point();                        /* rete#477: no prim holds an arena pointer here */
         int n = pulse_pump();
         timer_backend_poll();                   /* wall-clock host mode: fire due timers here.
                                                    No-op under the default virtual clock and on

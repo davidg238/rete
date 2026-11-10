@@ -23,13 +23,13 @@ extern oop BytecodeClosureVtable;
 extern struct MethodContext *current_frame;
 
 extern void (*gc_additional_roots_hook)(void);
-extern void mark_object(oop ptr);
+extern void gc_root(oop *slot);
 
 /* Symbols used in the tests */
 static oop Symbol_double = NULL;
 
 static void test_roots_callback(void) {
-    mark_object(Symbol_double);
+    gc_root(&Symbol_double);
 }
 
 /* Helper to allocate symbols */

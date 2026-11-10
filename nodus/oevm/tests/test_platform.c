@@ -23,7 +23,7 @@ extern oop  indexable_new(intptr_t n);
 
 extern void gc_collect(void);
 extern int  gc_is_live(oop ptr);
-extern void mark_object(oop ptr);
+extern void gc_root(oop *slot);
 extern void (*gc_additional_roots_hook)(void);
 
 /* Root the outer indexable across a collection (mirrors tests/test_arena.c),
@@ -33,8 +33,8 @@ static oop g_outer = NULL;
 static oop g_sels[SEL_MAX];
 static int g_nsels = 0;
 static void platform_roots(void) {
-    mark_object(g_outer);
-    for (int i = 0; i < g_nsels; i++) mark_object(g_sels[i]);
+    gc_root(&g_outer);
+    for (int i = 0; i < g_nsels; i++) gc_root(&g_sels[i]);
 }
 
 /* Build (and INTERN) a selector Symbol.

@@ -19,7 +19,7 @@ extern void heap_init(void);
 extern int  gc_is_live(oop);
 extern oop (*oevm_oom_handler)(size_t);
 extern void (*gc_additional_roots_hook)(void);
-extern void mark_object(oop);
+extern void gc_root(oop *slot);
 
 /* capture the default the library installed at startup */
 static oop (*g_default_oom)(size_t);
@@ -29,7 +29,7 @@ static oop (*default_oom_ref(void))(size_t) { return g_default_oom; }
 /* A root object whose payload word points either at the START of a target
    (should retain) or into its INTERIOR (should NOT retain). */
 static oop g_root = NULL;
-static void root_hook(void) { mark_object(g_root); }
+static void root_hook(void) { gc_root(&g_root); }
 
 /* ---- exhaustion handler: flag + longjmp instead of abort ---- */
 static jmp_buf oom_jmp;
@@ -75,7 +75,7 @@ int main(void) {
        cannot free them, ensuring we genuinely exhaust the arena.
 
        WHY the whole chain is retained across GC cycles:
-       root_hook calls mark_object(g_root), which marks the head.  mark() then
+       root_hook calls gc_root(g_root), which marks the head.  mark() then
        falls into the generic trace_object() path (vtable == NULL), which walks
        every payload word and calls mark() on each.  The first payload word of
        every chain node holds the previous g_root — i.e. the next link — so
@@ -108,7 +108,7 @@ int main(void) {
     assert(oom_fired);
     /* Verify transitive marking: the second chain link (not the head) must still
        be live — it was reachable only through g_root's payload word, so a
-       non-recursive mark_object refactor that stops at the root would break this. */
+       non-recursive gc_root refactor that stops at the root would break this. */
     assert(g_second != NULL && "test 3 needs at least two allocations before OOM");
     assert(gc_is_live(g_second) && "transitive mark must retain mid-chain object");
 

@@ -18,7 +18,7 @@ extern oop PrimitiveClosureVtable;
 extern oop g_active_stack;
 
 extern void (*gc_additional_roots_hook)(void);
-extern void mark_object(oop ptr);
+extern void gc_root(oop *slot);
 extern void gc_collect(void);
 extern oop gc_allocate(oop vtable, size_t size);
 extern oop send(oop receiver, oop selector, int argc, oop *args);
@@ -150,16 +150,16 @@ static oop bp_match_hook_c(oop receiver, int argc, oop *args) {
 }
 
 static void test_roots_callback(void) {
-    mark_object(Symbol_run);
-    mark_object(Symbol_debug);
-    mark_object(Symbol_registerDebuggerHook);
-    mark_object(Symbol_regAt);
-    mark_object(Symbol_regAtPut);
-    mark_object(Symbol_singleStep);
-    mark_object(Symbol_bindTo);
-    mark_object(Symbol_instructionAtPut);
-    mark_object(TestVtable);
-    mark_object(test_instance);
+    gc_root(&Symbol_run);
+    gc_root(&Symbol_debug);
+    gc_root(&Symbol_registerDebuggerHook);
+    gc_root(&Symbol_regAt);
+    gc_root(&Symbol_regAtPut);
+    gc_root(&Symbol_singleStep);
+    gc_root(&Symbol_bindTo);
+    gc_root(&Symbol_instructionAtPut);
+    gc_root(&TestVtable);
+    gc_root(&test_instance);
 }
 
 static oop create_symbol(const char *name) {

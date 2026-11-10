@@ -12,10 +12,7 @@
 
 
 extern void kernel_boot(void);
-extern void (*gc_additional_roots_hook)(void);
 extern void reboot_note_init(void);
-static void roots_cb(void) {}
-
 /* rete#367 (peer design D14): the board's two boot lines, so a load on a custos
    `--host` board proves a host load the way it proves a board's. "host" is
    platform.c's OEVM_BUILD_ID for a host build. On stderr: a test's expected
@@ -39,7 +36,6 @@ static void say_program_hash(const char *path) {
 
 int main(int argc, char **argv) {
     if (argc < 2) { fprintf(stderr, "usage: %s <image.oimg>\n", argv[0]); return 2; }
-    gc_additional_roots_hook = roots_cb;
     /* rete#114: mirror zephyr/src/main.c's boot order — validate (or, via the
        host-only OEVM_TEST_PANIC_NOTE seam, plant) the retained note before the
        VM can read it. On the host this is what makes the seam live at all. */

@@ -30,7 +30,7 @@ oop boot_stack[1]           = { NULL }; /* array expected by gc.c sweep */
 /* GC function declarations (gc.c does not have a separate header) */
 oop gc_allocate(oop vtable, size_t size);
 void gc_collect(void);
-void mark_object(oop ptr);
+void gc_root(oop *slot);
 extern void (*gc_additional_roots_hook)(void);
 
 /* Forward declaration for the GC root hook (defined at file scope below main) */
@@ -177,6 +177,6 @@ int main(void) {
  */
 static void gc_blob_root_hook(void) {
     if (gc_test_root != NULL) {
-        mark_object((oop)gc_test_root);
+        gc_root(&(oop)gc_test_root);
     }
 }

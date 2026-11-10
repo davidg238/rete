@@ -1483,6 +1483,7 @@ OEVM_HOT oop send_resolve(oop receiver, oop selector, int argc, oop *args,
             case PRIM_identityHash: {
                 if (IS_SMI(receiver)) return receiver;
                 if (receiver == NULL) return TAG_SMI(0);
+                gc_note_identity_hash(receiver);   /* rete#477: this address may not move now */
                 return TAG_SMI((intptr_t)(((uintptr_t)receiver) >> 4));
             }
             break;
@@ -1495,8 +1496,10 @@ OEVM_HOT oop send_resolve(oop receiver, oop selector, int argc, oop *args,
                     for (size_t i = 0; i < s->length; i++) { h ^= s->bytes[i]; h *= 16777619u; }
                     return TAG_SMI((intptr_t)(h & 0x3FFFFFFF));
                 }
-                if (SymbolVtable != NULL && obj_vtable(receiver) == SymbolVtable)
+                if (SymbolVtable != NULL && obj_vtable(receiver) == SymbolVtable) {
+                    gc_note_identity_hash(receiver);   /* rete#477: a runtime Symbol is in the arena */
                     return TAG_SMI((intptr_t)(((uintptr_t)receiver) >> 4)); /* interned: identity */
+                }
                 if (FloatVtable != NULL && obj_vtable(receiver) == FloatVtable)
                     return TAG_SMI((intptr_t)((long)((struct Float *)receiver)->value) & 0x3FFFFFFF);
                 if (LargeIntegerVtable != NULL && obj_vtable(receiver) == LargeIntegerVtable)

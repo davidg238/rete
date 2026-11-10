@@ -130,3 +130,41 @@ scatter was not the cost, and this design is wrong.
   Building it is David's call; nothing in this addendum starts it.
 - **Decided, David 2026-11-10:** build safe-point compaction next, and test it on the C6 (c6spare). The stack size
   stays as it is until a debugger stop and an OTA have been measured.
+
+## Addendum 2026-11-10 (later): safe-point compaction, built and measured
+
+- **Built as designed** (`src/gc.c` `gc_compact`, `gc_safe_point`). Every reference the collector knows is now
+  visited as a slot (`visit_roots`, `trace_one`, `gc_root(oop *)` replacing `mark_object`), so one enumeration
+  marks and, at a slide, rewrites. Lisp-2 in three passes after a full collection; the destination is packed into
+  the 4 B header (two half-words in granules, so a 32-bit arena compacts up to 256 KB). A Stack never moves.
+  `LargeInteger` became a GC leaf: its raw magnitude was being scanned as pointers.
+- **The safe point, located by measurement.** The event loop's wait is inside the `pumpEvents` primitive, and the
+  C stack there is `main → oimg_bootstrap → send → run_interpreter → send_resolve → platform_dispatch`: one
+  interpreter, no protected block. A slide runs only at interpreter depth 1 (`vm_interp_depth`, restored at the
+  three `setjmp` sites), because a nested activation's C caller (`vm_on_do`, `vm_ensure`) holds blocks in locals.
+- **Identity hash** (the open cost above): **0** arena objects are identity-hashed by the check-in app over the
+  whole host porta gate (probe checked on `31_hash_protocol`: 4). Degenerate rule shipped: the first identity
+  hash of an arena object stops compaction for good (`compact_skips`). A stored header hash is earned only when
+  a real app sets the flag.
+- **Trigger**: the last sweep left no block as large as the largest request since boot (the Stack excluded), and
+  the free total would hold it.
+- **Correction to the addendum above**: the host build does NOT scan the C stack conservatively. oevm#21 removed
+  that scan; `docs/optimizations.md` W1 records it as history. Nothing needed pinning on that account.
+- **Result, host check-in app, 4 KB stack, same binary with the slide on and off**: 20 KB fails off (5.9 KB free
+  in 59 pieces, largest 612 B) and **passes on**; 19 KB fails on. Under `OEVM_COMPACT_STRESS` (a slide at every
+  safe point) the gate passes at 22 KB through 2.7 M slides, 53 of which moved data.
+- **The 16.6 KB claim is falsified for safe-point-only compaction, and the free-space picture says why.** At the
+  18 KB failure, 13.2 KB is live and 5.0 KB is free in 29 pieces (largest 660 B, request 665 B), with a slide
+  pending. The failing allocation is a primitive at interpreter depth 3 (a reaction, `protectedFire:` →
+  `vm_ensure` → prim): the scatter is rebuilt inside one reaction, before any safe point. A safe point before each
+  reaction was tried and changed nothing, so it was removed. Scatter is still the cost; a wait is too rare a
+  moment to remove it. What would earn the rest: compaction at allocation failure, which needs the C frames
+  between the loop and the allocation (`vm_protected_fire`, `vm_ensure`, the allocating primitive) to keep their
+  arena pointers in slots and re-read them.
+- **Spike, not kept: small objects to the bump tail first** (`big_free` only as a last resort, so the largest hole
+  stays whole). Worse: with no slide the check-in app fails at 22 KB, which passes today (8.1 KB free in 62 pieces,
+  largest 652 B); with the slide, 19 KB still fails. Placement does not help once survivors are scattered, as the
+  segregation spike found.
+- **Open, David's call:** (1) the invarlint keys the slide adds (the collector rewrites root globals that Boot,
+  Interpreter and WellKnownSymbols own); (2) re-bank the footprint ratchet (+1.2 KB text); (3) whether to earn
+  compaction at allocation failure (slots in `vm_protected_fire`/`vm_on_do`/`vm_ensure` and the allocating prim).

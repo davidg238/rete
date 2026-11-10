@@ -11,7 +11,7 @@ extern oop SymbolVtable;
 extern oop BytecodeClosureVtable;
 
 extern void (*gc_additional_roots_hook)(void);
-extern void mark_object(oop ptr);
+extern void gc_root(oop *slot);
 extern void gc_collect(void);
 extern oop gc_allocate(oop vtable, size_t size);
 extern oop send(oop receiver, oop selector, int argc, oop *args);
@@ -30,16 +30,16 @@ static oop InnerVtable = NULL;
 static oop inner_instance_root = NULL;
 
 static void test_roots_callback(void) {
-    mark_object(Symbol_outerMethod);
-    mark_object(Symbol_shadowedMethod);
-    mark_object(Symbol_runInner);
-    mark_object(Symbol_runShadowedImplicit);
-    mark_object(Symbol_runShadowedExplicit);
-    mark_object(Symbol_outer);
-    mark_object(OuterVtable);
-    mark_object(SuperInnerVtable);
-    mark_object(InnerVtable);
-    mark_object(inner_instance_root);
+    gc_root(&Symbol_outerMethod);
+    gc_root(&Symbol_shadowedMethod);
+    gc_root(&Symbol_runInner);
+    gc_root(&Symbol_runShadowedImplicit);
+    gc_root(&Symbol_runShadowedExplicit);
+    gc_root(&Symbol_outer);
+    gc_root(&OuterVtable);
+    gc_root(&SuperInnerVtable);
+    gc_root(&InnerVtable);
+    gc_root(&inner_instance_root);
 }
 
 static oop create_symbol(const char *name) {
