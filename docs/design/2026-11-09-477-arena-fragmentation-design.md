@@ -94,3 +94,37 @@ scatter was not the cost, and this design is wrong.
 - **Size-segregated placement / cmpctmalloc**: measured, no gain (see above).
 - **Moving inside every collection**: needs every primitive audited for C locals across allocations
   (18 allocation sites in `platform.c` alone), or an object table on every access.
+
+## Addendum 2026-11-09 (later the same day): timing, and two corrections
+
+- **The collector, timed** (host, `-m32 -O2`, CPU time; `CENSUS TIMING` in the census tooling): the check-in app
+  takes 21.5 µs per collection on average and 35 µs at worst, at 32 KB. Mark plus roots is ~75 % of that. The
+  CBOR spike measured the C6 at 125–160× this host for C code, which puts a collection at ~3 ms (~5 ms worst) on
+  the C6. A board measurement is still owed (#421).
+- **Correction: compaction costs ~6–10 ms on the C6**, not the ~0.7 ms first estimated, because it starts with
+  this full mark. That is still ≤0.5 % of a 2 s check-in.
+- **Correction: the host build also scans the C stack conservatively** (`nodus/oevm/docs/optimizations.md`, W1).
+  An object found that way cannot be moved, so the host must pin it, or skip that scan at the safe point.
+- **The encode scratch had a re-entry hazard**, now closed. A debugger stop inside an encode runs the held loop,
+  which encodes. Only the outermost `encode:` takes the scratch now, and `ensure:` gives it back
+  (`14_cbor/07_reentrant_encode.nsl`). With the guard, the check-in app passes at 26 and 24 KB and fails at 22 KB
+  (on a 677 B request).
+
+## Addendum 2026-11-10: lever 2 done, lever 1 measured on two boards
+
+- **`frozenBytes` copies once.** It built an exact-size copy and then `freezeBytes:` copied that again. The prim
+  is now `platform freezeBytes: raw size: n` (same id), one allocation of exactly `n`. The host check-in app
+  passes at **22 KB** (it failed at 22 before) and fails at 20 KB: free 5.9 KB in 59 pieces, the largest 612 B,
+  the request 677 B. Peak live is 15.9 KB with a 4 KB stack.
+- **Stack high-water, exact** (`OEVM_STACK_HW=1`: the maximum taken at every frame push, printed through the
+  console when it rises). C6 `PortaBridgeNodeC6`, bridge-health PASS: **1077 words**. MagTag (debug+profile
+  recipe): **1053 words**, the same on a cold boot and on a strike wake. The host runs the same apps at 799–874.
+  So a board needs roughly 200–250 words more than the host, and the host cannot size a board's stack.
+- **Not yet measured**: a debugger stop (the held loop runs under the stopped frame), an OTA stage and activate,
+  BLE. Until they are, the stack sizes stay as they are. The proposal is **1536 words** (measured maximum × 1.4).
+  On the MagTag that frees 2 KB of a 34 KB arena. The margin is a guess. A stack overflow kills the node, and on
+  the S2 it stays dead until someone presses RESET (no watchdog, no reset on a fatal error, #479).
+- **Is compaction earned?** By this note's own test, yes on the host: the smallest arena (22 KB) is 6 KB above
+  peak live, and running out of memory still looks like "enough free, no piece big enough". The falsifiable claim
+  stands: with compaction the check-in app should run in about 16.6 KB (peak live plus the 677 B request).
+  Building it is David's call; nothing in this addendum starts it.

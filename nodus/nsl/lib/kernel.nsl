@@ -583,7 +583,7 @@ class Kernel usingPlatform: platform = (
     public u8At: i put: v = ( raw at: i put: v. ^ v )
     public u16At: i put: v = ( self u8At: i put: (v bitAnd: 255). self u8At: i + 1 put: ((v >> 8) bitAnd: 255). ^ v )
     public u16BeAt: i put: v = ( self u8At: i put: ((v >> 8) bitAnd: 255). self u8At: i + 1 put: (v bitAnd: 255). ^ v )
-    public freeze = ( ^ Bytes overRaw: (platform freezeBytes: raw) )
+    public freeze = ( ^ Bytes overRaw: (platform freezeBytes: raw size: raw size) )
     public setRaw: r = ( raw:: r. ^ self )
   ) : (
     public new: n = ( ^ self new setRaw: (platform basicNewBytes: n) )
@@ -706,15 +706,11 @@ class Kernel usingPlatform: platform = (
       1 to: count do: [ :i | bigger at: i put: (buf at: i) ].
       buf:: bigger.
       ^ self )
-    (* Exact-size immutable copy. `buf` normally carries slack from the last
-       doubling, and freezing it directly would publish those trailing bytes as
-       part of the value. `Bytes overRaw: (platform freezeBytes: ...)` is exactly
-       what `ByteArray>>freeze` does; it is spelled out here because there is no
-       ByteArray in this class to send `freeze` to. *)
-    public frozenBytes = ( | exact |
-      exact:: platform basicNewBytes: count.
-      1 to: count do: [ :i | exact at: i put: (buf at: i) ].
-      ^ Bytes overRaw: (platform freezeBytes: exact) )
+    (* Exact-size immutable copy of the first `count` bytes: `buf` carries slack
+       from the last doubling, and the size argument keeps it out of the value.
+       ONE allocation of exactly `count` — it used to build an exact copy and then
+       freeze that, two allocations of `count` live at once (rete#477). *)
+    public frozenBytes = ( ^ Bytes overRaw: (platform freezeBytes: buf size: count) )
   ) : (
   )
 

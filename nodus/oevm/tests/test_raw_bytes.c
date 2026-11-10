@@ -25,7 +25,7 @@
         aborts with the frozen string `index out of bounds` — exact bytes.
      4. out-of-range byte value (`at:put:` with a valid index) aborts with
         the frozen string `byte out of range` — exact bytes.
-     5. `platform freezeBytes: raw` yields a DISTINCT object (not the same
+     5. `platform freezeBytes: raw size: 8` yields a DISTINCT object (not the same
         oop) with equal bytes.
      6. writing the original after freezing does not change the frozen copy
         (freeze-is-copy, spec section 6) — and vice versa.
@@ -228,8 +228,9 @@ int main(void) {
     g_args[0] = TAG_SMI(1); g_args[1] = TAG_SMI(-1);
     expect_abort("at:put: value -1 (low OOR)", "byte out of range");
 
-    /* --- Property 5/6: freezeBytes: is a distinct, independent copy --- */
-    oop frozen = send(pf, sel("freezeBytes:"), 1, &raw);
+    /* --- Property 5/6: freezeBytes:size: is a distinct, independent copy --- */
+    oop fargs[2] = { raw, TAG_SMI(8) };
+    oop frozen = send(pf, sel("freezeBytes:size:"), 2, fargs);
     assert(frozen != NULL && !IS_SMI(frozen));
     assert(frozen != raw && "freezeBytes: must return a fresh object, not self");
     assert(obj_vtable(frozen) == RawBytesVtable);

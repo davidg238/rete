@@ -808,20 +808,28 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
         { *out = s; return 1; }
     }
     case PRIM_pf_freezeBytes: {
-        /* `platform freezeBytes: raw` — freeze-is-copy (message-algebra spec
-           section 6): returns a FRESH RawBytes object with identical bytes;
-           the original remains independently mutable (a later at:put: on
-           either side must not be observed by the other). */
+        /* `platform freezeBytes: raw size: n` — freeze-is-copy (message-algebra
+           spec section 6): returns a FRESH RawBytes object holding raw's first
+           n bytes; the original remains independently mutable (a later at:put:
+           on either side must not be observed by the other). The size is what
+           lets a builder with slack freeze in ONE allocation of exactly n
+           (rete#477: ByteBuilder>>frozenBytes used to copy twice). */
         oop raw = args[0];
         if (raw == NULL || IS_SMI(raw) || RawBytesVtable == NULL ||
             obj_vtable(raw) != RawBytesVtable) {
-            fprintf(stderr, "VM Error: platform freezeBytes: expects a RawBytes receiver\n");
+            fprintf(stderr, "VM Error: platform freezeBytes:size: expects a RawBytes receiver\n");
             abort();
         }
         struct String *src = (struct String *)raw;
-        oop copy = gc_allocate(RawBytesVtable, sizeof(struct String) + src->length);
-        ((struct String *)copy)->length = src->length;
-        if (src->length) memcpy(((struct String *)copy)->bytes, src->bytes, src->length);
+        if (!IS_SMI(args[1]) || UNTAG_SMI(args[1]) < 0 ||
+            (size_t)UNTAG_SMI(args[1]) > src->length) {
+            fprintf(stderr, "VM Error: platform freezeBytes:size: size out of range\n");
+            abort();
+        }
+        size_t n = (size_t)UNTAG_SMI(args[1]);
+        oop copy = gc_allocate(RawBytesVtable, sizeof(struct String) + n);
+        ((struct String *)copy)->length = n;
+        if (n) memcpy(((struct String *)copy)->bytes, src->bytes, n);
         { *out = copy; return 1; }
     }
     case PRIM_pf_valueRank: {
@@ -1638,6 +1646,33 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
         *out = r; return 1;
     }
     case PRIM_pf_pumpEvents: {
+#ifdef OEVM_STACK_HW
+        {   /* rete#477: the VM stack's high-water, printed when it rises. A measurement build
+               only: it sizes VM_STACK_INIT_WORDS per board. gc_allocate does not zero, but the
+               Stack is carved at first run from arena never used before, which is static
+               storage and so zero; a popped frame leaves its words behind, so the last nonzero
+               word is the deepest the stack has been. Were the Stack ever carved from reused
+               memory, this would read full (capacity of capacity): wrong, but loudly. It is read here, at the safe point, rather
+               than kept at every frame push: no writer on the hot path. On the host it read
+               821 words, exactly what a maximum taken at every push read. */
+            extern oop g_active_stack;
+            static uint32_t shown = 0;
+            if (g_active_stack != NULL) {
+                struct Stack *st = (struct Stack *)g_active_stack;
+                uint32_t hw = st->capacity;
+                while (hw > shown && st->data[hw - 1] == NULL) hw--;
+                if (hw > shown) {
+                    shown = hw;
+                    /* The console leaf, not stderr: on the MagTag stderr reaches only the
+                       wired UART, and this line must reach the UDP tee too. */
+                    char buf[48];
+                    int len = snprintf(buf, sizeof buf, "STACK HW %u words of %u\n",
+                                       (unsigned)hw, (unsigned)st->capacity);
+                    if (len > 0) { platform_console_write(buf, (size_t)len); platform_console_flush(); }
+                }
+            }
+        }
+#endif
         if (platform_console_service() && g_console_chan >= 0)   /* rete#312: the host's line */
             pulse_post_isr_value(g_console_chan, TAG_SMI(++g_console_seq & 0xffff));
         /* rete#440: the one wait. Every arrival, the http listener included, rings a
