@@ -94,3 +94,18 @@ scatter was not the cost, and this design is wrong.
 - **Size-segregated placement / cmpctmalloc**: measured, no gain (see above).
 - **Moving inside every collection**: needs every primitive audited for C locals across allocations
   (18 allocation sites in `platform.c` alone), or an object table on every access.
+
+## Addendum 2026-11-09 (later the same day): timing, and two corrections
+
+- **The collector, timed** (host, `-m32 -O2`, CPU time; `CENSUS TIMING` in the census tooling): the check-in app
+  takes 21.5 µs per collection on average and 35 µs at worst, at 32 KB. Mark plus roots is ~75 % of that. The
+  CBOR spike measured the C6 at 125–160× this host for C code, which puts a collection at ~3 ms (~5 ms worst) on
+  the C6. A board measurement is still owed (#421).
+- **Correction: compaction costs ~6–10 ms on the C6**, not the ~0.7 ms first estimated, because it starts with
+  this full mark. That is still ≤0.5 % of a 2 s check-in.
+- **Correction: the host build also scans the C stack conservatively** (`nodus/oevm/docs/optimizations.md`, W1).
+  An object found that way cannot be moved, so the host must pin it, or skip that scan at the safe point.
+- **The encode scratch had a re-entry hazard**, now closed. A debugger stop inside an encode runs the held loop,
+  which encodes. Only the outermost `encode:` takes the scratch now, and `ensure:` gives it back
+  (`14_cbor/07_reentrant_encode.nsl`). With the guard, the check-in app passes at 26 and 24 KB and fails at 22 KB
+  (on a 677 B request).
