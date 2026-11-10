@@ -410,6 +410,10 @@ endif()
 
 # rete#37 M: the counting build (oevm.h OEVM_COUNT). Never shipped; a count run's times
 # are not timings.
+# rete#477: the VM stack high-water probe (vm.c OEVM_STACK_HW), a measurement build.
+if("$ENV{OEVM_STACK_HW}" STREQUAL "1")
+  target_compile_definitions(app PRIVATE OEVM_STACK_HW=1)
+endif()
 if("$ENV{OEVM_COUNT}" STREQUAL "1")
   target_compile_definitions(app PRIVATE OEVM_COUNT=1)
 endif()

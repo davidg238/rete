@@ -65,6 +65,15 @@ oop  g_active_stack = NULL;   /* the running execution context's Stack object (G
                                  + current_frame IS the entire running state — there is no Fiber object. */
 oop *vm_stack = NULL;         /* == ((struct Stack*)g_active_stack)->data once bootstrapped */
 size_t vm_stack_ptr = 0;      /* live top cursor (the flat loop's authoritative stack top) */
+#ifdef OEVM_STACK_HW
+/* rete#477: the most words the VM stack has held since boot, exact (taken at every
+   frame push). A measurement build only: it sizes VM_STACK_INIT_WORDS per board.
+   PRIM_pf_pumpEvents prints it each time it rises. */
+size_t vm_stack_hw = 0;
+#define STACK_HW_NOTE() do { if (vm_stack_ptr > vm_stack_hw) vm_stack_hw = vm_stack_ptr; } while (0)
+#else
+#define STACK_HW_NOTE() do { } while (0)
+#endif
 
 /* Active Frame Register */
 struct MethodContext *current_frame = NULL;
@@ -927,6 +936,7 @@ static OEVM_HOT struct MethodContext *push_frame(oop closure, oop receiver, int 
     struct MethodContext *prev_ctx = current_frame;
     struct MethodContext *ctx = (struct MethodContext *)&vm_stack[vm_stack_ptr];
     vm_stack_ptr += frame_words;
+    STACK_HW_NOTE();
     ctx->vtable = NULL;
     ctx->prev_frame = frame_link_encode(vm_stack, prev_ctx);   /* L0 relative dynamic link */
     ctx->saved_pc = NULL;
@@ -1060,6 +1070,7 @@ OEVM_HOT oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
     struct MethodContext *ctx = (struct MethodContext *)&vm_stack[vm_stack_ptr];
     size_t saved_stack_ptr = vm_stack_ptr;
     vm_stack_ptr += frame_words;
+    STACK_HW_NOTE();
     // Initialize frame layout
     ctx->vtable = NULL; 
     ctx->prev_frame = frame_link_encode(vm_stack, prev_ctx);  /* L0 relative dynamic link */
@@ -2165,6 +2176,7 @@ static void apply_restart(struct MethodContext *ctx) {
     if (base + (size_t)m->num_registers > ((struct Stack *)g_active_stack)->capacity)
         stack_overflow_abort(base + m->num_registers, ((struct Stack *)g_active_stack)->capacity);
     vm_stack_ptr = base + (size_t)m->num_registers;
+    STACK_HW_NOTE();
     ctx->closure = cl;
     for (int i = m->num_arguments + 1; i < m->num_registers; i++) ctx->regs[i] = NULL;
     ctx->saved_pc = cm_instructions(m);

@@ -1646,6 +1646,18 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
         *out = r; return 1;
     }
     case PRIM_pf_pumpEvents: {
+#ifdef OEVM_STACK_HW
+        {   /* rete#477: report the VM stack high-water when it rises (vm.c). */
+            extern size_t vm_stack_hw;
+            extern oop g_active_stack;
+            static size_t shown = 0;
+            if (vm_stack_hw > shown) {
+                shown = vm_stack_hw;
+                fprintf(stderr, "STACK HW %u words of %u\n", (unsigned)shown,
+                        (unsigned)((struct Stack *)g_active_stack)->capacity);
+            }
+        }
+#endif
         if (platform_console_service() && g_console_chan >= 0)   /* rete#312: the host's line */
             pulse_post_isr_value(g_console_chan, TAG_SMI(++g_console_seq & 0xffff));
         /* rete#440: the one wait. Every arrival, the http listener included, rings a
