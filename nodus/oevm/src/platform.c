@@ -1653,8 +1653,12 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
             static size_t shown = 0;
             if (vm_stack_hw > shown) {
                 shown = vm_stack_hw;
-                fprintf(stderr, "STACK HW %u words of %u\n", (unsigned)shown,
-                        (unsigned)((struct Stack *)g_active_stack)->capacity);
+                /* The console leaf, not stderr: on the MagTag stderr reaches only the
+                   wired UART, and this line must reach the UDP tee too. */
+                char buf[48];
+                int len = snprintf(buf, sizeof buf, "STACK HW %u words of %u\n", (unsigned)shown,
+                                   (unsigned)((struct Stack *)g_active_stack)->capacity);
+                if (len > 0) { platform_console_write(buf, (size_t)len); platform_console_flush(); }
             }
         }
 #endif
