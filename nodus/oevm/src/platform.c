@@ -808,20 +808,28 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
         { *out = s; return 1; }
     }
     case PRIM_pf_freezeBytes: {
-        /* `platform freezeBytes: raw` — freeze-is-copy (message-algebra spec
-           section 6): returns a FRESH RawBytes object with identical bytes;
-           the original remains independently mutable (a later at:put: on
-           either side must not be observed by the other). */
+        /* `platform freezeBytes: raw size: n` — freeze-is-copy (message-algebra
+           spec section 6): returns a FRESH RawBytes object holding raw's first
+           n bytes; the original remains independently mutable (a later at:put:
+           on either side must not be observed by the other). The size is what
+           lets a builder with slack freeze in ONE allocation of exactly n
+           (rete#477: ByteBuilder>>frozenBytes used to copy twice). */
         oop raw = args[0];
         if (raw == NULL || IS_SMI(raw) || RawBytesVtable == NULL ||
             obj_vtable(raw) != RawBytesVtable) {
-            fprintf(stderr, "VM Error: platform freezeBytes: expects a RawBytes receiver\n");
+            fprintf(stderr, "VM Error: platform freezeBytes:size: expects a RawBytes receiver\n");
             abort();
         }
         struct String *src = (struct String *)raw;
-        oop copy = gc_allocate(RawBytesVtable, sizeof(struct String) + src->length);
-        ((struct String *)copy)->length = src->length;
-        if (src->length) memcpy(((struct String *)copy)->bytes, src->bytes, src->length);
+        if (!IS_SMI(args[1]) || UNTAG_SMI(args[1]) < 0 ||
+            (size_t)UNTAG_SMI(args[1]) > src->length) {
+            fprintf(stderr, "VM Error: platform freezeBytes:size: size out of range\n");
+            abort();
+        }
+        size_t n = (size_t)UNTAG_SMI(args[1]);
+        oop copy = gc_allocate(RawBytesVtable, sizeof(struct String) + n);
+        ((struct String *)copy)->length = n;
+        if (n) memcpy(((struct String *)copy)->bytes, src->bytes, n);
         { *out = copy; return 1; }
     }
     case PRIM_pf_valueRank: {
