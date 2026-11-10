@@ -186,9 +186,9 @@ bytes stay off the space entirely (`protocol/PROTOCOL-NSL.md` §4.3, at the rete
 
 Two files sit beside it: **`porta.key` and `porta.pub`**, one ed25519 keypair written
 once by `porta key gen`, refusing to overwrite an existing key rather than rotating
-implicitly. **`porta blob put <file.oimg>` stores the blob and signs its SHA-256 at push
-time**, printing the hash, the signature, and the ready-made
-`porta put <node> goal/apps/main --raw <cbor>` line that carries both. The private key
+implicitly. **`porta blob put <file.oimg> [--node <id>]` stores the blob and signs its
+SHA-256 at push time**, printing the hash, the signature and the `App` record that carries
+both; with `--node` it also writes that record as the node's `goal/apps/main` (rete#480). The private key
 never leaves porta; the node's runner holds only the public half, and verification
 happens there (§3.3). The key story is deliberately dumb — one keypair, two files, a
 missing key is an error and never "unsigned".

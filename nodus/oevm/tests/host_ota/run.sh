@@ -198,7 +198,8 @@ compile_node() {  # compile_node <n> <version> <out.oimg>
 }
 
 # blob_put <file>: store + sign at porta, and capture the three things it prints.
-# BP_RAW is the ready-made `--raw` hex, reused verbatim — building the App record
+# No --node: this gate writes each goal itself, a bad signature included.
+# BP_RAW is the signed App record's hex, reused verbatim — building the App record
 # a second time here would be a second implementation of Task 3's shape.
 BP_HASH=""; BP_SIG=""; BP_RAW=""
 blob_put() {
@@ -206,7 +207,7 @@ blob_put() {
   out=$("$PORTA" --db "$DB" blob put "$1")
   BP_HASH=$(printf '%s\n' "$out" | awk '/^hash /{print $2}')
   BP_SIG=$(printf '%s\n' "$out" | awk '/^sig /{print $2}')
-  BP_RAW=$(printf '%s\n' "$out" | sed -n 's|^porta put <node> goal/apps/main --raw ||p')
+  BP_RAW=$(printf '%s\n' "$out" | awk '/^record /{print $2}')
   [ -n "$BP_HASH" ] && [ -n "$BP_SIG" ] && [ -n "$BP_RAW" ] ||
     fail "porta blob put $1 did not print hash/sig/raw:
 $out"

@@ -12,6 +12,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/davidg238/porta/internal/space"
 	"github.com/davidg238/rete/protocol/cval"
 )
 
@@ -103,5 +104,68 @@ func TestBlobPutStoresSignsAndPrints(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(dir, "blobs", hex.EncodeToString(sum[:]))); err != nil {
 		t.Fatal("blob not stored under blobs/")
+	}
+	// rete#480: no line to paste. The record is printed as data, not as a command.
+	if strings.Contains(out, "porta put") || !strings.Contains(out, "\nrecord ") {
+		t.Fatalf("want a `record <hex>` line and no command template, got:\n%s", out)
+	}
+}
+
+// rete#480: --node deploys. The App record blob put signed is the goal/apps/main
+// it wrote, in the store named by the same --db.
+func TestBlobPutNodeWritesTheGoal(t *testing.T) {
+	dir := t.TempDir()
+	db := filepath.Join(dir, "porta.db")
+	st, err := space.Open(db, nowMs)
+	if err != nil {
+		t.Fatal(err)
+	}
+	st.Close()
+	if err := runRoot(t, "--db", db, "key", "gen"); err != nil {
+		t.Fatal(err)
+	}
+	img := filepath.Join(dir, "app.oimg")
+	if err := os.WriteFile(img, []byte("an image"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	out, err := runRootCapture(t, "--db", db, "blob", "put", "--node", "7cdfa11aaaaa", img)
+	if err != nil {
+		t.Fatalf("%v\n%s", err, out)
+	}
+	if !containsLine(out, "wrote 7cdfa11aaaaa goal/apps/main seq=1") {
+		t.Fatalf("no write reported in:\n%s", out)
+	}
+	var rec []byte
+	for _, line := range strings.Split(out, "\n") {
+		if strings.HasPrefix(line, "record ") {
+			rec, _ = hex.DecodeString(strings.TrimPrefix(line, "record "))
+		}
+	}
+	st, err = space.OpenExisting(db, nowMs)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer st.Close()
+	cells, err := st.Tree("7cdfa11aaaaa", "goal/apps/main")
+	if err != nil || len(cells) != 1 || !bytes.Equal(cells[0].Value, rec) {
+		t.Fatalf("goal/apps/main is not the signed record: %v %+v", err, cells)
+	}
+}
+
+// rete#480: a wrong --db with --node fails naming the path, before any blob is
+// stored beside it. That --db was the step that failed by hand on 2026-11-09.
+func TestBlobPutNodeRefusesAMissingStore(t *testing.T) {
+	dir := t.TempDir()
+	missing := filepath.Join(dir, "porta.db")
+	img := filepath.Join(dir, "app.oimg")
+	if err := os.WriteFile(img, []byte("an image"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	err, _ := runExpectingError(t, "--db", missing, "blob", "put", "--node", "n1", img)
+	if err == nil || !strings.Contains(err.Error(), missing) {
+		t.Fatalf("want an error naming %s, got %v", missing, err)
+	}
+	if _, statErr := os.Stat(blobDir(missing)); !os.IsNotExist(statErr) {
+		t.Errorf("a blob directory was created beside the missing store")
 	}
 }
