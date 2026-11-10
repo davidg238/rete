@@ -334,10 +334,10 @@ without a signature it can check (rete#25).
 
 ## blob put
 
-Store an image on the bulk plane, sign its hash, and print the write that deploys it.
+Store an image on the bulk plane and sign its hash; with `--node`, also deploy it.
 
 ```
-porta blob put <file.oimg>
+porta blob put <file.oimg> [--node <id>]
 ```
 
 The blob goes to `blobs/` beside the database, content-addressed by SHA-256, and the
@@ -355,14 +355,16 @@ With it:
 $ porta blob put --db ./porta.db demo.oimg
 hash c8cd6251c3f31ac8edd0f6780ca552b836b72c1c0d379868865bff65c4ec048f
 sig 03652a5b68162606054007f88ff499c0490f0c10905004d6b489d9e05b635abc04515886adf37805…
-porta put <node> goal/apps/main --raw d81b82d82763417070a2d82763736967584003652a5b…
+record d81b82d82763417070a2d82763736967584003652a5b…
 ```
 
-The third line is the deploy: an `App{image: BlobRef{hash, size}, sig}` record at
-`goal/apps/<name>`, ready to paste. **`blob put` writes nothing to any node's tree** — it
-prints a `put` and leaves the decision to you. That is what keeps the bulk plane off the
-space: the image travels on its own listener, and only a
-hash-sized reference rides the exchange.
+The third line is the `App{image: BlobRef{hash, size}, sig}` record, as hex. With
+`--node <id>` the command also writes it as that node's `goal/apps/main`, in the store
+`--db` names, and prints `wrote <id> goal/apps/main seq=N`; the store is opened first, so a
+wrong `--db` fails before anything is stored (rete#480, which replaced a printed
+`porta put <node> …` line that had to be pasted by hand). Without `--node` nothing is
+written to any tree. Either way the bulk plane stays off the space: the image travels on
+its own listener, and only a hash-sized reference rides the exchange.
 
 ---
 

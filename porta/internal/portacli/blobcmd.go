@@ -8,10 +8,12 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 
 	"github.com/spf13/cobra"
 
 	"github.com/davidg238/porta/internal/blob"
+	"github.com/davidg238/porta/internal/space"
 	"github.com/davidg238/rete/protocol/cval"
 )
 
@@ -66,11 +68,24 @@ func storeAndSign(db string, r io.Reader) (Signed, error) {
 
 func newBlobCmd() *cobra.Command {
 	cmd := &cobra.Command{Use: "blob", Short: "Bulk-plane image blobs"}
+	var node string
 	put := &cobra.Command{
-		Use:   "put <file.oimg>",
-		Short: "Store an image blob, sign its hash, print the goal/apps write",
+		Use:   "put <file.oimg> [--node <id>]",
+		Short: "Store an image blob and sign its hash; with --node, also deploy it as that node's goal/apps/main",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(c *cobra.Command, args []string) error {
+			// rete#480: the deploy is done here, against the same --db, rather than
+			// printed as a line for the operator to paste. The pasted line named the
+			// wrong binary, had no --db and left the node blank. The store opens first,
+			// so a wrong --db fails before a blob is stored beside it.
+			var st *space.Store
+			if node != "" {
+				var err error
+				if st, err = space.OpenExisting(dbPath, nowMs); err != nil {
+					return err
+				}
+				defer st.Close()
+			}
 			f, err := os.Open(args[0])
 			if err != nil {
 				return err
@@ -80,11 +95,21 @@ func newBlobCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			fmt.Fprintf(c.OutOrStdout(), "hash %s\nsig %s\nporta put <node> goal/apps/main --raw %s\n",
+			out := c.OutOrStdout()
+			fmt.Fprintf(out, "hash %s\nsig %s\nrecord %s\n",
 				hex.EncodeToString(s.Hash), hex.EncodeToString(s.Sig), hex.EncodeToString(s.Record))
+			if st == nil {
+				return nil
+			}
+			seq, err := st.Write(node, "goal/apps/main", cval.KindCell, s.Record, currentActor(), "blob put "+filepath.Base(args[0]))
+			if err != nil {
+				return err
+			}
+			fmt.Fprintf(out, "wrote %s goal/apps/main seq=%d\n", node, seq)
 			return nil
 		},
 	}
+	put.Flags().StringVar(&node, "node", "", "also write the image as this node's goal/apps/main")
 	cmd.AddCommand(put)
 	return cmd
 }
