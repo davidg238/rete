@@ -128,3 +128,5 @@ scatter was not the cost, and this design is wrong.
   peak live, and running out of memory still looks like "enough free, no piece big enough". The falsifiable claim
   stands: with compaction the check-in app should run in about 16.6 KB (peak live plus the 677 B request).
   Building it is David's call; nothing in this addendum starts it.
+- **Decided, David 2026-11-10:** build safe-point compaction next, and test it on the C6 (c6spare). The stack size
+  stays as it is until a debugger stop and an OTA have been measured.
