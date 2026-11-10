@@ -1647,18 +1647,29 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
     }
     case PRIM_pf_pumpEvents: {
 #ifdef OEVM_STACK_HW
-        {   /* rete#477: report the VM stack high-water when it rises (vm.c). */
-            extern size_t vm_stack_hw;
+        {   /* rete#477: the VM stack's high-water, printed when it rises. A measurement build
+               only: it sizes VM_STACK_INIT_WORDS per board. gc_allocate does not zero, but the
+               Stack is carved at first run from arena never used before, which is static
+               storage and so zero; a popped frame leaves its words behind, so the last nonzero
+               word is the deepest the stack has been. Were the Stack ever carved from reused
+               memory, this would read full (capacity of capacity): wrong, but loudly. It is read here, at the safe point, rather
+               than kept at every frame push: no writer on the hot path. On the host it read
+               821 words, exactly what a maximum taken at every push read. */
             extern oop g_active_stack;
-            static size_t shown = 0;
-            if (vm_stack_hw > shown) {
-                shown = vm_stack_hw;
-                /* The console leaf, not stderr: on the MagTag stderr reaches only the
-                   wired UART, and this line must reach the UDP tee too. */
-                char buf[48];
-                int len = snprintf(buf, sizeof buf, "STACK HW %u words of %u\n", (unsigned)shown,
-                                   (unsigned)((struct Stack *)g_active_stack)->capacity);
-                if (len > 0) { platform_console_write(buf, (size_t)len); platform_console_flush(); }
+            static uint32_t shown = 0;
+            if (g_active_stack != NULL) {
+                struct Stack *st = (struct Stack *)g_active_stack;
+                uint32_t hw = st->capacity;
+                while (hw > shown && st->data[hw - 1] == NULL) hw--;
+                if (hw > shown) {
+                    shown = hw;
+                    /* The console leaf, not stderr: on the MagTag stderr reaches only the
+                       wired UART, and this line must reach the UDP tee too. */
+                    char buf[48];
+                    int len = snprintf(buf, sizeof buf, "STACK HW %u words of %u\n",
+                                       (unsigned)hw, (unsigned)st->capacity);
+                    if (len > 0) { platform_console_write(buf, (size_t)len); platform_console_flush(); }
+                }
             }
         }
 #endif
