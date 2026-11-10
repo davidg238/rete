@@ -17,7 +17,7 @@ indexable: n` (Array as an argument is a slot read of the class object).
 class Kernel usingPlatform: platform = (
   (* rete#244: the ONE Timers this kernel instance answers. Lazy because the
      accessor below is the only reader, nil until first asked. *)
-  | private timersOne ::= nil. private profilerOne ::= nil. private debuggerOne ::= nil. private encodeScratchOne ::= nil. |
+  | private timersOne ::= nil. private profilerOne ::= nil. private debuggerOne ::= nil. private encodeScratchOne ::= nil. private encodeScratchBusy ::= false. |
 ) (
   class Object = () (
     (* Milestone E Task 1: the in-flight error value is a crash Record (#tag/#text),
@@ -739,13 +739,20 @@ class Kernel usingPlatform: platform = (
      `rankOf:` cannot classify fails `not a value`; over-deep nesting fails
      `message depth exceeded`. *)
   public class Cbor = () (
-    (* rete#477 spike: the top-level accumulator is the kernel's one scratch builder,
-       reset per encode, so a frame no longer climbs 16..1024 B of fresh buffers.
-       Assumes encode: is not re-entered while it runs (sub-accumulators stay fresh). *)
+    (* rete#477: the outermost encode writes into the kernel's one scratch builder, so
+       a frame no longer climbs 16..1024 B of fresh buffers. An encode that starts
+       while another is running gets a fresh builder instead: the held loop encodes
+       when a debugger stop lands inside an encode, and `rankOf:` can run app code.
+       `ensure:` gives the scratch back on every exit, a raise included.
+       14_cbor/07_reentrant_encode.nsl pins both. *)
     public encode: v = ( | acc |
-      acc:: outer encodeScratch reset.
-      self encode: v into: acc depth: 1.
-      ^ acc frozenBytes )
+      acc:: outer takeEncodeScratch.
+      acc == nil ifTrue: [
+        acc:: ByteBuilder new.
+        self encode: v into: acc depth: 1.
+        ^ acc frozenBytes ].
+      ^ [ self encode: v into: acc depth: 1. acc frozenBytes ]
+          ensure: [ outer releaseEncodeScratch ] )
 
     encode: v into: acc depth: d = ( | rank |
       d > 32 ifTrue: [ ^ self error: 'message depth exceeded' ].
@@ -4131,9 +4138,13 @@ class Kernel usingPlatform: platform = (
      the object itself when the prim answers -1 ("other heap" — Task 4),
      which is how a heap value type (e.g. List) opts in via its own
      `valueRank` override. *)
-  encodeScratch = (
+  (* rete#477: Cbor>>encode:'s scratch builder; nil while an encode holds it. *)
+  takeEncodeScratch = (
+    encodeScratchBusy ifTrue: [ ^ nil ].
     encodeScratchOne == nil ifTrue: [ encodeScratchOne:: ByteBuilder new reserve: 1024 ].
-    ^ encodeScratchOne )
+    encodeScratchBusy:: true.
+    ^ encodeScratchOne reset )
+  releaseEncodeScratch = ( encodeScratchBusy:: false. ^ self )
   rankOf: v = ( | r | r:: platform valueRank: v. r = -1 ifTrue: [ ^ v valueRank ]. ^ r )
   isValueObject: v = ( ^ (rankOf: v) >= 0 )
   depthOf: v = ( (rankOf: v) >= 7 ifTrue: [ ^ v valueDepth ]. ^ 0 )

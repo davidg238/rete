@@ -1,0 +1,37 @@
+(*
+expect:
+inner 6: 101 105 110 110 101 114
+outer 3: 98 97 98
+after 3: 98 111 107
+*)
+(* rete#477: `Cbor encode:` is re-entered while it runs, and neither encode may see the
+   other's bytes. The kernel encodes into one shared scratch builder. The re-entry
+   here goes through `valueRank`, which `rankOf:` sends to an app object. On a board
+   the same thing happens when a debugger stop lands inside an encode and the held
+   loop's exchange encodes a frame (PortaBridge>>heldStep). Shared, the inner encode
+   resets the builder under the outer one, and the outer frame comes out as
+   inner + outer, 9 bytes. The last line encodes once more after an encode that
+   raised ('not a value') and checks the answer is still right. It cannot show the
+   builder was given back on that exit: a builder never given back only means every
+   later encode gets a fresh one, which answers the same bytes. *)
+class ReentrantEncodeTest packageUsing: manifest = ( | private Cbor | ) (
+  class Ab = ( | public inner | ) (
+    public valueRank = ( inner:: Cbor encode: 'inner'. ^ 4 )   (* re-enter, then claim String *)
+    public size = ( ^ 2 )
+    public at: i = ( ^ i = 1 ifTrue: [ 97 ] ifFalse: [ 98 ] )      (* 'ab' *)
+  ) : ( )
+  class NotAValue = () ( ) : ( )
+  show: label bytes: b = ( | line |
+    line:: label , ' ' , b byteSize printString , ':'.
+    1 to: b byteSize do: [ :i | line:: line , ' ' , (b u8At: i) printString ].
+    line println )
+  public main: platform args: args = ( | ab outer |
+    Cbor:: platform Cbor.
+    ab:: Ab new.
+    outer:: Cbor encode: ab.
+    self show: 'inner' bytes: ab inner.
+    self show: 'outer' bytes: outer.
+    [ Cbor encode: NotAValue new ] on: [ :e | true ] do: [ :e | nil ].
+    self show: 'after' bytes: (Cbor encode: 'ok') )
+) : (
+)

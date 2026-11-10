@@ -1,6 +1,19 @@
 /* rete#477 census (throwaway): allocations and peak survivors by vtable. */
 #include <stdio.h>
 #include "oimg.h"
+#include <time.h>
+/* CPU time (clock(): standard C, so -std=c99 keeps it; µs resolution on Linux). */
+static clock_t cen_c0, cen_c1;
+static double cen_tot_sum = 0, cen_tot_max = 0, cen_mark_sum = 0, cen_sweep_sum = 0, cen_live_objs_sum = 0;
+static size_t cen_timed = 0, cen_live_objs = 0;
+static double cen_us(clock_t a, clock_t b) { return (double)(b - a) * 1e6 / CLOCKS_PER_SEC; }
+static void census_gc_begin(void) { cen_c0 = clock(); cen_live_objs = 0; }
+static void census_sweep_begin(void) { cen_c1 = clock(); }
+static void census_gc_end(void) {
+    clock_t c2 = clock(); double tot = cen_us(cen_c0, c2), mk = cen_us(cen_c0, cen_c1);
+    cen_timed++; cen_tot_sum += tot; cen_mark_sum += mk; cen_sweep_sum += tot - mk; cen_live_objs_sum += cen_live_objs;
+    if (tot > cen_tot_max) cen_tot_max = tot;
+}
 #define CN 512
 typedef struct { oop vt; size_t n, b; } cen_row;
 static cen_row cen_alloc[CN], cen_live[CN], cen_peak[CN];
@@ -26,7 +39,7 @@ static const char *cen_name(oop vt) {
 static oop cen_last_vt; static void census_alloc(oop vt, size_t need) { cen_last_vt = vt; cen_add(cen_alloc, vt, need); }
 static void census_live(struct HeapHeader *h) {
     oop o = (oop)(h + 1); oop vt = *(oop *)o; size_t b = sizeof(struct HeapHeader) + hh_size(h);
-    cen_add(cen_live, vt, b);
+    cen_add(cen_live, vt, b); cen_live_objs++;
     if (b >= 1024 && cen_nb_cur < 256) { cen_bigs_cur[cen_nb_cur].vt = vt; cen_bigs_cur[cen_nb_cur++].sz = b; }
 }
 #define SEG_CENSUS_LIVE(h) census_live(h)
@@ -45,6 +58,8 @@ static void cen_print(const char *title, cen_row *t, size_t total) {
 }
 extern oop g_active_stack;
 void census_report(void) {
+    if (cen_timed) fprintf(stderr, "CENSUS TIMING gcs=%zu mean %.1f us (mark+roots %.1f, sweep %.1f) max %.1f us; mean live objs %.0f; arena %u B\n",
+        cen_timed, cen_tot_sum / cen_timed, cen_mark_sum / cen_timed, cen_sweep_sum / cen_timed, cen_tot_max, cen_live_objs_sum / cen_timed, (unsigned)OEVM_HEAP_SIZE);
     if (g_active_stack) { struct Stack *st=(struct Stack*)g_active_stack; uint32_t hw=0;
       for (uint32_t i=0;i<st->capacity;i++) if (st->data[i]) hw=i+1;
       fprintf(stderr,"CENSUS stack capacity=%u words, high-water(nonzero)=%u words = %u B\n",st->capacity,hw,hw*(unsigned)sizeof(oop)); }

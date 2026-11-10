@@ -14,6 +14,10 @@ sed -i 's/^    size_t need = sizeof(struct HeapHeader) + rounded;/&\n    census_
 sed -i 's/            if (hh_marked(h)) { swept_live +=/            if (hh_marked(h)) { census_live(h); swept_live +=/' "$G"
 sed -i 's/^    heap_live_bytes = swept_live;/&\n    census_end(swept_live);/' "$G"
 [ "$(grep -c '^ *census_alloc(vtable\|{ census_live(h)\|^ *census_end(swept' "$G")" = 3 ] || { echo "patch did not apply"; exit 1; }
+sed -i 's/^OEVM_HOT void gc_collect(void) {/&\n    census_gc_begin();/' "$G"
+awk '/^    for \(size_t i = 0; i < FREE_BIN_COUNT; i\+\+\) free_bins\[i\] = NULL;/{n++; if (n==2) print "    census_sweep_begin();"} {print}' "$G" > "$G.n" && mv "$G.n" "$G"
+sed -i 's/^    float_sweep();/&\n    census_gc_end();/' "$G"
+[ "$(grep -c '^ *census_gc_begin();\|^ *census_sweep_begin();\|^ *census_gc_end();' "$G")" = 3 ] || { echo "timing patch did not apply"; exit 1; }
 B=posix
 sed -i "s/^    kernel_boot();  /    { extern void census_install(void); census_install(); } kernel_boot();  /" "$W/nodus/oevm/oevm_image_main.c"; grep -q census_install "$W/nodus/oevm/oevm_image_main.c" || { echo main patch failed; exit 1; }
 cd "$W/nodus/oevm"
