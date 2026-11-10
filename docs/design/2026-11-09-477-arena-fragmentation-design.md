@@ -109,3 +109,22 @@ scatter was not the cost, and this design is wrong.
   which encodes. Only the outermost `encode:` takes the scratch now, and `ensure:` gives it back
   (`14_cbor/07_reentrant_encode.nsl`). With the guard, the check-in app passes at 26 and 24 KB and fails at 22 KB
   (on a 677 B request).
+
+## Addendum 2026-11-10: lever 2 done, lever 1 measured on two boards
+
+- **`frozenBytes` copies once.** It built an exact-size copy and then `freezeBytes:` copied that again. The prim
+  is now `platform freezeBytes: raw size: n` (same id), one allocation of exactly `n`. The host check-in app
+  passes at **22 KB** (it failed at 22 before) and fails at 20 KB: free 5.9 KB in 59 pieces, the largest 612 B,
+  the request 677 B. Peak live is 15.9 KB with a 4 KB stack.
+- **Stack high-water, exact** (`OEVM_STACK_HW=1`: the maximum taken at every frame push, printed through the
+  console when it rises). C6 `PortaBridgeNodeC6`, bridge-health PASS: **1077 words**. MagTag (debug+profile
+  recipe): **1053 words**, the same on a cold boot and on a strike wake. The host runs the same apps at 799–874.
+  So a board needs roughly 200–250 words more than the host, and the host cannot size a board's stack.
+- **Not yet measured**: a debugger stop (the held loop runs under the stopped frame), an OTA stage and activate,
+  BLE. Until they are, the stack sizes stay as they are. The proposal is **1536 words** (measured maximum × 1.4).
+  On the MagTag that frees 2 KB of a 34 KB arena. The margin is a guess. A stack overflow kills the node, and on
+  the S2 it stays dead until someone presses RESET (no watchdog, no reset on a fatal error, #479).
+- **Is compaction earned?** By this note's own test, yes on the host: the smallest arena (22 KB) is 6 KB above
+  peak live, and running out of memory still looks like "enough free, no piece big enough". The falsifiable claim
+  stands: with compaction the check-in app should run in about 16.6 KB (peak live plus the 677 B request).
+  Building it is David's call; nothing in this addendum starts it.
