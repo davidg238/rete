@@ -1,0 +1,124 @@
+(*
+env: OEVM_OTA_STAGE=/tmp/rete-nsl-ota-11.stage
+expect:
+log ota staging 0
+before busy true requests 0 1 staged 256
+ota: lapse raised: not a cell
+log ota stage failed
+after the raise busy false requests 0 1
+ota: staged ok, bytes=600
+log ota staging 256
+log ota staged
+a minute and a check-in later busy false requests 0 1 1 2 staged 600 finished 2
+*)
+(* rete#440 R5 — A RAISE BETWEEN THE FETCH'S EXPIRY AND ITS RE-ARM ENDS THE FETCH (the
+   third review of #488, its probe kept as found). Block 0 lands, block 1's request is
+   dropped, and the budget fires; `OtaFetch>>lapsed:` reads the socket first, and here
+   the read raises (a cell write to a pinned stream stands in for a bad row). No budget
+   is armed in that stretch: the one that fired was it.
+
+   Before the guard the raise was swallowed by the reaction and the fetch stayed busy
+   with no wake: `after the raise busy true`, and a minute and a check-in later still
+   `busy true requests 0 1 staged 256 finished 0` — never restarted, never `finished`,
+   so a run-once node would not sleep. Now the fetch ends as a timeout does: the stage is
+   kept (`ota stage failed`, `finished` said), and the next check-in resumes at block 1
+   and stages, which is the unarmed control's outcome (`requests 0 1 1 2 staged 600`).
+   `finished 2`: one for the failed fetch, one for the resumed one. *)
+class LapseRaiseProbe packageUsing: manifest = () (
+
+  public class FakeDatagram = ( | private data | ) (
+    public setData: d = ( data:: d. ^ self )
+    public data = ( ^ data )
+  ) : (
+    public on: d = ( ^ self new setData: d )
+  )
+
+  public class FakeBlockSocket = (
+    | private pf private space private bell private blob private queue private requests
+      private dropOnce ::= -1. private bomb ::= false. |
+  ) (
+    public setPlatform: p space: sp bell: b blob: bl = (
+      pf:: p. space:: sp. bell:: b. blob:: bl.
+      queue:: p OrderedCollection new. requests:: p OrderedCollection new.
+      ^ self )
+    public doorbell = ( ^ bell )
+    public dropOnce: n = ( dropOnce:: n. ^ self )
+    public arm = ( bomb:: true. ^ self )
+    public requests = ( | s |
+      requests isEmpty ifTrue: [ ^ ' none' ].
+      s:: ''.
+      requests do: [ :r | s:: s , ' ' , r printString ].
+      ^ s )
+    public sendTo: host port: p data: bytes = ( | blk |
+      (bytes u8At: 1) = 1 ifFalse: [ ^ self ].
+      blk:: (((bytes u8At: 34) * 256 + (bytes u8At: 35)) * 256 + (bytes u8At: 36)) * 256 + (bytes u8At: 37).
+      requests add: blk.
+      blk = dropOnce ifTrue: [ dropOnce:: -1. ^ self ].
+      ^ self post: (self blockFrame: blk) )
+    (* Stands in for a datagram whose handling raises (PortaBridge>>heldStep's comment
+       names `applyEntry:` on a bad row): a cell write to a pinned stream. *)
+    public receive = (
+      bomb ifTrue: [ bomb:: false. space put: 'test/stream' value: 1 ].
+      queue isEmpty ifTrue: [ ^ nil ].
+      ^ FakeDatagram on: queue removeFirst )
+    post: frame = ( queue add: frame. space out: bell value: 1. ^ self )
+    blockFrame: blk = ( | off n f |
+      off:: blk * 256.
+      n:: blob byteSize - off.
+      n > 256 ifTrue: [ n:: 256 ].
+      f:: pf ByteArray new: 6 + n.
+      f u8At: 1 put: 2. f u8At: 2 put: 0. f u8At: 3 put: 0.
+      f u8At: 4 put: ((blk >> 8) bitAnd: 255). f u8At: 5 put: (blk bitAnd: 255).
+      f u8At: 6 put: (off + n < blob byteSize ifTrue: [ 1 ] ifFalse: [ 0 ]).
+      1 to: n do: [ :i | f u8At: 6 + i put: (blob u8At: off + i) ].
+      ^ f freeze )
+  ) : ()
+
+  blobA: platform = ( | b |
+    b:: platform ByteArray new: 600.
+    1 to: 600 do: [ :i | b u8At: i put: (((i - 1) * 7 + 3) bitAnd: 255) ].
+    ^ b )
+  hashA: platform = ( ^ platform ByteArray fromHex: '1783f1f6842889ff855d25b6d45d33dd7401ffa94eb93704f6a374c264cde486' )
+  goal: hash platform: platform = (
+    ^ platform Record tag: #App
+        with: #image -> (platform Record tag: #BlobRef with: #hash -> hash with: #size -> 600)
+        with: #sig -> (platform ByteArray fromHex: 'ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00') )
+
+  public main: platform args: args = (
+    | space timers s b finished |
+    space:: platform space.
+    timers:: platform timers.
+    space whenever: 'sys/timer' do: [ :t | timers dispatch: t ].
+    finished:: 0.
+    (space channel: 'sys/porta/exchange') whenever: '' do: [ :v | finished:: finished + 1 ].
+    (space channel: 'tel/log') whenever: '' do: [ :v | ('log ' , (v at: #txt ifAbsent: [ '?' ])) println ].
+    space out: 'test/stream' value: 1.
+    space drain.
+
+    s:: FakeBlockSocket new setPlatform: platform space: space bell: 'test/net1' blob: (self blobA: platform).
+    s dropOnce: 1.
+    b:: platform PortaBridge socket: s space: space id: 'n1' peer: '::1' port: 6969
+        spans: platform Spans new timers: timers.
+    b otaFetch discard.
+    space put: 'goal/apps/main' value: (self goal: (self hashA: platform) platform: platform).
+    space drain.
+    b otaCheck.
+    space drain.
+    ('before busy ' , b otaFetch busy printString , ' requests' , s requests , ' staged ' , b otaFetch staged printString) println.
+    s arm.
+    platform advanceMillis: 1000.      (* block 1's budget fires; lapsed: reads; the read raises *)
+    space drain.
+    ('after the raise busy ' , b otaFetch busy printString , ' requests' , s requests) println.
+    platform advanceMillis: 60000.     (* a minute: nothing left to wake the fetch *)
+    space drain.
+    b otaCheck.                        (* the next check-in's tail *)
+    space drain.
+    platform advanceMillis: 60000.
+    space drain.
+    ('a minute and a check-in later busy ' , b otaFetch busy printString , ' requests' , s requests
+      , ' staged ' , b otaFetch staged printString , ' finished ' , finished printString) println.
+    ^ 0
+  )
+) : (
+  public packageUsing: manifest = ( ^ self new )
+)

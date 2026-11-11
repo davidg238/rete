@@ -31,7 +31,7 @@
 		watchdog0 = &wdt0;
 		led0 = &led0;
 		sw0 = &user_sw;
-		/* oevm's pulse seam (zephyr/src/main.c wire_pulse_gpio): the user key is the
+		/* oevm's pulse seam (src/backend/zephyr/gpio_zephyr.c wire_pulse_gpio): the user key is the
 		   physical edge, as BUTTON1 is on the DK and SW1 on the dongle. */
 		pulsegpio = &user_sw;
 	};

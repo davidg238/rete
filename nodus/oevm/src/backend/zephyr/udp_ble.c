@@ -66,7 +66,9 @@ static K_MUTEX_DEFINE(sock_lock);
    datagram only when the head was its own, so the OTA fetch thread and the VM's porta
    socket each waited behind the other's reply: the fetch timed out at block 105 while the
    check-in counted misses. 1 KB a socket (the same 4 KB) holds a whole 512 B batch or three
-   OTA blocks, and both are stop-and-wait. */
+   OTA blocks, and both are stop-and-wait. Since rete#440 R5 the fetch is the kernel's and
+   rides the porta socket, read to empty by one reaction: a batch and a block in flight
+   together are ~800 B with their headers, inside the 1 KB. */
 #define RING_PER_SOCK   (RING_BYTES / MAX_SOCKS)
 static struct { uint8_t b[RING_PER_SOCK]; size_t head, tail, used; } rings[MAX_SOCKS];
 static K_MUTEX_DEFINE(ring_lock);

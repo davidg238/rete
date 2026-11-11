@@ -27,9 +27,9 @@ still here — otaCheck returned and nothing exited
    step before the stage is local: the confirm needs `acked > 0`, which a bridge
    that has never exchanged does not have; the goal is a cell this test plants
    itself; and `otaIsRunning:` is false because no `OEVM_IMAGE_HASH` is set. The
-   step that would reach the block plane is `otaStage:`, and it is exactly the
+   step that would reach the block plane is the fetch's start, and it is exactly the
    step the guard must prevent. With the guard deleted this file prints
-   `pending after 1` and the C seam's own `ota: no staging slot (OEVM_OTA_STAGE
+   `pending after 1` and the fetch's own `ota: no staging slot (OEVM_OTA_STAGE
    unset)` — measured, not assumed. Note what that means: the seam refuses before
    any I/O, so the regression is caught by the LOG ENTRY and not by a timeout,
    which is why `pending` is asserted rather than elapsed time.
@@ -79,7 +79,7 @@ class TrialDefersStage packageUsing: manifest = () (
     ('pending before ' , bridge pendingSize printString) println.
 
     (* The whole test. With the guard: returns immediately, writes nothing. Without
-       it: `otaStage:` is called, fails, and logs `ota stage failed` — `pending
+       it: the fetch is started, fails, and logs `ota stage failed` — `pending
        after 1`. *)
     bridge otaCheck.
     space drain.

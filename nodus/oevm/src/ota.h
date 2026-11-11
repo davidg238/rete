@@ -5,18 +5,18 @@
 /* rete#25 — the node's image-push seam, VM-facing half.
  *
  * The data plane stays OFF the message algebra (design G3): a staged image is a
- * byte slab that must live outside the VM heap, so it is fetched here in C, by
- * content hash, straight into the inactive slot. Nothing in this header
- * allocates, and nothing here knows what an nsl object is — platform.c's three
- * prims (otaStage:sig:, otaActivate, otaConfirm) are the only callers.
+ * byte slab that must live outside the VM heap, so it lives here in C, by content
+ * hash, in the inactive slot. The FETCH is the kernel's OtaFetch since rete#440 R5:
+ * reactions on the VM thread, one state per block, that hand each block's bytes to
+ * the stage prims (platform.c, over ota_backend.h) and ask `ota_stage_matches` at the
+ * end. Nothing in this header allocates, and nothing here knows what an nsl object
+ * is — platform.c's prims are the only callers.
  *
  * Every answer is 1 = yes/ok, 0 = no/failure. Failure DETAIL goes to the
  * console; publishing it as `tel/log` is the nsl caller's job, because only the
  * caller knows the cadence tick it belongs to.
  *
- * The fetch loop is written against udp_backend.h, not against sockets, so it
- * ports to the zephyr backend unchanged. The file/env/exit half is
- * ota_backend.h.
+ * The file/env/exit half is ota_backend.h.
  */
 
 /* Fill `out` with the 32-byte digest of the image this process is running,
@@ -35,31 +35,12 @@ int  ota_is_running(const uint8_t hash[32]);
  * telling the VM that an unconfirmed image is under test. */
 int  ota_trial(void);
 
-/* The fetch of the image with digest `hash` from the block server at host:port,
- * into the staging slot — OFF THIS THREAD (rete#233 T9, 2026-10-10). The bulk plane
- * is off the message plane on the wire (D1, G3) and, since the first target run,
- * off the VM thread too: on a board the fetch takes ~55 s over Thread, and a prim
- * that blocks that long is exactly what the observer's app-stale rule reboots.
- *
- * So this call never blocks for long. It answers:
- *    1  staged: the slot holds `hash`, digest verified (`*staged` = its length);
- *    0  in progress: a fetch is running, `*staged` = bytes on flash so far;
- *   -1  failed this round: no slot, no thread, a peer error, a timeout, or a
- *       digest mismatch (the slot is then truncated).
- * The caller is the check-in tail, so it is called again at the node's own
- * cadence until it answers 1; nothing else polls. Between calls the thread:
- *   - resumes at block staged_len/256 — the slot's own length is the cursor;
- *   - a staged slot that already hashes to `hash` is answered 1 at once, with
- *     no thread, so a crash after staging costs one re-hash and no traffic;
- *   - a whole-file digest mismatch at the end truncates the slot.
- * A fetch that finished for ANOTHER hash (a retarget) is dropped on the next call,
- * and the new image is fetched into whatever the slot holds — the failure table's
- * self-healing case, at the price of one transfer.
- *
- * `sig`/`sig_len` are carried, not checked: verification has exactly one seat
- * and it is the runner (design D4). Pass NULL/0 when there is none. */
-int  ota_stage(const uint8_t hash[32], const uint8_t *sig, int sig_len,
-               const char *host, int port, long *staged);
+/* 1 when the whole staging slot (its first ota_stage_size() bytes) hashes to
+ * `hash`; 0 when it does not, or when there is no slot. The kernel asks it twice:
+ * before a fetch (a slot that already holds the image costs one re-hash and no
+ * traffic, the crash-after-staging path) and after the last block (a mismatch
+ * empties the slot, because the bytes are wrong, not incomplete). */
+int  ota_stage_matches(const uint8_t hash[32]);
 
 /* Touch the confirm marker — "this trial image works". Becomes
  * boot_write_img_confirmed() on target. Idempotent; never fails loudly. */

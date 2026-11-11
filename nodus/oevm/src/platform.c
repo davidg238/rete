@@ -18,6 +18,7 @@
 static uint32_t s_app_cad_ms = 0;
 uint32_t platform_app_cad_ms(void) { return s_app_cad_ms; }
 #include "ota.h"             /* rete#25: the image-push seam, prims 145-150 */
+#include "ota_backend.h"     /* rete#440 R5: the stage, prims 148 and 166-168 */
 #include "reboot_note.h"    /* rete#215: the retained panic note, prims 153-154 */
 #include <stdio.h>
 #include <stdlib.h>
@@ -161,25 +162,25 @@ int gpio_target_level(int pin) {
     return -1;
 }
 #else
-/* tuvm#82: on target these live in zephyr/src/main.c, beside the devicetree tables
+/* tuvm#82: on target these live in src/backend/zephyr/gpio_zephyr.c, beside the devicetree tables
    they read. Conditional compilation in a shared src/*.c rather than a new backend
    .c pair is deliberate: __ZEPHYR__ is already used this way in src/gc.c and
    src/vm.c, and adding a .c file costs edits to nine enumerated source lists
    across two repos (tuvm#63) for two functions.
    Note the direction is the MIRROR of gpio_target_fire below, which platform.c
-   defines and main.c calls inbound. */
+   defines and gpio_zephyr.c's button ISR calls inbound. */
 #endif
 
 /* tuvm#88: the host side of the display seam — a real character grid, not a
    stub that only reports errors. `refresh` PRINTS the non-blank rows, so an nsl
    test asserts on the text that was actually laid down (the existing expect:
    mechanism is the read-back path, which is why no fifth "read the grid" prim
-   has to be spent). On target these live in zephyr/src/main.c beside CFB.
+   has to be spent). On target these live in src/backend/zephyr/display_zephyr.c beside CFB.
    Geometry: the panel is 128x296 px and CFB is configured with font1016 (10 wide
    x 16 tall) — NOT 8x8; CFB ships no 8x8 font, and the `ppt` of 8 that looks like
    a font size is a tiling granularity, not one. That gives 128/10 = 12 columns
    and 296/16 = 18 rows. The numbers are named ONCE, in platform_backend.h
-   (OEVM_DISPLAY_ROWS/COLS), and this file plus zephyr/src/main.c both consume
+   (OEVM_DISPLAY_ROWS/COLS), and this file plus src/backend/zephyr/display_zephyr.c both consume
    that single definition — a host/device mismatch here would make a host-green
    test meaningless, so the device side hard-checks its derived grid against
    these same constants at bring-up rather than merely printing them. */
@@ -266,7 +267,7 @@ int display_target_refresh_row(int row) {
     return 0;
 }
 #else
-/* On target these live in zephyr/src/main.c, beside the CFB calls and the
+/* On target these live in src/backend/zephyr/display_zephyr.c, beside the CFB calls and the
    devicetree node they read — the same split gpio_target_set/level use, and for
    the same reason: a new .c file costs edits to nine enumerated source lists
    across two repos (tuvm#63). */
@@ -361,9 +362,9 @@ int ntp_target_date(void) {
    host reads a calendar. Two reasons, both about keeping the two sides honest:
    wallClockSetDate:time: takes a date because Zephyr's rtc_set_time does, so a
    host that dropped it would let a node pass garbage the device would reject; and
-   the unset-clock guard is a YEAR comparison (zephyr/src/main.c), so modelling the
+   the unset-clock guard is a YEAR comparison (src/backend/zephyr/clock_zephyr.c), so modelling the
    year is what lets 04 exercise that guard without a DS3231 on the bench. */
-#define OEVM_WALLCLOCK_MIN_YEAR 2020   /* keep in step with zephyr/src/main.c */
+#define OEVM_WALLCLOCK_MIN_YEAR 2020   /* keep in step with src/backend/zephyr/clock_zephyr.c */
 static int g_wc_set = 0;               /* 0 = never set — the cold, no-RTC default */
 static int g_wc_secs = 0;
 static int g_wc_year = 0;
@@ -504,14 +505,14 @@ void deep_sleep_target(int seconds) {
     exit(0);
 }
 #else
-/* On target the leaves live in zephyr/src/main.c (the panic note's in
+/* On target the leaves live in the src/backend/zephyr/*_zephyr.c leaf files (the panic note's in
    zephyr/src/reboot_note.c), declared once in target_backend.h and reboot_note.h
    (invarlint#53, #48). Every symbol links on EVERY Zephyr board: a board without the
    hardware guards the BODY, never the definition. */
 #endif
 
 /* Target GPIO-ISR entry (Zephyr rung-2 Task 8): a real on-target GPIO edge
-   callback (zephyr/src/main.c) calls this to post the pulse for `pin`, taking
+   callback (src/backend/zephyr/gpio_zephyr.c) calls this to post the pulse for `pin`, taking
    the exact same slot-lookup -> pulse_post_isr path the host-only gpioFire:
    prim simulates. ISR-safe: pulse_post_isr is non-allocating and non-blocking.
    Non-static so the Zephyr entry point can call it; unused on host/native_sim
@@ -1549,43 +1550,12 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
            nobody staged. */
         *out = ota_trial() ? true_symbol : false_symbol;
         return 1;
-    case PRIM_pf_otaStage: {
-        /* otaStage: hash sig: sig host: host port: port — args mirror the
-           keyword selector left-to-right (the spaceRegister:block:owner:
-           convention). Since rete#233 T9 the fetch is OFF this thread (D7's
-           knob, earned on the first target run: ~55 s over Thread, which the
-           observer rightly reboots) — see ota.h. `sig` may be nil (carried, never checked —
-           verification has exactly one seat and it is the runner, design D4).
-
-           A malformed call answers FALSE rather than aborting, unlike
-           spaceChangedSince:under:max:'s String check above: every argument here
-           can originate in a `goal/` record written by the gateway, so a bad
-           one is a peer's mistake to report, not this node's to die of.
-
-           No allocation happens between reading the leaves and the call, and
-           ota_stage copies what it keeps (the hash and the host) before it
-           returns, so the raw pointers are never held across a GC. */
-        size_t hn = 0, sn = 0, hostn = 0;
-        const uint8_t *hp   = ota_leaf_bytes(args[0], &hn);
-        const uint8_t *sp   = ota_leaf_bytes(args[1], &sn);
-        const uint8_t *hostp = ota_leaf_bytes(args[2], &hostn);
-        char host[128];
-        if (hp == NULL || hn != 32 || hostp == NULL ||
-            hostn == 0 || hostn >= sizeof host || !IS_SMI(args[3])) {
-            *out = false_symbol;
-            return 1;
-        }
-        memcpy(host, hostp, hostn);
-        host[hostn] = '\0';
-        /* rete#233 T9: the fetch runs on its own thread, so this answers one of
-           THREE things — true (staged, digest verified), false (failed this
-           round), or the bytes staged so far as an Integer (in progress) — and
-           the kernel asks again at its next check-in. */
-        long staged = 0;
-        int r = ota_stage(hp, sp, (int)sn, host, (int)UNTAG_SMI(args[3]), &staged);
-        *out = r > 0 ? true_symbol : r < 0 ? false_symbol : TAG_SMI(staged);
+    case PRIM_pf_otaStageSize:
+        /* rete#440 R5: the bytes staged so far — the kernel's resume cursor — or -1
+           with no slot (OEVM_OTA_STAGE unset, no program slot, no key). A slot is
+           at most a program partition (768 KB), far inside the SMI band. */
+        *out = TAG_SMI((intptr_t)ota_stage_size());
         return 1;
-    }
     case PRIM_pf_otaConfirm:
         /* "This trial image works." Idempotent and never fails loudly (ota.h),
            so it answers the platform capability rather than a status — there is
@@ -1599,7 +1569,7 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
            the backend really exits; *out is set for form, exactly as
            deepSleep: does above, and is reached only on a backend that cannot
            exit. A malformed hash is a silent no-op for the same reason
-           otaStage:... answers false: the record came from the gateway. */
+           the stage prims answer false: the record came from the gateway. */
         size_t hn = 0, sn = 0;
         const uint8_t *hp = ota_leaf_bytes(args[0], &hn);
         const uint8_t *sp = ota_leaf_bytes(args[1], &sn);
@@ -1697,6 +1667,33 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
         /* The listener's doorbell reaction calls this until it answers false: accept,
            read and parse stay on the VM thread; false also restores the doorbell. */
         *out = http_poll() ? true_symbol : false_symbol;
+        return 1;
+    }
+    /* rete#440 R5: the stage as the kernel's OtaFetch sees it (ota_backend.h, ota.h).
+       Bytes cross as leaves, as for 145-150; no allocation happens, so the leaf
+       pointers are never held across a GC. A malformed argument answers false: the
+       block reply came off the wire. */
+    case PRIM_pf_otaStageAppend: {
+        /* otaStageAppend: leaf from: i — append leaf[i..] (1-based), one block reply's
+           payload after its header. */
+        size_t n = 0;
+        const uint8_t *p = ota_leaf_bytes(args[0], &n);
+        intptr_t from;
+        if (p == NULL || !IS_SMI(args[1])) { *out = false_symbol; return 1; }
+        from = UNTAG_SMI(args[1]);
+        if (from < 1 || (size_t)(from - 1) > n) { *out = false_symbol; return 1; }
+        *out = ota_stage_append(p + (from - 1), (int)(n - (size_t)(from - 1)))
+                   ? true_symbol : false_symbol;
+        return 1;
+    }
+    case PRIM_pf_otaStageTruncate:
+        ota_stage_truncate();
+        *out = platform_object();
+        return 1;
+    case PRIM_pf_otaStageMatches: {
+        size_t n = 0;
+        const uint8_t *p = ota_leaf_bytes(args[0], &n);
+        *out = (p != NULL && n == 32 && ota_stage_matches(p)) ? true_symbol : false_symbol;
         return 1;
     }
     case PRIM_pf_httpRespond: {                /* httpRespondId: id status: n body: s */
@@ -1836,7 +1833,7 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
            previous alarm resolves NULL and its strike is silently dropped; freeing
            here cannot, because by this point the driver has been repointed.
            The cost is that a FAILED arm leaves the previous pin held with nothing
-           referencing it (zephyr/src/main.c:506 writes oevm_alarm_handle before
+           referencing it (src/backend/zephyr/sleep_zephyr.c rtc_alarm_arm writes oevm_alarm_handle before
            either of its failure returns, so the driver is already pointing at the
            handle freed above). That is bounded at exactly one slot and reclaimed by
            the next successful arm — this variable holds one pin by construction, so

@@ -437,7 +437,7 @@
    UNCONDITIONAL, like buildId and unlike profileStart/profileStop: there is no
    build flag to gate them on, because the gate is the RUNNER'S ENVIRONMENT and
    it is read at run time. With OEVM_IMAGE_HASH unset, otaRunningHash answers
-   nil and otaIsRunning:/otaTrial/otaStage:... answer false; otaConfirm and
+   nil, otaIsRunning:/otaTrial answer false and otaStageSize -1; otaConfirm and
    otaActivate:sig: degrade to a console line. A node launched bare — which is
    every host test in this tree — therefore behaves exactly as it did before
    these six existed.
@@ -454,7 +454,7 @@
 #define PRIM_pf_otaRunningHash    145
 #define PRIM_pf_otaIsRunning      146
 #define PRIM_pf_otaTrial          147
-#define PRIM_pf_otaStage          148
+#define PRIM_pf_otaStageSize      148   /* rete#440 R5: was otaStage:sig:host:port:, the C fetch */
 #define PRIM_pf_otaConfirm        149
 #define PRIM_pf_otaActivate       150
 /* rete#162/#117: the node's per-boot identity. Appended after the entire OTA
@@ -593,4 +593,14 @@
    also restores the listener's doorbell; the kernel's `sys/http/listen` reaction loops until
    false. Appended after consoleTee; 165 by COUNTING PRIM_NAMES. Platform-dispatched. */
 #define PRIM_pf_httpAccept        165
+/* rete#440 R5: the OTA fetch is the kernel's OtaFetch, reactions on the VM thread, so C
+   keeps the stage and the digest and answers them as prims (ota_backend.h, ota.h):
+   148 became `otaStageSize` (the bytes staged, the resume cursor; -1 with no slot), and
+   these three are appended after httpAccept, 166-168 by COUNTING PRIM_NAMES.
+   `otaStageAppend: leaf from: i` appends leaf[i..] (1-based: a block reply's payload
+   after its header) and answers true/false; `otaStageTruncate` empties the slot;
+   `otaStageMatches: hash` answers whether the whole slot hashes to it. Platform-dispatched. */
+#define PRIM_pf_otaStageAppend    166
+#define PRIM_pf_otaStageTruncate  167
+#define PRIM_pf_otaStageMatches   168
 #endif /* OEVM_PRIM_IDS_H */

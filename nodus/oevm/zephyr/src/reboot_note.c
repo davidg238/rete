@@ -1,6 +1,6 @@
 /* rete#215 — the retained panic note on target, plus the fatal-error seam that fills it.
    2026-08-10 §5.1 chose `.rtc_noinit` over CONFIG_RETAINED_MEM and that choice is adopted
-   verbatim; g_rtc in main.c:285 is the second in-tree user, so the section is already
+   verbatim; g_rtc in sleep_zephyr.c is the second in-tree user, so the section is already
    proven here.
 
    THE FATAL SEAM IS ONLY HALF THE PROBLEM, and it is the half that already worked. A

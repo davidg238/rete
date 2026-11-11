@@ -162,7 +162,7 @@ class Bells = () (
 
   (* STATE LIVES IN .rtc.data (design §3), reached through rtcGet:/rtcPut:value:, because
      RAM does not survive the sleep. Field indices are the constants below and are
-     identical to the C struct order in zephyr/src/main.c (OEVM_RTC_FIELDS = 10). Cold
+     identical to the C struct order in src/backend/zephyr/sleep_zephyr.c (OEVM_RTC_FIELDS = 10). Cold
      power-on leaves the struct UNDEFINED (not zeroed), so a magic mismatch means "no valid
      state". *)
   class RtcRecord = ( | private plat | ) (

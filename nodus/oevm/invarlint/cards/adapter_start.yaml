@@ -1,11 +1,16 @@
 # Proposed by Claude 2026-10-18 (invarlint#48) from the last root-bypassed keys, by the Boot precedent
 # (main starts the core): main starts the adapters — pick the program slot, tee the console, bring up
-# the radio. A declared port accepts the crossing, it does not fix it.
+# the radio, arm the GPIO inputs, drive the GPIO outputs inactive, bring up the bell DAC (the last three
+# from rete#440 R6a). A declared port accepts the crossing, it does not fix it.
 name: AdapterStart
 root: true
 does:
-  - the adapters' start, called once by the app's main
+  - "the adapters' start at boot: called once by the app's main, or by a SYS_INIT before main runs"
+    # zephyr/src/main.c: main; src/backend/zephyr/gpio_zephyr.c: gpio_outputs_early_init (rete#440 R6a)
 implemented_by:
   - c: runner_select
   - c: log_udp_start
   - c: oevm_thread_bringup
+  - c: wire_pulse_gpio     # rete#440 R6a: main arms the declared inputs and outputs at boot
+  - c: wire_gpio_outputs
+  - c: bell_bringup

@@ -251,14 +251,11 @@ C_UNIT_TESTS = [
     # tuvm#61: job-latency span slots. span.c has no VM dependencies at all, which
     # is the point — any context may bump a slot.
     ("test_span",             ["src/span.c", f"{_BE}/span_{OEVM_TARGET}.c"], [], None),
-    # rete#25: the C ota seam. ota.c depends on nothing but its two seams, BOTH
-    # stubbed in-file, so the block-fetch loop, the resume arithmetic and the
-    # file-local SHA-256 are proven without a socket, a filesystem or a porta.
+    # rete#25: the C ota seam. ota.c depends on nothing but ota_backend.h, stubbed
+    # in-file, so the stage digest, the runner's markers and the file-local SHA-256
+    # are proven without a filesystem. The fetch is the kernel's since rete#440 R5:
+    # its resume, retry, peer-error and mismatch cases are nodus/tests/24_ota/06-08.
     ("ota_seam_test",         ["src/ota.c", f"{_BE}/platform_{OEVM_TARGET}.c"], [], None),
-    # rete#233 T10: the same seam test with the fetch on the caller's thread — the S2's
-    # build — asserting ota_stage never answers "in progress".
-    ("ota_inchannel_test",    ["src/ota.c", f"{_BE}/platform_{OEVM_TARGET}.c"],
-                              ["-DCONFIG_OEVM_OTA_INCHANNEL=1"], None),
     ("ota_zephyr_test",       ["src/backend/zephyr/ota_zephyr.c"], [], None),
 
     # --- Header-only: no link set at all (offsetof / pure-decision asserts) ---

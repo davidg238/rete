@@ -318,8 +318,9 @@ Zephyr rung transcribes it rather than inventing it. Design:
 
 **What it deliberately did not do**, each with what earns it back:
 
-- **Async fetch.** `otaStage:` blocks; invisible on localhost. Earned by a *measured*
-  check-in stall on a target-class transfer (D7).
+- **Async fetch.** `otaStage:` blocked; invisible on localhost. Earned by a *measured*
+  check-in stall on a target-class transfer (D7): a thread at rete#233 T9, and since
+  rete#440 R5 the kernel's `OtaFetch`, one reaction per block on the VM thread.
 - **Multi-app.** Exactly `apps/main` is read and written (D5). Separately compiled images
   sharing one VM is a VM feature for its own rung, if a fleet ever earns it.
 - **The zephyr OTA backend.** `nodus/oevm/src/backend/zephyr/ota_zephyr.c` exists and is deliberately

@@ -23,7 +23,7 @@ reads a node that is asleep as live until it misses four of them.
 
 State that survives the sleep lives in .rtc.data through rtcGet:/rtcPut:value:
 (design tuvm#94 §3); the field indices below are this node's, and field 0 is the
-magic the C side checks (OEVM_RTC_MAGIC in zephyr/src/main.c).
+magic the C side checks (OEVM_RTC_MAGIC in src/backend/zephyr/sleep_zephyr.c).
 
 Build (debug image, from nodus/oevm/zephyr; the env is prj_esp32s2_porta.conf's):
   OEVM_IRAM_HOT=0 VM_STACK_INIT_WORDS=2048 OEVM_HEAP_SIZE=32768 OEVM_DEBUG_HOOKS=1 \
