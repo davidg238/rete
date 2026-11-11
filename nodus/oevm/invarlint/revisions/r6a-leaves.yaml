@@ -1,0 +1,15 @@
+name: r6a-leaves
+pattern: Move Function
+intent: "the board leaves leave zephyr/src/main.c for one file per seam beside the other Zephyr backends: gpio, display, bell, clock (ntp, wallclock), sleep (rtc, reset cause, alarm, deep sleep) (rete #440, design 2026-11-04 R6)"
+compromise: "names are kept, so every card binding holds unchanged; main.c keeps boot and the app wiring. The prim switch split and the single source list are R6b and R6c"
+ops:
+  - move: {func: gpio_target_set, unit: src/backend/zephyr, into: src/backend/zephyr/gpio_zephyr.c}
+  - move: {func: gpio_target_level, unit: src/backend/zephyr, into: src/backend/zephyr/gpio_zephyr.c}
+  - move: {func: "display_target_*", unit: src/backend/zephyr, into: src/backend/zephyr/display_zephyr.c}
+  - move: {func: "bell_target_*", unit: src/backend/zephyr, into: src/backend/zephyr/bell_zephyr.c}
+  - move: {func: "ntp_target_*", unit: src/backend/zephyr, into: src/backend/zephyr/clock_zephyr.c}
+  - move: {func: "wallclock_target_*", unit: src/backend/zephyr, into: src/backend/zephyr/clock_zephyr.c}
+  - move: {func: "rtc_target_*", unit: src/backend/zephyr, into: src/backend/zephyr/sleep_zephyr.c}
+  - move: {func: reset_cause_timer_wake, unit: src/backend/zephyr, into: src/backend/zephyr/sleep_zephyr.c}
+  - move: {func: rtc_alarm_arm, unit: src/backend/zephyr, into: src/backend/zephyr/sleep_zephyr.c}
+  - move: {func: deep_sleep_target, unit: src/backend/zephyr, into: src/backend/zephyr/sleep_zephyr.c}

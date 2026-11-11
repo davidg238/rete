@@ -1,5 +1,5 @@
 # Accepted by David, 2026-10-18 (a declared port accepts the crossing, it does not fix it); the RTC and sleep
-# leaves moved to Sleep (rete#440 R0). The code fix is R6: the leaves leave main.c.
+# leaves moved to Sleep (rete#440 R0). R6a moves the leaves out of main.c into src/backend/zephyr/{gpio,display,bell,clock}_zephyr.c.
 name: Targets
 root: true
 does:
