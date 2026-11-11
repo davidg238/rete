@@ -23,7 +23,7 @@ pressed. That is the trade the design chose (2026-07-23-magtag-buttons-leds-desi
 Deferred / D7): zero mailbox traffic for held-state, at the cost of not seeing a
 release until the next press.
 
-TRUSTWORTHY BECAUSE DEBOUNCED. main.c fires a press only on a settled
+TRUSTWORTHY BECAUSE DEBOUNCED. gpio_zephyr.c fires a press only on a settled
 released -> pressed transition, so the press that triggers the read is real; and the
 level read itself honours GPIO_ACTIVE_LOW, so `true` means "down" on this ACTIVE_LOW
 board.

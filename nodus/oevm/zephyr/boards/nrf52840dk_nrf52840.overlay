@@ -2,7 +2,7 @@
  * oevm/zephyr — Task 8 (nRF52840-DK acceptance bar). Expose the DK's on-board
  * BUTTON1 (button0 = P0.11, GPIO_PULL_UP | GPIO_ACTIVE_LOW, already defined in
  * the board DTS) as the physical edge source for the pulse seam. The Zephyr
- * GPIO callback in ../src/main.c binds to DT_ALIAS(pulsegpio) and, on each
+ * GPIO callback in ../src/backend/zephyr/gpio_zephyr.c binds to DT_ALIAS(pulsegpio) and, on each
  * press, calls gpio_target_fire(13) — the SAME logical pin the baked node
  * (PulseNodeDK.nsl) registered via `gpio pin: 13 ...`. This overlay is applied
  * automatically for the nrf52840dk/nrf52840 board target; it is absent for the

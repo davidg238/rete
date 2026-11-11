@@ -335,3 +335,4 @@ the cards under `nodus/oevm/invarlint/cards/` are the design of record for the s
   switch split per seam) and **R6c** (one source list for CMake and the host Makefile), each its own PR and gate.
 - What stays in `main.c` is boot and app wiring: Wi-Fi bring-up, the net heartbeat, the MagTag chime spike, the
   solenoid and console strike path, the Model A XIP stubs.
+- R6a's gate is moved keys = predicted plus every board link; `footprint.sh` and `ab.sh` cannot see a move into `src/backend` (#490) and are R6b's.

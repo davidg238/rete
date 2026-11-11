@@ -428,7 +428,7 @@ static void strike_fire(int ms) {
    Two quick strikes, a gap, two more, with a LONE FINAL STROKE for an odd count.
 
    THE GAPS ARE RUNTIME-SETTABLE, and the reason is a bench result: the 160/600 ms
-   pair borrowed from bell_strike_pattern() above was "way too fast" on both gaps
+   pair borrowed from bell_strike_pattern() (bell_zephyr.c) was "way too fast" on both gaps
    (2026-07-31). That is not a bug in either — the DAC bell is a synthetic tone
    that decays in a few hundred ms, while a real bell rings for seconds, so the
    rhythm that suits one crowds the other. Physical decay is a property of the

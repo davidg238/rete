@@ -119,7 +119,7 @@ size_t platform_backend_node_id(char *out, size_t cap);
 size_t platform_backend_board_name(char *out, size_t cap);   /* same contract, for `platform boardName` (prim 159); 0 = not told */
 
 /* tuvm#88: the display character grid, in ONE place because the host grid in
- * platform.c and the CFB grid in zephyr/src/main.c must agree exactly — a
+ * platform.c and the CFB grid in src/backend/zephyr/display_zephyr.c must agree exactly — a
  * divergence makes every host-green display test prove nothing about the board.
  * 128x296 px panel with CFB's font1016 (10x16): 128/10 = 12, 296/16 = 18.
  * NOT 8x8 — CFB ships no 8x8 font; its `ppt` of 8 is a tiling granularity. */
