@@ -2,6 +2,7 @@
 #include "frame_abi.h"
 #include "handles.h"   /* handle_gc_trace */
 #include "space.h"     /* space_gc_trace */
+#include "span_backend.h"     /* OEVM_COMPACT_STRESS times the slide */
 #include "platform_backend.h"   /* platform_console_write: the OOM message must reach the console on every backend */
 #include <stdlib.h>
 #include <stdio.h>
@@ -20,6 +21,21 @@ static inline void hh_set_mark(struct HeapHeader *h) { h->size_mark |= HH_MARK; 
 static inline void hh_clear_mark(struct HeapHeader *h) { h->size_mark &= ~HH_MARK; }
 static inline void hh_init(struct HeapHeader *h, size_t size) { h->size_mark = size; }
 static inline struct HeapHeader **hh_next(struct HeapHeader *h) { return (struct HeapHeader **)(h + 1); }
+
+/* rete#477: during a compaction ONLY, a live block's header holds two half-words in
+   granules: its payload size (high) and the granule its header moves to (low). That
+   needs no side table, and bounds the arena a compaction can serve to 2^16 granules
+   on a 32-bit target (256 KB); larger arenas never compact (COMPACT_FITS). Liveness
+   during the passes is read from the alloc bitmap, not the mark bit. */
+#define HH_HALF_BITS (sizeof(size_t) * 4u)
+#define HH_HALF_MASK (((size_t)1 << HH_HALF_BITS) - 1u)
+static inline size_t hh_packed_size(const struct HeapHeader *h) {
+    return (h->size_mark >> HH_HALF_BITS) * sizeof(oop);
+}
+static inline size_t hh_packed_dest(const struct HeapHeader *h) { return h->size_mark & HH_HALF_MASK; }
+static inline void hh_pack(struct HeapHeader *h, size_t size, size_t dest_granule) {
+    h->size_mark = ((size / sizeof(oop)) << HH_HALF_BITS) | dest_granule;
+}
 
 /* ---- Fixed managed arena (W4) ---------------------------------------- */
 #ifndef OEVM_HEAP_SIZE
@@ -90,6 +106,16 @@ static inline void bin_note_pop(size_t bi) {
 static size_t heap_live_bytes = 0;   /* header+payload bytes live as of the last completed sweep, plus allocations since */
 static size_t heap_high_water = 0;   /* max live_bytes ever observed (monotonic since boot) */
 static size_t heap_gc_cycles  = 0;   /* completed collections since boot */
+
+/* rete#477 safe-point compaction (design 2026-11-09-477, "Safe-point compaction").
+   The trigger is the degenerate one the design names: the last sweep left no free
+   block as large as the largest request seen since boot, while the free TOTAL would
+   hold it — so the shortfall is scatter, which a slide can fix. */
+static size_t heap_max_request = 0;   /* largest `need` gc_allocate has been asked for */
+static int    compact_wanted   = 0;   /* set by a sweep, consumed at the safe point */
+static int    identity_hashed  = 0;   /* sticky: an arena object's address was handed out as a hash */
+static size_t heap_compactions = 0;   /* slides done since boot */
+static size_t heap_compact_skips = 0; /* slides wanted but refused (identity_hashed) */
 
 /* rete#190: C-heap accounting. NOT the GC arena — that is heap_live_bytes above.
    The arena is statically sized and was never under pressure; the leak was here. */
@@ -170,9 +196,14 @@ void heap_init(void) {
     heap_end  = heap_base + OEVM_HEAP_SIZE;
     memset(heap_bitmap, 0, sizeof heap_bitmap);
     for (size_t i = 0; i < FREE_BIN_COUNT; i++) free_bins[i] = NULL;
+    bins_nonempty = 0;     /* both were left over from the last arena until rete#477's */
+    big_free = NULL;       /* test re-initialised one: a stale big_free is a wild pointer */
     heap_live_bytes = 0;
     heap_high_water = 0;
     heap_gc_cycles  = 0;
+    heap_max_request = 0;
+    compact_wanted = identity_hashed = 0;
+    heap_compactions = heap_compact_skips = 0;
     /* Model A/B parity guard: the arena must not overlap the read-only image
        ranges, or mark()'s is_read_only/is_in_blob fences would mis-classify it.
        Ranges may be unset (0/NULL) at first init; only check when set.
@@ -359,6 +390,9 @@ OEVM_HOT oop gc_allocate(oop vtable, size_t size) {
        zero-capacity block; clamp to the minimum granule to keep headers safe. */
     if (rounded == 0) rounded = OEVM_GRANULE;
     size_t need = sizeof(struct HeapHeader) + rounded;
+    /* rete#477 trigger. The Stack is left out: carved once at boot, pinned, and the
+       largest request a node ever makes, it would hold the trigger on for good. */
+    if (need > heap_max_request && vtable != StackVtable) heap_max_request = need;
 
     oop obj = arena_try_alloc(vtable, rounded, need);
     if (obj != NULL) { heap_stats_on_alloc(need); return obj; }
@@ -585,18 +619,26 @@ static oop    mark_stack[OEVM_MARK_STACK_SIZE];
 static size_t mark_sp;            /* next free slot; 0 = empty */
 static int    mark_overflowed;    /* a push was dropped this cycle → recovery rescan */
 
-static void trace_one(oop ptr);   /* forward: traces one already-marked object */
+static void trace_one(oop ptr, int fwd);   /* forward: traces one already-marked object */
 
 /* Forward declaration of push-only mark */
 static void mark(oop ptr);
+static void fwd_slot(oop *slot);
+
+/* rete#477: every reference the collector knows about is visited as a SLOT, so one
+   enumeration serves both jobs: marking (read the slot) and, at a compaction, updating
+   (rewrite the slot to the object's new address). `fwd` is a constant at every call. */
+static OEVM_HOT inline void visit(oop *slot, int fwd) {
+    if (fwd) fwd_slot(slot); else mark(*slot);
+}
 
 /* Trace all pointer fields within an object */
-static OEVM_HOT void trace_object(oop ptr, size_t size) {
+static OEVM_HOT void trace_object(oop ptr, size_t size, int fwd) {
     // Scan the object payload at word granularity
     oop *fields = (oop *)ptr;
     size_t count = size / sizeof(oop);
     for (size_t i = 0; i < count; i++) {
-        mark(fields[i]);
+        visit(&fields[i], fwd);
     }
 }
 
@@ -634,7 +676,7 @@ static OEVM_HOT void mark(oop ptr) {
 /* Trace one already-marked heap object: enqueue each of its child references.
    This is the per-vtable dispatch that used to live inside the recursive mark;
    every child is reached via mark() (an enqueue), never a recursive descent. */
-static OEVM_HOT void trace_one(oop ptr) {
+static OEVM_HOT void trace_one(oop ptr, int fwd) {
     extern oop VtableVtable;
     extern oop FloatVtable;
     extern oop StringVtable;
@@ -642,35 +684,40 @@ static OEVM_HOT void trace_one(oop ptr) {
     extern oop SymbolVtable;
     extern oop StackVtable;
     extern oop ContextVtable;
+    extern oop LargeIntegerVtable;
     extern oop g_active_stack;
 
     if (ptr->vtable == VtableVtable) {
         struct Vtable *vt = (struct Vtable *)ptr;
-        mark(vt->delegate);
+        visit(&vt->delegate, fwd);
         if (vt->bindings != NULL) {
             for (size_t i = 0; i < vt->size; i++) {
-                mark(vt->bindings[i].symbol);
-                mark(vt->bindings[i].method);
+                visit(&vt->bindings[i].symbol, fwd);
+                visit(&vt->bindings[i].method, fwd);
             }
         }
     } else if (StringVtable != NULL && ptr->vtable == StringVtable) {
-        mark(ptr->vtable);          /* leaf: inline bytes are NOT oops — do not scan */
+        visit(&ptr->vtable, fwd);   /* leaf: inline bytes are NOT oops — do not scan */
     } else if (RawBytesVtable != NULL && ptr->vtable == RawBytesVtable) {
         /* RawBytes (Milestone B Task 3): reuses struct String's C layout —
            same leaf reasoning as StringVtable above: the inline bytes are
            NOT oops and must not be scanned by the generic word-count
            fallback (trace_object), which would otherwise misinterpret raw
            byte content as pointers. */
-        mark(ptr->vtable);
+        visit(&ptr->vtable, fwd);
     } else if (SymbolVtable != NULL && ptr->vtable == SymbolVtable) {
         /* rete#190 stage 2: same leaf reasoning as StringVtable/RawBytesVtable
            above — the inline `name` bytes are NOT oops. Before the bytes moved
            inline, Symbol fell through to the generic word-count fallback, which
            scanned a single const char * harmlessly; with inline bytes that
            fallback would misinterpret raw symbol text as pointers. */
-        mark(ptr->vtable);
-    } else if (FloatVtable != NULL && ptr->vtable == FloatVtable) {
-        mark(ptr->vtable);
+        visit(&ptr->vtable, fwd);
+    } else if ((FloatVtable != NULL && ptr->vtable == FloatVtable) ||
+               (LargeIntegerVtable != NULL && ptr->vtable == LargeIntegerVtable)) {
+        /* LargeInteger (rete#477): `sign`/`mag` are raw words. The generic fallback
+           scanned them, which only retained by accident while nothing moved; a
+           compaction would REWRITE a magnitude that happened to equal an address. */
+        visit(&ptr->vtable, fwd);
     } else if (StackVtable != NULL && ptr->vtable == StackVtable) {
         /* Stack (L1 Task 2/3): a first-class heap object holding a region of
            MethodContext frames. The ACTIVE stack (g_active_stack) is skipped
@@ -683,19 +730,20 @@ static OEVM_HOT void trace_one(oop ptr) {
            starting in Task 4; today the active main Stack is the only Stack
            in existence, so the walk body below is still dormant. prev_frame
            is a base-relative SMI (frame_abi.h), never marked directly. */
-        mark(ptr->vtable);
+        visit(&ptr->vtable, fwd);
         if (ptr != g_active_stack) {
             struct Stack *st = (struct Stack *)ptr;
             struct MethodContext *frame = st->sp ?
                 (struct MethodContext *)(st->data + st->current_off) : NULL;
             struct MethodContext *higher = NULL;
             while (frame != NULL) {
-                mark(frame->vtable);
-                mark(frame->home_ctx);   /* relative SMI: mark() no-ops it (frame lives in the marked Stack) */
+                visit(&frame->vtable, fwd);
+                visit(&frame->closure, fwd);
+                /* home_ctx/prev_frame: relative SMIs (frame_abi.h), never addresses */
 
                 oop *regs = frame->regs;
                 oop *end = higher ? (oop *)higher : (st->data + st->sp);
-                for (oop *r = regs; r < end; r++) mark(*r);
+                for (oop *r = regs; r < end; r++) visit(r, fwd);
 
                 higher = frame;
                 frame = frame_link_decode(st->data, frame->prev_frame);
@@ -709,13 +757,13 @@ static OEVM_HOT void trace_one(oop ptr) {
            the flexible slots[] array is NOT covered by the generic
            trace_object word-count fallback. */
         struct Context *c = (struct Context *)ptr;
-        mark(c->base.vtable);
-        mark(c->outer);
-        for (uint32_t i = 0; i < c->num_slots; i++) mark(c->slots[i]);
+        visit(&c->base.vtable, fwd);
+        visit(&c->outer, fwd);
+        for (uint32_t i = 0; i < c->num_slots; i++) visit(&c->slots[i], fwd);
     } else {
         // Trace the object's fields word-by-word (enqueues each pointer).
         struct HeapHeader *header = ((struct HeapHeader *)ptr) - 1;
-        trace_object(ptr, hh_size(header));
+        trace_object(ptr, fwd ? hh_packed_size(header) : hh_size(header), fwd);
     }
 }
 
@@ -735,7 +783,7 @@ void gc_forensics(int *in_progress, unsigned *msp, int *overflowed) {
 static OEVM_HOT void drain_mark_stack(void) {
     while (mark_sp > 0) {
         oop ptr = mark_stack[--mark_sp];
-        trace_one(ptr);            /* may enqueue more via mark() */
+        trace_one(ptr, 0);         /* may enqueue more via mark() */
     }
 }
 
@@ -750,7 +798,7 @@ static void mark_drain_with_recovery(void) {
         uint8_t *cur = heap_base;
         while (cur < heap_top) {
             struct HeapHeader *h = (struct HeapHeader *)cur;
-            if (hh_marked(h)) trace_one((oop)(h + 1));  /* re-enqueue unmarked children */
+            if (hh_marked(h)) trace_one((oop)(h + 1), 0);  /* re-enqueue unmarked children */
             cur += sizeof(struct HeapHeader) + hh_size(h);
         }
         drain_mark_stack();        /* may set mark_overflowed again */
@@ -765,14 +813,16 @@ static void mark_drain_with_recovery(void) {
    loses anything: every frame on this chain is reachable via this walk, and
    the frame STRUCT memory itself is kept alive transitively because it lives
    inside g_active_stack, which is marked as a root above. */
-static OEVM_HOT void scan_vm_stack(void) {
+static OEVM_HOT void scan_vm_stack(int fwd) {
     struct MethodContext *frame = current_frame;
     struct MethodContext *prev_higher_frame = NULL;
 
     while (frame != NULL) {
-        // Trace the header fields of the MethodContext
-        mark(frame->vtable);
-        mark(frame->home_ctx);   /* relative SMI: mark() no-ops it (frame lives in the marked Stack) */
+        // Trace the header fields of the MethodContext. `closure` is the running
+        // closure: the loop re-reads it (never a C local) after every send, so a
+        // compaction must rewrite it (rete#477). home_ctx is a relative SMI.
+        visit(&frame->vtable, fwd);
+        visit(&frame->closure, fwd);
 
         // Deduce the register count based on relative stack offsets
         size_t reg_count = 0;
@@ -786,7 +836,7 @@ static OEVM_HOT void scan_vm_stack(void) {
 
         // Trace all active registers in this frame
         for (size_t i = 0; i < reg_count; i++) {
-            mark(frame->regs[i]);
+            visit(&frame->regs[i], fwd);
         }
 
         prev_higher_frame = frame;
@@ -797,9 +847,12 @@ static OEVM_HOT void scan_vm_stack(void) {
 /* Custom roots callback hook */
 void (*gc_additional_roots_hook)(void) = NULL;
 
-/* Exported mark function for custom roots */
-void mark_object(oop ptr) {
-    mark(ptr);
+/* A root held outside the heap, visited as a slot (rete#477): marked during a
+   collection, rewritten during a compaction. The one root API: space.c, handles.c
+   and the C unit tests' hooks all report their roots through it. */
+static int roots_fwd = 0;
+void gc_root(oop *slot) {
+    visit(slot, roots_fwd);
 }
 
 /* Precise temp-root set for the boot drivers (oevm#21). run_solidified_entry_point
@@ -840,6 +893,113 @@ void gc_temp_roots_reset(int mark) {
     gc_temp_roots_count = mark;
 }
 
+/* Every root outside the heap, as slots: marked (fwd=0) or rewritten (fwd=1). */
+static void visit_roots(int fwd) {
+    // 2. Scan roots: active stack frames
+    scan_vm_stack(fwd);
+
+    // 3. Scan roots: global static vtable variables
+    extern oop IntegerVtable;
+    extern oop FloatVtable;
+    extern oop MethodContextVtable;
+    extern oop SymbolVtable;
+    extern oop StringVtable;
+    extern oop RawBytesVtable;
+    extern oop VtableVtable;
+    extern oop PrimitiveClosureVtable;
+    extern oop BytecodeClosureVtable;
+    extern oop Symbol_value;
+
+    visit(&IntegerVtable, fwd);
+    visit(&FloatVtable, fwd);
+    visit(&MethodContextVtable, fwd);
+    visit(&SymbolVtable, fwd);
+    visit(&StringVtable, fwd);
+    visit(&RawBytesVtable, fwd);
+    visit(&VtableVtable, fwd);
+    visit(&PrimitiveClosureVtable, fwd);
+    visit(&BytecodeClosureVtable, fwd);
+    visit(&Symbol_value, fwd);
+
+    // Milestone C Task 1: the channel-space C substrate (src/space.c) holds
+    // queued event values + registered reaction blocks/owners in its own
+    // static tables, outside every other root set scanned here (not on the
+    // VM stack, not a global vtable/singleton) — trace them explicitly.
+    roots_fwd = fwd;
+    space_gc_trace();
+
+    /* M6 C-boundary handle table (src/handles.c): live entries are GC roots held
+       only in that static table, outside every other root set — trace them. */
+    handle_gc_trace();
+
+    // Mark the execution-context root. Task 6 removed the Fiber wrapper: the running
+    // context is now exactly g_active_stack (this Stack heap object) — its live
+    // frames/registers are traced precisely by scan_vm_stack() below (via
+    // current_frame/vm_stack_ptr), and marking the Stack object itself here keeps
+    // it from being swept.
+    extern oop StackVtable;
+    extern oop ContextVtable;
+    extern oop g_active_stack;
+    visit(&StackVtable, fwd);
+    visit(&ContextVtable, fwd);
+    visit(&g_active_stack, fwd);
+
+    // Mark debugger hook globals (dispatch.c) — NOT in the list above, but
+    // persist across GC cycles after primitive_register_debugger_hook returns.
+    // mark() is a no-op on NULL, so this is safe whether or not they are set.
+    extern oop debugger_hook;
+    extern oop Symbol_debug_;
+    visit(&debugger_hook, fwd);
+    visit(&Symbol_debug_, fwd);
+#ifndef OEVM_NO_DEBUG_HOOKS
+    // rete#313: a replaced method's closure is held only by the patch tables.
+    for (int i = 0; i < method_override_count; i++) {
+        visit(&method_overrides[i].vtable, fwd);
+        visit(&method_overrides[i].selector, fwd);
+        visit(&method_overrides[i].method, fwd);
+    }
+    for (int i = 0; i < method_patch_count; i++) { visit(&method_patches[i].from, fwd); visit(&method_patches[i].to, fwd); }
+#endif
+
+    // Milestone D: the in-flight raised condition (self error:'s argument),
+    // live between vm_raise's longjmp and vm_protected_fire's handler reading
+    // it — held only in this global, not on the VM stack. mark() is a no-op
+    // on NULL, so this is safe whether or not a fire is in progress.
+    extern oop g_raised_condition;
+    visit(&g_raised_condition, fwd);
+
+    // Milestone E Task 1: the captured Kernel module instance (dispatch.c stashes
+    // it at main:args: entry). The error:/error:tag: prims send it
+    // crashRecordTag:text: to build the in-flight Record, so it must outlive any
+    // GC between app entry and a raise. mark() is a no-op on NULL (pre-capture).
+    extern oop g_kernel_instance;
+    visit(&g_kernel_instance, fwd);
+
+    /* oevm#21: the in-flight boot receiver/args, live across the lazy exec-context
+       bootstrap before they are written into a GC-scanned frame. With no
+       conservative C-stack scan these C locals have no other root; mark them here
+       so a GC_STRESS collection during bootstrap cannot sweep the boot entry
+       instance. All NULL/0 outside the boot window (no-ops). */
+    extern oop g_boot_inflight_receiver;
+    extern oop *g_boot_inflight_args;
+    extern int g_boot_inflight_argc;
+    visit(&g_boot_inflight_receiver, fwd);
+    for (int i = 0; i < g_boot_inflight_argc; i++) {
+        visit(&g_boot_inflight_args[i], fwd);
+    }
+
+    /* oevm#21: boot-driver temp roots (instances held across the boot send sequence). */
+    for (int i = 0; i < gc_temp_roots_count; i++) {
+        visit(&gc_temp_roots[i], fwd);
+    }
+
+    // Call custom roots hook if registered
+    if (gc_additional_roots_hook != NULL) {
+        gc_additional_roots_hook();
+    }
+    roots_fwd = 0;
+}
+
 /* Trigger a Mark-and-Sweep Garbage Collection cycle */
 OEVM_HOT void gc_collect(void) {
     // 1. Reset mark tags: linear walk of the arena
@@ -861,103 +1021,7 @@ OEVM_HOT void gc_collect(void) {
         }
     }
 
-    // 2. Scan roots: active stack frames
-    scan_vm_stack();
-
-    // 3. Scan roots: global static vtable variables
-    extern oop IntegerVtable;
-    extern oop FloatVtable;
-    extern oop MethodContextVtable;
-    extern oop SymbolVtable;
-    extern oop StringVtable;
-    extern oop RawBytesVtable;
-    extern oop VtableVtable;
-    extern oop PrimitiveClosureVtable;
-    extern oop BytecodeClosureVtable;
-    extern oop Symbol_value;
-
-    mark(IntegerVtable);
-    mark(FloatVtable);
-    mark(MethodContextVtable);
-    mark(SymbolVtable);
-    mark(StringVtable);
-    mark(RawBytesVtable);
-    mark(VtableVtable);
-    mark(PrimitiveClosureVtable);
-    mark(BytecodeClosureVtable);
-    mark(Symbol_value);
-
-    // Milestone C Task 1: the channel-space C substrate (src/space.c) holds
-    // queued event values + registered reaction blocks/owners in its own
-    // static tables, outside every other root set scanned here (not on the
-    // VM stack, not a global vtable/singleton) — trace them explicitly.
-    space_gc_trace();
-
-    /* M6 C-boundary handle table (src/handles.c): live entries are GC roots held
-       only in that static table, outside every other root set — trace them. */
-    handle_gc_trace();
-
-    // Mark the execution-context root. Task 6 removed the Fiber wrapper: the running
-    // context is now exactly g_active_stack (this Stack heap object) — its live
-    // frames/registers are traced precisely by scan_vm_stack() below (via
-    // current_frame/vm_stack_ptr), and marking the Stack object itself here keeps
-    // it from being swept.
-    extern oop StackVtable;
-    extern oop ContextVtable;
-    extern oop g_active_stack;
-    mark(StackVtable);
-    mark(ContextVtable);
-    mark(g_active_stack);
-
-    // Mark debugger hook globals (dispatch.c) — NOT in the list above, but
-    // persist across GC cycles after primitive_register_debugger_hook returns.
-    // mark() is a no-op on NULL, so this is safe whether or not they are set.
-    extern oop debugger_hook;
-    extern oop Symbol_debug_;
-    mark(debugger_hook);
-    mark(Symbol_debug_);
-#ifndef OEVM_NO_DEBUG_HOOKS
-    // rete#313: a replaced method's closure is held only by the patch tables.
-    for (int i = 0; i < method_override_count; i++) mark(method_overrides[i].method);
-    for (int i = 0; i < method_patch_count; i++) { mark(method_patches[i].from); mark(method_patches[i].to); }
-#endif
-
-    // Milestone D: the in-flight raised condition (self error:'s argument),
-    // live between vm_raise's longjmp and vm_protected_fire's handler reading
-    // it — held only in this global, not on the VM stack. mark() is a no-op
-    // on NULL, so this is safe whether or not a fire is in progress.
-    extern oop g_raised_condition;
-    mark(g_raised_condition);
-
-    // Milestone E Task 1: the captured Kernel module instance (dispatch.c stashes
-    // it at main:args: entry). The error:/error:tag: prims send it
-    // crashRecordTag:text: to build the in-flight Record, so it must outlive any
-    // GC between app entry and a raise. mark() is a no-op on NULL (pre-capture).
-    extern oop g_kernel_instance;
-    mark(g_kernel_instance);
-
-    /* oevm#21: the in-flight boot receiver/args, live across the lazy exec-context
-       bootstrap before they are written into a GC-scanned frame. With no
-       conservative C-stack scan these C locals have no other root; mark them here
-       so a GC_STRESS collection during bootstrap cannot sweep the boot entry
-       instance. All NULL/0 outside the boot window (no-ops). */
-    extern oop g_boot_inflight_receiver;
-    extern oop *g_boot_inflight_args;
-    extern int g_boot_inflight_argc;
-    mark(g_boot_inflight_receiver);
-    for (int i = 0; i < g_boot_inflight_argc; i++) {
-        mark(g_boot_inflight_args[i]);
-    }
-
-    /* oevm#21: boot-driver temp roots (instances held across the boot send sequence). */
-    for (int i = 0; i < gc_temp_roots_count; i++) {
-        mark(gc_temp_roots[i]);
-    }
-
-    // Call custom roots hook if registered
-    if (gc_additional_roots_hook != NULL) {
-        gc_additional_roots_hook();
-    }
+    visit_roots(0);
 
     /* GH#4: all roots are now enqueued — trace the live graph iteratively
        (with overflow recovery) instead of via the old recursive mark. */
@@ -1013,9 +1077,157 @@ OEVM_HOT void gc_collect(void) {
     }
     heap_live_bytes = swept_live;
     heap_gc_cycles++;
+    {
+        size_t largest = (size_t)(heap_end - heap_top);
+        if (big_free != NULL && sizeof(struct HeapHeader) + hh_size(big_free) > largest)
+            largest = sizeof(struct HeapHeader) + hh_size(big_free);
+        compact_wanted = largest < heap_max_request
+                      && (size_t)(heap_end - heap_base) - swept_live >= heap_max_request;
+    }
 
     /* W2a: reclaim dead Float cells (separate malloc-backed arena). */
     float_sweep();
+}
+
+/* ---- rete#477: safe-point compaction --------------------------------------------
+   The ordinary collector stays non-moving. This slide runs only at the safe point
+   (gc_safe_point, from the event loop's wait), where no primitive is mid-flight with
+   an arena pointer in a C local, so every reference is a slot the collector visits
+   (visit_roots + trace_one) and can rewrite. Lisp-2, three passes after a full
+   collection: plan each live block's destination (packed into its header), rewrite
+   every slot, slide. A Stack never moves — frames, vm_stack, current_frame and every
+   `args` vector point INTO it — and a slide never carries an object past it; the
+   space a pinned block leaves below it becomes a free block. */
+
+static int is_pinned(oop obj) {
+    extern oop StackVtable;
+    return StackVtable != NULL && obj->vtable == StackVtable;
+}
+
+/* Pass 2's rewrite: a slot naming a live arena block now names where it will land.
+   Anything else (SMI, nil, ROM, blob, float cell, interior pointer) is left alone. */
+static void fwd_slot(oop *slot) {
+    oop p = *slot;
+    if (IS_SMI(p) || p == NULL || !is_valid_heap_object(p)) return;
+    struct HeapHeader *h = ((struct HeapHeader *)p) - 1;
+    *slot = (oop)(heap_base + hh_packed_dest(h) * OEVM_GRANULE + sizeof(struct HeapHeader));
+}
+
+/* [from, to) is whole former blocks, so it always holds a header and a granule. */
+static void add_free_block(uint8_t *from, uint8_t *to) {
+    struct HeapHeader *h = (struct HeapHeader *)from;
+    hh_init(h, (size_t)(to - from) - sizeof(struct HeapHeader));
+    struct HeapHeader *to_bin = h;
+    if (big_free == NULL || hh_size(h) > hh_size(big_free)) { to_bin = big_free; big_free = h; }
+    if (to_bin != NULL) bin_push(to_bin, bin_index(hh_size(to_bin)));
+}
+
+#define COMPACT_FITS ((OEVM_HEAP_SIZE / OEVM_GRANULE) < ((size_t)1 << HH_HALF_BITS))
+
+/* Slide every live, unpinned block toward heap_base. Returns 1 if it ran. The caller
+   guarantees the safe point; gc_safe_point is the only production caller. */
+int gc_compact(void) {
+    if (heap_base == NULL || !COMPACT_FITS) return 0;
+    if (identity_hashed) { heap_compact_skips++; return 0; }
+#ifdef OEVM_COMPACT_STRESS
+    uint32_t t0 = span_stamp();
+#endif
+    gc_in_progress = 1;                 /* nothing below allocates; say so anyway */
+    gc_collect();                       /* marks + bitmap now name exactly the live set */
+
+    /* Pass 1: plan. `to` is where the next live block lands. */
+    uint8_t *to = heap_base;
+    for (uint8_t *cur = heap_base; cur < heap_top; ) {
+        struct HeapHeader *h = (struct HeapHeader *)cur;
+        size_t size = hh_size(h), blk = sizeof(struct HeapHeader) + size;
+        if (bm_test(bm_granule((oop)(h + 1)))) {
+            if (is_pinned((oop)(h + 1))) to = cur;
+            hh_pack(h, size, (size_t)(to - heap_base) / OEVM_GRANULE);
+            to += blk;
+        }
+        cur += blk;
+    }
+
+    /* Pass 2: rewrite every slot — roots, then every live block's fields. */
+    visit_roots(1);
+    for (uint8_t *cur = heap_base; cur < heap_top; ) {
+        struct HeapHeader *h = (struct HeapHeader *)cur;
+        oop obj = (oop)(h + 1);
+        int live = bm_test(bm_granule(obj));
+        size_t size = live ? hh_packed_size(h) : hh_size(h);
+        if (live) trace_one(obj, 1);
+        cur += sizeof(struct HeapHeader) + size;
+    }
+
+    /* Pass 3: slide, rebuilding headers, the bitmap and the free lists. */
+    for (size_t i = 0; i < FREE_BIN_COUNT; i++) free_bins[i] = NULL;
+    bins_nonempty = 0;
+    big_free = NULL;
+    uint8_t *old_top = heap_top;
+    to = heap_base;
+    for (uint8_t *cur = heap_base; cur < old_top; ) {
+        struct HeapHeader *h = (struct HeapHeader *)cur;
+        oop obj = (oop)(h + 1);
+        if (!bm_test(bm_granule(obj))) { cur += sizeof(struct HeapHeader) + hh_size(h); continue; }
+        size_t size = hh_packed_size(h), blk = sizeof(struct HeapHeader) + size;
+        uint8_t *dest = heap_base + hh_packed_dest(h) * OEVM_GRANULE;
+        if (dest > to) add_free_block(to, dest);   /* the space below a pinned block */
+        bm_clear(bm_granule(obj));
+        if (dest != cur) memmove(dest, cur, blk);
+        hh_init((struct HeapHeader *)dest, size);
+        bm_set(bm_granule((oop)((struct HeapHeader *)dest + 1)));
+        to = dest + blk;
+        cur += blk;
+    }
+    heap_top = to;
+#ifdef OEVM_COMPACT_STRESS
+    size_t slid = (size_t)(old_top - heap_top);
+    memset(heap_top, 0xA5, slid);       /* make a stale pointer loud */
+#endif
+    method_cache_flush();
+    gc_in_progress = 0;
+    compact_wanted = 0;
+    heap_compactions++;
+#ifdef OEVM_COMPACT_STRESS
+    {   /* The build says what it is (a stress build that did not slide would pass), and
+           times the slide, collection included: the design's estimate is 6-10 ms on the C6. */
+        static uint32_t us_max = 0, us_sum = 0, moved = 0;
+        uint32_t us = span_elapsed_us(t0);
+        if (us > us_max) us_max = us;
+        us_sum += us;
+        if (slid) moved++;
+        if (heap_compactions == 1 || heap_compactions % 64 == 0) {
+            char buf[112];
+            int n = snprintf(buf, sizeof buf, "gc: COMPACT_STRESS slides=%u moved=%u us_mean=%u us_max=%u live=%u\n",
+                             (unsigned)heap_compactions, (unsigned)moved,
+                             (unsigned)(us_sum / heap_compactions), (unsigned)us_max, (unsigned)heap_live_bytes);
+            if (n > 0) { platform_console_write(buf, (size_t)n); platform_console_flush(); }
+        }
+    }
+#endif
+    return 1;
+}
+
+/* The safe point: called from the event loop's one wait (platform.c, pumpEvents),
+   before it blocks. Compacts only when the interpreter is not re-entered from C
+   (vm_interp_depth == 1): a nested activation's C caller — vm_on_do, vm_ensure, a
+   prim's send() — may hold an arena pointer in a local, and no slot names it. */
+void gc_safe_point(void) {
+    extern int vm_interp_depth;
+    if (vm_interp_depth != 1) return;
+#ifdef OEVM_COMPACT_STRESS
+    gc_compact();   /* a test build: every safe point slides (zephyr/CMakeLists.txt, env OEVM_COMPACT_STRESS=1) */
+#else
+    if (compact_wanted) gc_compact();
+#endif
+}
+
+/* An arena object's address became a hash (PRIM_identityHash, or hash on a Symbol
+   minted at runtime). Moving it would change the hash, so compaction stops for good:
+   the degenerate rule (rete#477, measured 0 such objects in the check-in app). */
+void gc_note_identity_hash(oop obj) {
+    if (heap_base != NULL && (uint8_t *)obj >= heap_base && (uint8_t *)obj < heap_end)
+        identity_hashed = 1;
 }
 
 /* Heap telemetry accessor (G3/M2, https://github.com/davidg238/nsl-tuvm/issues/3). largest_free_block is computed
@@ -1030,6 +1242,8 @@ struct OevmHeapStats oevm_heap_stats(void) {
     s.live_bytes = heap_live_bytes;
     s.high_water = heap_high_water;
     s.gc_cycles = heap_gc_cycles;
+    s.compactions = heap_compactions;
+    s.compact_skips = heap_compact_skips;
 
     size_t largest = (big_free != NULL) ? hh_size(big_free) : 0;
     for (size_t i = 0; i < FREE_BIN_COUNT; i++) {

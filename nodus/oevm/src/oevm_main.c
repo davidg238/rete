@@ -25,17 +25,8 @@ extern void init_solidified_vtables(void);
 extern void init_reflection_symbols(void);
 extern void reboot_note_init(void);
 extern oop run_solidified_entry_point(void);
-extern void (*gc_additional_roots_hook)(void);
-
-/* Global roots list callback if needed */
-static void oevm_roots_callback(void) {
-    /* Standard GC roots are automatically scanned by the GC (vm_stack, current_frame, g_active_stack) */
-}
 
 int main(void) {
-    /* Set roots callback */
-    gc_additional_roots_hook = oevm_roots_callback;
-
     /* rete#114: same boot order as zephyr/src/main.c and oevm_image_main.c —
        the retained note is validated (or planted, host seam) before the VM
        can read it. */

@@ -19,7 +19,7 @@ extern oop  gc_allocate(oop vtable, size_t size);
 extern void gc_collect(void);
 extern void heap_init(void);
 extern int  gc_is_live(oop);
-extern void mark_object(oop);
+extern void gc_root(oop *slot);
 extern void (*gc_additional_roots_hook)(void);
 
 /* Plain instance vtable: the GC traces the payload word-by-word; the vtable
@@ -33,7 +33,7 @@ static oop chain_head;         /* newest node; reaches the whole chain */
 static oop chain_tail;         /* first/deepest node; survives only via the chain */
 
 /* Precise root: marks just the chain head (transitively reaches all DEPTH nodes). */
-static void root_chain(void) { mark_object(chain_head); }
+static void root_chain(void) { gc_root(&chain_head); }
 
 static volatile int head_live;
 static volatile int tail_live;
@@ -84,7 +84,7 @@ static void test_deep_chain_no_recursion(void) {
 static oop reach_nodes[REACH];     /* roots of a reachable graph (chain) */
 static oop dead_node;              /* allocated, never rooted */
 
-static void root_reach(void) { mark_object(reach_nodes[0]); }  /* head reaches all REACH */
+static void root_reach(void) { gc_root(&reach_nodes[0]); }  /* head reaches all REACH */
 
 static void test_overflow_recovery(void) {
     heap_init();

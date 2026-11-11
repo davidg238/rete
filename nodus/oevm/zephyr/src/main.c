@@ -1580,18 +1580,12 @@ extern const uint8_t oevm_blob_start[], oevm_blob_end[];   /* zephyr/blob.S */
 #endif
 #endif
 
-extern void (*gc_additional_roots_hook)(void);
 extern uint64_t (*oevm_millis)(void);
 
 /* Baked by cmake/gen_build_id.cmake into a generated TU, regenerated every
    build (#56 §5.4). A rodata literal, so `strings zephyr.elf` recovers it —
    which is what makes the ELF archive repairable after the fact. */
 extern const char oevm_build_id[];
-
-static void oevm_roots_callback(void) {
-    /* Standard GC roots (vm_stack, current_frame, g_active_stack) are scanned
-       automatically by gc.c; this gate needs no additional roots. */
-}
 
 static uint64_t zephyr_millis(void) { return (uint64_t)k_uptime_get(); }
 
@@ -1899,7 +1893,6 @@ int main(void) {
     }
 #endif
 
-    gc_additional_roots_hook = oevm_roots_callback;
     oevm_millis = zephyr_millis;
 
     /* rete#215: arm the wedge detector before the VM runs, and AFTER the radio — a node

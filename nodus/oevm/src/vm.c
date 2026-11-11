@@ -73,6 +73,11 @@ struct MethodContext *current_frame = NULL;
    Built as "unwind to a marked frame" — in D exactly one marker exists, but the
    code path is the general one so phase-2 on:do: generalizes it (exceptions.md C4). */
 static jmp_buf *g_protect_top = NULL;   /* NULL = no protection active */
+/* rete#477: how many run_interpreter activations are on the C stack. The safe point
+   compacts only at 1, where no C caller of a nested activation holds an arena pointer
+   in a local. A longjmp skips the decrement, so each setjmp site restores it. */
+int vm_interp_depth = 0;
+
 oop g_raised_condition = NULL;          /* rooted by gc_collect; see gc.c */
 /* Milestone E Task 1: the Kernel module instance (Kernel usingPlatform: platform), the
    only object that reaches the `Record` class from any context. The error:/error:tag:
@@ -166,6 +171,7 @@ oop vm_protected_fire(oop block, oop value) {
     size_t saved_sp             = vm_stack_ptr;
     struct MethodContext *saved_frame = current_frame;
     int saved_temp_roots        = gc_temp_roots_mark();
+    int saved_depth             = vm_interp_depth;
     oop result;
     g_protect_top = &env;
     if (setjmp(env) == 0) {
@@ -173,6 +179,7 @@ oop vm_protected_fire(oop block, oop value) {
         result = NULL;                     /* block result discarded; clean == nil */
     } else {
         vm_stack_ptr        = saved_sp;
+    vm_interp_depth     = saved_depth;
         current_frame       = saved_frame;
         gc_temp_roots_reset(saved_temp_roots);
         result              = g_raised_condition;
@@ -207,6 +214,7 @@ oop vm_on_do(oop protBlock, oop predBlock, oop handlerBlock) {
     size_t saved_sp             = vm_stack_ptr;
     struct MethodContext *saved_frame = current_frame;
     int saved_temp_roots        = gc_temp_roots_mark();
+    int saved_depth             = vm_interp_depth;
     oop arg = NULL;                        /* protected block is zero-arg; ignored */
     g_protect_top = &env;
     if (setjmp(env) == 0) {
@@ -216,6 +224,7 @@ oop vm_on_do(oop protBlock, oop predBlock, oop handlerBlock) {
     }
     /* Caught a fault: unwind to this frame (mirror vm_protected_fire). */
     vm_stack_ptr        = saved_sp;
+    vm_interp_depth     = saved_depth;
     current_frame       = saved_frame;
     gc_temp_roots_reset(saved_temp_roots);
     /* Restore the OUTER protection level BEFORE evaluating pred/handler or
@@ -267,6 +276,7 @@ oop vm_ensure(oop protBlock, oop cleanupBlock) {
     size_t saved_sp             = vm_stack_ptr;
     struct MethodContext *saved_frame = current_frame;
     int saved_temp_roots        = gc_temp_roots_mark();
+    int saved_depth             = vm_interp_depth;
     oop arg = NULL;                        /* prot + cleanup are zero-arg; ignored */
     g_protect_top = &env;
     if (setjmp(env) == 0) {
@@ -286,6 +296,7 @@ oop vm_ensure(oop protBlock, oop cleanupBlock) {
     }
     /* Caught a fault: unwind to this frame (mirror vm_on_do). */
     vm_stack_ptr        = saved_sp;
+    vm_interp_depth     = saved_depth;
     current_frame       = saved_frame;
     gc_temp_roots_reset(saved_temp_roots);
     /* Restore the OUTER protection level BEFORE running cleanup / re-raising, so a
@@ -1011,6 +1022,7 @@ static inline struct MethodContext *home_ctx_frame(oop home) {
  * C caller — the loop never recurses on the hot send path.
  */
 OEVM_HOT oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
+    vm_interp_depth++;
     /* oevm#21: any allocation between here and where `receiver`/`args` are written
        into the (GC-scanned) frame can sweep them, since with no conservative
        C-stack scan they have no other root. That window exists ONLY on the first
@@ -1765,6 +1777,7 @@ exit_frame:
        and have been removed. */
     vm_stack_ptr = saved_stack_ptr;
     current_frame = frame_link_decode(vm_stack, entry_prev_link);
+    vm_interp_depth--;
     return return_val;
 }
 

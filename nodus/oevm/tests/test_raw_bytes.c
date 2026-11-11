@@ -56,7 +56,7 @@ extern oop  platform_object(void);
 
 extern void gc_collect(void);
 extern int  gc_is_live(oop ptr);
-extern void mark_object(oop ptr);
+extern void gc_root(oop *slot);
 extern void (*gc_additional_roots_hook)(void);
 
 /* Build (and INTERN) a selector Symbol (mirrors tests/test_platform.c's sel()).
@@ -147,10 +147,10 @@ static void expect_abort(const char *label, const char *expected_err) {
 static oop g_raw = NULL;
 static oop g_frozen = NULL;
 static void raw_bytes_roots(void) {
-    mark_object(g_raw);
-    mark_object(g_frozen);
+    gc_root(&g_raw);
+    gc_root(&g_frozen);
     /* rete#275: selectors are heap objects now and must survive the collection. */
-    for (int i = 0; i < g_nsels; i++) mark_object(g_sels[i]);
+    for (int i = 0; i < g_nsels; i++) gc_root(&g_sels[i]);
 }
 
 int main(void) {

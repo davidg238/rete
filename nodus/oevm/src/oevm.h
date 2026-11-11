@@ -250,7 +250,10 @@ oop float_alloc(oop vtable);
 
 /* The collector's entry points (src/gc.c), declared once here (invarlint#48). */
 oop  gc_allocate(oop vtable, size_t size);
-void mark_object(oop ptr);
+void gc_root(oop *slot);                /* a root outside the heap, as a slot (rete#477) */
+int  gc_compact(void);                  /* rete#477: slide; only at the safe point */
+void gc_safe_point(void);               /* the event loop's wait: compact if it pays */
+void gc_note_identity_hash(oop obj);    /* an address became a hash: stop compacting */
 void gc_temp_root_push(oop o);
 void gc_temp_roots_clear(void);
 int  gc_temp_roots_mark(void);          /* save ... */
@@ -602,6 +605,8 @@ struct OevmHeapStats {
     size_t high_water;          /* max of live_bytes ever observed (monotonic since boot) */
     size_t largest_free_block;  /* max free extent available right now: max(largest free-bin block payload, heap_end - heap_top) */
     size_t gc_cycles;           /* completed collections since boot */
+    size_t compactions;         /* rete#477: safe-point slides since boot */
+    size_t compact_skips;       /* rete#477: slides wanted but refused (an identity hash was taken) */
 };
 struct OevmHeapStats oevm_heap_stats(void);
 

@@ -4,7 +4,7 @@
          src/vm.c src/gc.c src/dispatch.c src/oimg_loader.c src/solidified_image.c \
          -lm -o /tmp/tgct && /tmp/tgct
    Verifies: (1) an oop registered as a precise root (gc_additional_roots_hook /
-   mark_object — the conservative C-stack scan this originally exercised was
+   gc_root — the conservative C-stack scan this originally exercised was
    deleted in de-recursify Phase 3, fiber_derecursify_core_design.md 6d) survives
    gc_collect; (2) the exhaustion path collects + retries rather than aborting,
    and reclaims a bounded rolling root set within a small cap. */
@@ -18,18 +18,18 @@ extern void gc_collect(void);
 extern void heap_init(void);
 extern int  gc_is_live(oop);
 extern void (*gc_additional_roots_hook)(void);
-extern void mark_object(oop);
+extern void gc_root(oop *slot);
 
 /* A minimal vtable so allocated objects look like ordinary instances to the
    GC (payload is traced word-by-word; NULL/SMI words are ignored by mark). */
 static struct Vtable PlainVtable;
 
-/* Registered as a precise root (gc_additional_roots_hook / mark_object) across
+/* Registered as a precise root (gc_additional_roots_hook / gc_root) across
    the collection — the conservative C-stack scan this used to rely on is
    deleted (de-recursify Phase 3, fiber_derecursify_core_design.md 6d); a bare
    C local is no longer sufficient to root an oop through gc_collect(). */
 static oop g_precise_root_obj;
-static void root_precise_obj(void) { mark_object(g_precise_root_obj); }
+static void root_precise_obj(void) { gc_root(&g_precise_root_obj); }
 
 __attribute__((noinline))
 static int precise_root_survives(void) {
@@ -46,7 +46,7 @@ static int precise_root_survives(void) {
 /* Rolling root set: only these survive each collection. */
 #define ROLL 8
 static oop roll[ROLL];
-static void roll_roots(void) { for (int i = 0; i < ROLL; i++) mark_object(roll[i]); }
+static void roll_roots(void) { for (int i = 0; i < ROLL; i++) gc_root(&roll[i]); }
 
 __attribute__((noinline))
 static void exhaustion_reclaims(void) {

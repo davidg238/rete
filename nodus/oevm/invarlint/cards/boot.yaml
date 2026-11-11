@@ -10,6 +10,8 @@ implemented_by:
   - c: oimg_load_blob
   - c: oimg_root
   - c: ota_sha256
+  - c: gc_collect      # rete#477: the moving collector rewrites every root it relocates (David, 2026-11-10)
+  - c: gc_compact
 # owns: accepted by David, 2026-10-18 (invarlint#48, proposal row 5); Symbol_* moved to WellKnownSymbols.
 owns:
   - global:builtin_registry

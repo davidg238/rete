@@ -408,20 +408,20 @@ oop space_dequeue(void) {
 void space_gc_trace(void) {
     for (size_t k = 0; k < q_count; k++) {
         size_t idx = (q_head + k) % OEVM_SPACE_QUEUE_DEPTH;
-        if (queue[idx].live) mark_object(queue[idx].value);
+        if (queue[idx].live) gc_root(&queue[idx].value);
     }
     for (int i = 0; i < n_channels; i++) {
         struct SpaceChannel *c = &channels[i];
         for (int r = 0; r < c->n_reactions; r++) {
-            mark_object(c->reactions[r].block);
-            mark_object(c->reactions[r].owner);
+            gc_root(&c->reactions[r].block);
+            gc_root(&c->reactions[r].owner);
         }
         /* Rung 9: a cell's value is a GC root. It is reachable from NOTHING else
            in the heap — that is the whole point of a cell: it outlives the job
            that wrote it, and outlives the queued event that announced it (which
            space_dequeue kills on delivery). Miss this line and a running plant
            gets a collected setpoint. Guarded by nodus/tests/15_cells/05_gc_root. */
-        if (c->kind == SPACE_KIND_CELL && c->value) mark_object(c->value);
+        if (c->kind == SPACE_KIND_CELL && c->value) gc_root(&c->value);
     }
 }
 

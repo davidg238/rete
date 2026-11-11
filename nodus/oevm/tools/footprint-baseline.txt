@@ -1,4 +1,12 @@
-# T0.3 footprint baseline — HOST config. Re-banked 2026-11-07 for rete#440 R1 (David's yes, 2026-11-07).
+# T0.3 footprint baseline — HOST config. Re-banked 2026-11-10 for rete#477 (David: yes, re-bank).
+#
+#  +1564 B  80562 -> 82126, measured on msi-7d43 at 4ba8f902 (branch 477-compaction, base master 00dc3d34):
+#             +45  master 00dc3d34 (80607), inside the 2 %, not attributed.
+#           +1519  rete#477 safe-point compaction (gc_compact, gc_safe_point). Per object against the bank:
+#                  gc.o +1343, platform.o +95, vm.o +78, the rest under 20 B each.
+#           Bought: the host check-in app runs in a 20 KB arena (fails without the slide). data+bss +32.
+#
+# Previous header (2026-11-07): Re-banked 2026-11-07 for rete#440 R1 (David's yes, 2026-11-07).
 #
 #  +1725 B  78837 -> 80562, measured on msi-7d43 at branch 440-r1-arrivals (base master 18299788):
 #            +976  master 18299788 already measured 79813 (+1.24 %, inside the 2 %, never re-banked).
@@ -86,26 +94,28 @@
 # 61049 -> 67661 by adding four TUs the gate had never weighed (ota.c, span.c,
 # handles.c, and timer_posix.o — which was compiled and then omitted from its own
 # `size -t` line), of which only +8 B was real drift.
+  434 |         if (f) { (void)fread(g_rtc, sizeof(int32_t), OEVM_RTC_FIELDS, f); fclose(f); }
+      |                        ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
    text	   data	    bss	    dec	    hex	filename
-  17770	     20	   1200	  18990	   4a2e	vm.o
-  17674	   1373	 132832	 151879	  25147	dispatch.o
-   5094	     24	17048448	17053566	104377e	gc.o
+  17848	     20	   1200	  19068	   4a7c	vm.o
+  17687	   1373	 132832	 151892	  25154	dispatch.o
+   6437	     24	17048480	17054941	1043cdd	gc.o
     577	   1008	      4	   1589	    635	kernel_boot.o
-  13456	     24	   1064	  14544	   38d0	platform.o
+  13551	     24	   1064	  14639	   392f	platform.o
     510	      0	     88	    598	    256	serial.o
-   1017	      0	     88	   1105	    451	udp.o
+   1032	      0	     88	   1120	    460	udp.o
     474	      0	      0	    474	    1da	http.o
    2703	      4	    400	   3107	    c23	http_core.o
    1916	      0	     88	   2004	    7d4	mirror.o
    2652	      0	    312	   2964	    b94	oimg_loader.o
-   3231	      0	  16448	  19679	   4cdf	space.o
+   3224	      0	  16448	  19672	   4cd8	space.o
     602	      0	    544	   1146	    47a	handles.o
    4601	      0	    176	   4777	   12a9	ota.o
     613	      0	    800	   1413	    585	span.o
    3321	     12	   1156	   4489	   1189	platform_posix.o
     336	      0	   4128	   4464	   1170	serial_posix.o
-   1788	      0	    224	   2012	    7dc	udp_posix.o
-   1086	      8	      0	   1094	    446	http_posix.o
-   1141	      4	   1056	   2201	    899	timer_posix.o
-  80562	   2477	17209056	17292095	107db3f	(TOTALS)
-data+bss (host proxy for MCU static RAM): 17211533
+   1794	      0	    224	   2018	    7e2	udp_posix.o
+   1098	      8	      0	   1106	    452	http_posix.o
+   1150	      4	   1056	   2210	    8a2	timer_posix.o
+  82126	   2477	17209088	17293691	107e17b	(TOTALS)
+data+bss (host proxy for MCU static RAM): 17211565

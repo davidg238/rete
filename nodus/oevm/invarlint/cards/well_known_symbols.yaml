@@ -11,3 +11,5 @@ implemented_by:
   - c: kernel_boot
   - c: run_interpreter
   - c: primitive_register_debugger_hook
+  - c: gc_collect      # rete#477: the moving collector rewrites every root it relocates (David, 2026-11-10)
+  - c: gc_compact

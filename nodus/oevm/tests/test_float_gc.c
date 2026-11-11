@@ -13,7 +13,7 @@ extern oop    float_alloc(oop vtable);
 extern oop    gc_allocate(oop vtable, size_t size);
 extern void   gc_collect(void);
 extern void   heap_init(void);
-extern void   mark_object(oop);
+extern void   gc_root(oop *slot);
 extern void (*gc_additional_roots_hook)(void);
 
 extern size_t float_arena_slab_count(void);
@@ -32,7 +32,7 @@ static struct Vtable PlainVtable;
 
 /* File-static holder used by the gc_additional_roots_hook below. */
 static oop holder_root;
-static void keep_holder(void) { mark_object(holder_root); }
+static void keep_holder(void) { gc_root(&holder_root); }
 
 /* (2f) Transitive float survival: a Float stored in a heap object's field is
    reached by trace_object -> mark -> float_mark and survives gc_collect even
@@ -116,7 +116,7 @@ static void test_reclaim_reuse(void) {
 /* (2c) Mixed liveness: marked Floats survive, unmarked are reclaimed. */
 #define KEEP 4
 static oop kept[KEEP];
-static void keep_roots(void) { for (int i = 0; i < KEEP; i++) mark_object(kept[i]); }
+static void keep_roots(void) { for (int i = 0; i < KEEP; i++) gc_root(&kept[i]); }
 static void test_mixed_liveness(void) {
     gc_additional_roots_hook = keep_roots;
     for (int i = 0; i < KEEP; i++) { kept[i] = float_alloc(VT); ((struct Float *)kept[i])->value = 100.0 + i; }
@@ -147,7 +147,7 @@ static void test_hooks_basic(void) {
 
 /* (2d) Regression: stale markbit on a pristine bump cell must be cleared.
  *
- * Scenario: the conservative C-stack scan (or mark_object) sets the markbit
+ * Scenario: the conservative C-stack scan (or gc_root) sets the markbit
  * of a pristine cell (index >= float_slab_used) before it is handed out.
  * float_sweep() only visits [0, float_slab_used), so the bit is NEVER cleared
  * by the sweep. The next float_alloc() (bump path) hands out that cell; the
@@ -158,7 +158,7 @@ static void test_hooks_basic(void) {
  * returning. This test FAILS without that one-liner and PASSES with it.
  */
 static void test_pristine_markbit_cleared(void) {
-    /* Conservative scan is gone; only explicit mark_object() below is in play. */
+    /* Conservative scan is gone; only explicit gc_root(&) below is in play. */
 
     /* Drain the free-list: prior tests may have left reclaimed cells there.
        float_alloc draws from the free-list before the bump cursor, so we must
@@ -178,7 +178,7 @@ static void test_pristine_markbit_cleared(void) {
 
     /* Step 3: mark the pristine cell as if the conservative scan saw its address.
        This sets its markbit even though float_slab_used hasn't reached it yet. */
-    mark_object(pristine);
+    gc_root(&pristine);
 
     /* Step 4: bump-allocate — free-list is empty, so this MUST use the bump path
        and return that same pristine cell. */

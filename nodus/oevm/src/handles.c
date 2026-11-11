@@ -1,6 +1,6 @@
 /* M6 C-boundary handle table — see src/handles.h. Storage mirrors src/space.c's
    static-table idiom (fixed array, -D capacity, bare-frozen-string abort on full);
-   marking mirrors space_gc_trace (iterate live slots, mark_object each). */
+   marking mirrors space_gc_trace (iterate live slots, gc_root each). */
 #include "handles.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -64,7 +64,7 @@ void handle_free(int handle) {
 void handle_gc_trace(void) {
     int i;
     for (i = 0; i < OEVM_HANDLE_TABLE_MAX; i++)
-        if (handles[i].live) mark_object(handles[i].value);
+        if (handles[i].live) gc_root(&handles[i].value);
 }
 
 unsigned handle_live_count(void) { return handles_live; }

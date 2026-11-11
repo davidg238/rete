@@ -1,4 +1,13 @@
 # T0.3 footprint baseline — MCU config (arm-zephyr-eabi, cortex-m4).
+# Re-banked 2026-11-10 for rete#477 (David: yes, re-bank).
+#
+#  +1243 B  text, 46893 -> 48136, measured on msi-7d43 at 4ba8f902 (FOOTPRINT_CONFIG=mcu):
+#            +269  master 00dc3d34 (47162), inside the 2 %, never re-banked; not attributed.
+#            +974  rete#477 safe-point compaction (gc_compact, gc_safe_point).
+#           Bought: the host check-in app runs in a 20 KB arena (fails without the slide).
+#   +24 B  data+bss, 73596 -> 73620: master -4, rete#477 +28.
+#
+# Previous bank:
 # Re-banked 2026-10-13 for rete#415 (David: re-bank the footprint).
 #
 #   +963 B  text, 45930 -> 46893, measured on msi-7d43 at 48f51ebf (FOOTPRINT_CONFIG=mcu):
@@ -113,5 +122,5 @@
 #  what was broken was footprint.sh's un-SKIP instruction, which named a deleted
 #  path. That bank split 34488 -> 38872 into +3108 B of enrolment (ota.c + span.c)
 #  and +1276 B of real drift.
-text 46893
-data_bss 73596
+text 48136
+data_bss 73620
