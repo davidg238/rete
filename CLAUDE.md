@@ -30,6 +30,7 @@ nodus/       the device end
   nsl/       the dialect, its compiler and the kernel
   tests/     the nsl suite
 protocol/    the contract every peer answers to, and the Go module of the code they share (the Toit-era protocol is archived under protocol/archive/)
+relay/       the BLE relays (android/, linux/): a Bluetooth node's bridge to porta, held to protocol/RELAY-BLE.md
 review/      David's review-agent tree: the program ladder and the claims ledger
 docs/        the VM's own documents, the design records and the execution plans
 tools/       repo-wide scripts (docmap.sh)
@@ -62,8 +63,8 @@ that makes one peer compile against another is a bug, not a convenience (#338).
   VSA measurements at house-pet scale). Both are **private, Python, and worked on the
   z170** — a local clone here goes stale silently, so `git fetch` before citing any number
   from either. They are read as evidence, never imported; nothing in `rete` depends on them.
-  **ttgm is proprietary (David, 2026-10-27):** drivers may come into rete; ttgm's board programs, overlays and
-  schematics (OCM, ACC01) stay in `~/workspace/ttgm` — build against them by path, never copy them in.
+  **ttgm is proprietary (David, 2026-10-27):** drivers may come into rete; board programs, overlays and
+  schematics stay in `~/workspace/ttgm` (ACC01, BLE) and `~/workspace/ocm` (OCM.1, Thread; split out 2026-11-11) — build against them by path, never copy them in.
   **cabot may depend on rete; rete never depends on cabot; prims live in rete, apps in cabot**
   (David, 2026-10-04, confirming the 2026-09-17 relay). No cabot work until the local-first custos focus is complete.
 - Cross-repo document map: `review/DOCMAP.md` (regenerate with `tools/docmap.sh`).
