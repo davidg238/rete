@@ -82,22 +82,6 @@ config OEVM_WEDGE_FORENSICS
 	  Not default-on: the selects cost SRAM (INIT_STACKS paints every stack) and the
 	  T0.3 footprint ratchet is 75% spent. Turn it on for a hunt, not for a ship.
 
-# rete#233 T10. Default n: the fetch runs on its own thread (T9) wherever the board can
-# afford the stack, because a blocking stage is exactly what the observer's app-stale
-# rule reboots on an always-on node. Set by prj_esp32s2_ota.conf and nothing else: a
-# deep-sleep node has nothing to do while awake but this, its app-stale deadline is
-# 8 x 1860 s, and the S2's dram0 cannot hold the thread. With it, `otaStage:` answers
-# true or false and never an Integer, so the check-in that reads the goal stages and the
-# next one activates — the two the MagTag already makes.
-config OEVM_OTA_INCHANNEL
-	bool "Stage a pushed program on the VM thread, blocking the check-in (rete#233 T10)"
-	default n
-	help
-	  The fetch thread and its stack are not linked; ota_stage runs the fetch to
-	  completion before answering. Only for a node whose app-stale deadline is
-	  longer than a whole transfer — the deep-sleep MagTag. If this is set in an
-	  always-on build, that build is wrong.
-
 # rete#440 R1: the Net reader (src/backend/zephyr/udp_zephyr.c) waits in zsock_poll over
 # the VM's sockets and the http listener, plus one eventfd that wakes it when that set
 # changes. Every socket build links udp_zephyr.c (a Bluetooth build links udp_ble.c,

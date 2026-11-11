@@ -490,8 +490,9 @@ divides by several hundred. The `obs/debug` cell reports the hold, so a monitor 
 and the debug image no longer waits at boot for a cable (#376).
 
 **Program over the air (#233).** The firmware holds two program slots and runs one in place; a push is a signed
-record in the goal tree naming an image porta serves in 256-byte blocks; the node fetches it into the other slot on
-its own thread while it keeps checking in, reboots once into it, and the firmware confirms the new image at its first
+record in the goal tree naming an image porta serves in 256-byte blocks; the node fetches it into the other slot
+block by block while it keeps checking in (on a thread when measured below; as reactions on the VM thread since
+rete#440 R5, not yet measured on a board), reboots once into it, and the firmware confirms the new image at its first
 exchange or resets after 150 s and reverts to the previous slot. On a bench C6 over Thread on 2026-10-10 [Field]: a 167 KB
 image fetched at 3.3 KB/s, 64 s from push to confirmed; an image that never checked in was reverted after exactly 150 s;
 a flipped signature byte was refused before the image ran; a reset half-way through the fetch cost one full refetch
@@ -504,7 +505,7 @@ cable) [Field]:
 | Measure | MagTag, WiFi, deep sleep | wall C6, Thread, always on |
 |---|---|---|
 | Image | 177 KB | 131 KB |
-| Stage | 9 s, inside the awake window, in the check-in itself | 30 s (about 4.4 KB/s) on its fetch thread, checking in every 30 s throughout |
+| Stage | 9 s, inside the awake window, in the check-in itself | 30 s (about 4.4 KB/s) on its fetch thread then (reactions since rete#440 R5), checking in every 30 s throughout |
 | Goal written to confirmed | not timed: the goal waits for the next wake, whose check-ins stage, reboot and confirm | 3 min |
 | Next bell | 18:30, on time | 18:30, on time |
 

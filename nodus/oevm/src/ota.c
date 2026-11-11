@@ -1,16 +1,16 @@
 /* Copyright (c) 2026 Ekorau LLC */
 #include "ota.h"
 #include "ota_backend.h"
-#include "udp_backend.h"
 #include "platform_backend.h"   /* console output goes through the seam, NOT printf */
 #include <string.h>
 
 /* rete#25 — the node's image-push seam. See ota.h for the contract and
  * docs/design/2026-08-07-code-push-host-slice-design.md §4 for the why.
  *
- * Everything below is written against two seams and nothing else, so the whole
- * file ports to zephyr through backend/zephyr/ota_zephyr.c, which exists and is
- * deliberately inert until there is a real flash map to write against.
+ * Everything below is written against one seam (ota_backend.h) and the console,
+ * so the whole file ports to zephyr through backend/zephyr/ota_zephyr.c. The fetch
+ * is not here: since rete#440 R5 it is the kernel's OtaFetch, reactions on the VM
+ * thread (nodus/nsl/lib/kernel.nsl), and C keeps the bytes and the digest.
  *
  * The SHA-256 here is FILE-LOCAL ON PURPOSE. A separate sha256.c would be a
  * tenth entry in every one of the enumerated source lists (#63), and this tree
@@ -126,21 +126,6 @@ static void say(const char *msg) {
     platform_console_flush();
 }
 
-static void say_n(const char *msg, long n) {
-    char num[24];
-    int i = 0;
-    if (n < 0) { num[i++] = '-'; n = -n; }
-    char d[20]; int nd = 0;
-    do { d[nd++] = (char)('0' + (int)(n % 10)); n /= 10; } while (n);
-    while (nd) num[i++] = d[--nd];
-    num[i] = '\0';
-    platform_console_write("ota: ", 5);
-    platform_console_write(msg, strlen(msg));
-    platform_console_write(num, strlen(num));
-    platform_console_write("\n", 1);
-    platform_console_flush();
-}
-
 /* ------------------------------------------------------------------ */
 /* hex                                                                 */
 /* ------------------------------------------------------------------ */
@@ -154,79 +139,20 @@ static int unhex_nib(int ch) {
 
 
 /* ------------------------------------------------------------------ */
-/* the block-fetch client — porta/internal/blockserv is the counterparty */
-/* ------------------------------------------------------------------ */
-#define OTA_BLOCK        256   /* blockserv.BlockSize; a 6LoWPAN-safe payload */
-#define OTA_REQ_LEN      37    /* 0x01 | hash[32] | blockNo u32 BE */
-#define OTA_RESP_HDR     6     /* 0x02 | blockNo u32 BE | more u8 */
-#define OTA_ATTEMPTS     5     /* per block, then the stage fails this tick */
-#define OTA_POLL_MS      5     /* udp_receive is non-blocking on every backend */
-#define OTA_POLLS        200   /* 200 * 5 ms == the 1 s per-attempt budget */
-
-/* Answers 1 on success (filling out, out_len and more), 0 on an exhausted retry
- * budget, -1 on a peer error frame (0x7F) — which is NOT retried, because
- * "unknown hash" is a state at porta, not a lost datagram. */
-static int fetch_block(int sock, const char *host, int port,
-                       const uint8_t hash[32], uint32_t blk,
-                       uint8_t *out, int *out_len, int *more) {
-    uint8_t req[OTA_REQ_LEN];
-    req[0] = 0x01;
-    memcpy(req + 1, hash, 32);
-    req[33] = (uint8_t)(blk >> 24); req[34] = (uint8_t)(blk >> 16);
-    req[35] = (uint8_t)(blk >> 8);  req[36] = (uint8_t)blk;
-
-    uint8_t resp[OTA_RESP_HDR + OTA_BLOCK + 64];
-    char peer[64];
-    int peer_port = 0;
-
-    for (int attempt = 0; attempt < OTA_ATTEMPTS; attempt++) {
-        if (udp_send(sock, host, port, req, OTA_REQ_LEN) != OTA_REQ_LEN) {
-            ota_sleep_ms(OTA_POLL_MS);
-            continue;
-        }
-        for (int poll = 0; poll < OTA_POLLS; poll++) {
-            int n = udp_receive(sock, resp, (int)sizeof resp,
-                                peer, (int)sizeof peer, &peer_port);
-            if (n < 0) { ota_sleep_ms(OTA_POLL_MS); continue; }
-            if (n >= 1 && resp[0] == 0x7F) {
-                char msg[96];
-                int m = n - 1;
-                if (m > (int)sizeof msg - 1) m = (int)sizeof msg - 1;
-                memcpy(msg, resp + 1, (size_t)m);
-                msg[m] = '\0';
-                platform_console_write("ota: peer error: ", 17);
-                platform_console_write(msg, (size_t)m);
-                platform_console_write("\n", 1);
-                platform_console_flush();
-                return -1;
-            }
-            if (n < OTA_RESP_HDR || resp[0] != 0x02) continue;  /* not ours */
-            uint32_t got = ((uint32_t)resp[1] << 24) | ((uint32_t)resp[2] << 16) |
-                           ((uint32_t)resp[3] << 8)  |  (uint32_t)resp[4];
-            if (got != blk) continue;                 /* a late duplicate */
-            int len = n - OTA_RESP_HDR;
-            if (len > OTA_BLOCK) return -1;           /* over-long: a bad peer */
-            memcpy(out, resp + OTA_RESP_HDR, (size_t)len);
-            *out_len = len;
-            *more = resp[5] ? 1 : 0;
-            return 1;
-        }
-    }
-    return 0;
-}
-
-/* ------------------------------------------------------------------ */
 /* staged-slot digest                                                  */
 /* ------------------------------------------------------------------ */
-/* 1 when the first `len` bytes of the slot hash to `want`. */
-static int staged_hash_is(const uint8_t want[32], long len) {
+#define OTA_CHUNK 256   /* the read size of the digest walk; any size gives the same hash */
+
+int ota_stage_matches(const uint8_t want[32]) {
     struct sha256 c;
-    uint8_t chunk[OTA_BLOCK];
+    uint8_t chunk[OTA_CHUNK];
     uint8_t got[32];
+    long len = ota_stage_size();
+    if (!want || len < 0) return 0;
     sha256_init(&c);
-    for (long off = 0; off < len; off += OTA_BLOCK) {
+    for (long off = 0; off < len; off += OTA_CHUNK) {
         long n = len - off;
-        if (n > OTA_BLOCK) n = OTA_BLOCK;
+        if (n > OTA_CHUNK) n = OTA_CHUNK;
         if (!ota_stage_read(chunk, off, n)) return 0;
         sha256_update(&c, chunk, n);
     }
@@ -262,175 +188,6 @@ int ota_is_running(const uint8_t hash[32]) {
 int ota_trial(void) {
     const char *v = ota_env("OEVM_OTA_TRIAL");
     return (v && v[0] == '1' && v[1] == '\0') ? 1 : 0;
-}
-
-/* ------------------------------------------------------------------ */
-/* the fetch, off the VM thread (rete#233 T9)                           */
-/* ------------------------------------------------------------------ */
-enum { F_IDLE = 0, F_RUNNING, F_DONE, F_FAILED };
-static struct {
-    volatile int state;   /* written by the fetch thread at its end, read by the VM */
-    uint8_t hash[32];
-    char    host[128];
-    int     port;
-    long    total;        /* the verified length, when state == F_DONE */
-} fetch;
-
-/* The fetch proper: runs on the thread ota_thread_start gives it. 1 = the slot
- * holds the image and the digest matched; 0 = it failed (the slot is a good
- * prefix after a timeout, zero after a mismatch or a rejected resume). */
-static int fetch_run(void) {
-    long staged = ota_stage_size();
-    if (staged < 0) return 0;
-    const uint8_t *hash = fetch.hash;
-    const char *host = fetch.host;
-    int port = fetch.port;
-    int sock = udp_socket_bind(0);
-    if (sock < 0) { say("cannot bind a socket"); return 0; }
-
-    uint8_t data[OTA_BLOCK];
-    uint32_t blk = (uint32_t)(staged / OTA_BLOCK);
-    const uint32_t first_blk = blk;      /* non-zero == this fetch is a RESUME */
-    long total = staged;
-    int ok = 1;
-    for (;;) {
-        int len = 0, more = 0;
-        int r = fetch_block(sock, host, port, hash, blk, data, &len, &more);
-        if (r <= 0) {
-            if (r == 0) {
-                /* A timeout is porta being unreachable. The staged bytes are
-                 * still a good prefix, so the slot stays and IS the cursor for
-                 * the next tick — that is the whole point of resuming. */
-                say_n("block timed out after 5 attempts, block=", (long)blk);
-            } else if (first_blk > 0) {
-                /* A peer ERROR while resuming means the staged bytes are not a
-                 * prefix of the wanted image at all. The commonest cause is a
-                 * retarget: the goal hash changed under a partial slot and the
-                 * new image is SHORTER, so the resume block is past its end and
-                 * blockserv answers "block past end". A wrong full-length slot
-                 * on an exact block boundary lands on the identical frame.
-                 *
-                 * The slot carries no record of which image its bytes belong
-                 * to, so there is nothing to consult and no way to narrow the
-                 * cursor — dropping it is the only exit. Leaving it makes every
-                 * later tick repeat this exact request forever, and NO operator
-                 * write can clear it: the node is wedged permanently. One
-                 * discarded partial download is the bounded cost of that.
-                 *
-                 * A fresh stage (first_blk == 0) is deliberately left alone.
-                 * That is the record-pushed-before-the-blob case of the design's
-                 * failure table — the slot is empty, there is nothing to
-                 * discard, and it self-heals when the blob lands. */
-                say("peer rejected a resumed block — discarding the stale slot");
-                ota_stage_truncate();
-            }
-            ok = 0;
-            break;
-        }
-        if (len > 0 && !ota_stage_append(data, len)) {
-            say("staging slot write failed");
-            ok = 0;
-            break;
-        }
-        total += len;
-        if (!more) break;
-        blk++;
-    }
-    udp_close(sock);
-    if (!ok) return 0;
-
-    /* 3. Whole-image verify. A mismatch is not recoverable by resuming — the
-     *    bytes on hand are wrong, not incomplete — so the slot goes to zero and
-     *    the next cadence tick refetches from block 0. */
-    if (!staged_hash_is(hash, total)) {
-        say_n("staged image hash MISMATCH, discarding bytes=", total);
-        ota_stage_truncate();
-        return 0;
-    }
-    say_n("staged ok, bytes=", total);
-    fetch.total = total;
-    return 1;
-}
-
-
-static void fetch_thread(void *arg) {
-    (void)arg;
-    fetch.state = fetch_run() ? F_DONE : F_FAILED;
-}
-
-int ota_stage(const uint8_t hash[32], const uint8_t *sig, int sig_len,
-              const char *host, int port, long *staged_out) {
-    (void)sig; (void)sig_len;   /* carried by the record; verified by the runner (D4) */
-    if (staged_out) *staged_out = 0;
-    if (!hash || !host) return -1;
-
-    switch (fetch.state) {
-    case F_RUNNING:
-        if (staged_out) *staged_out = ota_stage_size();
-        return 0;
-    case F_DONE:
-        fetch.state = F_IDLE;
-        if (memcmp(fetch.hash, hash, 32) == 0) {
-            if (staged_out) *staged_out = fetch.total;
-            return 1;
-        }
-        break;              /* finished another image: start over below */
-    case F_FAILED:
-        fetch.state = F_IDLE;
-        return -1;
-    default:
-        break;
-    }
-
-    long staged = ota_stage_size();
-    if (staged < 0) { say("no staging slot (OEVM_OTA_STAGE unset)"); return -1; }
-
-    /* 1. Idempotent re-entry: a slot that already holds the wanted image costs
-     *    one re-hash and no traffic. This is the crash-after-staging path. */
-    if (staged > 0 && staged_hash_is(hash, staged)) {
-        say_n("already staged, bytes=", staged);
-        if (staged_out) *staged_out = staged;
-        return 1;
-    }
-
-    /* 2. Resume at the slot's own length. A partial trailing block cannot be
-     *    resumed from (the seam truncates to zero only — a length-preserving
-     *    truncate would be a second mechanism for a case that only arises from
-     *    a torn write), so an off-boundary slot restarts from block 0. */
-    if (staged % OTA_BLOCK != 0) {
-        say_n("slot not on a block boundary, restarting; bytes=", staged);
-        ota_stage_truncate();
-        staged = 0;
-    }
-
-    memcpy(fetch.hash, hash, 32);
-    size_t hn = strlen(host);
-    if (hn >= sizeof fetch.host) return -1;
-    memcpy(fetch.host, host, hn + 1);
-    fetch.port = port;
-    fetch.total = 0;
-    fetch.state = F_RUNNING;
-#ifdef CONFIG_OEVM_OTA_INCHANNEL
-    /* rete#233 T10: T9's named fallback, earned by the S2. The whole fetch runs HERE,
-       on the VM thread, and the answer is final: 1 or -1, never 0. The board that
-       sets this has an app-stale deadline longer than any transfer (Kconfig). */
-    fetch_thread(NULL);
-    if (fetch.state == F_DONE) {
-        fetch.state = F_IDLE;
-        if (staged_out) *staged_out = fetch.total;
-        return 1;
-    }
-    fetch.state = F_IDLE;
-    return -1;
-#else
-    if (!ota_thread_start(fetch_thread, NULL)) {
-        fetch.state = F_IDLE;
-        say("no thread for the fetch");
-        return -1;
-    }
-    if (staged_out) *staged_out = staged;
-    return 0;
-#endif
 }
 
 void ota_confirm(void) {
