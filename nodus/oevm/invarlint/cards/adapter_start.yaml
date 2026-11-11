@@ -4,7 +4,8 @@
 name: AdapterStart
 root: true
 does:
-  - the adapters' start, called once by the app's main
+  - "the adapters' start at boot: called once by the app's main, or by a SYS_INIT before main runs"
+    # zephyr/src/main.c: main; src/backend/zephyr/gpio_zephyr.c: gpio_outputs_early_init (rete#440 R6a)
 implemented_by:
   - c: runner_select
   - c: log_udp_start

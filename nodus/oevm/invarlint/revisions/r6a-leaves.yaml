@@ -1,7 +1,7 @@
 name: r6a-leaves
 pattern: Move Function
 intent: "the board leaves leave zephyr/src/main.c for one file per seam beside the other Zephyr backends: gpio, display, bell, clock (ntp, wallclock), sleep (rtc, reset cause, alarm, deep sleep) (rete #440, design 2026-11-04 R6)"
-compromise: "names are kept, so every card binding holds unchanged; main.c keeps boot and the app wiring. The prim switch split and the single source list are R6b and R6c"
+compromise: "names are kept, so every Targets and Sleep binding holds unchanged; the boot-time wiring the leaves need (wire_pulse_gpio, wire_gpio_outputs, bell_bringup) stops being static and binds to AdapterStart, which the prediction did not carry (measured: 2 root-bypassed keys without that binding, 0 with it); main.c keeps boot and the app wiring. The prim switch split and the single source list are R6b and R6c"
 ops:
   - move: {func: gpio_target_set, unit: src/backend/zephyr, into: src/backend/zephyr/gpio_zephyr.c}
   - move: {func: gpio_target_level, unit: src/backend/zephyr, into: src/backend/zephyr/gpio_zephyr.c}
