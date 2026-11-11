@@ -62,6 +62,12 @@ target_sources(app PRIVATE
   ${OEVM_SRC}/src/backend/zephyr/timer_zephyr.c
   ${OEVM_SRC}/src/backend/zephyr/span_zephyr.c
   ${OEVM_SRC}/src/backend/zephyr/sensor_zephyr.c
+  # rete#440 R6a: the board leaves, one file per seam (they were zephyr/src/main.c)
+  ${OEVM_SRC}/src/backend/zephyr/gpio_zephyr.c
+  ${OEVM_SRC}/src/backend/zephyr/display_zephyr.c
+  ${OEVM_SRC}/src/backend/zephyr/bell_zephyr.c
+  ${OEVM_SRC}/src/backend/zephyr/clock_zephyr.c
+  ${OEVM_SRC}/src/backend/zephyr/sleep_zephyr.c
   ${OEVM_SRC}/src/http.c
   ${OEVM_SRC}/src/http_core.c
   ${OEVM_SRC}/src/backend/zephyr/http_zephyr.c
