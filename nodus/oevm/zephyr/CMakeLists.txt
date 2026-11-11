@@ -62,6 +62,12 @@ target_sources(app PRIVATE
   ${OEVM_SRC}/src/backend/zephyr/timer_zephyr.c
   ${OEVM_SRC}/src/backend/zephyr/span_zephyr.c
   ${OEVM_SRC}/src/backend/zephyr/sensor_zephyr.c
+  # rete#440 R6a: the board leaves, one file per seam (they were zephyr/src/main.c)
+  ${OEVM_SRC}/src/backend/zephyr/gpio_zephyr.c
+  ${OEVM_SRC}/src/backend/zephyr/display_zephyr.c
+  ${OEVM_SRC}/src/backend/zephyr/bell_zephyr.c
+  ${OEVM_SRC}/src/backend/zephyr/clock_zephyr.c
+  ${OEVM_SRC}/src/backend/zephyr/sleep_zephyr.c
   ${OEVM_SRC}/src/http.c
   ${OEVM_SRC}/src/http_core.c
   ${OEVM_SRC}/src/backend/zephyr/http_zephyr.c
@@ -322,7 +328,7 @@ if(DEFINED ENV{OEVM_SOLENOID_CONSOLE})
   target_compile_definitions(app PRIVATE OEVM_SOLENOID_CONSOLE=1)
 endif()
 
-# The NTP server the bell corrects itself against (src/main.c ntp_target_sync).
+# The NTP server the bell corrects itself against (src/backend/zephyr/clock_zephyr.c ntp_target_sync).
 #
 # OEVM_NTP_SERVER6 is a LITERAL IPv6 address and WINS over OEVM_NTP_SERVER when
 # both are set — it is the Thread path, where the mesh is a ULA with no global

@@ -1,0 +1,29 @@
+(*
+expect:
+motion size 1
+motion 0
+ir size 1
+ir 22000
+motion armed true
+ir armed true
+done
+*)
+(* rete#447 — the 'motion' (PIR) and 'ir' (single thermopile) kinds, two more rows in the
+   sensor seam's table. The host backend answers no motion and an object at room
+   temperature, and arms both (they never fire: the host has no trigger hardware).
+   Design: docs/design/2026-10-23-sensor-seam-design.md, addendum 2026-10-27. *)
+class MotionIrRead packageUsing: manifest = () (
+  public main: platform args: args = (
+    | m t |
+    m:: platform sensorRead: 'motion'.
+    ('motion size ' , m basicSize printString) out.
+    ('motion ' , (m basicAt: 1) printString) out.
+    t:: platform sensorRead: 'ir'.
+    ('ir size ' , t basicSize printString) out.
+    ('ir ' , (t basicAt: 1) printString) out.
+    ('motion armed ' , ((platform sensorArm: 'motion' post: #moved on: 'obs/motion' threshold: 16000) == nil) not printString) out.
+    ('ir armed ' , ((platform sensorArm: 'ir' post: #edge on: 'obs/ir' threshold: 30000) == nil) not printString) out.
+    'done' out.
+  )
+) : (
+)

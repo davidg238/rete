@@ -4959,7 +4959,7 @@ class Kernel usingPlatform: platform = (
      shape as the http family above — the C-side work lives entirely in
      src/sensor_backend.h + src/backend/<target>/sensor_<target>.c; this Kernel
      instance is just the capability the user's nsl code actually holds as
-     `platform`. sensorRead: 'kind' (rete#436: 'thermal', 'accel') answers a raw
+     `platform`. sensorRead: 'kind' (rete#436: 'thermal', 'accel'; rete#447: 'motion', 'ir') answers a raw
      Array of SMIs in milli-units of the channel's SI unit (or nil when the kind
      is unknown or its device not ready) — read with basicAt:, the heapStats
      precedent, not Array's at:. sensorArm:post:on:threshold: answers the
