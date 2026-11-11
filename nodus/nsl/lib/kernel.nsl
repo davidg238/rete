@@ -1882,10 +1882,22 @@ class Kernel usingPlatform: platform = (
       ^ self end: false )
 
     (* The budget's reaction. `n` is the attempt it was armed for; an older one is ignored.
-       Read first: a reply already waiting is an arrival, not a miss. *)
+       From the expiry to `askAgain`'s re-arm no budget is armed: this one was it. A raise
+       in that stretch (the read below handles whatever is on the socket), swallowed by
+       the reaction, would leave the fetch busy with no wake, never restarted and never
+       `finished` — so it ends the fetch instead, the stage kept, as
+       PortaBridge>>budgetLapsed: does for the exchange (24_ota/11). *)
     lapsed: n = (
-      | was |
+      | raised |
       (busy and: [ n = leg ]) ifFalse: [ ^ self ].
+      raised:: [ self lapse. nil ] on: [ :e | true ] do: [ :e | e ].
+      (raised == nil or: [ busy not ]) ifTrue: [ ^ self ].
+      ('ota: lapse raised: ' , (raised at: #text ifAbsent: [ 'unknown' ])) out.
+      ^ self end: false )
+
+    (* Read first: a reply already waiting is an arrival, not a miss. *)
+    lapse = (
+      | was |
       was:: leg.
       bridge readSocket.
       (busy and: [ leg = was ]) ifFalse: [ ^ self ].
@@ -3169,9 +3181,10 @@ class Kernel usingPlatform: platform = (
        otaCheck step 2 boots it only while the goal still names its hash, so a goal
        retargeted mid-fetch drops it instead. *)
     public fetched: ok = (
-      self noteStage: ok hash: fetch hash sig: fetch sig.
-      owed:: true.
-      ^ self announce )
+      (* `finished` is owed on every exit: a raise in the log write must not keep a
+         run-once node awake. *)
+      [ self noteStage: ok hash: fetch hash sig: fetch sig ] ensure: [ owed:: true. self announce ].
+      ^ self )
 
     noteStage: ok hash: h sig: s = (
       ok ifFalse: [ ^ self telLog: #error text: 'ota stage failed' ].

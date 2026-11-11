@@ -152,7 +152,7 @@ bound is left unbound.
 | **Serial** | the byte port | `serial.yaml` |
 | **Sensor** | kinds, readings, armed triggers | `sensor.yaml` |
 | **Sleep** | the per-SoC sleep and the RTC family, behind one verb | `sleep.yaml` |
-| **Ota** | the stage; the fetch's 5 ms poll is named debt until R5 | `ota.yaml` |
+| **Ota** | the stage: append, read, truncate, size, and the ready record; it never fetches and never waits (R5) | `ota.yaml` |
 | **Span** (service-provider) | stamps and elapsed time; no state | `span.yaml` |
 | **Identity** (information-holder) | board name, boot id, node id | `identity.yaml` |
 | **Radio** | the radio on and off, with the VM live | `nodus/oevm/invarlint/revisions/r3-radio/`, lands with R3's code |
@@ -348,4 +348,6 @@ the cards under `nodus/oevm/invarlint/cards/` are the design of record for the s
 - **A retarget mid-fetch never activates the old image:** a fetched stage is activated only while the goal still
   names its hash; otherwise it is dropped and the same check-in stages the new goal, so a run-once node does
   not spend a wake on nothing.
+- G3 as amended by R5: the staging slab stays outside the VM heap; one block (≤ OTA_BLOCK bytes) transits it per
+  reaction as a ByteArray. Its GC cost on the S2 is measured at the next MagTag flash.
 - Card: `nodus/oevm/invarlint/revisions/r5-ota-fetch/ota_fetch.yaml`; revision `r5-ota-fetch.yaml`.
