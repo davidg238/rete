@@ -2961,9 +2961,9 @@ class Kernel usingPlatform: platform = (
 
     (* The fetch's end, in its own reaction (OtaFetch>>end:). A staged image is recorded
        HERE, not at the next otaCheck, so the very next exchange activates it: on a
-       deep-sleep node the stage does not outlive the wake. The pair comes from the fetch,
-       never re-read from the goal (otaCheck step 2): a goal retargeted mid-fetch is read
-       after the activation, by the image it booted. *)
+       deep-sleep node the stage does not outlive the wake. The pair comes from the fetch;
+       otaCheck step 2 boots it only while the goal still names its hash, so a goal
+       retargeted mid-fetch drops it instead. *)
     public fetched: ok = (
       self noteStage: ok hash: fetch hash sig: fetch sig.
       owed:: true.
@@ -3288,12 +3288,15 @@ class Kernel usingPlatform: platform = (
           marker is there to prevent. Once per boot: `otaConfirm` is cheap but not
           free, and a confirm per check-in would write flash every two seconds.
 
-       2. ACTIVATE BEFORE READING THE GOAL. `otaActivate:` does not return — it
-          exits into the runner — so anything after it in this method is dead code
-          on the tick it fires. Reading the goal first would mean a gateway that
-          rewrote the goal between staging and activating could send us into a
-          reboot with a hash we never fetched. The staged pair comes from the
-          slots, never re-read.
+       2. ACTIVATE ONLY WHAT THE GOAL STILL NAMES. `otaActivate:` does not return
+          — it exits into the runner — so anything after it in this method is dead
+          code on the tick it fires. The staged pair comes from the slots, never
+          from the goal, so a gateway that rewrote the goal between staging and
+          activating cannot send us into a reboot with a hash we never fetched. But
+          the goal is still READ: a stage whose hash the goal no longer names is
+          dropped, not booted (rete#440 R5, addendum 2026-11-10: a retarget mid-fetch
+          never activates the old image, T9's behaviour), and this same check-in
+          goes on to stage the goal it names now.
 
        3. NOTHING TO DO IS THE COMMON CASE. A node with no `goal/apps/main` (every
           node in the fleet, almost always) does one cell peek and returns.
@@ -3328,7 +3331,10 @@ class Kernel usingPlatform: platform = (
         outer otaConfirm.
         otaConfirmed:: true.
         self telLog: #info text: 'ota confirmed' ].
-      otaStaged ifTrue: [ ^ outer otaActivate: stagedHash sig: stagedSig ].
+      otaStaged ifTrue: [
+        (self goalNames: stagedHash) ifTrue: [ ^ outer otaActivate: stagedHash sig: stagedSig ].
+        otaStaged:: false. stagedHash:: nil. stagedSig:: nil.
+        self telLog: #info text: 'ota retargeted' ].
       (* A TRIAL-UNCONFIRMED NODE NEVER STAGES. Found in the Task 8 runner review
          and fixed here, because the node is the only place it can be fixed.
 
@@ -3380,6 +3386,16 @@ class Kernel usingPlatform: platform = (
         r = #started ifFalse: [ ^ self noteStage: r = #staged hash: hash sig: sig ] ].
       self telLog: #info text: 'ota staging ' , fetch staged printString.
       ^ self )
+
+    (* Whether `goal/apps/main` still names `aHash`. Quiet on a bad or wrongly kinded
+       record: the stage is then simply not booted, and the read below reports it. *)
+    goalNames: aHash = (
+      | rec want |
+      rec:: space peekCell: 'goal/apps/main' ifStream: [ nil ].
+      rec == nil ifTrue: [ ^ false ].
+      want:: self otaWantedFrom: rec.
+      want == nil ifTrue: [ ^ false ].
+      ^ (want at: 1) = aHash )
 
     (* tel/log carries a `Log { level, text }` record and NOT a bare String —
        PROTOCOL-NSL-RECORDS §4 pins the shape, both production node apps already

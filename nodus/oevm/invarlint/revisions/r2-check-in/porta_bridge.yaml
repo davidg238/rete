@@ -22,8 +22,8 @@ does:
     # docs/design/2026-11-04-440-vm-zephyr-seam-crc-design.md: The check-in as reactions (the check-in column); nodus/nsl/lib/kernel.nsl: PortaBridge>>checkIn (#272 D3.3)
   - "a raise with no budget armed (a full table at the push re-arm, or anything in the lapse stretch) ends the exchange, logged, and the next check-in retries"
     # docs/design/2026-11-04-440-vm-zephyr-seam-crc-design.md: The check-in as reactions (a reply and an expiry); nodus/nsl/lib/kernel.nsl: PortaBridge>>pushStart, budgetLapsed:; nodus/tests/22_spacesync/33, 35
-  - "says finished on sys/porta/exchange when idle: no exchange and no fetch in flight; an exchange the held loop started ends silently"
-    # docs/design/2026-11-04-440-vm-zephyr-seam-crc-design.md: Decided by David (2026-11-05); The check-in as reactions (Leaving); Addendum 2026-11-10 (R5); nodus/nsl/lib/kernel.nsl: PortaBridge>>leave, announce
+  - "says when an exchange has finished, on sys/porta/exchange; an exchange the held loop started ends silently"
+    # docs/design/2026-11-04-440-vm-zephyr-seam-crc-design.md: Decided by David (2026-11-05); The check-in as reactions (Leaving); nodus/nsl/lib/kernel.nsl: PortaBridge>>leave
   - "serves a stop: one held step blocks in the pump, then moves the exchange on"
     # docs/design/2026-11-04-440-vm-zephyr-seam-crc-design.md: While the program is stopped; nodus/nsl/lib/kernel.nsl: PortaBridge>>heldStep
 collaborators:
