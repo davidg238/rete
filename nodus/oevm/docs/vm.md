@@ -76,6 +76,12 @@ restarts or quarantines the job (Milestone D, `nodus/oevm/docs/MILESTONE_D.md`).
 - **Precise mark-sweep GC** (`nodus/oevm/src/gc.c`): per-slab mark bits, sweep-time
   coalescing, roots enumerated rather than scanned. Small integers are tagged
   immediates and cost nothing.
+- **Safe-point compaction** (`gc_compact`, `gc_safe_point`; rete#477): when the reactor waits at
+  interpreter depth 1, no C frame holds an arena pointer, so the collector may slide live objects
+  together and rewrite every root. It never compacts inside a reaction or a primitive: an allocation
+  that fails there collects but cannot slide. Measured: the host check-in app runs in 20 KB (fails
+  without the slide); a C6 slide costs 1.41 ms mean, 2.70 ms max. Compaction at allocation failure
+  was not built; its earning condition is in `docs/design/2026-11-09-477-arena-fragmentation-design.md`.
 
 ## Images and deployment — Model B
 
