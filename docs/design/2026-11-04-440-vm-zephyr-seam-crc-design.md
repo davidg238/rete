@@ -344,5 +344,6 @@ the cards under `nodus/oevm/invarlint/cards/` are the design of record for the s
   remembered and the next check-in retries. Budget: 5 attempts of 1 s per block, as built (`OTA_ATTEMPTS`), until
   a measurement earns another number.
 - **A retarget mid-fetch never activates the old image:** a fetched stage is activated only while the goal still
-  names its hash; otherwise the next check-in stages the new goal (T9's behaviour).
+  names its hash; otherwise it is dropped and the same check-in stages the new goal, so a run-once node does
+  not spend a wake on nothing.
 - Card: `nodus/oevm/invarlint/revisions/r5-ota-fetch/ota_fetch.yaml`; revision `r5-ota-fetch.yaml`.
