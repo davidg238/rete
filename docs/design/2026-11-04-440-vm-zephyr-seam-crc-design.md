@@ -272,7 +272,7 @@ One verb at the seam, `radio_*`; one cell, `sys/radio`, holding the state, so th
 | **R2 check-in** (nsl) | the state machine, the held loop, every app in the table; `awaitReply:` deleted; the OTA fetch untouched. In ttgm's repo: the chair apps' new order, flush, 60 s cadence and `misses: 4` | `porta_sync_host.sh` PORTA SYNC OK; `tutorial-porta`; the debugger host gate; the `porta-*` board scenarios; `CONFIG_BT_LONG_WQ_PRIO=0` dropped and pairing still succeeds; **J-Link PC samples on OCM.1 land in idle between check-ins**, with rete's `PortaBridgeNodeBle` and then the chair app |
 | **R3 radio** (#458) | `Radio` card; the verb, `sys/radio`, the policy; `sys/net/link` | OCM.1: off, on, reconnects through the Pixel relay; the reconnect time measured, which sets `linkBudget` |
 | **R4 measure** (#459) | delayed by David: OCM.1 always-on, idle, per exchange at 60 s, radio off, against the 90 µA line | the numbers in #459; #457 earns itself or closes |
-| **R5 OTA fetch** | reactions in the kernel, one state per block; the OTA thread and `ota_sleep_ms` deleted | `host_ota` gate; #449's OTA over BLE re-run |
+| **R5 OTA fetch** | reactions in the kernel, one state per block; the OTA thread and `ota_sleep_ms` deleted | `host_ota` gate; an OTA over Thread on OCM.1 (David, 2026-11-11, in place of #449's BLE re-run): PASS, 180 KB in ~51 s, `ota confirmed` (PR #488) |
 | **R6 structure** | the twenty leaves out of `main.c` into `gpio_zephyr.c`, `display_zephyr.c`, `bell_zephyr.c`, `clock_zephyr.c`, `sleep_zephyr.c`; the prim switch split per seam (`udp_dispatch` and `serial_dispatch` are the pattern); one source list that CMake and the host Makefile both read | invarlint moved keys = predicted; `ab.sh` no speed change; `footprint.sh` |
 
 R0–R2 close #440. R3 does the work of #458 and R4 of #459; both stay open for the current numbers. R5 and R6 are
@@ -297,6 +297,9 @@ gaps go to invarlint by issue: invarlint#154, #176, #177.
 - **nRF System OFF (#457)** earns itself if R4 measures System ON idle with the radio off above the
   budget share the chair node can afford. Then one verb, `deepSleep:`, grows the nRF body.
 - **The reader thread's priority and stack** copy the log tee's until measured.
+- **Block 0's append erases the whole slot inside one reaction** (R5): 3,357 ms on the S2, 7.7 s on OCM.1 (#449),
+  the one place a fetch reaction blocks. Earned back when a node's declared cadence x `OBS_WEDGE_SLACK` is shorter
+  than its measured erase: then the erase moves to page-sized steps, one per reaction.
 - **The listener's pause after a failed accept is 1 s**, chosen without a measurement. Earned back by measuring how
   long the #65 condition takes to clear under the burst that caused it.
 - **The pending bound stays 64 rows.** At one row per 60 s tick that is about an hour of outage before
@@ -336,8 +339,9 @@ the cards under `nodus/oevm/invarlint/cards/` are the design of record for the s
   block, moved on by the doorbell of the bridge's own socket (one socket, one doorbell; a block frame is told from a
   batch by its first byte, and the block plane is still the peer's port plus one) or the block's budget timer. No reaction waits, so the app-stale
   rule that drove T9 off-thread cannot fire, and the reason T10 existed for the S2 is gone too.
-- **The C keeps the bytes, not the loop.** Ota still owns the stage (append, read, truncate, size), the SHA-256
-  and the ready record; `ota_sleep_ms`, `ota_thread_start` and `fetch_block`/`fetch_run` are deleted.
+- **The C keeps the bytes, not the loop.** Ota still owns the stage (append, read, truncate, size) and the ready
+  record; the stage's digest check `ota_stage_matches` stays in `src/ota.c` beside `ota_sha256`, which Boot binds
+  (it hashes what it loads), so no card owns the check yet; `ota_sleep_ms`, `ota_thread_start` and `fetch_block`/`fetch_run` are deleted.
 - **"Finished" means the bridge is idle:** no exchange and no fetch in flight. The channel keeps its name,
   `sys/porta/exchange`; the 2026-11-05 decision above now reads the same way. That is what lets a run-once node
   (the MagTag) stage a new program before it sleeps, which is the only thing T10 was for. One sentence, no new event.
