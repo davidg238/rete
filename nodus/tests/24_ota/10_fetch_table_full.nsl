@@ -1,0 +1,164 @@
+(*
+env: OEVM_OTA_STAGE=/tmp/rete-nsl-ota-10.stage
+expect:
+full true
+ota: timer table full
+log ota stage failed
+start busy false sent 0 staged 0
+log ota staging 0
+full true
+ota: timer table full
+log ota stage failed
+re-arm busy false staged 256
+ota: staged ok, bytes=600
+log ota staging 256
+log ota staged
+resumed requests 1 2 staged 600
+*)
+(* rete#440 R5 — A FULL TIMER TABLE ENDS THE FETCH, AND NEVER STRANDS IT (#81 makes a
+   full table raise in the arming job; review of #488). Every attempt arms its budget
+   BEFORE its request is sent, so a raise there leaves nothing in flight and no fetch
+   waiting without a wake.
+
+   - At the start: `start:` answers #failed, `ota: timer table full` is said, no request
+     goes out (`sent 0`), and otaCheck logs `ota stage failed`.
+   - At a re-arm inside a reaction (`askAgain`, here from the budget's own lapse, whose
+     one-shot fired and freed its slot before the table was filled): the fetch ends,
+     not busy, and KEEPS the block already staged (`staged 256`) — porta was not wrong,
+     the node was full.
+   - With a slot free again, the next check-in resumes at block 1: the fetch is not
+     wedged, and the kept prefix is the cursor.
+
+   The table is filled as 22_spacesync/33 fills it: `every:` until the arm raises. *)
+class FetchTableFull packageUsing: manifest = () (
+
+  public class FakeDatagram = ( | private data | ) (
+    public setData: d = ( data:: d. ^ self )
+    public data = ( ^ data )
+  ) : (
+    public on: d = ( ^ self new setData: d )
+  )
+
+  (* porta/internal/blockserv in miniature. `dropFrom:` drops every request for that
+     block and later; `dropOnce:` drops the first request for one block. *)
+  public class FakeBlockSocket = (
+    | private pf private space private bell private blob private queue private requests
+      private dropFrom ::= 100000. private dropOnce ::= -1. private refusal ::= nil. |
+  ) (
+    public setPlatform: p space: sp bell: b blob: bl = (
+      pf:: p. space:: sp. bell:: b. blob:: bl.
+      queue:: p OrderedCollection new. requests:: p OrderedCollection new.
+      ^ self )
+    public doorbell = ( ^ bell )
+    public dropFrom: n = ( dropFrom:: n. ^ self )
+    public dropOnce: n = ( dropOnce:: n. ^ self )
+    public refuseWith: t = ( refusal:: t. ^ self )
+    public sent = ( ^ requests size )
+    public requests = ( | s |
+      requests isEmpty ifTrue: [ ^ ' none' ].
+      s:: ''.
+      requests do: [ :r | s:: s , ' ' , r printString ].
+      ^ s )
+    public sendTo: host port: p data: bytes = ( | blk |
+      (bytes u8At: 1) = 1 ifFalse: [ ^ self ].           (* not a block request *)
+      blk:: (((bytes u8At: 34) * 256 + (bytes u8At: 35)) * 256 + (bytes u8At: 36)) * 256 + (bytes u8At: 37).
+      requests add: blk.
+      blk >= dropFrom ifTrue: [ ^ self ].
+      blk = dropOnce ifTrue: [ dropOnce:: -1. ^ self ].
+      refusal == nil ifFalse: [ ^ self post: (self errorFrame: refusal) ].
+      (blk * 256 >= blob byteSize and: [ blk > 0 ]) ifTrue: [ ^ self post: (self errorFrame: 'block past end') ].
+      ^ self post: (self blockFrame: blk) )
+    public receive = (
+      queue isEmpty ifTrue: [ ^ nil ].
+      ^ FakeDatagram on: queue removeFirst )
+    post: frame = ( queue add: frame. space out: bell value: 1. ^ self )
+    blockFrame: blk = ( | off n f |
+      off:: blk * 256.
+      n:: blob byteSize - off.
+      n > 256 ifTrue: [ n:: 256 ].
+      f:: pf ByteArray new: 6 + n.
+      f u8At: 1 put: 2. f u8At: 2 put: 0. f u8At: 3 put: 0.
+      f u8At: 4 put: ((blk >> 8) bitAnd: 255). f u8At: 5 put: (blk bitAnd: 255).
+      f u8At: 6 put: (off + n < blob byteSize ifTrue: [ 1 ] ifFalse: [ 0 ]).
+      1 to: n do: [ :i | f u8At: 6 + i put: (blob u8At: off + i) ].
+      ^ f freeze )
+    errorFrame: t = ( | f |
+      f:: pf ByteArray new: 1 + t size.
+      f u8At: 1 put: 127.
+      1 to: t size do: [ :i | f u8At: i + 1 put: (t at: i) ].
+      ^ f freeze )
+  ) : ()
+
+  (* 600 bytes, b[i] = (i*7+3) & 255 from i = 0: ota_seam_test.c's blob A, whose SHA-256
+     was computed with python hashlib. *)
+  blobA: platform = ( | b |
+    b:: platform ByteArray new: 600.
+    1 to: 600 do: [ :i | b u8At: i put: (((i - 1) * 7 + 3) bitAnd: 255) ].
+    ^ b )
+  hashA: platform = ( ^ platform ByteArray fromHex: '1783f1f6842889ff855d25b6d45d33dd7401ffa94eb93704f6a374c264cde486' )
+  hashB: platform = ( ^ platform ByteArray fromHex: '464ae8453d00456341944fb3d1495600ef818c24e9d3e0d446b84c20c3df6869' )
+  goal: hash platform: platform = (
+    ^ platform Record tag: #App
+        with: #image -> (platform Record tag: #BlobRef with: #hash -> hash with: #size -> 600)
+        with: #sig -> (platform ByteArray fromHex: 'ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00') )
+
+
+  bridgeOn: s platform: platform space: space timers: timers = (
+    ^ platform PortaBridge socket: s space: space id: 'n1' peer: '::1' port: 6969
+        spans: platform Spans new timers: timers )
+
+  (* Arms `every:` timers until the table refuses one; answers the tokens taken. *)
+  fill: timers platform: platform space: space = ( | ch toks r n |
+    ch:: space channel: 'test/fill'.
+    toks:: platform OrderedCollection new.
+    r:: nil. n:: 0.
+    [ r == nil and: [ n < 1000 ] ] whileTrue: [
+      n:: n + 1.
+      r:: platform protectedFire: [ :v | toks add: (timers every: 100000 post: #x on: ch) ] value: nil ].
+    ('full ' , (r == nil) not printString) println.
+    ^ toks )
+
+  public main: platform args: args = (
+    | space timers s b toks |
+    space:: platform space.
+    timers:: platform timers.
+    space whenever: 'sys/timer' do: [ :t | timers dispatch: t ].
+    (space channel: 'tel/log') whenever: '' do: [ :v | ('log ' , (v at: #txt ifAbsent: [ '?' ])) println ].
+
+    (* At the start. *)
+    s:: FakeBlockSocket new setPlatform: platform space: space bell: 'test/net1' blob: (self blobA: platform).
+    b:: self bridgeOn: s platform: platform space: space timers: timers.
+    b otaFetch discard.
+    space put: 'goal/apps/main' value: (self goal: (self hashA: platform) platform: platform).
+    space drain.
+    toks:: self fill: timers platform: platform space: space.
+    b otaCheck.
+    space drain.
+    ('start busy ' , b otaFetch busy printString , ' sent ' , s sent printString
+      , ' staged ' , b otaFetch staged printString) println.
+    toks do: [ :t | timers cancel: t ].
+
+    (* At a re-arm: block 0 lands, block 1's request is dropped, its budget fires, and the
+       table fills before the lapse's reaction re-arms. *)
+    s:: FakeBlockSocket new setPlatform: platform space: space bell: 'test/net2' blob: (self blobA: platform).
+    s dropOnce: 1.
+    b:: self bridgeOn: s platform: platform space: space timers: timers.
+    b otaCheck.
+    space drain.
+    platform advanceMillis: 1000.
+    toks:: self fill: timers platform: platform space: space.
+    space drain.
+    ('re-arm busy ' , b otaFetch busy printString , ' staged ' , b otaFetch staged printString) println.
+    timers cancel: (toks at: 1).
+
+    (* Not wedged: the next check-in resumes at block 1. *)
+    s:: FakeBlockSocket new setPlatform: platform space: space bell: 'test/net3' blob: (self blobA: platform).
+    b:: self bridgeOn: s platform: platform space: space timers: timers.
+    b otaCheck.
+    space drain.
+    ('resumed requests' , s requests , ' staged ' , b otaFetch staged printString) println.
+    ^ 0
+  )
+) : (
+  public packageUsing: manifest = ( ^ self new )
+)
