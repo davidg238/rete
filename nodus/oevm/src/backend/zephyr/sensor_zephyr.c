@@ -17,6 +17,12 @@
                for any chan except SENSOR_CHAN_AMBIENT_TEMP.
      accel   — st,lis2dh (also the LSM303AGR accel): SENSOR_CHAN_ACCEL_XYZ writes 3
                entries in m/s^2; truncation toward zero drops < 1 milli-m/s^2.
+     motion  — a PIR or radar presence part (rete#447; in-tree precedent xbr818):
+               SENSOR_CHAN_PROX, 1 value, 0 or 1000 (the milli rule on an adimensional 1).
+     ir      — a single thermopile (rete#447; precedent tmp007): the OBJECT temperature
+               on SENSOR_CHAN_AMBIENT_TEMP, 1 value. Not SENSOR_CHAN_IR, which is lux.
+   Neither has an in-tree driver for the parts that asked (PYD1588, TPiS 1T): the
+   board's module supplies it (run.sh --extra-module, rete#438).
    C division truncates toward zero and val2 is sign-matched to val1, so negatives
    come out right (-1.25 degC: val1 -1, val2 -250000 -> -1000 + -250 = -1250). */
 #include <string.h>
@@ -27,6 +33,8 @@
 
 #define THERMAL_NODE DT_ALIAS(thermal0)
 #define ACCEL_NODE   DT_ALIAS(accel0)
+#define MOTION_NODE  DT_ALIAS(motion0)
+#define IR_NODE      DT_ALIAS(ir0)
 
 struct sensor_kind {
     const char *name;
@@ -74,6 +82,22 @@ static struct sensor_kind kinds[] = {
         .arm_cfg = -1,
 #endif
         .handle_idx = -1 },
+    /* rete#447. The threshold reaches the driver as val1 = threshold_milli / 1000, in
+       whatever unit the driver's SENSOR_ATTR_UPPER_THRESH takes. */
+    {   .name = "motion",
+#if DT_NODE_EXISTS(MOTION_NODE)
+        .dev = DEVICE_DT_GET(MOTION_NODE),
+#endif
+        .chan = SENSOR_CHAN_PROX, .n = 1,
+        .trig = SENSOR_TRIG_MOTION, .thr_attr = SENSOR_ATTR_UPPER_THRESH,
+        .arm_cfg = -1, .handle_idx = -1 },
+    {   .name = "ir",
+#if DT_NODE_EXISTS(IR_NODE)
+        .dev = DEVICE_DT_GET(IR_NODE),
+#endif
+        .chan = SENSOR_CHAN_AMBIENT_TEMP, .n = 1,
+        .trig = SENSOR_TRIG_THRESHOLD, .thr_attr = SENSOR_ATTR_UPPER_THRESH,
+        .arm_cfg = -1, .handle_idx = -1 },
 };
 
 static struct sensor_kind *find_kind(const char *kind, int len)

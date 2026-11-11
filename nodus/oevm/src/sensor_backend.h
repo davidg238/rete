@@ -7,7 +7,7 @@
    directly — that is how a host-only assumption reached the SoC once already (the
    ROM-fflush bug).
 
-   A sensor is named by its KIND ("thermal", "accel"); on target the device is the
+   A sensor is named by its KIND ("thermal", "accel", "motion", "ir"); on target the device is the
    devicetree node aliased `<kind>0`, supplied by the board's overlay — in-tree or
    out-of-tree (#438), which is where the mechanism/board line falls. Every value is
    an integer in MILLI-units of Zephyr's SI unit for the channel (milli-degC,
