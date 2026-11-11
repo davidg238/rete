@@ -6,8 +6,6 @@ running false
 int refused
 nil refused
 unfrozen refused
-stage refused
-bad sig refused
 activate refused
 finished
 *)
@@ -68,26 +66,13 @@ class OtaEnvAbsent packageUsing: manifest = () (
     (* An UNFROZEN ByteArray is the interesting one: it is byte-shaped and has a
        raw leaf, so it would have sailed through a guard written as "does it
        have bytes?". It is refused because its owner can still mutate it
-       underneath a blocking fetch, and because Bytes is reachable only through
-       a real freeze copy. *)
+       underneath the seam, and because Bytes is reachable only through a real
+       freeze copy. (The stage's guards went with `otaStage:sig:host:port:` in
+       rete#440 R5: the fetch is the kernel's, and `otaWantedFrom:` is what refuses
+       a malformed hash or signature, 24_ota/03.) *)
     (platform otaIsRunning: (platform ByteArray new: 32))
       ifTrue:  [ 'unfrozen accepted — GUARD MISSING' println ]
       ifFalse: [ 'unfrozen refused' println ].
-
-    (* The guard fires BEFORE any I/O: a refused stage touches no socket, so
-       this line costs nothing even though the seam is otherwise blocking. *)
-    (platform otaStage: 42 sig: nil host: '127.0.0.1' port: 1)
-      ifTrue:  [ 'stage accepted — GUARD MISSING' println ]
-      ifFalse: [ 'stage refused' println ].
-
-    (* A malformed SIGNATURE refuses the whole call too, rather than being
-       dropped to nil — a staged image with its provenance quietly removed would
-       reach the runner unsigned, with nothing left to check. Absent and
-       malformed are different things. The hash here is well-formed, so only the
-       sig can be what refuses this. *)
-    (platform otaStage: probe sig: 42 host: '127.0.0.1' port: 1)
-      ifTrue:  [ 'bad sig accepted — GUARD MISSING' println ]
-      ifFalse: [ 'bad sig refused' println ].
 
     (* otaActivate: answers self and cannot report a refusal, so the proof is
        structural: with a valid hash this call would write ready.json and exit

@@ -1,0 +1,161 @@
+(*
+env: OEVM_OTA_STAGE=/tmp/rete-nsl-ota-08.stage
+expect:
+fetching true pulling true
+log ota staging 0
+log ota staging 0
+exchange left idle true fetching true finished 0
+ota: block timed out after 5 attempts, block=0
+log ota stage failed
+fetch ended finished 1 misses 2
+log ota staging 0
+ota: staged ok, bytes=600
+log ota staged
+exchange then fetch finished 2
+*)
+(* rete#440 R5 — `finished` MEANS THE BRIDGE IS IDLE (addendum 2026-11-10): no exchange
+   and no fetch in flight. A run-once node (MagTagDeepSleepNode) checks in, and on
+   `finished` checks in again and then sleeps; the first exchange's otaCheck starts the
+   fetch, so if `finished` came at the exchange's end the node would sleep with the
+   image half staged, and on a board the stage does not outlive the wake.
+
+   - An exchange that ends while a fetch is in flight says nothing (`finished 0`), and
+     its otaCheck reports the fetch's progress (the second `ota staging 0`; the first is
+     the start's).
+   - The fetch's end, with the exchange already idle, says it once (`finished 1`), and
+     that `finished` is the one the exchange earned too: one word for both.
+   - The run-once shape: the exchange's leave starts the fetch, and the `finished` waits
+     for the fetch (`exchange then fetch finished 2`), with `ota staged` logged before it,
+     so the next exchange's otaCheck activates.
+
+   Everything runs on the virtual clock: the exchange's budget is 2 s a leg, the fetch's
+   1 s an attempt, and neither peer answers in the first case. *)
+class FetchFinished packageUsing: manifest = () (
+
+  public class FakeDatagram = ( | private data | ) (
+    public setData: d = ( data:: d. ^ self )
+    public data = ( ^ data )
+  ) : (
+    public on: d = ( ^ self new setData: d )
+  )
+
+  (* porta/internal/blockserv in miniature. `dropFrom:` drops every request for that
+     block and later; `dropOnce:` drops the first request for one block. *)
+  public class FakeBlockSocket = (
+    | private pf private space private bell private blob private queue private requests
+      private dropFrom ::= 100000. private dropOnce ::= -1. private refusal ::= nil. |
+  ) (
+    public setPlatform: p space: sp bell: b blob: bl = (
+      pf:: p. space:: sp. bell:: b. blob:: bl.
+      queue:: p OrderedCollection new. requests:: p OrderedCollection new.
+      ^ self )
+    public doorbell = ( ^ bell )
+    public dropFrom: n = ( dropFrom:: n. ^ self )
+    public dropOnce: n = ( dropOnce:: n. ^ self )
+    public refuseWith: t = ( refusal:: t. ^ self )
+    public sent = ( ^ requests size )
+    public requests = ( | s |
+      requests isEmpty ifTrue: [ ^ ' none' ].
+      s:: ''.
+      requests do: [ :r | s:: s , ' ' , r printString ].
+      ^ s )
+    public sendTo: host port: p data: bytes = ( | blk |
+      (bytes u8At: 1) = 1 ifFalse: [ ^ self ].           (* not a block request *)
+      blk:: (((bytes u8At: 34) * 256 + (bytes u8At: 35)) * 256 + (bytes u8At: 36)) * 256 + (bytes u8At: 37).
+      requests add: blk.
+      blk >= dropFrom ifTrue: [ ^ self ].
+      blk = dropOnce ifTrue: [ dropOnce:: -1. ^ self ].
+      refusal == nil ifFalse: [ ^ self post: (self errorFrame: refusal) ].
+      (blk * 256 >= blob byteSize and: [ blk > 0 ]) ifTrue: [ ^ self post: (self errorFrame: 'block past end') ].
+      ^ self post: (self blockFrame: blk) )
+    public receive = (
+      queue isEmpty ifTrue: [ ^ nil ].
+      ^ FakeDatagram on: queue removeFirst )
+    post: frame = ( queue add: frame. space out: bell value: 1. ^ self )
+    blockFrame: blk = ( | off n f |
+      off:: blk * 256.
+      n:: blob byteSize - off.
+      n > 256 ifTrue: [ n:: 256 ].
+      f:: pf ByteArray new: 6 + n.
+      f u8At: 1 put: 2. f u8At: 2 put: 0. f u8At: 3 put: 0.
+      f u8At: 4 put: ((blk >> 8) bitAnd: 255). f u8At: 5 put: (blk bitAnd: 255).
+      f u8At: 6 put: (off + n < blob byteSize ifTrue: [ 1 ] ifFalse: [ 0 ]).
+      1 to: n do: [ :i | f u8At: 6 + i put: (blob u8At: off + i) ].
+      ^ f freeze )
+    errorFrame: t = ( | f |
+      f:: pf ByteArray new: 1 + t size.
+      f u8At: 1 put: 127.
+      1 to: t size do: [ :i | f u8At: i + 1 put: (t at: i) ].
+      ^ f freeze )
+  ) : ()
+
+  (* 600 bytes, b[i] = (i*7+3) & 255 from i = 0: ota_seam_test.c's blob A, whose SHA-256
+     was computed with python hashlib. *)
+  blobA: platform = ( | b |
+    b:: platform ByteArray new: 600.
+    1 to: 600 do: [ :i | b u8At: i put: (((i - 1) * 7 + 3) bitAnd: 255) ].
+    ^ b )
+  hashA: platform = ( ^ platform ByteArray fromHex: '1783f1f6842889ff855d25b6d45d33dd7401ffa94eb93704f6a374c264cde486' )
+  hashB: platform = ( ^ platform ByteArray fromHex: '464ae8453d00456341944fb3d1495600ef818c24e9d3e0d446b84c20c3df6869' )
+  goal: hash platform: platform = (
+    ^ platform Record tag: #App
+        with: #image -> (platform Record tag: #BlobRef with: #hash -> hash with: #size -> 600)
+        with: #sig -> (platform ByteArray fromHex: 'ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00') )
+
+
+
+  lapse: ms platform: platform space: space = (
+    platform advanceMillis: ms.
+    space drain.
+    ^ self )
+
+  bridgeOn: s platform: platform space: space timers: timers = (
+    ^ platform PortaBridge socket: s space: space id: 'n1' peer: '::1' port: 6969
+        spans: platform Spans new timers: timers )
+
+  public main: platform args: args = (
+    | space timers finished a s b |
+    space:: platform space.
+    timers:: platform timers.
+    space whenever: 'sys/timer' do: [ :t | timers dispatch: t ].
+    finished:: 0.
+    (space channel: 'sys/porta/exchange') whenever: '' do: [ :v | finished:: finished + 1 ].
+    (space channel: 'tel/log') whenever: '' do: [ :v | ('log ' , (v at: #txt ifAbsent: [ '?' ])) println ].
+    space put: 'obs/health' value: 11.
+    a:: self blobA: platform.
+
+    (* A fetch in flight across a whole exchange; nobody answers either. *)
+    s:: FakeBlockSocket new setPlatform: platform space: space bell: 'test/net1' blob: a.
+    s dropFrom: 0.
+    b:: self bridgeOn: s platform: platform space: space timers: timers.
+    b otaFetch discard.
+    space put: 'goal/apps/main' value: (self goal: (self hashA: platform) platform: platform).
+    space drain.
+    b otaCheck.                                           (* attempt 1, due at 1 s *)
+    b checkIn.                                            (* the pull, due at 2 s *)
+    ('fetching ' , b otaFetch busy printString , ' pulling ' , (b state = #pulling) printString) println.
+    self lapse: 1000 platform: platform space: space.     (* attempt 2 *)
+    self lapse: 1000 platform: platform space: space.     (* attempt 3; the pull misses, the push goes *)
+    self lapse: 1000 platform: platform space: space.     (* attempt 4 *)
+    self lapse: 1000 platform: platform space: space.     (* attempt 5; the push misses, the exchange leaves *)
+    ('exchange left idle ' , (b state = #idle) printString , ' fetching ' , b otaFetch busy printString
+      , ' finished ' , finished printString) println.
+    self lapse: 1000 platform: platform space: space.     (* the fetch gives up *)
+    ('fetch ended finished ' , finished printString , ' misses ' , b misses printString) println.
+
+    (* The run-once shape: the exchange's leave starts the fetch (block 0's first request
+       is dropped, so it outlives the exchange), and `finished` waits for its end. *)
+    s:: FakeBlockSocket new setPlatform: platform space: space bell: 'test/net2' blob: a.
+    s dropOnce: 0.
+    b:: self bridgeOn: s platform: platform space: space timers: timers.
+    b checkIn.
+    self lapse: 2000 platform: platform space: space.     (* the pull misses *)
+    self lapse: 2000 platform: platform space: space.     (* the push misses: leave, otaCheck starts the fetch *)
+    finished = 1 ifFalse: [ ('finished said before the fetch ended: ' , finished printString) println ].
+    self lapse: 1000 platform: platform space: space.     (* block 0 again, then 1 and 2 *)
+    ('exchange then fetch finished ' , finished printString) println.
+    ^ 0
+  )
+) : (
+  public packageUsing: manifest = ( ^ self new )
+)

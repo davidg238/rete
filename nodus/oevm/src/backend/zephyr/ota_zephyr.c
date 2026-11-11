@@ -14,7 +14,7 @@
  * The staging slot is the inactive PROGRAM slot (code-push design §10 T2): two equal
  * partitions, `program_a` and `program_b`, and the firmware runs the active one in
  * place. The seam below writes the inactive one through flash_map, append-only, which
- * is the contract ota.c's resume arithmetic was written against. Where the posix
+ * is the contract the kernel's resume arithmetic (OtaFetch, rete#440 R5) was written against. Where the posix
  * backend has files and an environment, this one has:
  *
  *   OEVM_OTA_STAGE    -> the inactive slot, by FIXED_PARTITION_ID (no copy of an offset)
@@ -118,8 +118,8 @@ int ota_stage_append(const uint8_t *data, int len) {
     if (ok) {
         staged_len += len;
         /* rete#233 S1: the fetch rate over the radio is the number this rung is for,
-           and the fetch is blocking (D7), so the progress is printed from here, every
-           64 blocks (16 KB), against the slot erase as t0. */
+           so the progress is printed from here, every 64 blocks (16 KB), against the
+           slot erase as t0. One append is one block of the kernel's fetch (rete#440 R5). */
         static int64_t t0;
         if (staged_len == len) t0 = k_uptime_get();
         else if ((staged_len / 256) % 64 == 0)
@@ -161,57 +161,5 @@ void ota_exit_stage_ready(void) {
     printk("ota: rebooting into the runner\n");
     k_msleep(100);
     sys_reboot(SYS_REBOOT_COLD);
-#endif
-}
-
-#if defined(OTA_HAVE_SLOT) && !defined(CONFIG_OEVM_OTA_INCHANNEL)
-/* rete#233 T9: the fetch thread. One object and one 2.5 KB stack, reused fetch after
-   fetch; it exists only on a board with a program slot to stage into (OTA_HAVE_SLOT —
-   rete#427: without one the stack was 2,688 B of dead RAM on the nRF52840s, which
-   never start it) AND the stage is off-thread: CONFIG_OEVM_OTA_INCHANNEL (T10, the S2)
-   links neither the object nor the stack, and ota.c never calls ota_thread_start. Preemptible and below main (the VM, prio 0), so it runs when the VM waits on
-   its pulse mailbox and never delays a tick. The high-water line is the measurement
-   that sizes the stack (needs CONFIG_INIT_STACKS): 1856 B on c6spare for a 174 KB
-   image over Thread, 2026-10-10, so 2560 is that plus a third. */
-K_THREAD_STACK_DEFINE(ota_stack, 2560);
-static struct k_thread ota_thread;
-static int ota_thread_used;
-static void (*ota_fn)(void *);
-
-static void ota_entry(void *a, void *b, void *c) {
-    (void)b; (void)c;
-    ota_fn(a);
-#if defined(CONFIG_INIT_STACKS) && defined(CONFIG_THREAD_STACK_INFO)   /* kernel/thread.c builds the call only under both */
-    size_t unused = 0;
-    if (k_thread_stack_space_get(k_current_get(), &unused) == 0)
-        printk("ota: fetch thread stack high-water %u of %u B\n",
-               (unsigned)(K_THREAD_STACK_SIZEOF(ota_stack) - unused),
-               (unsigned)K_THREAD_STACK_SIZEOF(ota_stack));
-#endif
-}
-
-int ota_thread_start(void (*fn)(void *), void *arg) {
-    /* ota.c starts a fetch only when the previous one has ended (state != RUNNING),
-       so the join below returns at once; it exists to let the object be reused. */
-    if (ota_thread_used) (void)k_thread_join(&ota_thread, K_FOREVER);
-    ota_fn = fn;
-    k_thread_create(&ota_thread, ota_stack, K_THREAD_STACK_SIZEOF(ota_stack),
-                    ota_entry, arg, NULL, NULL, K_PRIO_PREEMPT(10), 0, K_NO_WAIT);
-    k_thread_name_set(&ota_thread, "oevm_ota");
-    ota_thread_used = 1;
-    return 1;
-}
-#else
-int ota_thread_start(void (*fn)(void *), void *arg) {
-    (void)fn; (void)arg;
-    return 0;        /* no slot, no thread: ota_stage answers -1, as the contract says */
-}
-#endif
-
-void ota_sleep_ms(int ms) {
-#ifdef __ZEPHYR__
-    if (ms > 0) k_msleep(ms);
-#else
-    (void)ms;   /* never reached off the board: ota_stage_size answers -1 there */
 #endif
 }

@@ -1,0 +1,194 @@
+(*
+env: OEVM_OTA_STAGE=/tmp/rete-nsl-ota-07.stage
+expect:
+log ota staging 0
+ota: block timed out after 5 attempts, block=2
+log ota stage failed
+timeout requests 0 1 2 2 2 2 2 staged 512 busy false finished 1
+ota: staged ok, bytes=600
+log ota staging 512
+log ota staged
+resume requests 2 staged 600 finished 2
+ota: slot not on a block boundary, restarting; bytes=600
+log ota staging 0
+ota: block timed out after 5 attempts, block=2
+log ota stage failed
+a resumable prefix of B staged 512
+ota: peer error: block past end
+ota: peer rejected a resumed block -- discarding the stale slot
+log ota staging 512
+log ota stage failed
+peer error on resume requests 2 staged 0 finished 4
+ota: peer error: unknown hash
+log ota staging 0
+log ota stage failed
+peer error on a fresh stage requests 0 staged 0 finished 5
+*)
+(* rete#440 R5 — THE FETCH'S CURSOR IS THE STAGE (OtaFetch, kernel.nsl), on the posix
+   stage file (the env: line). The cases ota_seam_test.c held while the fetch was C:
+
+   - timeout: every request for block 2 is dropped. The fetch asks five times, one 1 s
+     budget each (`advanceMillis:`), then ends; the 512 bytes on hand are a good prefix
+     and STAY, because porta being unreachable is not the bytes being wrong.
+   - resume: the next fetch of the same image starts at block 2 — the stage's length is
+     the cursor — and asks for nothing before it.
+   - peer error on a resume: a retarget to an image too short for the resume block, which
+     blockserv answers `block past end`. Not retried, and the stale prefix is EMPTIED:
+     left, it would repeat this request at every check-in, forever.
+   - peer error on a fresh stage (blockserv's `unknown hash`, the record pushed before the
+     blob): not retried, and there is nothing to empty.
+
+   Each case is a new bridge with its own socket, so no earlier bridge reads its frames.
+   `finished` counts: each fetch ends with nothing else in flight, so each says it once. *)
+class FetchResume packageUsing: manifest = () (
+
+  public class FakeDatagram = ( | private data | ) (
+    public setData: d = ( data:: d. ^ self )
+    public data = ( ^ data )
+  ) : (
+    public on: d = ( ^ self new setData: d )
+  )
+
+  (* porta/internal/blockserv in miniature. `dropFrom:` drops every request for that
+     block and later; `dropOnce:` drops the first request for one block. *)
+  public class FakeBlockSocket = (
+    | private pf private space private bell private blob private queue private requests
+      private dropFrom ::= 100000. private dropOnce ::= -1. private refusal ::= nil. |
+  ) (
+    public setPlatform: p space: sp bell: b blob: bl = (
+      pf:: p. space:: sp. bell:: b. blob:: bl.
+      queue:: p OrderedCollection new. requests:: p OrderedCollection new.
+      ^ self )
+    public doorbell = ( ^ bell )
+    public dropFrom: n = ( dropFrom:: n. ^ self )
+    public dropOnce: n = ( dropOnce:: n. ^ self )
+    public refuseWith: t = ( refusal:: t. ^ self )
+    public sent = ( ^ requests size )
+    public requests = ( | s |
+      requests isEmpty ifTrue: [ ^ ' none' ].
+      s:: ''.
+      requests do: [ :r | s:: s , ' ' , r printString ].
+      ^ s )
+    public sendTo: host port: p data: bytes = ( | blk |
+      (bytes u8At: 1) = 1 ifFalse: [ ^ self ].           (* not a block request *)
+      blk:: (((bytes u8At: 34) * 256 + (bytes u8At: 35)) * 256 + (bytes u8At: 36)) * 256 + (bytes u8At: 37).
+      requests add: blk.
+      blk >= dropFrom ifTrue: [ ^ self ].
+      blk = dropOnce ifTrue: [ dropOnce:: -1. ^ self ].
+      refusal == nil ifFalse: [ ^ self post: (self errorFrame: refusal) ].
+      (blk * 256 >= blob byteSize and: [ blk > 0 ]) ifTrue: [ ^ self post: (self errorFrame: 'block past end') ].
+      ^ self post: (self blockFrame: blk) )
+    public receive = (
+      queue isEmpty ifTrue: [ ^ nil ].
+      ^ FakeDatagram on: queue removeFirst )
+    post: frame = ( queue add: frame. space out: bell value: 1. ^ self )
+    blockFrame: blk = ( | off n f |
+      off:: blk * 256.
+      n:: blob byteSize - off.
+      n > 256 ifTrue: [ n:: 256 ].
+      f:: pf ByteArray new: 6 + n.
+      f u8At: 1 put: 2. f u8At: 2 put: 0. f u8At: 3 put: 0.
+      f u8At: 4 put: ((blk >> 8) bitAnd: 255). f u8At: 5 put: (blk bitAnd: 255).
+      f u8At: 6 put: (off + n < blob byteSize ifTrue: [ 1 ] ifFalse: [ 0 ]).
+      1 to: n do: [ :i | f u8At: 6 + i put: (blob u8At: off + i) ].
+      ^ f freeze )
+    errorFrame: t = ( | f |
+      f:: pf ByteArray new: 1 + t size.
+      f u8At: 1 put: 127.
+      1 to: t size do: [ :i | f u8At: i + 1 put: (t at: i) ].
+      ^ f freeze )
+  ) : ()
+
+  (* 600 bytes, b[i] = (i*7+3) & 255 from i = 0: ota_seam_test.c's blob A, whose SHA-256
+     was computed with python hashlib. *)
+  blobA: platform = ( | b |
+    b:: platform ByteArray new: 600.
+    1 to: 600 do: [ :i | b u8At: i put: (((i - 1) * 7 + 3) bitAnd: 255) ].
+    ^ b )
+  hashA: platform = ( ^ platform ByteArray fromHex: '1783f1f6842889ff855d25b6d45d33dd7401ffa94eb93704f6a374c264cde486' )
+  hashB: platform = ( ^ platform ByteArray fromHex: '464ae8453d00456341944fb3d1495600ef818c24e9d3e0d446b84c20c3df6869' )
+  goal: hash platform: platform = (
+    ^ platform Record tag: #App
+        with: #image -> (platform Record tag: #BlobRef with: #hash -> hash with: #size -> 600)
+        with: #sig -> (platform ByteArray fromHex: 'ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00') )
+
+
+  (* 600 bytes, b[i] = (i*11+5) & 255: ota_seam_test.c's blob B. *)
+  blobB: platform size: n = ( | b |
+    b:: platform ByteArray new: n.
+    1 to: n do: [ :i | b u8At: i put: (((i - 1) * 11 + 5) bitAnd: 255) ].
+    ^ b )
+
+  lapse: n platform: platform space: space = (
+    1 to: n do: [ :i | platform advanceMillis: 1000. space drain ].
+    ^ self )
+
+  bridgeOn: s platform: platform space: space timers: timers = (
+    ^ platform PortaBridge socket: s space: space id: 'n1' peer: '::1' port: 6969
+        spans: platform Spans new timers: timers )
+
+  public main: platform args: args = (
+    | space timers finished a s b |
+    space:: platform space.
+    timers:: platform timers.
+    space whenever: 'sys/timer' do: [ :t | timers dispatch: t ].
+    finished:: 0.
+    (space channel: 'sys/porta/exchange') whenever: '' do: [ :v | finished:: finished + 1 ].
+    (space channel: 'tel/log') whenever: '' do: [ :v | ('log ' , (v at: #txt ifAbsent: [ '?' ])) println ].
+    a:: self blobA: platform.
+
+    (* Timeout: block 2 never answers; the prefix stays. *)
+    s:: FakeBlockSocket new setPlatform: platform space: space bell: 'test/net1' blob: a.
+    s dropFrom: 2.
+    b:: self bridgeOn: s platform: platform space: space timers: timers.
+    b otaFetch discard.
+    space put: 'goal/apps/main' value: (self goal: (self hashA: platform) platform: platform).
+    space drain.
+    b otaCheck.
+    space drain.
+    self lapse: 5 platform: platform space: space.
+    ('timeout requests' , s requests , ' staged ' , b otaFetch staged printString
+      , ' busy ' , b otaFetch busy printString , ' finished ' , finished printString) println.
+
+    (* Resume: the next fetch asks from block 2. *)
+    s:: FakeBlockSocket new setPlatform: platform space: space bell: 'test/net2' blob: a.
+    b:: self bridgeOn: s platform: platform space: space timers: timers.
+    b otaCheck.
+    space drain.
+    ('resume requests' , s requests , ' staged ' , b otaFetch staged printString
+      , ' finished ' , finished printString) println.
+
+    (* A prefix of B: retarget over the full A (off-boundary, so from 0), block 2 dropped. *)
+    space put: 'goal/apps/main' value: (self goal: (self hashB: platform) platform: platform).
+    space drain.
+    s:: FakeBlockSocket new setPlatform: platform space: space bell: 'test/net3'
+      blob: (self blobB: platform size: 600).
+    s dropFrom: 2.
+    b:: self bridgeOn: s platform: platform space: space timers: timers.
+    b otaCheck.
+    space drain.
+    self lapse: 5 platform: platform space: space.
+    ('a resumable prefix of B staged ' , b otaFetch staged printString) println.
+
+    (* The server's B is now 300 bytes: block 2 is past its end. *)
+    s:: FakeBlockSocket new setPlatform: platform space: space bell: 'test/net4'
+      blob: (self blobB: platform size: 300).
+    b:: self bridgeOn: s platform: platform space: space timers: timers.
+    b otaCheck.
+    space drain.
+    ('peer error on resume requests' , s requests , ' staged ' , b otaFetch staged printString
+      , ' finished ' , finished printString) println.
+
+    (* Fresh: the record before the blob. *)
+    s:: FakeBlockSocket new setPlatform: platform space: space bell: 'test/net5' blob: a.
+    s refuseWith: 'unknown hash'.
+    b:: self bridgeOn: s platform: platform space: space timers: timers.
+    b otaCheck.
+    space drain.
+    ('peer error on a fresh stage requests' , s requests , ' staged ' , b otaFetch staged printString
+      , ' finished ' , finished printString) println.
+    ^ 0
+  )
+) : (
+  public packageUsing: manifest = ( ^ self new )
+)

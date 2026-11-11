@@ -1712,6 +1712,206 @@ class Kernel usingPlatform: platform = (
     public onBridge: b space: s = ( ^ self new setBridge: b space: s )
   )
 
+  (* rete#440 R5 — the image fetch as reactions (design 2026-11-04, addendum 2026-11-10;
+     card nodus/oevm/invarlint/revisions/r5-ota-fetch/ota_fetch.yaml). It was a C thread
+     (rete#233 T9) and, on the S2, a blocking loop on this one (T10); now it is one state
+     per block on the VM thread, and nothing here waits. A block is asked for, its budget
+     armed first, and the fetch is moved on by one of two events: the reply, which arrives
+     on the BRIDGE'S socket (its doorbell, read to empty by `readSocket`, which hands the
+     block plane's frames here), or the budget's expiry on `sys/porta/fetch`.
+
+     The wire is porta/internal/blockserv's, unchanged:
+       request  0x01 | hash[32] | blockNo u32 BE            (37 bytes)
+       response 0x02 | blockNo u32 BE | more u8 | data[<=256]
+       error    0x7F | text
+     on the peer's port plus one, by construction (otaCheck). C keeps the bytes: the stage
+     (append, size, truncate) and its digest are prims over src/ota_backend.h and ota.h.
+
+     Kept from T9 unchanged: the stage's length is the cursor, so a fetch resumes at the
+     block after the bytes on hand; a slot off a block boundary restarts from block 0; a
+     slot that already hashes to the image is staged at once with no traffic; a peer error
+     is not retried, and on a resume it also empties the stage (a retarget would otherwise
+     wedge the node on a block past the new image's end); an exhausted budget keeps the
+     stage for the next check-in to resume; a whole-image mismatch empties it. A failed
+     fetch is not remembered: the next check-in starts another. *)
+  class OtaFetch = (
+    | private socket private timers private bridge private budgetCh
+      private hash ::= nil. private sig ::= nil. private host private port
+      private block ::= 0. private first ::= 0. private attempts ::= 0.
+      private busy ::= false. private leg ::= 0. private token ::= nil. |
+  ) (
+    public setSocket: s timers: t space: sp bridge: b = (
+      socket:: s. timers:: t. bridge:: b.
+      budgetCh:: sp channel: 'sys/porta/fetch'.
+      budgetCh whenever: '' do: [ :n | self lapsed: n ].
+      ^ self )
+    (* porta/internal/blockserv BlockSize: a 6LoWPAN-safe payload. *)
+    blockSize = ( ^ 256 )
+    (* One attempt's budget and the attempts per block, as built in T9 (OTA_ATTEMPTS):
+       until a measurement earns other numbers (design addendum 2026-11-10). *)
+    attemptBudget = ( ^ 1000 )
+    maxAttempts = ( ^ 5 )
+
+    public busy = ( ^ busy )
+    public hash = ( ^ hash )
+    public sig = ( ^ sig )
+    public block = ( ^ block )
+    (* The bytes on the stage: the resume cursor, and what `ota staging N` reports. *)
+    public staged = ( ^ platform otaStageSize )
+    (* Empties the stage. For the suite, which must start from a known slot. *)
+    public discard = ( platform otaStageTruncate. ^ self )
+
+    (* A block-plane frame, by its first byte. A space-sync reply is a CBOR Record and
+       never begins with 0x02 or 0x7F. *)
+    public isBlockFrame: bytes = ( | b |
+      bytes byteSize = 0 ifTrue: [ ^ false ].
+      b:: bytes u8At: 1.
+      ^ b = 2 or: [ b = 127 ] )
+
+    (* Answers #staged (the slot already holds the image: one re-hash, no traffic),
+       #failed (no slot, no socket, or no timer), or #started, in which case the end
+       comes later as `bridge fetched:`. *)
+    public start: h sig: s host: hh port: p = (
+      | size |
+      size:: platform otaStageSize.
+      size < 0 ifTrue: [ self say: 'no staging slot (OEVM_OTA_STAGE unset)'. ^ #failed ].
+      hash:: h. sig:: s.
+      (size > 0 and: [ platform otaStageMatches: h rawLeaf ]) ifTrue: [
+        self say: 'already staged, bytes=' , size printString.
+        ^ #staged ].
+      (* A partial trailing block cannot be resumed from (the stage truncates to zero
+         only), so an off-boundary slot restarts from block 0. *)
+      (size \\ self blockSize) = 0 ifFalse: [
+        self say: 'slot not on a block boundary, restarting; bytes=' , size printString.
+        platform otaStageTruncate.
+        size:: 0 ].
+      socket == nil ifTrue: [ self say: 'no socket'. ^ #failed ].
+      host:: hh. port:: p.
+      block:: size // self blockSize.
+      first:: block.
+      attempts:: 0.
+      ([ self ask. true ] on: [ :e | true ] do: [ :e | false ]) ifFalse: [
+        self cancel.
+        self say: 'timer table full'.
+        ^ #failed ].
+      busy:: true.
+      ^ #started )
+
+    (* One attempt: the budget is armed BEFORE the request is sent, so a full timer table
+       (#81) raises with nothing in flight, and every waiting state holds a wake. *)
+    ask = (
+      self cancel.
+      attempts:: attempts + 1.
+      leg:: leg + 1.
+      token:: timers after: self attemptBudget post: leg on: budgetCh.
+      socket sendTo: host port: port data: self request.
+      ^ self )
+
+    (* Inside a reaction a raise would leave the fetch busy with no wake, so a re-arm that
+       raises ends the fetch instead; the stage is kept, and the next check-in resumes. *)
+    askAgain = (
+      ([ self ask. true ] on: [ :e | true ] do: [ :e | false ]) ifTrue: [ ^ self ].
+      self say: 'timer table full'.
+      ^ self end: false )
+
+    cancel = (
+      token == nil ifFalse: [ timers cancel: token. token:: nil ].
+      ^ self )
+
+    request = ( | raw h |
+      raw:: platform basicNewBytes: 37.
+      raw at: 1 put: 1.
+      h:: hash rawLeaf.
+      1 to: 32 do: [ :i | raw at: i + 1 put: (h at: i) ].
+      raw at: 34 put: ((block >> 24) bitAnd: 255).
+      raw at: 35 put: ((block >> 16) bitAnd: 255).
+      raw at: 36 put: ((block >> 8) bitAnd: 255).
+      raw at: 37 put: (block bitAnd: 255).
+      ^ Bytes overRaw: (platform freezeBytes: raw size: 37) )
+
+    (* A block-plane frame, read off the bridge's socket. A frame for another block, a
+       short one or one arriving when no fetch is in flight is a late duplicate, and is
+       dropped; the budget still runs, so a drop costs an attempt and nothing else. *)
+    public arrived: bytes = (
+      | n |
+      busy ifFalse: [ ^ self ].
+      n:: bytes byteSize.
+      (bytes u8At: 1) = 127 ifTrue: [
+        self say: 'peer error: ' , (self textOf: bytes).
+        ^ self rejected ].
+      (self isBlock: bytes) ifFalse: [ ^ self ].
+      n - 6 > self blockSize ifTrue: [ ^ self rejected ].     (* over-long: a bad peer *)
+      (platform otaStageAppend: bytes rawLeaf from: 7) ifFalse: [
+        self say: 'staging slot write failed'.
+        ^ self end: false ].
+      (bytes u8At: 6) = 0 ifTrue: [ ^ self verify ].
+      block:: block + 1.
+      attempts:: 0.
+      ^ self askAgain )
+
+    (* The block asked for, compared byte by byte so no arithmetic leaves the SMI band. *)
+    isBlock: bytes = (
+      bytes byteSize < 6 ifTrue: [ ^ false ].
+      (bytes u8At: 1) = 2 ifFalse: [ ^ false ].
+      ^ (bytes u8At: 2) = ((block >> 24) bitAnd: 255)
+        and: [ (bytes u8At: 3) = ((block >> 16) bitAnd: 255)
+        and: [ (bytes u8At: 4) = ((block >> 8) bitAnd: 255)
+        and: [ (bytes u8At: 5) = (block bitAnd: 255) ] ] ] )
+
+    (* "Unknown hash" is a state at porta, not a lost datagram, so it is not retried. On a
+       RESUME it means the bytes on hand are not a prefix of the wanted image at all — the
+       commonest cause is a retarget to a shorter image, whose resume block is past its end.
+       The slot carries no record of which image it holds, so emptying it is the only exit;
+       leaving it would repeat this request at every check-in, forever. A fresh stage is
+       left alone: it is the record-pushed-before-the-blob case, and it heals itself. *)
+    rejected = (
+      first > 0 ifTrue: [
+        self say: 'peer rejected a resumed block -- discarding the stale slot'.
+        platform otaStageTruncate ].
+      ^ self end: false )
+
+    (* The whole image, hashed. A mismatch is not recoverable by resuming — the bytes are
+       wrong, not incomplete — so the slot goes to zero and the next fetch starts at 0. *)
+    verify = ( | size |
+      size:: platform otaStageSize.
+      (platform otaStageMatches: hash rawLeaf) ifTrue: [
+        self say: 'staged ok, bytes=' , size printString.
+        ^ self end: true ].
+      self say: 'staged image hash MISMATCH, discarding bytes=' , size printString.
+      platform otaStageTruncate.
+      ^ self end: false )
+
+    (* The budget's reaction. `n` is the attempt it was armed for; an older one is ignored.
+       Read first: a reply already waiting is an arrival, not a miss. *)
+    lapsed: n = (
+      | was |
+      (busy and: [ n = leg ]) ifFalse: [ ^ self ].
+      was:: leg.
+      bridge readSocket.
+      (busy and: [ leg = was ]) ifFalse: [ ^ self ].
+      attempts < self maxAttempts ifTrue: [ ^ self askAgain ].
+      (* Porta is unreachable: the bytes on hand are still a good prefix, so the slot
+         stays, and it is the cursor for the next check-in. *)
+      self say: 'block timed out after ' , self maxAttempts printString , ' attempts, block=' , block printString.
+      ^ self end: false )
+
+    end: ok = (
+      self cancel.
+      busy:: false.
+      ^ bridge fetched: ok )
+
+    textOf: bytes = ( | n arr |
+      n:: bytes byteSize - 1.
+      n > 95 ifTrue: [ n:: 95 ].
+      arr:: platform basicNew: Array indexable: n.
+      1 to: n do: [ :i | arr at: i put: (bytes u8At: i + 1) ].
+      ^ platform string: arr )
+
+    say: msg = ( ('ota: ' , msg) out. ^ self )
+  ) : (
+    public socket: s timers: t space: sp bridge: b = ( ^ self new setSocket: s timers: t space: sp bridge: b )
+  )
+
   public class PortaBridge = (
     | private socket private space private nodeId private peerHost private peerPort
       private cursor ::= 0. private acked ::= 0. private rejected ::= 0. private misses ::= 0. private dropped ::= 0.
@@ -1732,6 +1932,12 @@ class Kernel usingPlatform: platform = (
          where no reaction runs. `exchangeCh` is sys/porta/exchange, `finished`. *)
       private timers private state ::= #idle. private budgetToken ::= nil. private leg ::= 0. private deadline ::= 0.
       private budgetCh private exchangeCh
+      (* rete#440 R5 — `fetch` is the image fetch (OtaFetch), built here with the bridge's
+         socket and timers. `owed` is a `finished` an app's exchange or fetch has earned and
+         not yet said: it is said only when the bridge is idle, no exchange and no fetch in
+         flight, so a run-once node that sleeps on it sleeps after its stage (addendum
+         2026-11-10). *)
+      private fetch private owed ::= false.
       (* rete#272 D3.3 — this boot's check-ins, counted in `checkIn` and sent as
          #wak in every pull. Per-boot and deliberately not persisted. *)
       private wakes ::= 0.
@@ -1898,6 +2104,7 @@ class Kernel usingPlatform: platform = (
       budgetCh:: space channel: 'sys/porta/budget'.
       budgetCh whenever: '' do: [ :n | self budgetLapsed: n ].
       exchangeCh:: space channel: 'sys/porta/exchange'.
+      fetch:: OtaFetch socket: s timers: t space: sp bridge: self.
       socket == nil ifFalse: [
         (space channel: socket doorbell) whenever: '' do: [ :bell | self readSocket ] ].
       ^ self )
@@ -2590,8 +2797,9 @@ class Kernel usingPlatform: platform = (
     (* The doorbell's reaction, and invariant 4 (design "Arrivals"): read the socket
        to EMPTY, on every path, handling each datagram in the state it finds. The
        reader re-arms the doorbell only on an empty answer, so a read that stopped
-       early would leave the node alive, idle and deaf. *)
-    readSocket = (
+       early would leave the node alive, idle and deaf. Public for the fetch's own
+       budget reaction, which reads first too (OtaFetch>>lapsed:). *)
+    public readSocket = (
       | dg |
       socket == nil ifTrue: [ ^ self ].
       dg:: socket receive.
@@ -2604,6 +2812,8 @@ class Kernel usingPlatform: platform = (
        one (tuvm#75). *)
     arrived: bytes = (
       | tag |
+      (* The block plane shares this socket (rete#440 R5): its frames are the fetch's. *)
+      (fetch isBlockFrame: bytes) ifTrue: [ ^ fetch arrived: bytes ].
       tag:: self tagOf: bytes.
       tag == nil ifTrue: [ ^ self ].
       state = #pulling ifTrue: [
@@ -2716,14 +2926,15 @@ class Kernel usingPlatform: platform = (
        is in this method, and the held loop must then find an idle bridge, not one
        still pushing with its budget cancelled. Then wake the debugger if lines
        arrived; then `otaCheck`, after the push on the same exchange (design D6);
-       then `finished`. An exchange the held loop started (`quiet`) does none of
-       these; while held, the app's own exchange skips the wake and the otaCheck —
-       the debugger is already stopped, and an activation would exit under it — but
-       still says it finished, because a run-once node is waiting to hear it. *)
+       then `finished`, once no fetch is in flight either (`announce`). An exchange the
+       held loop started (`quiet`) does none of these; while held, the app's own
+       exchange skips the wake and the otaCheck — the debugger is already stopped, and
+       an activation would exit under it — but still says it finished, because a
+       run-once node is waiting to hear it. *)
     leave = (
       self cancelBudget.
       state:: #idle.
-      quiet ifTrue: [ quiet:: false. heldExchanges:: heldExchanges + 1. ^ self ].
+      quiet ifTrue: [ quiet:: false. heldExchanges:: heldExchanges + 1. ^ self announce ].
       holding ifFalse: [
         (dbgLink == nil or: [ dbgLink pending not ]) ifFalse: [ outer debugger wake ].
         (* Outside all six spans: otaCheck is not exchange time. The position is the
@@ -2734,8 +2945,39 @@ class Kernel usingPlatform: platform = (
            exchange would die unpushed in the in-RAM pending queue — the one-tick
            delay is what makes a rollout's last words reach the gateway. *)
         self otaCheck ].
+      owed:: true.
+      ^ self announce )
+
+    (* `finished` means the bridge is idle (rete#440 R5, addendum 2026-11-10): said once
+       for whatever an app's exchanges and fetch owe, and only when neither an exchange
+       nor a fetch is in flight. A fetch the first exchange of a wake starts therefore
+       ends before the run-once node hears `finished`, checks in again and, on that
+       exchange's otaCheck, activates. *)
+    announce = (
+      (owed and: [ state = #idle and: [ fetch busy not ] ]) ifFalse: [ ^ self ].
+      owed:: false.
       exchangeCh out: '' value: #finished.
       ^ self )
+
+    (* The fetch's end, in its own reaction (OtaFetch>>end:). A staged image is recorded
+       HERE, not at the next otaCheck, so the very next exchange activates it: on a
+       deep-sleep node the stage does not outlive the wake. The pair comes from the fetch,
+       never re-read from the goal (otaCheck step 2): a goal retargeted mid-fetch is read
+       after the activation, by the image it booted. *)
+    public fetched: ok = (
+      self noteStage: ok hash: fetch hash sig: fetch sig.
+      owed:: true.
+      ^ self announce )
+
+    noteStage: ok hash: h sig: s = (
+      ok ifFalse: [ ^ self telLog: #error text: 'ota stage failed' ].
+      stagedHash:: h.
+      stagedSig::  s.
+      otaStaged::  true.
+      ^ self telLog: #info text: 'ota staged' )
+
+    (* For the suite: the fetch, to drive and read without a gateway. *)
+    public otaFetch = ( ^ fetch )
 
     (* #56 capability (3): "metrics die with the node", and /stats is a PULL, which
        is a human affordance — an agent arrives after the corpse is cold.
@@ -3063,16 +3305,16 @@ class Kernel usingPlatform: platform = (
           this path is not a transient, and one line at boot would scroll away
           long before anyone looked.
 
-       5. THE STAGE RUNS OFF THIS THREAD, AND IS POLLED HERE (rete#233 T9). The
-          first target run measured ~55 s for an image over Thread, and a prim that
-          blocks that long is what the observer's app-stale rule reboots — so
-          `otaStage:` starts the fetch and answers the bytes staged so far (logged
-          as `ota staging N`), true once the slot holds the verified image, false
-          when this round failed. Each check-in asks again; the slot's length is
-          the cursor, so nothing is lost between asks. A FAILED STAGE IS NOT
-          REMEMBERED: the next check-in simply tries again, a retry loop with no
-          backoff state, no attempt counter and no give-up threshold — none of
-          which there is data to choose yet (design D6, rete#175).
+       5. THE FETCH IS REACTIONS, AND IS STARTED HERE (rete#440 R5; a thread since
+          rete#233 T9, because ~55 s over Thread in one prim is what the observer's
+          app-stale rule reboots). `OtaFetch>>start:` answers at once: #staged when
+          the slot already holds the image, #failed, or #started — logged as
+          `ota staging N`, the bytes on hand, and again at every check-in while it
+          runs. Its end is `fetched:`, which records the stage and logs `ota staged`
+          or `ota stage failed`. The slot's length is the cursor, so nothing is lost
+          between fetches. A FAILED STAGE IS NOT REMEMBERED: the next check-in simply
+          tries again, a retry loop with no backoff state and no give-up threshold —
+          none of which there is data to choose yet (design D6, rete#175).
 
        The block plane is `peerPort + 1` by construction, not by configuration —
        one address, one port pair, nothing new to provision. *)
@@ -3133,21 +3375,10 @@ class Kernel usingPlatform: platform = (
       hash:: want at: 1.
       sig::  want at: 2.
       (outer otaIsRunning: hash) ifTrue: [ ^ self ].
-      (* `rankOf:` and then DISPATCH, never `== true`: the Boolean a C prim answers
-         is not the identical object to this image's literal (measured 2026-10-10:
-         `r == true` was false on c6spare and in the host gate alike, and the node
-         logged `ota staging true` forever). An Integer is rank 2, as the encoder
-         above reads it; anything else here is the prim's Boolean. *)
-      r:: outer otaStage: hash sig: sig host: peerHost port: peerPort + 1.
-      (outer rankOf: r) = 2 ifTrue: [
-        self telLog: #info text: 'ota staging ' , r printString.
-        ^ self ].
-      r ifTrue: [
-          stagedHash:: hash.
-          stagedSig::  sig.
-          otaStaged::  true.
-          self telLog: #info text: 'ota staged' ]
-        ifFalse: [ self telLog: #error text: 'ota stage failed' ].
+      fetch busy ifFalse: [
+        r:: fetch start: hash sig: sig host: peerHost port: peerPort + 1.
+        r = #started ifFalse: [ ^ self noteStage: r = #staged hash: hash sig: sig ] ].
+      self telLog: #info text: 'ota staging ' , fetch staged printString.
       ^ self )
 
     (* tel/log carries a `Log { level, text }` record and NOT a bare String —
@@ -4593,8 +4824,9 @@ class Kernel usingPlatform: platform = (
     r:: platform manifestPin.
     r == nil ifTrue: [ ^ nil ].
     ^ Bytes overRaw: r )
-  (* rete#25: the image-push seam (prims 145-150, src/ota.h). Six accessors, no
-     policy — an app decides WHICH hash it wants and WHEN to confirm; C owns the
+  (* rete#25: the image-push seam (prims 145-150, src/ota.h). Five accessors, no
+     policy (the stage is the kernel's own OtaFetch's since rete#440 R5, never an
+     app's) — an app decides WHICH hash it wants and WHEN to confirm; C owns the
      bytes, because a staged image must never enter the VM heap (design G3).
 
      Bytes cross the prim boundary as the RawBytes LEAF, not as an nsl Bytes
@@ -4636,17 +4868,6 @@ class Kernel usingPlatform: platform = (
     aHash isBytes ifFalse: [ ^ false ].
     ^ platform otaIsRunning: aHash rawLeaf )
   public otaTrial = ( ^ platform otaTrial )
-  (* BLOCKING (design D7). Answers false on any failure — an unreachable block
-     server, a digest that does not match at the end, or no staging slot at all.
-     The DETAIL went to the console; publishing it as `tel/log` is the caller's
-     job, because only the caller knows the cadence tick it belongs to. *)
-  public otaStage: aHash sig: aSig host: aHost port: aPort = (
-    aHash isBytes ifFalse: [ ^ false ].
-    (aSig == nil or: [ aSig isBytes ]) ifFalse: [ ^ false ].
-    ^ platform otaStage: aHash rawLeaf
-               sig: (self otaRawOf: aSig)
-               host: aHost
-               port: aPort )
   public otaConfirm = ( platform otaConfirm. ^ self )
   (* DOES NOT RETURN when the backend can exit: the process leaves in
      STAGE_READY(42) and the runner relaunches on the staged image. The `^ self`
