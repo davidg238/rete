@@ -2,8 +2,8 @@
 #define OEVM_TARGET_BACKEND_H
 /* The board facilities the core dispatches prims to (invarlint#53, the Targets card).
    On target the gpio, display, bell, ntp, rtc and wallclock leaves are defined in
-   zephyr/src/main.c beside the devicetree nodes they read, and timer_target_snapshot in
-   src/backend/zephyr/timer_zephyr.c; on host src/platform.c defines stubs for the leaves
+   src/backend/zephyr/{gpio,display,bell,clock,sleep}_zephyr.c beside the devicetree nodes
+   they read (rete#440 R6a), and timer_target_snapshot in src/backend/zephyr/timer_zephyr.c; on host src/platform.c defines stubs for the leaves
    it uses. Every symbol links on EVERY Zephyr board: a board without the hardware
    guards the BODY, never the definition. Each defining file includes this header, so
    the compiler checks every definition against the one declaration. */
@@ -12,6 +12,10 @@
 /* tuvm#82: digital pins. */
 int gpio_target_set(int pin, int level);
 int gpio_target_level(int pin);
+/* Boot wire-up, called from zephyr/src/main.c: arm the declared button inputs, and drive the
+   declared outputs inactive. No-ops on a board that declares none. */
+void wire_pulse_gpio(void);
+void wire_gpio_outputs(void);
 
 /* tuvm#88: the character display. */
 int display_target_available(void);
@@ -23,6 +27,8 @@ int display_target_refresh_row(int row);
 /* the bell (cosine generator). */
 int bell_target_available(void);
 int bell_target_strike(int bells);
+/* Boot bring-up of the bell pin; a no-op where the board has no DAC or spkren alias. */
+void bell_bringup(void);
 
 /* tuvm#94 stage 4, tuvm#100: NTP; -1 until a sync has succeeded. */
 int ntp_target_sync(int tz_offset_seconds);

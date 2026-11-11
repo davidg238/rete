@@ -355,3 +355,12 @@ the cards under `nodus/oevm/invarlint/cards/` are the design of record for the s
 - G3 as amended by R5: the staging slab stays outside the VM heap; one block (≤ OTA_BLOCK bytes) transits it per
   reaction as a ByteArray. Its GC cost on the S2 is measured at the next MagTag flash.
 - Card: `nodus/oevm/invarlint/revisions/r5-ota-fetch/ota_fetch.yaml`; revision `r5-ota-fetch.yaml`.
+
+## Addendum 2026-11-10 — R6 in three revisions
+
+- R6 lands as **R6a** (the leaves leave `main.c`: 19 functions into `gpio_`, `display_`, `bell_`, `clock_` and
+  `sleep_zephyr.c`; "twenty" above was a count from before `reboot_note_*` already had its own file), **R6b** (the prim
+  switch split per seam) and **R6c** (one source list for CMake and the host Makefile), each its own PR and gate.
+- What stays in `main.c` is boot and app wiring: Wi-Fi bring-up, the net heartbeat, the MagTag chime spike, the
+  solenoid and console strike path, the Model A XIP stubs.
+- R6a's gate is moved keys = predicted plus every board link; `footprint.sh` and `ab.sh` cannot see a move into `src/backend` (#490) and are R6b's.

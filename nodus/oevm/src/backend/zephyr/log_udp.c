@@ -66,7 +66,7 @@ static K_SEM_DEFINE(tee_wake, 0, 1);
 /* rete#415: the target survives deep sleep and a restart, so a waking node tees from
    its first line rather than holding the boot until its first check-in replays
    goal/console (a profile window opened from boot can dump before then). RTC_NOINIT
-   memory on espressif, as main.c's g_rtc; elsewhere plain .bss, which a boot zeroes,
+   memory on espressif, as sleep_zephyr.c's g_rtc; elsewhere plain .bss, which a boot zeroes,
    and the check fails, as it does on a power-on's garbage. `on` 0 is an off kept. */
 #define TEE_KEEP_MAGIC 0x7EE15415u
 struct tee_keep {

@@ -113,7 +113,7 @@
 
 	aliases {
 		/* pulsegpio (index 0) is the seam the nRF52840-DK and dongle already use;
-		 * pulsegpio1..3 are the extension for multi-button boards. main.c compiles
+		 * pulsegpio1..3 are the extension for multi-button boards. gpio_zephyr.c compiles
 		 * out whichever are absent, so single-button boards are unaffected. */
 		pulsegpio  = &btn_a;
 		pulsegpio1 = &btn_b;
