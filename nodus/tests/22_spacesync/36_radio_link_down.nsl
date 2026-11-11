@@ -12,7 +12,7 @@ link missed misses 1 idle true radio false finished 2
    - always (the default): a check-in while the link is down sends nothing, is counted
      (`skipped`), and says `finished` at once, so a run-once node is not left waiting.
    - per exchange: the check-in turns the radio on and, the link not up, waits for it
-     (#linking) on one budget one-shot, `linkBudget` (60 s) long, sending nothing.
+     (#linking) on one budget one-shot, `linkBudget` (10 s) long, sending nothing.
    - the link budget lapses: a miss, the exchange is over (idle), the radio goes off
      because the bridge is idle, and `finished` is said. *)
 class RadioLinkDown packageUsing: manifest = () (

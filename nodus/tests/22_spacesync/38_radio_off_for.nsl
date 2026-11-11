@@ -1,7 +1,7 @@
 (*
 expect:
 last call pulling true sent 1
-carried liveness 39 radio #offFor 10000
+carried liveness 14 radio #offFor 10000
 off radio false mode #off finished 1
 silent 3 sent 2 finished 4
 at N linking true radio true
@@ -14,7 +14,7 @@ app on mode #always radio true armed 0 sent 6
 
    - `radioOffFor:` while idle begins the last exchange at once: it carries sys/radio
      (#offFor, N) and obs/liveness re-declared with the gap, ceil((N + linkBudget) / 2 s)
-     = 35 misses more: 39, so porta reads the silence as planned, not as death.
+     = 10 misses more: 14, so porta reads the silence as planned, not as death.
    - That exchange over, the radio goes off and N is armed.
    - Check-ins while off are counted (`silent`), send nothing, and say `finished`.
    - At N, one exchange whatever the app does: the radio comes on, the bridge waits for
