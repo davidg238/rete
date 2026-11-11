@@ -30,6 +30,7 @@ nodus/       the device end
   nsl/       the dialect, its compiler and the kernel
   tests/     the nsl suite
 protocol/    the contract every peer answers to, and the Go module of the code they share (the Toit-era protocol is archived under protocol/archive/)
+relay/       the BLE relays (android/, linux/): a Bluetooth node's bridge to porta, held to protocol/RELAY-BLE.md
 review/      David's review-agent tree: the program ladder and the claims ledger
 docs/        the VM's own documents, the design records and the execution plans
 tools/       repo-wide scripts (docmap.sh)

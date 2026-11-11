@@ -1,14 +1,15 @@
 # The relay frame — datagrams over Bluetooth LE to a phone relay
 
 The contract between a node whose datagram seam rides Bluetooth (`nodus/oevm/src/backend/zephyr/udp_ble.c`)
-and the relay app that forwards each datagram as UDP (`relay/android/`). Design:
+and the relay that forwards each datagram as UDP: `relay/android/` (a phone) or `relay/linux/` (BlueZ, #498);
+see `relay/README.md`. Design:
 `docs/design/2026-10-23-439-ble-relay-design.md` (#439).
 
 ## The link
 
 - The node is a Bluetooth LE peripheral advertising service UUID `6f657673-6d00-4000-8000-00000000439a`.
 - The relay connects, bonds (LE Secure Connections, Just Works) and opens an L2CAP connection-oriented
-  channel on PSM `0x0080`. The node accepts one channel, and once bonded, only from the bonded phone.
+  channel on PSM `0x0080`. The node accepts one channel, and once bonded, only from the bonded relay.
 
 ## The frame
 
@@ -31,5 +32,5 @@ One L2CAP SDU is one datagram, in both directions. Integers are big-endian.
 ## The golden vector
 
 `fixtures/relay/frame.hex` is `local_port` 16970, `remote_port` 6969, `host` `fd7a:115c:a1e0::1`, payload
-`hi`. Both ends test against it: `nodus/oevm/tests/test_relay_frame.c` (codec `src/relay_frame.h`) and
-`relay/android/app/src/test/java/net/rete/relay/FrameTest.kt`.
+`hi`. Every codec tests against it: `nodus/oevm/tests/test_relay_frame.c` (codec `src/relay_frame.h`) and
+`relay/android/app/src/test/java/net/rete/relay/FrameTest.kt` and `relay/linux/frame_test.go`.
