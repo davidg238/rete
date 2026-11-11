@@ -175,6 +175,10 @@ void bell_bringup(void) {
     bell_ok = true;
     printk("BELL OK %u Hz\n", (unsigned)BELL_HZ);
 }
+#else
+/* No DAC or no speaker-enable pin on this board: nothing to bring up. Defined anyway so
+   main() calls it unguarded and the symbol links on every Zephyr board. */
+void bell_bringup(void) { }
 #endif /* CONFIG_DAC && spkren */
 
 /* tuvm#94 stage 1: the device half of the bell seam. The host half is in

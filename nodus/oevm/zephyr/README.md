@@ -130,7 +130,7 @@ hardware on the bench is the *DK* — this Task 8 targets it instead:
   `udp_zephyr.c`'s `zsock_*` references link, exactly as on native_sim.
 - `PulseNodeDK.nsl` — the gate node MINUS the sim-only `gpio fire: 13` line, so
   the one pulse comes from a physical press. Baked into `src/solidified_image.c`.
-- `src/main.c` — `wire_pulse_gpio()` binds the button IRQ (guarded on the alias).
+- `src/backend/zephyr/gpio_zephyr.c` — `wire_pulse_gpio()` binds the button IRQ (guarded on the alias).
 - `../src/platform.c` — `gpio_target_fire(int)`, the non-static ISR entry that
   reuses the same host-GPIO slot table the `gpioPin:` prim populates.
 

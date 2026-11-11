@@ -27,8 +27,7 @@ int display_target_refresh_row(int row);
 /* the bell (cosine generator). */
 int bell_target_available(void);
 int bell_target_strike(int bells);
-/* Boot bring-up of the bell pin; defined only where CONFIG_DAC and the spkren alias exist,
-   and called under the same guard. */
+/* Boot bring-up of the bell pin; a no-op where the board has no DAC or spkren alias. */
 void bell_bringup(void);
 
 /* tuvm#94 stage 4, tuvm#100: NTP; -1 until a sync has succeeded. */

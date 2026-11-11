@@ -2,7 +2,7 @@
 PulseNodeDK.ns — the Task 8 nRF52840-DK acceptance-bar node. Identical to the
 Task 7 native_sim gate (PulseNode.ns) EXCEPT it does NOT call `gpio fire: 13`:
 on the DK the one edge comes from a PHYSICAL button press (BUTTON1 / P0.11),
-routed by the Zephyr GPIO ISR in ../src/main.c -> gpio_target_fire(13) -> the
+routed by the Zephyr GPIO ISR in ../src/backend/zephyr/gpio_zephyr.c -> gpio_target_fire(13) -> the
 same (chan_id, handle_idx) this node registered via `gpio pin: 13 ...`. Baking
 the sim `gpio fire:` in here would post a pulse at boot and print `observed
 done` with NO button press, defeating the whole point of the hardware bar — so

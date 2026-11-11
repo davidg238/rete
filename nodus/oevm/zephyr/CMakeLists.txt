@@ -328,7 +328,7 @@ if(DEFINED ENV{OEVM_SOLENOID_CONSOLE})
   target_compile_definitions(app PRIVATE OEVM_SOLENOID_CONSOLE=1)
 endif()
 
-# The NTP server the bell corrects itself against (src/main.c ntp_target_sync).
+# The NTP server the bell corrects itself against (src/backend/zephyr/clock_zephyr.c ntp_target_sync).
 #
 # OEVM_NTP_SERVER6 is a LITERAL IPv6 address and WINS over OEVM_NTP_SERVER when
 # both are set — it is the Thread path, where the mesh is a ULA with no global

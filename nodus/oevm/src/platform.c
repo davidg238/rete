@@ -161,25 +161,25 @@ int gpio_target_level(int pin) {
     return -1;
 }
 #else
-/* tuvm#82: on target these live in zephyr/src/main.c, beside the devicetree tables
+/* tuvm#82: on target these live in src/backend/zephyr/gpio_zephyr.c, beside the devicetree tables
    they read. Conditional compilation in a shared src/*.c rather than a new backend
    .c pair is deliberate: __ZEPHYR__ is already used this way in src/gc.c and
    src/vm.c, and adding a .c file costs edits to nine enumerated source lists
    across two repos (tuvm#63) for two functions.
    Note the direction is the MIRROR of gpio_target_fire below, which platform.c
-   defines and main.c calls inbound. */
+   defines and gpio_zephyr.c's button ISR calls inbound. */
 #endif
 
 /* tuvm#88: the host side of the display seam — a real character grid, not a
    stub that only reports errors. `refresh` PRINTS the non-blank rows, so an nsl
    test asserts on the text that was actually laid down (the existing expect:
    mechanism is the read-back path, which is why no fifth "read the grid" prim
-   has to be spent). On target these live in zephyr/src/main.c beside CFB.
+   has to be spent). On target these live in src/backend/zephyr/display_zephyr.c beside CFB.
    Geometry: the panel is 128x296 px and CFB is configured with font1016 (10 wide
    x 16 tall) — NOT 8x8; CFB ships no 8x8 font, and the `ppt` of 8 that looks like
    a font size is a tiling granularity, not one. That gives 128/10 = 12 columns
    and 296/16 = 18 rows. The numbers are named ONCE, in platform_backend.h
-   (OEVM_DISPLAY_ROWS/COLS), and this file plus zephyr/src/main.c both consume
+   (OEVM_DISPLAY_ROWS/COLS), and this file plus src/backend/zephyr/display_zephyr.c both consume
    that single definition — a host/device mismatch here would make a host-green
    test meaningless, so the device side hard-checks its derived grid against
    these same constants at bring-up rather than merely printing them. */
@@ -266,7 +266,7 @@ int display_target_refresh_row(int row) {
     return 0;
 }
 #else
-/* On target these live in zephyr/src/main.c, beside the CFB calls and the
+/* On target these live in src/backend/zephyr/display_zephyr.c, beside the CFB calls and the
    devicetree node they read — the same split gpio_target_set/level use, and for
    the same reason: a new .c file costs edits to nine enumerated source lists
    across two repos (tuvm#63). */
@@ -361,9 +361,9 @@ int ntp_target_date(void) {
    host reads a calendar. Two reasons, both about keeping the two sides honest:
    wallClockSetDate:time: takes a date because Zephyr's rtc_set_time does, so a
    host that dropped it would let a node pass garbage the device would reject; and
-   the unset-clock guard is a YEAR comparison (zephyr/src/main.c), so modelling the
+   the unset-clock guard is a YEAR comparison (src/backend/zephyr/clock_zephyr.c), so modelling the
    year is what lets 04 exercise that guard without a DS3231 on the bench. */
-#define OEVM_WALLCLOCK_MIN_YEAR 2020   /* keep in step with zephyr/src/main.c */
+#define OEVM_WALLCLOCK_MIN_YEAR 2020   /* keep in step with src/backend/zephyr/clock_zephyr.c */
 static int g_wc_set = 0;               /* 0 = never set — the cold, no-RTC default */
 static int g_wc_secs = 0;
 static int g_wc_year = 0;
@@ -504,14 +504,14 @@ void deep_sleep_target(int seconds) {
     exit(0);
 }
 #else
-/* On target the leaves live in zephyr/src/main.c (the panic note's in
+/* On target the leaves live in the src/backend/zephyr/*_zephyr.c leaf files (the panic note's in
    zephyr/src/reboot_note.c), declared once in target_backend.h and reboot_note.h
    (invarlint#53, #48). Every symbol links on EVERY Zephyr board: a board without the
    hardware guards the BODY, never the definition. */
 #endif
 
 /* Target GPIO-ISR entry (Zephyr rung-2 Task 8): a real on-target GPIO edge
-   callback (zephyr/src/main.c) calls this to post the pulse for `pin`, taking
+   callback (src/backend/zephyr/gpio_zephyr.c) calls this to post the pulse for `pin`, taking
    the exact same slot-lookup -> pulse_post_isr path the host-only gpioFire:
    prim simulates. ISR-safe: pulse_post_isr is non-allocating and non-blocking.
    Non-static so the Zephyr entry point can call it; unused on host/native_sim
@@ -1836,7 +1836,7 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
            previous alarm resolves NULL and its strike is silently dropped; freeing
            here cannot, because by this point the driver has been repointed.
            The cost is that a FAILED arm leaves the previous pin held with nothing
-           referencing it (zephyr/src/main.c:506 writes oevm_alarm_handle before
+           referencing it (src/backend/zephyr/sleep_zephyr.c rtc_alarm_arm writes oevm_alarm_handle before
            either of its failure returns, so the driver is already pointing at the
            handle freed above). That is bounded at exactly one slot and reclaimed by
            the next successful arm — this variable holds one pin by construction, so

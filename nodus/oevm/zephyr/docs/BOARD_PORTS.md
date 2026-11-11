@@ -13,7 +13,7 @@ Everything above the board line is **shared and board-agnostic**:
 - the VM (`vm.c`/`gc.c`/`dispatch.c`/…), baked per-program into `src/solidified_image.c`;
 - the Zephyr backends `udp_zephyr.c` / `serial_zephyr.c` / `pulse_zephyr.c` (all `zsock_*`/msgq based, no board assumptions);
 - the OpenThread bring-up `thread_bringup()` in `src/main.c` (`openthread_run()` + `net_if_up()` + attach-wait);
-- the pulse-GPIO seam (`wire_pulse_gpio()` in `src/main.c`, bound to the `pulsegpio` DT alias).
+- the pulse-GPIO seam (`wire_pulse_gpio()` in `src/backend/zephyr/gpio_zephyr.c`, bound to the `pulsegpio` DT alias).
 
 Only **four things vary per board**, and each has a single, well-defined seam:
 

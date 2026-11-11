@@ -5,6 +5,8 @@
 #include <string.h>
 #include "target_backend.h"
 
+/* OUTSIDE any CONFIG_WIFI guard, because the NTP seam is not inside it: a Thread node has
+   SNTP and no WiFi. See ntp_target_sync(). */
 #ifdef CONFIG_SNTP
 #include <zephyr/net/sntp.h>        /* tuvm#94 stage 4: sntp_simple for the bells */
 #include <zephyr/net/net_ip.h>      /* net_addr_pton, sockaddr_in6 — the literal path */

@@ -677,9 +677,7 @@ int main(void) {
     magtag_chime();   /* spike: prove the MagTag speaker path at boot */
 #endif
 
-#if defined(CONFIG_DAC) && DT_NODE_EXISTS(DT_ALIAS(spkren))
-    bell_bringup();   /* tuvm#94 stage 1: enable the DAC pin; nsl does the striking */
-#endif
+    bell_bringup();   /* tuvm#94 stage 1: enable the DAC pin; nsl does the striking; a no-op without one */
 
     /* Display bringup is NOT called here: it is lazy, inside display_target_available()
      * — the uc81xx blanking-off pushes a white refresh, so running it on every boot
