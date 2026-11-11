@@ -332,7 +332,8 @@ the cards under `nodus/oevm/invarlint/cards/` are the design of record for the s
 
 - **One mechanism for every board.** The fetch thread (T9) and the in-channel fallback (T10,
   `CONFIG_OEVM_OTA_INCHANNEL`) both go; the kernel's `OtaFetch` runs on the VM thread as reactions, one state per
-  block, moved on by the block socket's doorbell or the block's budget timer. No reaction waits, so the app-stale
+  block, moved on by the doorbell of the bridge's own socket (one socket, one doorbell; a block frame is told from a
+  batch by its first byte, and the block plane is still the peer's port plus one) or the block's budget timer. No reaction waits, so the app-stale
   rule that drove T9 off-thread cannot fire, and the reason T10 existed for the S2 is gone too.
 - **The C keeps the bytes, not the loop.** Ota still owns the stage (append, read, truncate, size), the SHA-256
   and the ready record; `ota_sleep_ms`, `ota_thread_start` and `fetch_block`/`fetch_run` are deleted.
@@ -342,4 +343,6 @@ the cards under `nodus/oevm/invarlint/cards/` are the design of record for the s
   empties the stage; an exhausted budget keeps the stage; a hash mismatch empties it; a failed fetch is not
   remembered and the next check-in retries. Budget: 5 attempts of 1 s per block, as built (`OTA_ATTEMPTS`), until
   a measurement earns another number.
+- **A retarget mid-fetch never activates the old image:** a fetched stage is activated only while the goal still
+  names its hash; otherwise the next check-in stages the new goal (T9's behaviour).
 - Card: `nodus/oevm/invarlint/revisions/r5-ota-fetch/ota_fetch.yaml`; revision `r5-ota-fetch.yaml`.
