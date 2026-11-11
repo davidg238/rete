@@ -2840,11 +2840,12 @@ class Kernel usingPlatform: platform = (
       ^ self )
 
     (* ONE number (design "Radio"): how long a per-exchange check-in waits for the link
-       after the radio comes on. Twice the worst reconnect observed: OCM.1 through the Pixel
-       relay, per exchange at 60 s, 12 samples, 2026-11-10 (rete#458), misses 0:
-       5262 3181 3301 1280 676 350 2798 353 342 3185 766 976 ms (median ~1.1 s, worst 5.3 s).
-       What would earn another number: a transport whose reconnect differs, measured. *)
-    public linkBudget = ( ^ 10000 )
+       after the radio comes on. Twice the worst reconnect observed on any transport, per
+       exchange at 60 s, misses 0 throughout (rete#458): OCM.1 through the Pixel relay,
+       25 samples 2026-11-10, median 1.0 s, worst 10.7 s; OCM.1 on Thread, 30 samples
+       2026-11-11, median 1.2 s, worst 3.4 s. What would earn another number: a transport
+       whose worst reconnect differs by more than this margin, measured. *)
+    public linkBudget = ( ^ 22000 )
 
     public radioMode = ( ^ radioMode )
     public radioIsOn = ( ^ radioIsOn )
