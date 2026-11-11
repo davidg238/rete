@@ -1024,6 +1024,11 @@ enum {
     PRIM_pf_otaStageAppend,
     PRIM_pf_otaStageTruncate,
     PRIM_pf_otaStageMatches,
+    /* rete#440 R3 (#458): the radio verb and the link it carries — 169-170 (counted, not
+       computed). Appended after otaStageMatches; no pre-existing id shifts.
+       Platform-dispatched (mirrored in prim_ids.h). */
+    PRIM_pf_radioOn,
+    PRIM_pf_linkUp,
 };
 
 /* Must stay parallel to the enum above (index i -> id i+1).
@@ -1046,7 +1051,7 @@ static const char *const PRIM_NAMES[] = {
    — this catches it at build time instead. C99-safe (no _Static_assert under
    -std=c99): a false condition makes a negative-sized array, which is a hard
    compile error. ADVANCE THIS to the new last id whenever prims are appended. */
-typedef char prim_names_enum_parity_check[(N_PRIM_NAMES == PRIM_pf_otaStageMatches) ? 1 : -1];
+typedef char prim_names_enum_parity_check[(N_PRIM_NAMES == PRIM_pf_linkUp) ? 1 : -1];
 
 /* rete#226 — CLASSIFICATION HAPPENS ONCE, WHERE THE SYMBOL IS MADE.
 

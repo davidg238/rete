@@ -1923,8 +1923,8 @@ class Kernel usingPlatform: platform = (
          (rete#440 R2, design "While the program is stopped"). *)
       private dbgLink ::= nil. private heldExchanges ::= 0. private holding ::= false. private quiet ::= false.
       (* rete#440 R2 — the exchange as a state machine (design 2026-11-04, "The
-         check-in as reactions"). `state` is #idle, #pulling or #pushing (#linking
-         is R3's). `timers` is the bridge's, from construction, so every state that
+         check-in as reactions"). `state` is #idle, #linking (R3: the radio is on and
+         the link not yet up), #pulling or #pushing. `timers` is the bridge's, from construction, so every state that
          waits holds an armed one-shot: `budgetToken`, posting `leg` on
          sys/porta/budget. `leg` counts every arm, so an expiry that was already on
          its way when a reply moved the exchange on is recognised and ignored.
@@ -1938,6 +1938,21 @@ class Kernel usingPlatform: platform = (
          flight, so a run-once node that sleeps on it sleeps after its stage (addendum
          2026-11-10). *)
       private fetch private owed ::= false.
+      (* rete#440 R3 (#458) — the radio, an app policy the bridge carries out (design
+         2026-11-04, "Radio"). `radioMode` is the policy in force: #always (the default),
+         #perExchange, or one of off-for-N's phases — #lastCall (asked, the exchange that
+         carries sys/radio not yet begun), #carrying (that exchange in flight), #off (the
+         radio off, check-ins counted and nothing sent), #forced (N expired: one exchange,
+         whatever the app does). `basePolicy` is what off-for-N returns to. `offLeg` names
+         the N timer's arm, as `leg` names the budget's, so an expiry from an earlier off
+         is ignored; `offDeadline` is the same expiry for the held loop. `gapMisses` is the
+         expected gap re-declared on obs/liveness while off. `skipped` counts check-ins the
+         link was down for, `silent` those the radio was off for. `linkStart`/`linkMs` time
+         the last link wait, radio on to link up: the reconnect that sets `linkBudget`. *)
+      private radioMode ::= #always. private basePolicy ::= #always. private radioIsOn ::= true.
+      private offMs ::= 0. private offLeg ::= 0. private offToken ::= nil. private offDeadline ::= 0.
+      private gapMisses ::= 0. private skipped ::= 0. private silent ::= 0.
+      private linkStart ::= 0. private linkMs ::= -1. private offCh
       (* rete#272 D3.3 — this boot's check-ins, counted in `checkIn` and sent as
          #wak in every pull. Per-boot and deliberately not persisted. *)
       private wakes ::= 0.
@@ -2107,6 +2122,12 @@ class Kernel usingPlatform: platform = (
       fetch:: OtaFetch socket: s timers: t space: sp bridge: self.
       socket == nil ifFalse: [
         (space channel: socket doorbell) whenever: '' do: [ :bell | self readSocket ] ].
+      (* rete#440 R3: the fourth event, the link (`sys/net/link`, rung by Net on every
+         change; asking `linkUp` once here arms it), and off-for-N's timer. *)
+      (space channel: 'sys/net/link') whenever: '' do: [ :t | self linkChanged ].
+      platform linkUp.
+      offCh:: space channel: 'sys/porta/radio'.
+      offCh whenever: '' do: [ :n | self offExpired: n ].
       ^ self )
 
     (* bootId rides the batch envelope, not every record — it is constant for
@@ -2207,10 +2228,14 @@ class Kernel usingPlatform: platform = (
        the rest of the boot, and every later `leave` would skip the wake and otaCheck. *)
     public heldStep = (
       holding:: true.
-      [ (state = #idle and: [ (socket == nil) not ]) ifTrue: [ self startExchange ].
+      [ state = #idle ifTrue: [ self beginExchange ].
         platform pumpEvents.
         self readSocket.
-        ((state = #idle) not and: [ platform monotonicMillis >= deadline ]) ifTrue: [ self lapse ] ]
+        (* rete#440 R3: the link and N, read here as the socket and the budget are. *)
+        (state = #linking and: [ platform linkUp ]) ifTrue: [ self linkChanged ].
+        ((state = #idle) not and: [ platform monotonicMillis >= deadline ]) ifTrue: [ self lapse ].
+        (radioMode = #off and: [ platform monotonicMillis >= offDeadline ]) ifTrue: [
+          self offExpired: offLeg ] ]
         ensure: [ holding:: false ].
       ^ self )
     public heldExchanges = ( ^ heldExchanges )
@@ -2715,12 +2740,15 @@ class Kernel usingPlatform: platform = (
     (* ---- one check-in ----------------------------------------------------- *)
     (* PULL, apply, PUSH, ack — as reactions (rete#440 R2, design 2026-11-04 "The
        check-in as reactions"). `checkIn` starts an exchange if idle and returns at
-       once; nothing here waits. Three events move the exchange on: this send, the
-       socket's doorbell (`readSocket`) and the budget's expiry (`budgetLapsed:`).
+       once; nothing here waits. Four events move the exchange on: this send, the
+       link (`linkChanged`, rete#440 R3), the socket's doorbell (`readSocket`) and the
+       budget's expiry (`budgetLapsed:`).
 
          state     checkIn        doorbell (read to empty)          budget
-         idle      send PULL,     discard all (stale, counted        —
-                   → pulling      crossed)
+         idle      the policy     discard all (stale, counted        —
+                   (beginExchange) crossed)
+         linking   ignored        discard all; link up → PULL,       a miss, → idle
+                                  → pulling (`linkChanged`)
          pulling   ignored        #batch → apply, publish, PUSH,     read first; else a
                                   → pushing; #ack → crossed          miss, PUSH anyway
          pushing   ignored        #ack → applyAck, leave;            read first; else a
@@ -2760,18 +2788,187 @@ class Kernel usingPlatform: platform = (
       (* Counted before the socket test: the count is of TICKS the reactor ran, and
          a node with no socket still ticked (rete#272 D3.3). *)
       wakes:: wakes + 1.
-      socket == nil ifTrue: [ ^ self ].
-      state = #idle ifFalse: [ ^ self ].
-      ^ self startExchange )
+      ^ self beginExchange )
 
     public state = ( ^ state )
+
+    (* ---- the radio policy (rete#440 R3, #458; design 2026-11-04 "Radio") ------------
+       The app says which; the bridge carries it out, in the idle row of the table:
+
+         policy        a check-in while idle                       when the bridge is idle
+         always        link down: counted (`skipped`), nothing     —
+                       sent; else PULL
+         perExchange   radio on; link up: PULL; else wait for      radio off
+                       sys/net/link under `linkBudget` (#linking)
+         off for N     one last exchange carries sys/radio (as     after it: radio off, N armed;
+                       perExchange); then counted (`silent`),      at N, one exchange whatever
+                       nothing sent                                the app does, then the policy
+
+       "Idle" is R5's finished rule: no exchange AND no fetch in flight. A check-in that
+       sends nothing says `finished` at once, so a run-once node is never left waiting. No
+       wait anywhere: the link and N are events, and a deadline is a timer. *)
+    public radioAlways = ( ^ self radioPolicy: #always )
+    public radioPerExchange = ( ^ self radioPolicy: #perExchange )
+    (* Off always has a duration (David, 2026-11-05): a bug in an app's turn-back-on code
+       must not strand a node, so N is a timer and at N the bridge does one exchange. N is
+       clamped to the liveness ceiling, past which porta could not be told the gap. The
+       gap is re-declared on obs/liveness (`gapMisses`), so porta reads the silence as
+       planned, not as death; the last exchange carries it with sys/radio. *)
+    public radioOffFor: ms = (
+      | n |
+      n:: ms.
+      n < 1 ifTrue: [ n:: 1 ].
+      n > self livenessCeilingMs ifTrue: [ n:: self livenessCeilingMs ].
+      self endOff.
+      offMs:: n.
+      radioMode:: #lastCall.
+      self publishRadio: #offFor ms: n.
+      self declareGap: n + self linkBudget.
+      state = #idle ifTrue: [ self beginExchange ].
+      ^ self )
+
+    (* ONE number (design "Radio"): how long a per-exchange check-in waits for the link
+       after the radio comes on. 60 s until the reconnect measured on OCM.1 through the
+       Pixel relay sets it (rete#458); 3 s made per exchange look impossible, 60 s does not.
+       What would earn a second number: a transport whose reconnect differs enough to
+       matter, measured. *)
+    public linkBudget = ( ^ 60000 )
+
+    public radioMode = ( ^ radioMode )
+    public radioIsOn = ( ^ radioIsOn )
+    public skipped = ( ^ skipped )
+    public silent = ( ^ silent )
+    (* The last link wait, radio on to link up, in ms; -1 before the first. *)
+    public linkMs = ( ^ linkMs )
+
+    radioPolicy: p = (
+      self endOff.
+      basePolicy:: p.
+      radioMode:: p.
+      self publishRadio: p ms: 0.
+      p = #always ifTrue: [ self radio: true ].
+      (state = #idle and: [ fetch busy not ]) ifTrue: [ self settleRadio ].
+      ^ self )
+
+    radio: on = ( radioIsOn:: platform radioOn: on. ^ self )
+
+    (* sys/radio, a cell, so the last push before the radio goes off says so. Written only
+       when the app sets a policy: a node that never does runs the default, and absence
+       says that. *)
+    publishRadio: pol ms: n = (
+      space put: 'sys/radio' value: (Record tag: #Radio with: #ms -> n with: #pol -> pol).
+      ^ self )
+
+    (* The gap, in check-ins, added to the declared misses until the forced exchange. *)
+    declareGap: ms = (
+      | g room |
+      g:: ms + cadMs - 1 // cadMs.
+      room:: (self livenessCeilingMs // cadMs) - missBudget.
+      room < 0 ifTrue: [ room:: 0 ].
+      g > room ifTrue: [ g:: room ].
+      gapMisses:: g.
+      livenessPublished:: false.
+      ^ self )
+
+    (* Leave off-for-N, wherever it is: the N timer cancelled, the gap withdrawn. *)
+    endOff = (
+      offToken == nil ifFalse: [ timers cancel: offToken. offToken:: nil ].
+      gapMisses = 0 ifFalse: [ gapMisses:: 0. livenessPublished:: false ].
+      ^ self )
+
+    (* The idle row: what a check-in does when no exchange is in flight. *)
+    beginExchange = (
+      socket == nil ifTrue: [ ^ self ].
+      state = #idle ifFalse: [ ^ self ].
+      radioMode = #off ifTrue: [ silent:: silent + 1. ^ self nothingSent ].
+      radioMode = #always ifTrue: [
+        platform linkUp ifFalse: [ skipped:: skipped + 1. ^ self nothingSent ].
+        ^ self startExchange ].
+      radioMode = #lastCall ifTrue: [ radioMode:: #carrying ].
+      ^ self linkThenExchange )
+
+    (* A check-in that sent nothing is over at once: `finished`, unless the held loop
+       asked (it says nothing, as its exchanges do). *)
+    nothingSent = (
+      holding ifTrue: [ ^ self ].
+      owed:: true.
+      ^ self announce )
+
+    (* Radio on; the link may already be up (always, or a fetch kept it on). Else wait for
+       it under the link budget, armed first for the reason startExchange arms first. *)
+    linkThenExchange = (
+      self radio: true.
+      platform linkUp ifTrue: [ ^ self startExchange ].
+      self armBudget: self linkBudget.
+      quiet:: holding.
+      linkStart:: platform monotonicMillis.
+      state:: #linking.
+      ^ self )
+
+    (* sys/net/link's reaction: only a wait for the link cares, and only for up. The
+       re-arm can find the timer table full (#81), as pushStart's can: raised here it
+       would leave #linking with no budget and no wake, so the wait ends as a miss. *)
+    linkChanged = (
+      state = #linking ifFalse: [ ^ self ].
+      platform linkUp ifFalse: [ ^ self ].
+      linkMs:: platform monotonicMillis - linkStart.
+      ([ self startExchange. true ] on: [ :e | true ] do: [ :e | false ]) ifFalse: [
+        self telLog: #error text: 'timer table full'.
+        ^ self linkMissed ].
+      ^ self )
+
+    (* The link budget lapsed: a miss, and the exchange is over (idle, so the radio goes
+       off under per exchange, and `finished`). *)
+    linkMissed = (
+      misses:: misses + 1.
+      self cancelBudget.
+      state:: #idle.
+      quiet ifTrue: [ quiet:: false. heldExchanges:: heldExchanges + 1. ^ self announce ].
+      owed:: true.
+      ^ self announce )
+
+    (* The bridge is idle (no exchange, no fetch): the policy's "when idle" column. *)
+    settleRadio = (
+      radioMode = #carrying ifTrue: [ ^ self goOff ].
+      radioMode = #lastCall ifTrue: [ ^ self beginExchange ].
+      radioMode = #forced ifTrue: [ radioMode:: basePolicy ].
+      radioMode = #perExchange ifTrue: [ self radio: false ].
+      ^ self )
+
+    (* After the carrying exchange: the radio off and N armed. Armed FIRST: a full timer
+       table (#81) must not leave the radio off with no way back, so the policy stays
+       what it was and says so on tel/log. *)
+    goOff = (
+      ([ offLeg:: offLeg + 1.
+         offToken:: timers after: offMs post: offLeg on: offCh. true ]
+         on: [ :e | true ] do: [ :e | false ]) ifFalse: [
+        self telLog: #error text: 'timer table full'.
+        radioMode:: basePolicy.
+        self endOff.
+        self publishRadio: basePolicy ms: 0.
+        ^ self settleRadio ].
+      offDeadline:: platform monotonicMillis + offMs.
+      radioMode:: #off.
+      ^ self radio: false )
+
+    (* N expired: one exchange whatever the app does, carrying the policy it returns to
+       and the liveness it had. `n` names the arm, so an expiry from an off the app has
+       since left is ignored. *)
+    offExpired: n = (
+      (radioMode = #off and: [ n = offLeg ]) ifFalse: [ ^ self ].
+      offToken:: nil.
+      self endOff.
+      radioMode:: #forced.
+      self publishRadio: basePolicy ms: 0.
+      ^ self beginExchange )
 
     (* The budget is armed FIRST: `timers after:` raises `timer table full` (#81) in
        the job that armed it, and armed first a full table leaves the bridge idle and
        the next check-in tries again, rather than waiting with no wake. *)
     startExchange = (
       self armBudget.
-      quiet:: holding.
+      (* A link wait already said whose exchange this is. *)
+      state = #linking ifFalse: [ quiet:: holding ].
       spans begin: sPullSend.
       socket sendTo: peerHost port: peerPort data: self pullFrame.
       spans end: sPullSend.
@@ -2783,11 +2980,14 @@ class Kernel usingPlatform: platform = (
        cancelled first, so a re-arm frees the slot it takes. The deadline is read
        BEFORE arming: the timer cannot then fire before the clock says it is due,
        so the held loop's comparison never misses the wake that woke it. *)
-    armBudget = (
+    armBudget = ( ^ self armBudget: self replyBudget )
+
+    (* rete#440 R3: the link wait arms the same one-shot, for `linkBudget`. *)
+    armBudget: ms = (
       self cancelBudget.
       leg:: leg + 1.
-      deadline:: platform monotonicMillis + self replyBudget.
-      budgetToken:: timers after: self replyBudget post: leg on: budgetCh.
+      deadline:: platform monotonicMillis + ms.
+      budgetToken:: timers after: ms post: leg on: budgetCh.
       ^ self )
 
     cancelBudget = (
@@ -2918,6 +3118,7 @@ class Kernel usingPlatform: platform = (
       was:: leg.
       self readSocket.
       (leg = was and: [ (state = #idle) not ]) ifFalse: [ ^ self ].
+      state = #linking ifTrue: [ ^ self linkMissed ].
       state = #pulling ifTrue: [ ^ self pulled: nil ].
       ^ self pushed: nil )
 
@@ -2954,6 +3155,9 @@ class Kernel usingPlatform: platform = (
        ends before the run-once node hears `finished`, checks in again and, on that
        exchange's otaCheck, activates. *)
     announce = (
+      (* rete#440 R3: the radio's "when idle" first; it may begin the exchange that
+         carries sys/radio, and `finished` then waits for that one. *)
+      (state = #idle and: [ fetch busy not ]) ifTrue: [ self settleRadio ].
       (owed and: [ state = #idle and: [ fetch busy not ] ]) ifFalse: [ ^ self ].
       owed:: false.
       exchangeCh out: '' value: #finished.
@@ -3263,11 +3467,13 @@ class Kernel usingPlatform: platform = (
        Written once per boot for the reason publishApps gives at length: `put:` does
        not compare values, so a per-check-in write would re-send an unchanging ~30 B
        row on every push forever, and the row pushFrame's tail-trim starts dropping
-       is whatever was written last. *)
+       is whatever was written last.
+       rete#440 R3: while the radio is off for N the misses carry the planned gap
+       (`gapMisses`), so porta reads the silence as declared; it is withdrawn at N. *)
     public publishLiveness = (
       livenessPublished ifTrue: [ ^ self ].
       space put: 'obs/liveness' value: (Record tag: #Liveness
-        with: #misses -> missBudget
+        with: #misses -> (missBudget + gapMisses)
         with: #telCad -> cadMs).
       livenessPublished:: true.
       ^ self )

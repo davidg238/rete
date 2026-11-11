@@ -1,0 +1,58 @@
+(*
+env: OEVM_LINK=down
+expect:
+always skipped 1 sent 0 idle true finished 1
+per exchange linking true radio true sent 0 armed 1
+link missed misses 1 idle true radio false finished 2
+*)
+(* rete#440 R3 (#458) — THE RADIO POLICY WITH THE LINK DOWN (design 2026-11-04, "Radio").
+   `OEVM_LINK=down` holds the host's link down whatever the radio does (udp_posix.c), so
+   both rows that meet a dead link are reachable without a mesh.
+
+   - always (the default): a check-in while the link is down sends nothing, is counted
+     (`skipped`), and says `finished` at once, so a run-once node is not left waiting.
+   - per exchange: the check-in turns the radio on and, the link not up, waits for it
+     (#linking) on one budget one-shot, `linkBudget` (60 s) long, sending nothing.
+   - the link budget lapses: a miss, the exchange is over (idle), the radio goes off
+     because the bridge is idle, and `finished` is said. *)
+class RadioLinkDown packageUsing: manifest = () (
+
+  public class FakeSocket = ( | private sends ::= 0. | ) (
+    public doorbell = ( ^ 'test/net' )
+    public sends = ( ^ sends )
+    public sendTo: host port: p data: bytes = ( sends:: sends + 1. ^ self )
+    public receive = ( ^ nil )
+  ) : ()
+
+  public main: platform args: args = (
+    | space timers bridge sock finished |
+    space:: platform space.
+    timers:: platform timers.
+    space whenever: 'sys/timer' do: [ :t | timers dispatch: t ].
+    finished:: 0.
+    (space channel: 'sys/porta/exchange') whenever: '' do: [ :v | finished:: finished + 1 ].
+    sock:: FakeSocket new.
+    bridge:: platform PortaBridge socket: sock space: space id: 'n1' peer: '::1' port: 6969
+      spans: platform Spans new timers: timers.
+
+    bridge checkIn.
+    space drain.
+    ('always skipped ' , bridge skipped printString , ' sent ' , sock sends printString
+      , ' idle ' , (bridge state = #idle) printString , ' finished ' , finished printString) println.
+
+    bridge radioPerExchange.
+    bridge checkIn.
+    platform pumpEvents.
+    space drain.
+    ('per exchange linking ' , (bridge state = #linking) printString , ' radio ' , bridge radioIsOn printString
+      , ' sent ' , sock sends printString , ' armed ' , timers pendingCount printString) println.
+
+    platform advanceMillis: bridge linkBudget.
+    space drain.
+    ('link missed misses ' , bridge misses printString , ' idle ' , (bridge state = #idle) printString
+      , ' radio ' , bridge radioIsOn printString , ' finished ' , finished printString) println.
+    ^ 0
+  )
+) : (
+  public packageUsing: manifest = ( ^ self new )
+)

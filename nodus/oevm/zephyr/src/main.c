@@ -49,6 +49,7 @@
 #include <zephyr/net/net_event.h>   /* NET_EVENT_IPV4_ADDR_ADD/DEL (#65) */
 #include <zephyr/net/dhcpv4.h>
 #include <string.h>
+#include "radio_backend.h"           /* rete#440 R3: radio_wifi_connect */
 
 /* #65 INSTRUMENTATION — give the node a voice when it leaves the network.
    Deliberately LOG-ONLY, not a reconnect: the open half of #65 is a node that
@@ -124,19 +125,9 @@ static void wifi_bringup(void) {
                                  NET_EVENT_IPV4_ADDR_ADD | NET_EVENT_IPV4_ADDR_DEL);
     net_mgmt_add_event_callback(&ipv4_cb);
 
-    struct wifi_connect_req_params p;
-    memset(&p, 0, sizeof p);
-    p.ssid        = (const uint8_t *)CONFIG_OEVM_WIFI_SSID;
-    p.ssid_length = strlen(CONFIG_OEVM_WIFI_SSID);
-    p.psk         = (const uint8_t *)CONFIG_OEVM_WIFI_PSK;
-    p.psk_length  = strlen(CONFIG_OEVM_WIFI_PSK);
-    p.security    = WIFI_SECURITY_TYPE_PSK;
-    p.channel     = WIFI_CHANNEL_ANY;
-    p.band        = WIFI_FREQ_BAND_2_4_GHZ;
-    p.mfp         = WIFI_MFP_OPTIONAL;
-
-    int cr = net_mgmt(NET_REQUEST_WIFI_CONNECT, iface, &p, sizeof p);
-    printk("wifi: connect(ssid_len=%u) req=%d\n", (unsigned)p.ssid_length, cr);
+    /* rete#440 R3: the one association request, shared with the radio's on. */
+    int cr = radio_wifi_connect();
+    printk("wifi: connect(ssid_len=%u) req=%d\n", (unsigned)strlen(CONFIG_OEVM_WIFI_SSID), cr);
 
     net_dhcpv4_start(iface);
 

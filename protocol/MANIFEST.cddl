@@ -50,6 +50,7 @@ sym-Overrun     = #6.39("Overrun")
 sym-Panic       = #6.39("Panic")
 sym-Print       = #6.39("Print")
 sym-Profile     = #6.39("Profile")
+sym-Radio       = #6.39("Radio")
 sym-Reboot      = #6.39("Reboot")
 sym-Reset       = #6.39("Reset")
 sym-SpanCapture = #6.39("SpanCapture")
@@ -113,6 +114,7 @@ sym-ovr         = #6.39("ovr")
 sym-path        = #6.39("path")
 sym-pco         = #6.39("pco")
 sym-pdr         = #6.39("pdr")
+sym-pol         = #6.39("pol")
 sym-port        = #6.39("port")
 sym-pst         = #6.39("pst")
 sym-pto         = #6.39("pto")
@@ -347,6 +349,15 @@ cheap = #6.27([sym-CHeap, {
   sym-fal => uint,
   sym-fre => uint,
   sym-ohw => uint,
+}])
+
+;# path=sys/radio  kind=cell  class=routine  dir=up
+; The radio policy the app set (rete#440 R3, #458): #always, #perExchange, or #offFor
+; with ms its duration (0 for the other two). A cell, so the last push before the radio
+; goes off says so. Absent until an app sets a policy: absence is the default, always.
+radio = #6.27([sym-Radio, {
+  sym-ms  => uint,
+  sym-pol => anysym,
 }])
 
 ;# path=sys/latency  kind=cell  class=routine  dir=up
