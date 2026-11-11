@@ -18,6 +18,7 @@
 static uint32_t s_app_cad_ms = 0;
 uint32_t platform_app_cad_ms(void) { return s_app_cad_ms; }
 #include "ota.h"             /* rete#25: the image-push seam, prims 145-150 */
+#include "ota_backend.h"     /* rete#440 R5: the stage, prims 148 and 166-168 */
 #include "reboot_note.h"    /* rete#215: the retained panic note, prims 153-154 */
 #include <stdio.h>
 #include <stdlib.h>
@@ -1549,43 +1550,12 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
            nobody staged. */
         *out = ota_trial() ? true_symbol : false_symbol;
         return 1;
-    case PRIM_pf_otaStage: {
-        /* otaStage: hash sig: sig host: host port: port — args mirror the
-           keyword selector left-to-right (the spaceRegister:block:owner:
-           convention). Since rete#233 T9 the fetch is OFF this thread (D7's
-           knob, earned on the first target run: ~55 s over Thread, which the
-           observer rightly reboots) — see ota.h. `sig` may be nil (carried, never checked —
-           verification has exactly one seat and it is the runner, design D4).
-
-           A malformed call answers FALSE rather than aborting, unlike
-           spaceChangedSince:under:max:'s String check above: every argument here
-           can originate in a `goal/` record written by the gateway, so a bad
-           one is a peer's mistake to report, not this node's to die of.
-
-           No allocation happens between reading the leaves and the call, and
-           ota_stage copies what it keeps (the hash and the host) before it
-           returns, so the raw pointers are never held across a GC. */
-        size_t hn = 0, sn = 0, hostn = 0;
-        const uint8_t *hp   = ota_leaf_bytes(args[0], &hn);
-        const uint8_t *sp   = ota_leaf_bytes(args[1], &sn);
-        const uint8_t *hostp = ota_leaf_bytes(args[2], &hostn);
-        char host[128];
-        if (hp == NULL || hn != 32 || hostp == NULL ||
-            hostn == 0 || hostn >= sizeof host || !IS_SMI(args[3])) {
-            *out = false_symbol;
-            return 1;
-        }
-        memcpy(host, hostp, hostn);
-        host[hostn] = '\0';
-        /* rete#233 T9: the fetch runs on its own thread, so this answers one of
-           THREE things — true (staged, digest verified), false (failed this
-           round), or the bytes staged so far as an Integer (in progress) — and
-           the kernel asks again at its next check-in. */
-        long staged = 0;
-        int r = ota_stage(hp, sp, (int)sn, host, (int)UNTAG_SMI(args[3]), &staged);
-        *out = r > 0 ? true_symbol : r < 0 ? false_symbol : TAG_SMI(staged);
+    case PRIM_pf_otaStageSize:
+        /* rete#440 R5: the bytes staged so far — the kernel's resume cursor — or -1
+           with no slot (OEVM_OTA_STAGE unset, no program slot, no key). A slot is
+           at most a program partition (768 KB), far inside the SMI band. */
+        *out = TAG_SMI((intptr_t)ota_stage_size());
         return 1;
-    }
     case PRIM_pf_otaConfirm:
         /* "This trial image works." Idempotent and never fails loudly (ota.h),
            so it answers the platform capability rather than a status — there is
@@ -1599,7 +1569,7 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
            the backend really exits; *out is set for form, exactly as
            deepSleep: does above, and is reached only on a backend that cannot
            exit. A malformed hash is a silent no-op for the same reason
-           otaStage:... answers false: the record came from the gateway. */
+           the stage prims answer false: the record came from the gateway. */
         size_t hn = 0, sn = 0;
         const uint8_t *hp = ota_leaf_bytes(args[0], &hn);
         const uint8_t *sp = ota_leaf_bytes(args[1], &sn);
@@ -1697,6 +1667,33 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
         /* The listener's doorbell reaction calls this until it answers false: accept,
            read and parse stay on the VM thread; false also restores the doorbell. */
         *out = http_poll() ? true_symbol : false_symbol;
+        return 1;
+    }
+    /* rete#440 R5: the stage as the kernel's OtaFetch sees it (ota_backend.h, ota.h).
+       Bytes cross as leaves, as for 145-150; no allocation happens, so the leaf
+       pointers are never held across a GC. A malformed argument answers false: the
+       block reply came off the wire. */
+    case PRIM_pf_otaStageAppend: {
+        /* otaStageAppend: leaf from: i — append leaf[i..] (1-based), one block reply's
+           payload after its header. */
+        size_t n = 0;
+        const uint8_t *p = ota_leaf_bytes(args[0], &n);
+        intptr_t from;
+        if (p == NULL || !IS_SMI(args[1])) { *out = false_symbol; return 1; }
+        from = UNTAG_SMI(args[1]);
+        if (from < 1 || (size_t)(from - 1) > n) { *out = false_symbol; return 1; }
+        *out = ota_stage_append(p + (from - 1), (int)(n - (size_t)(from - 1)))
+                   ? true_symbol : false_symbol;
+        return 1;
+    }
+    case PRIM_pf_otaStageTruncate:
+        ota_stage_truncate();
+        *out = platform_object();
+        return 1;
+    case PRIM_pf_otaStageMatches: {
+        size_t n = 0;
+        const uint8_t *p = ota_leaf_bytes(args[0], &n);
+        *out = (p != NULL && n == 32 && ota_stage_matches(p)) ? true_symbol : false_symbol;
         return 1;
     }
     case PRIM_pf_httpRespond: {                /* httpRespondId: id status: n body: s */

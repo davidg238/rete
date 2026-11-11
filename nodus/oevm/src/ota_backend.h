@@ -41,7 +41,7 @@ void ota_note_running_hash(const uint8_t h[32]);
 
 /* Length of the staging slot in bytes: >=0 when a slot is configured (0 when it
  * does not exist yet), -1 when OEVM_OTA_STAGE is unset or unusable. The length
- * IS the fetch cursor — see ota.h. */
+ * IS the fetch cursor: the kernel's OtaFetch resumes at block size/256 (rete#440 R5). */
 long ota_stage_size(void);
 
 /* Read `len` bytes at `off` from the slot. 1 = ok, 0 = short/failed. */
@@ -67,21 +67,5 @@ void ota_touch_confirm(void);
 /* Leave the process in the STAGE_READY state the runner watches for: exit(42)
  * on posix, sys_reboot() on target. Returns only if the target cannot. */
 void ota_exit_stage_ready(void);
-
-/* Run fn(arg) on a thread of its own and return 1, or 0 when the backend has no
- * thread to give (the inert boards; ota.c then fails the stage). One fetch at a
- * time, so the backend keeps ONE thread object and its stack (rete#233 T9: 3 KB
- * on zephyr until the high-water print says otherwise; a pthread on posix). The
- * function returns when the fetch ends, and the next start may reuse the slot.
- * Never called under CONFIG_OEVM_OTA_INCHANNEL (rete#233 T10): there ota.c runs the
- * fetch on the caller's thread and the backend keeps no thread at all. */
-int  ota_thread_start(void (*fn)(void *), void *arg);
-
-/* Sleep roughly `ms` milliseconds. The block wait is a deadline poll loop
- * because udp_receive is non-blocking on every backend, and a poll loop needs
- * exactly one portable primitive; adding it here keeps ota.c free of both
- * <unistd.h> and any clock (the host timer clock is VIRTUAL — see
- * timer_backend.h — so it cannot time a real network wait). */
-void ota_sleep_ms(int ms);
 
 #endif /* OEVM_OTA_BACKEND_H */

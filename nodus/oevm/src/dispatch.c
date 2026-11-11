@@ -946,7 +946,8 @@ enum {
        NOT gated on OEVM_METHOD_PROFILE, unlike profileStart/profileStop above. */
     PRIM_pf_buildId,
     /* rete#25: the ota seam reaches nsl — otaRunningHash / otaIsRunning: /
-       otaTrial / otaStage:sig:host:port: / otaConfirm / otaActivate:sig:.
+       otaTrial / otaStageSize (148, otaStage:sig:host:port: until rete#440 R5) /
+       otaConfirm / otaActivate:sig:.
        Appended after buildId; no pre-existing id shifts. 145-150 were arrived at
        by COUNTING PRIM_NAMES (144 entries before this append), not by 144+1
        arithmetic, per the standing lesson above. Platform-dispatched (mirrored
@@ -956,7 +957,7 @@ enum {
     PRIM_pf_otaRunningHash,
     PRIM_pf_otaIsRunning,
     PRIM_pf_otaTrial,
-    PRIM_pf_otaStage,
+    PRIM_pf_otaStageSize,
     PRIM_pf_otaConfirm,
     PRIM_pf_otaActivate,
     PRIM_pf_bootId,
@@ -1018,6 +1019,11 @@ enum {
     /* rete#440: `platform httpAccept` — the 165th entry (counted, not computed). Appended
        after consoleTee; no pre-existing id shifts. Platform-dispatched. */
     PRIM_pf_httpAccept,
+    /* rete#440 R5: the stage as prims, for the kernel's OtaFetch — 166-168 (counted, not
+       computed). Appended after httpAccept; no pre-existing id shifts. Platform-dispatched. */
+    PRIM_pf_otaStageAppend,
+    PRIM_pf_otaStageTruncate,
+    PRIM_pf_otaStageMatches,
 };
 
 /* Must stay parallel to the enum above (index i -> id i+1).
@@ -1040,7 +1046,7 @@ static const char *const PRIM_NAMES[] = {
    — this catches it at build time instead. C99-safe (no _Static_assert under
    -std=c99): a false condition makes a negative-sized array, which is a hard
    compile error. ADVANCE THIS to the new last id whenever prims are appended. */
-typedef char prim_names_enum_parity_check[(N_PRIM_NAMES == PRIM_pf_httpAccept) ? 1 : -1];
+typedef char prim_names_enum_parity_check[(N_PRIM_NAMES == PRIM_pf_otaStageMatches) ? 1 : -1];
 
 /* rete#226 — CLASSIFICATION HAPPENS ONCE, WHERE THE SYMBOL IS MADE.
 

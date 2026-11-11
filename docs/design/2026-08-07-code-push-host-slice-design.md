@@ -324,6 +324,9 @@ only `backend/zephyr/ota_zephyr.c` stops being inert, and `main.c` gains the run
   (porta HTTP gains a blob upload and a goal write; `custos load` gains a porta target), built
   after S1–S3 prove the board. Paper E Appendix D, the agent HTTP surface, is finalized against it.
 
+> **Replaced 2026-11-10 by R5** (design `2026-11-04-440-vm-zephyr-seam-crc-design.md`, addendum 2026-11-10 — R5):
+> T9's fetch thread and T10's in-channel stage are deleted; the fetch is kernel reactions, one state per block.
+
 - **T9 (David, 2026-10-10, after S1) — the bulk plane is off the message THREAD as well
   as off the wire.** S1 measured the first target fetch at ~3.3 KB/s over Thread (174 KB
   in ~55 s) and the observer's app-stale rule (8 × cadence = 16 s) rebooted the node
