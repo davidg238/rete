@@ -9,3 +9,6 @@ implemented_by:
   - c: runner_select
   - c: log_udp_start
   - c: oevm_thread_bringup
+  - c: wire_pulse_gpio     # rete#440 R6a: main arms the declared inputs and outputs at boot
+  - c: wire_gpio_outputs
+  - c: bell_bringup
