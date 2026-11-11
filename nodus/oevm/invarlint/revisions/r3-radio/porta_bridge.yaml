@@ -26,8 +26,14 @@ does:
     # docs/design/2026-11-04-440-vm-zephyr-seam-crc-design.md: The check-in as reactions (a reply and an expiry); nodus/nsl/lib/kernel.nsl: PortaBridge>>pushStart, budgetLapsed:; nodus/tests/22_spacesync/33, 35
   - "says finished on sys/porta/exchange when idle: no exchange and no fetch in flight; an exchange the held loop started ends silently"
     # docs/design/2026-11-04-440-vm-zephyr-seam-crc-design.md: Decided by David (2026-11-05); The check-in as reactions (Leaving); Addendum 2026-11-10 (R5); nodus/nsl/lib/kernel.nsl: PortaBridge>>leave, announce
+  - "turns the radio off only when idle (no exchange and no fetch in flight); off for N ends with one exchange at N whatever the app does"
+    # docs/design/2026-11-04-440-vm-zephyr-seam-crc-design.md: Radio; Decided by David (2026-11-05, off always has a duration); Addendum 2026-11-10 (R5)
   - "serves a stop: one held step blocks in the pump, then moves the exchange on"
     # docs/design/2026-11-04-440-vm-zephyr-seam-crc-design.md: While the program is stopped; nodus/nsl/lib/kernel.nsl: PortaBridge>>heldStep
+  - "a check-in that sends nothing (link down, or radio off) says finished at once, so a run-once node never waits on a link"
+    # docs/design/2026-11-04-440-vm-zephyr-seam-crc-design.md: Radio; Addendum 2026-11-10 (R5, finished means idle); nodus/tests/22_spacesync/36_radio_link_down.nsl
+  - "while off for N, obs/liveness carries the planned gap, ceil((N + linkBudget) / telCad) extra misses; the forced exchange at N withdraws it"
+    # docs/design/2026-11-04-440-vm-zephyr-seam-crc-design.md: Radio (N is a timer; the bridge re-declares the expected gap); nodus/tests/22_spacesync/38_radio_off_for.nsl
 collaborators:
   - {to: Net, mode: async-event}
   - {to: Timer, mode: async-event}

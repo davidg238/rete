@@ -223,6 +223,34 @@ records:
         meaning: peak outstanding C-heap bytes since boot
         segment: [obs/build, boot]
 
+  radio:
+    record: Radio
+    paths: [sys/radio]
+    status: live
+    summary: >
+      The radio policy the app set, written when it sets one (rete#440 R3, #458), so the
+      last push before the radio goes off carries it. Absent means the default, always
+      on. While it reads #offFor, nobody can reach the node until ms has passed since
+      that push: the bridge then does one exchange whatever the app does.
+    fields:
+      - key: ms
+        name: ms
+        unit: ms
+        kind: config
+        meaning: how long the radio stays off under #offFor; 0 under the other two
+        validity: >
+          Counted from the end of the exchange that carried this cell, not from the
+          cell's write. The forced exchange at the end also waits up to the bridge's
+          link budget for the link, so the node may stay silent ms plus that long; its
+          obs/liveness carries the whole gap meanwhile.
+        refs: [rete#458]
+      - key: pol
+        name: policy
+        unit: symbol
+        kind: config
+        meaning: "#always, #perExchange (on for each check-in, off when idle) or #offFor"
+        refs: [rete#458]
+
   latency-span:
     record: LatencySpan
     paths: [sys/latency, "diag/spans/<span>"]

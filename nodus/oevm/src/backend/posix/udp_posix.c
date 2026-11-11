@@ -1,5 +1,6 @@
 #define _POSIX_C_SOURCE 200809L
 #include "udp_backend.h"
+#include "radio_backend.h"
 #include "udp_posix.h"
 #include <poll.h>
 #include <sys/socket.h>
@@ -11,6 +12,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>   /* getenv */
+#include <errno.h>
 /* POSIX (x86-linux / macOS desktop) UDP backend: real dual-stack sockets. Each
    bound socket is AF_INET6 with IPV6_V6ONLY=0, so one socket receives both IPv6
    and IPv4 (v4-mapped) datagrams. Non-blocking (O_NONBLOCK): udp_receive returns
@@ -52,12 +54,15 @@ static void bell_restore(int fd) {
     if (i >= 0) bells[i].parked = 0;
 }
 
+static void net_link_poll(void);
+
 static void bell_forget(int fd) {
     int i = bell_find(fd);
     if (i >= 0) bells[i] = bells[--bells_n];
 }
 
 void udp_posix_poll(void) {
+    net_link_poll();                       /* rete#440 R3: the link, below */
     struct pollfd p[BELLS_MAX];
     int idx[BELLS_MAX], n = 0;
     for (int i = 0; i < bells_n; i++) {
@@ -72,6 +77,57 @@ void udp_posix_poll(void) {
         pulse_posix_ring(bells[i].chan, bells[i].fd);
     }
 }
+
+/* ---- rete#440 R3 (#458): the radio and the link, on the host -----------------------
+
+   The host has no radio, so the radio is a flag the suite drives through the kernel's
+   prims. The link goes down with the radio at once and comes up at the NEXT pump after
+   the radio comes on, ringing sys/net/link each time, as a target's link callback rings
+   after a reconnect: so a host test sees the bridge wait for the link and the link's
+   doorbell move it on. `OEVM_LINK=down` (a per-test env, run_tests_oevm.py) keeps the
+   link down whatever the radio does, which is how a test reaches "the radio came on and
+   the link never did" without a mesh. While the radio is off a send answers -1 with
+   ENETDOWN, the error a socket on a down interface gives on a target; nothing is sent. */
+static int radio_on = 1;
+static int link_up = -1;              /* -1: not yet read; the boot's link is the radio's */
+static int link_coming;               /* the radio came on: up at the next pump */
+static int link_chan, link_registered;
+
+static int link_held_down(void) {
+    const char *e = getenv("OEVM_LINK");
+    return e != NULL && strcmp(e, "down") == 0;
+}
+
+int net_link_up(void) {
+    if (link_up < 0) link_up = radio_on && !link_held_down();
+    return link_up;
+}
+
+void net_link_doorbell(int chan_id) { link_chan = chan_id; link_registered = 1; }
+
+static void net_link_ring(void) {
+    if (link_registered) pulse_posix_ring(link_chan, 0);   /* the constant token, TAG_SMI(0) */
+}
+
+/* Called by udp_posix_poll, inside the pump: a link coming up arrives as an event. */
+static void net_link_poll(void) {
+    if (!link_coming) return;
+    link_coming = 0;
+    if (radio_on && !link_held_down() && !net_link_up()) { link_up = 1; net_link_ring(); }
+}
+
+void radio_set(int on) {
+    (void)net_link_up();
+    radio_on = on ? 1 : 0;
+    if (!radio_on) {
+        link_coming = 0;
+        if (link_up) { link_up = 0; net_link_ring(); }
+    } else if (!link_up) {
+        link_coming = 1;
+    }
+}
+
+int radio_is_on(void) { return radio_on; }
 
 void udp_open(void) { /* nothing global to init */ }
 
@@ -99,6 +155,7 @@ int udp_socket_bind(int port) {
 
 int udp_send(int sock, const char *host, int port, const uint8_t *data, int len) {
     struct addrinfo hints, *res = NULL;
+    if (!radio_on) { errno = ENETDOWN; return -1; }   /* rete#440 R3: no radio, no send */
     memset(&hints, 0, sizeof hints);
     hints.ai_family = AF_INET6;            /* socket is v6; map v4 targets */
     hints.ai_socktype = SOCK_DGRAM;

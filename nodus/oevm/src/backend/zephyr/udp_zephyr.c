@@ -7,12 +7,23 @@
    (API names target Zephyr/NCS BSD sockets; adjust to the installed SDK if a
    symbol differs — the S2 build is the gate.) */
 #include "udp_backend.h"
+#include "radio_backend.h"
 #include "../../pulse_backend.h"
 #include <zephyr/kernel.h>
 #include <zephyr/net/socket.h>
 #include <zephyr/net/net_ip.h>
+#include <zephyr/net/net_if.h>
 #include <zephyr/zvfs/eventfd.h>
 #include <string.h>
+#if defined(CONFIG_NET_L2_OPENTHREAD)
+#include <openthread.h>
+#include <openthread/thread.h>
+#elif defined(CONFIG_WIFI)
+#include <zephyr/net/net_mgmt.h>
+#include <zephyr/net/net_event.h>
+#include <zephyr/net/wifi_mgmt.h>
+#include <esp_wifi.h>
+#endif
 
 void udp_open(void) { /* net stack is brought up by Kconfig/boot */ }
 
@@ -241,3 +252,113 @@ int udp_receive(int sock, uint8_t *buf, int buf_cap,
 }
 
 void udp_close(int sock) { if (sock >= 0) { bell_forget(sock); zsock_close(sock); } }
+
+/* ---- rete#440 R3 (#458): the link, rung on every change -----------------------------
+
+   Thread: the link is the attach (child, router or leader), told by OpenThread's
+   state-changed callback on a role change; the C6 build has no net_mgmt, and the role is
+   read from OpenThread itself rather than from the net_if the L2 makes dormant in its own
+   callback, so the answer never depends on which of the two ran first. WiFi: the link is
+   the station associated with an IPv4 lease, told by net_mgmt (the WiFi builds carry it
+   for main.c's #65 events). A build with neither has no link to lose: it answers up and
+   never rings. The token is constant (TAG_SMI(0)); the reaction reads net_link_up. */
+static int link_chan = -1;
+
+static void net_link_ring(void) {
+    int c = link_chan;
+    if (c >= 0) pulse_post_isr_value(c, TAG_SMI(0));
+}
+
+#if defined(CONFIG_NET_L2_OPENTHREAD)
+static void net_link_ot_changed(otChangedFlags flags, void *ctx) {
+    (void)ctx;
+    if (flags & OT_CHANGED_THREAD_ROLE) net_link_ring();
+}
+static struct openthread_state_changed_callback link_cb = { .otCallback = net_link_ot_changed };
+
+int net_link_up(void) {
+    otInstance *inst = openthread_get_default_instance();
+    if (inst == NULL) return 0;
+    openthread_mutex_lock();
+    otDeviceRole role = otThreadGetDeviceRole(inst);
+    openthread_mutex_unlock();
+    return role == OT_DEVICE_ROLE_CHILD || role == OT_DEVICE_ROLE_ROUTER
+        || role == OT_DEVICE_ROLE_LEADER;
+}
+
+void net_link_doorbell(int chan_id) {
+    if (link_chan < 0) (void)openthread_state_changed_callback_register(&link_cb);
+    link_chan = chan_id;
+}
+#elif defined(CONFIG_WIFI)
+static void net_link_event(struct net_mgmt_event_callback *cb, uint64_t ev, struct net_if *iface) {
+    (void)cb; (void)ev;
+    if (iface == net_if_get_first_wifi()) net_link_ring();
+}
+static struct net_mgmt_event_callback link_cb;
+
+int net_link_up(void) {
+    struct net_if *iface = net_if_get_first_wifi();
+    return net_if_is_up(iface) && net_if_ipv4_get_global_addr(iface, NET_ADDR_PREFERRED) != NULL;
+}
+
+void net_link_doorbell(int chan_id) {
+    if (link_chan < 0) {
+        net_mgmt_init_event_callback(&link_cb, net_link_event,
+                                     NET_EVENT_IF_UP | NET_EVENT_IF_DOWN |
+                                     NET_EVENT_IPV4_ADDR_ADD | NET_EVENT_IPV4_ADDR_DEL);
+        net_mgmt_add_event_callback(&link_cb);
+    }
+    link_chan = chan_id;
+}
+#else
+int net_link_up(void) { return 1; }
+void net_link_doorbell(int chan_id) { link_chan = chan_id; }
+#endif
+
+/* ---- rete#440 R3 (#458): the radio, WiFi's body and the radio-less one --------------
+
+   Thread's body is thread_bringup.c's. WiFi: off is the station disconnected and the
+   WiFi stopped (esp_wifi_stop, the radio powered down); on is the same association request
+   the boot made (radio_wifi_connect), whose connect starts the WiFi again; DHCP follows
+   the interface. Stateless: the driver's own status answers "is it on" (inactive is off).
+   A build with no radio has nothing to switch off and answers on. */
+#if defined(CONFIG_WIFI) && !defined(CONFIG_NET_L2_OPENTHREAD)
+int radio_wifi_connect(void) {
+    struct net_if *iface = net_if_get_first_wifi();
+    struct wifi_connect_req_params p;
+    if (iface == NULL) return -ENODEV;
+    memset(&p, 0, sizeof p);
+    p.ssid        = (const uint8_t *)CONFIG_OEVM_WIFI_SSID;
+    p.ssid_length = strlen(CONFIG_OEVM_WIFI_SSID);
+    p.psk         = (const uint8_t *)CONFIG_OEVM_WIFI_PSK;
+    p.psk_length  = strlen(CONFIG_OEVM_WIFI_PSK);
+    p.security    = WIFI_SECURITY_TYPE_PSK;
+    p.channel     = WIFI_CHANNEL_ANY;
+    p.band        = WIFI_FREQ_BAND_2_4_GHZ;
+    p.mfp         = WIFI_MFP_OPTIONAL;
+    return net_mgmt(NET_REQUEST_WIFI_CONNECT, iface, &p, sizeof p);
+}
+
+int radio_is_on(void) {
+    struct net_if *iface = net_if_get_first_wifi();
+    struct wifi_iface_status st = { 0 };
+    if (iface == NULL) return 0;
+    if (net_mgmt(NET_REQUEST_WIFI_IFACE_STATUS, iface, &st, sizeof st) != 0) return 0;
+    return st.state != WIFI_STATE_INACTIVE;
+}
+
+void radio_set(int on) {
+    struct net_if *iface = net_if_get_first_wifi();
+    if (iface == NULL || !on == !radio_is_on()) return;
+    if (on) {
+        printk("wifi: radio on (%d)\n", radio_wifi_connect());
+    } else {
+        (void)net_mgmt(NET_REQUEST_WIFI_DISCONNECT, iface, NULL, 0);
+        printk("wifi: radio off (%d)\n", (int)esp_wifi_stop());
+    }
+}
+#elif !defined(CONFIG_NET_L2_OPENTHREAD)
+void radio_set(int on) { (void)on; }
+int radio_is_on(void) { return 1; }
+#endif
