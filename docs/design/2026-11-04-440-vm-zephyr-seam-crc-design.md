@@ -39,7 +39,8 @@ block, or where an arrival turns into an event.
 - **One sleeping block, unified across UDP, BLE and HTTP.** A stopped program waits in that same block too;
   there is no second receive and no named exception.
 - **A run-once node is event-driven like every other program.** Set up, start the check-in, run the reactor;
-  the deep sleep happens in the reaction to "exchange finished". No wait-until-idle call exists.
+  the deep sleep happens in the reaction to "finished" on `sys/porta/exchange`, which since R5 means the
+  bridge is idle: no exchange and no fetch in flight (addendum 2026-11-10). No wait-until-idle call exists.
 - **A check-in starts an exchange if idle and returns at once.** Apps do their work before it: the health row
   rides the same push it rides today (`nodus/nsl/lib/kernel.nsl`, the `obs/health` note in the trim comment),
   with fresher values. Only work that truly needs the end reacts to "finished".
@@ -337,7 +338,8 @@ the cards under `nodus/oevm/invarlint/cards/` are the design of record for the s
   rule that drove T9 off-thread cannot fire, and the reason T10 existed for the S2 is gone too.
 - **The C keeps the bytes, not the loop.** Ota still owns the stage (append, read, truncate, size), the SHA-256
   and the ready record; `ota_sleep_ms`, `ota_thread_start` and `fetch_block`/`fetch_run` are deleted.
-- **"Finished" means the bridge is idle:** no exchange and no fetch in flight. That is what lets a run-once node
+- **"Finished" means the bridge is idle:** no exchange and no fetch in flight. The channel keeps its name,
+  `sys/porta/exchange`; the 2026-11-05 decision above now reads the same way. That is what lets a run-once node
   (the MagTag) stage a new program before it sleeps, which is the only thing T10 was for. One sentence, no new event.
 - **Kept from T9 unchanged:** the stage length is the resume cursor; a peer error is not retried and on a resume
   empties the stage; an exhausted budget keeps the stage; a hash mismatch empties it; a failed fetch is not
