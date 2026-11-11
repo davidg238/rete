@@ -1,0 +1,5 @@
+name: r5-ota-fetch
+pattern: State
+intent: "the OTA fetch becomes kernel reactions, one state per block, on the block socket's doorbell and a budget timer; the fetch thread, ota_sleep_ms, the in-channel fallback (CONFIG_OEVM_OTA_INCHANNEL) and the C fetch loop are deleted (rete #440, design 2026-11-04 R5 and its 2026-11-10 addendum)"
+compromise: "the fetch is nsl, so OtaFetch waits unbound under r5-ota-fetch/ until invarlint reads nsl (invarlint#177). ota_sleep_ms and ota_thread_start leave the Ota card with their code; the C keeps the stage (append, read, truncate, size), the digest and the ready record. The suite, the host_ota gate and #449's OTA over BLE hold R5, not the ratchet"
+ops: []

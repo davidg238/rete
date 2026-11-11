@@ -6,17 +6,15 @@ knows:
   - "the stage: its bytes, its size, and the signed hash that makes it ready"
     # src/ota_backend.h: ota_stage_size, ota_write_ready
 does:
-  - "appends to the stage and marks it ready; the 5 ms poll of the fetch is named debt until R5"
-    # src/ota_backend.h: ota_stage_append, ota_sleep_ms; docs/design/2026-11-04-440-vm-zephyr-seam-crc-design.md: Revisions, in order
+  - "appends to the stage, digests it, and marks it ready; it never fetches and never waits (the fetch is OtaFetch's, R5)"
+    # src/ota_backend.h: ota_stage_append, ota_write_ready; docs/design/2026-11-04-440-vm-zephyr-seam-crc-design.md: Revisions, in order (R5)
 implemented_by:
   - c: ota_env
   - c: ota_exit_stage_ready
   - c: ota_note_running_hash
-  - c: ota_sleep_ms
   - c: ota_stage_append
   - c: ota_stage_read
   - c: ota_stage_size
   - c: ota_stage_truncate
-  - c: ota_thread_start
   - c: ota_touch_confirm
   - c: ota_write_ready

@@ -327,3 +327,19 @@ porta gates are green on host and board.
 `nodus/oevm/docs/vm.md` "The reactor, the space and the wire" is rewritten to the one-sentence rule;
 the cards under `nodus/oevm/invarlint/cards/` are the design of record for the seam; the ladder
 (`review/program-sequence.md`) and `review/tests/CLAIMS.md` take the power claim once R4 has the number.
+
+## Addendum 2026-11-10 — R5, the OTA fetch as reactions
+
+- **One mechanism for every board.** The fetch thread (T9) and the in-channel fallback (T10,
+  `CONFIG_OEVM_OTA_INCHANNEL`) both go; the kernel's `OtaFetch` runs on the VM thread as reactions, one state per
+  block, moved on by the block socket's doorbell or the block's budget timer. No reaction waits, so the app-stale
+  rule that drove T9 off-thread cannot fire, and the reason T10 existed for the S2 is gone too.
+- **The C keeps the bytes, not the loop.** Ota still owns the stage (append, read, truncate, size), the SHA-256
+  and the ready record; `ota_sleep_ms`, `ota_thread_start` and `fetch_block`/`fetch_run` are deleted.
+- **"Finished" means the bridge is idle:** no exchange and no fetch in flight. That is what lets a run-once node
+  (the MagTag) stage a new program before it sleeps, which is the only thing T10 was for. One sentence, no new event.
+- **Kept from T9 unchanged:** the stage length is the resume cursor; a peer error is not retried and on a resume
+  empties the stage; an exhausted budget keeps the stage; a hash mismatch empties it; a failed fetch is not
+  remembered and the next check-in retries. Budget: 5 attempts of 1 s per block, as built (`OTA_ATTEMPTS`), until
+  a measurement earns another number.
+- Card: `nodus/oevm/invarlint/revisions/r5-ota-fetch/ota_fetch.yaml`; revision `r5-ota-fetch.yaml`.

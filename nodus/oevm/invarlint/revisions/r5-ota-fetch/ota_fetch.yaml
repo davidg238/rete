@@ -1,0 +1,28 @@
+# nsl, in nodus/nsl/lib/kernel.nsl: invarlint reads C only, so this card binds nothing, and an unbound card fails the
+# gate. It waits here beside PortaBridge (r2-check-in/) until invarlint reads nsl (invarlint#177); the suite, the
+# host_ota gate and #449's OTA over BLE hold it.
+name: OtaFetch
+stereotype: coordinator
+knows:
+  - "the wanted image's hash and the block it waits for; the stage's length is the cursor, so a fetch resumes where the last one stopped"
+    # src/ota.c: fetch_run (blk = staged / OTA_BLOCK); docs/design/2026-08-07-code-push-host-slice-design.md
+  - "the attempts left on the block, from its retry budget"
+    # src/ota.c: fetch_block (OTA_ATTEMPTS, the 1 s per-attempt budget)
+  - "the block plane is the peer's port plus one, by construction"
+    # nodus/nsl/lib/kernel.nsl: PortaBridge>>otaCheck (the block plane comment)
+does:
+  - "one state per block: sends the request, arms its budget, and is moved on by the reply's doorbell or the budget, never by a wait"
+    # docs/design/2026-11-04-440-vm-zephyr-seam-crc-design.md: Revisions, in order (R5); The rule, in one sentence
+  - "appends each block to the stage and verifies the whole image's hash at the end; a mismatch empties the stage"
+    # src/ota.c: fetch_run (whole-image verify)
+  - "a peer error ends the fetch unretried; on a resume it also empties the stage, so a retarget cannot wedge the node"
+    # src/ota.c: fetch_block (0x7F), fetch_run (the resumed-block comment)
+  - "an exhausted budget ends the fetch and keeps the stage, and the next check-in resumes it"
+    # src/ota.c: fetch_run (a timeout is porta being unreachable); nodus/nsl/lib/kernel.nsl: otaCheck step 5 (a failed stage is not remembered)
+  - "the bridge reports finished only when neither an exchange nor a fetch is in flight, so a run-once node sleeps after its stage"
+    # docs/design/2026-11-04-440-vm-zephyr-seam-crc-design.md: Decided by David (2026-11-05), a run-once node is event-driven; addendum 2026-11-10 (R5)
+collaborators:
+  - {to: Net, mode: async-event}
+  - {to: Timer, mode: async-event}
+  - {to: Ota, mode: sync-call}
+implemented_by: []
