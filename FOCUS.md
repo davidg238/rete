@@ -3,7 +3,7 @@
 _Rewritten (never appended) at every `/conclude`; under ~15 lines. History: `git log -p FOCUS.md`; live state is in
 the issues and `docs/status/dev-status.html`._
 
-- **Next session starts with (2026-11-11):** master `2bca8002`; no focus issue — #477 closed 2026-11-10 (safe-point compaction merged, PR #484; we run with it). First action: David picks the next focus from the list below.
+- **Next session starts with (2026-11-12):** master `02acbc71`+conclude; no rete focus issue picked. The sensors thread resumes in `~/workspace/ocm` on ocm#2 (first action: J-Link on OCM.1, David waves, read the PIR line from the chip); otherwise David picks from the list below.
 - **Candidates, David's pick:** the VM stack size (1536-word proposal); #440's OCM.1 flash; #432; then (David, 2026-11-02) #383, #437; then #443, #455.
 - **#440 thread (msi):** R2's last bench leg on `440-r2-bench` (worktree `~/rete-ocm`): David's go to flash `PortaBridgeNodeBle` on OCM.1 (Pixel re-pair); then PR, close R2, then R3 (#458). **Changed under it 2026-11-11:** OCM.1 now runs ocm's `OccupancyNode` (not the radio probe); its overlay moved to `~/workspace/ocm/firmware/boards/ocm1.overlay` and needs `--extra-module ~/workspace/ocm/firmware` (comment on #440).
 - **Sensors thread (queued, 2026-11-11):** ocm#2 first (no PIR interrupt reaches the node on OCM.1; J-Link on OCM.1, David waves) — it gates #447's close. Then: PR #493 merged → rebuild OCM.1 from master (today it builds from local `ocm-fw-integration`, `~/rete-ocmfw`); `relay/linux` is merged but no datagram has crossed it (#498; ACC01 stays on the Pixel, David); OCM.1 current (#459); #503.
