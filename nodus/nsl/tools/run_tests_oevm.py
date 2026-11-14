@@ -257,6 +257,9 @@ C_UNIT_TESTS = [
     # its resume, retry, peer-error and mismatch cases are nodus/tests/24_ota/06-08.
     ("ota_seam_test",         ["src/ota.c", f"{_BE}/platform_{OEVM_TARGET}.c"], [], None),
     ("ota_zephyr_test",       ["src/backend/zephyr/ota_zephyr.c"], [], None),
+    # rete#443: the outbox journal's posix ring — order, retire, reopen, wrap drops
+    # only unacked rows, a torn tail is not corruption, a foreign header erases.
+    ("test_journal_posix",    [f"{_BE}/journal_{OEVM_TARGET}.c"], ["-Wextra"], None),
 
     # --- Header-only: no link set at all (offsetof / pure-decision asserts) ---
     ("test_frame_abi",        [], [], None),
