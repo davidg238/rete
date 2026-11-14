@@ -2,11 +2,11 @@
 
 Loaded when working under `nodus/oevm/tests/target/`. Moved verbatim from the root `CLAUDE.md` (2026-09-30).
 
-**What `tests/target/run.sh` actually runs — fourteen scenarios, and a full pass is ~70–100 min
+**What `tests/target/run.sh` actually runs — fifteen scenarios, and a full pass is ~70–100 min
 of board time** (`liveness-heartbeat` alone budgets a 300 s timeout plus 180 s of observation;
 `cad-rearm` was added 2026-08-26 for #240.2, `porta-refuse` the same day for #232,
 `porta-silent` on 2026-08-27 for #269, `liveness-noradio` on 2026-08-29 for #274, and
-`liveness-fastpoll` + `liveness-runonce` on 2026-09-17 for #273 — and
+`liveness-fastpoll` + `liveness-runonce` on 2026-09-17 for #273, and `timer-table-full` on 2026-11-09 for #81 — and
 **both porta-* scenarios need their injector porta started by hand**, so a full sweep is not
 unattended; see their envs). The runner globs
 `*.env`, so a new manifest joins the sweep the moment it lands. Budget the time rather than
@@ -46,6 +46,7 @@ about the radio** — conflating the two cost a board cycle on 2026-08-22 (#236,
 | `liveness-noradio` | disruptive | **#274's regression gate: a deadline exists even when the bind fails.** The same node as above with NO `CONF_EXTRA` — the exact condition that gave 300 s of total silence on 2026-08-22. GREEN ON A BOARD 2026-08-29: bind fails, `timerless tick` climbs at 2 s (there were none before the fix), wedge at tick 15, `deadline=16000ms` from the kernel base tick alone, 18.03 s of silence, reboot, `pass=2 fail=0`, then 106 ticks with no second wedge. The red it is shaped to catch is SILENCE, which is what made the defect invisible. **Re-verified 2026-09-17 under #273: `deadline=16000ms appCad=16000ms cond=app-stale`** — the number is unchanged, it is now the bridge's declared default (cad × 8) rather than an inference |
 | `liveness-fastpoll` | disruptive | **#273 D1's reproduce-first gate: a 100 ms timer beside a 3 s blocking reaction every 4 s.** RED on the pre-#273 build (`deadline=800ms cond=pulse-undrained`, a false reboot 2 s into the first slow tick — archived 2026-09-17 `…20260917T181643`), GREEN the same day with the declared `appCad 6000`: 50 slow ticks, zero WEDGE lines. A 1.5 s block did NOT reproduce the red — the old rule sampled at 1 s and needed two in-block samples — so the block is 3 s |
 | `liveness-runonce` | disruptive | **a node with NO repeating timer is judged at its declared number** (#273 D1). `deadline=4000ms appCad=4000ms pending=0` from the declaration alone (GREEN 2026-09-17); the vacuous outcome on the old rule is TIMEOUT, so this row asserts a deadline was FORMED |
+| `timer-table-full` | disruptive | **a full timer table raises in the arming job and the node lives** (#81) — leg A in `main` under protectedFire (`armed=7`: `OEVM_MAX_TARGET_TIMERS` less the probe's beat; an unbridged kernel holds none), leg B the same raise inside a reaction, caught by drain and posted to `sys/crash` while the beat keeps coming, leg C a freed slot re-arms and fires. No radio. The host suite never runs `timer_zephyr.c`, whose full table was a k_oops before #81. GREEN ON A BOARD 2026-11-09 (master `1001a48a`, `pass=3 fail=0`, 60 s window clean) |
 
 A scenario passing its TAPs is **not** the verdict: every one carries an observation window
 that watches past it, because a gate that scores at tick 2 against a node that dies at tick 6
