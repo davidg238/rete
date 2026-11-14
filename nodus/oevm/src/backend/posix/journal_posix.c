@@ -31,6 +31,11 @@ static uint32_t gen[256];
 static int      ws, wo;       /* write sector, write offset in it */
 static uint32_t next_pos, retired;
 static int      lost_at_open;
+/* The read cursor: where the last journal_next answer ended. A call whose `after` is
+   that answer's pos resumes there; any other call (or a sector rotated since) starts
+   from the oldest sector. */
+static int      cs = -1, coff;
+static uint32_t cpos, cgen;
 
 static uint8_t crc8(const uint8_t *p, int n) {
     uint8_t c = 0;
@@ -100,6 +105,12 @@ int journal_open(void) {
     img = malloc((size_t)nsec * JSECTOR);
     if (img == NULL) return 0;
     memset(img, 0xFF, (size_t)nsec * JSECTOR);
+    /* OEVM_JOURNAL_RESET=1 erases the file on this process's FIRST open only, so a host
+       test never reads the last run's records yet can still reopen ("reboot") over its own. */
+    static int opened_once;
+    const char *reset = getenv("OEVM_JOURNAL_RESET");
+    if (!opened_once && reset && *reset == '1') remove(path);
+    opened_once = 1;
     jf = fopen(path, "r+b");
     if (jf == NULL) jf = fopen(path, "w+b");
     if (jf == NULL) { free(img); img = NULL; return 0; }
@@ -130,6 +141,7 @@ int journal_open(void) {
 }
 
 void journal_close(void) {
+    cs = -1;
     if (jf) fclose(jf);
     free(img);
     jf = NULL; img = NULL;
@@ -170,23 +182,32 @@ int journal_retire(uint32_t pos) {
 
 uint32_t journal_last_retired(void) { return retired; }
 
-typedef struct { uint32_t from; int (*cb)(uint32_t, const uint8_t *, int, void *); void *ctx; } walk_t;
-static int walk_one(int type, uint32_t pos, const uint8_t *pl, int len, void *ctx) {
-    walk_t *w = ctx;
-    if (type != T_DATA || pos <= w->from) return 0;
-    return w->cb(pos, pl, len, w->ctx);
-}
-
-int journal_walk(uint32_t from, int (*cb)(uint32_t, const uint8_t *, int, void *), void *ctx) {
+int journal_next(uint32_t after, uint32_t *pos, uint8_t *buf, int cap) {
     if (img == NULL) return -1;
-    walk_t w = { from, cb, ctx };
-    for (int i = 0; i < nsec; i++) {
-        int s = nth_oldest(i);
-        if (!gen[s]) continue;
-        int rc = scan(s, walk_one, &w);
-        if (rc < 0) return -rc;
+    int k0 = 0, off = JHDR;
+    if (cs >= 0 && after == cpos && gen[cs] == cgen) {
+        k0 = (cs - ws - 1 + 2 * nsec) % nsec;
+        off = coff;
     }
-    return 0;
+    for (int k = k0; k < nsec; k++, off = JHDR) {
+        int s = nth_oldest(k);
+        if (!gen[s]) continue;
+        while (off + JREC_OVH <= JSECTOR) {
+            const uint8_t *r = sec(s) + off;
+            if (r[0] == 0xFF) break;
+            int len = r[1] | r[2] << 8;
+            if (off + JREC_OVH + len > JSECTOR || (r[0] != T_DATA && r[0] != T_MARK)
+                || crc8(r, 7 + len) != r[7 + len]) break;            /* torn: sector ends */
+            off += JREC_OVH + len;
+            if (r[0] != T_DATA || rd32(r + 3) <= after) continue;
+            if (len > cap) return -2;
+            memcpy(buf, r + 7, (size_t)len);
+            *pos = rd32(r + 3);
+            cs = s; coff = off; cpos = *pos; cgen = gen[s];
+            return len;
+        }
+    }
+    return -1;
 }
 
 int journal_lost_at_open(void) { return lost_at_open; }

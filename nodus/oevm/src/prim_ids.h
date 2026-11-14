@@ -610,4 +610,18 @@
    Appended after otaStageMatches, 169-170 by COUNTING PRIM_NAMES. Platform-dispatched. */
 #define PRIM_pf_radioOn           169
 #define PRIM_pf_linkUp            170
+/* rete#443: the outbox journal (journal_backend.h), appended after linkUp,
+   171-176 by COUNTING PRIM_NAMES (170 entries before these). Platform-dispatched.
+   `journalOpen` (re)opens and answers true when the board has a journal, false when not;
+   `journalAppend: raw` answers the record's pos, or nil; `journalTakeDropped` answers the
+   unacked rows rotations dropped since the last take (and a foreign journal erased at
+   open), then zeroes it; `journalRetire: pos` marks every record <= pos acked;
+   `journalLastRetired` answers the newest retired pos; `journalNextAfter: pos` answers a
+   2-element Array (pos, RawBytes) for the oldest record after pos, or nil. */
+#define PRIM_pf_journalOpen         171
+#define PRIM_pf_journalAppend       172
+#define PRIM_pf_journalTakeDropped  173
+#define PRIM_pf_journalRetire       174
+#define PRIM_pf_journalLastRetired  175
+#define PRIM_pf_journalNextAfter    176
 #endif /* OEVM_PRIM_IDS_H */

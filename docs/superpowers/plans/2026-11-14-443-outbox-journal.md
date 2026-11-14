@@ -56,14 +56,14 @@
 
 **Files:**
 - Modify: `nodus/oevm/src/prim_ids.h` (ids 169–174), `nodus/oevm/src/platform.c`, `nodus/nsl/lib/kernel.nsl` (Platform accessors)
-- Test: `nodus/tests/22_spacesync/36_journal_prims.nsl`
+- Test: `nodus/tests/22_spacesync/39_journal_prims.nsl`
 
 **Interfaces:**
 - Consumes: Task 1's C functions.
 - Produces (nsl, on `platform`): `journalOpen` → Boolean; `journalAppend: aBytes` → `List with: pos with: dropped`; `journalRetire: pos` → self; `journalReplayFrom: pos do: aBlock` (block takes `pos` and `Bytes`); `journalLastRetired` → Integer; `journalLostAtOpen` → Integer. Prims answer nil (never raise) when no journal exists, like the sensor seam.
 
-- [ ] **Step 1:** Write `36_journal_prims.nsl` (`env: OEVM_JOURNAL=/tmp/oevm_journal_36` and an `rm` of it first via the test's setup convention): open → true, append two Bytes, replay answers both, retire the first, replay from `journalLastRetired` answers one. Expect block at the top per the file convention.
-- [ ] **Step 2:** `python3 tools/run-one.py ../tests/22_spacesync/36_journal_prims.nsl B` — fails `not understood`.
+- [ ] **Step 1:** Write `39_journal_prims.nsl` (`env: OEVM_JOURNAL=/tmp/oevm_journal_39` and an `rm` of it first via the test's setup convention): open → true, append two Bytes, replay answers both, retire the first, replay from `journalLastRetired` answers one. Expect block at the top per the file convention.
+- [ ] **Step 2:** `python3 tools/run-one.py ../tests/22_spacesync/39_journal_prims.nsl B` — fails `not understood`.
 - [ ] **Step 3:** Add the prims (pattern: the `otaStage*` cases at `platform.c:1553–1700`) and the kernel accessors.
 - [ ] **Step 4:** Run it; passes.
 - [ ] **Step 5:** Commit `journal: prims 169-174 and the platform accessors; refs #443`.

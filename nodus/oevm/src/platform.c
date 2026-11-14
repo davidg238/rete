@@ -22,6 +22,11 @@ uint32_t platform_app_cad_ms(void) { return s_app_cad_ms; }
 #include "reboot_note.h"    /* rete#215: the retained panic note, prims 153-154 */
 #include "radio_backend.h"  /* rete#440 R3: the radio verb, prim 169 */
 #include "udp_backend.h"    /* rete#440 R3: the link, prim 170 */
+#include "journal_backend.h" /* rete#443: the outbox journal, prims 171-176 */
+/* rete#443: whether journalOpen found a journal, and the unacked rows lost to rotations
+   (or a foreign journal erased at open) since the kernel last took them. */
+static int journal_available;
+static int journal_dropped;
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -1712,6 +1717,64 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
         } else {
             *out = net_link_up() ? true_symbol : false_symbol;
         }
+        return 1;
+    }
+    /* rete#443: the outbox journal (journal_backend.h). Positions stay far inside the
+       SMI band: one per captured row, ~800 a day. Rotation drops accumulate in
+       journal_dropped until the kernel takes them into `sdr`. */
+    case PRIM_pf_journalOpen:
+        journal_close();
+        journal_available = journal_open();
+        journal_dropped += journal_lost_at_open();
+        *out = journal_available ? true_symbol : false_symbol;
+        return 1;
+    case PRIM_pf_journalAppend: {
+        size_t n = 0;
+        const uint8_t *p = ota_leaf_bytes(args[0], &n);
+        uint32_t pos;
+        int r;
+        if (p == NULL || !journal_available) { *out = NULL; return 1; }
+        r = journal_append(p, (int)n, &pos);
+        if (r < 0) { *out = NULL; return 1; }
+        journal_dropped += r;
+        *out = TAG_SMI((intptr_t)pos);
+        return 1;
+    }
+    case PRIM_pf_journalTakeDropped:
+        *out = TAG_SMI((intptr_t)journal_dropped);
+        journal_dropped = 0;
+        return 1;
+    case PRIM_pf_journalRetire: {
+        int r;
+        if (journal_available && IS_SMI(args[0]) && UNTAG_SMI(args[0]) > 0) {
+            r = journal_retire((uint32_t)UNTAG_SMI(args[0]));
+            if (r > 0) journal_dropped += r;
+        }
+        *out = platform_object();
+        return 1;
+    }
+    case PRIM_pf_journalLastRetired:
+        *out = TAG_SMI((intptr_t)(journal_available ? journal_last_retired() : 0));
+        return 1;
+    case PRIM_pf_journalNextAfter: {
+        /* GC-safety: the record is copied into a C buffer first; then the RawBytes is
+           allocated and pinned across the Array's allocation, the udp basicReceive shape. */
+        static uint8_t jbuf[1024];
+        uint32_t pos;
+        int len;
+        intptr_t after = IS_SMI(args[0]) ? UNTAG_SMI(args[0]) : 0;
+        if (!journal_available || after < 0) { *out = NULL; return 1; }
+        len = journal_next((uint32_t)after, &pos, jbuf, (int)sizeof jbuf);
+        if (len < 0) { *out = NULL; return 1; }
+        oop raw = gc_allocate(RawBytesVtable, sizeof(struct String) + (size_t)len);
+        ((struct String *)raw)->length = (size_t)len;
+        if (len) memcpy(((struct String *)raw)->bytes, jbuf, (size_t)len);
+        gc_temp_root_push(raw);
+        oop arr = indexable_new(2);
+        ((struct ObjectInstance *)arr)->slots[1] = TAG_SMI((intptr_t)pos);
+        ((struct ObjectInstance *)arr)->slots[2] = raw;
+        gc_temp_roots_clear();
+        *out = arr;
         return 1;
     }
     case PRIM_pf_httpRespond: {                /* httpRespondId: id status: n body: s */

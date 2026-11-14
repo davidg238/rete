@@ -251,6 +251,7 @@ gcc -Wall -std=c99 -Isrc \
     src/ota.c "src/backend/$TARGET/ota_$TARGET.c" \
     "src/backend/$TARGET/pulse_$TARGET.c" "src/backend/$TARGET/timer_$TARGET.c" \
     "src/backend/$TARGET/span_$TARGET.c" \
+    "src/backend/$TARGET/journal_$TARGET.c" \
     "src/backend/$TARGET/sensor_$TARGET.c" \
     src/mirror.c \
     src/oimg_loader.c src/kernel_boot.c oevm_image_main.c -o "$VM" -lm

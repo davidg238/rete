@@ -38,11 +38,13 @@ int journal_retire(uint32_t pos);
 /* The newest retired pos (0 when nothing was ever retired). */
 uint32_t journal_last_retired(void);
 
-/* Calls cb for every data record with pos > from, oldest first, skipping markers.
-   A non-zero answer from cb stops the walk and is returned; otherwise 0. */
-int journal_walk(uint32_t from,
-                 int (*cb)(uint32_t pos, const uint8_t *buf, int len, void *ctx),
-                 void *ctx);
+/* Copies the oldest data record with pos > after into buf (cap bytes) and sets *pos.
+   Answers its length (>= 0), -1 when there is none (or no journal), -2 when cap is too
+   small. Markers are skipped. The seam remembers where the last answer was, so walking
+   the journal by feeding each answer's pos back in costs one record per call, not a
+   scan from the oldest sector: the caller refills a small RAM window this way, because
+   a full journal (~20,000 rows) does not fit a node's RAM. */
+int journal_next(uint32_t after, uint32_t *pos, uint8_t *buf, int cap);
 
 /* A lower bound on the data records lost when journal_open erased a journal of
    another format: one per non-blank sector erased (their rows cannot be parsed, so

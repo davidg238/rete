@@ -53,7 +53,7 @@ gcc -std=c99 -DOEVM_METHOD_PROFILE -Isrc \
     src/vm.c src/gc.c src/dispatch.c src/platform.c src/space.c src/handles.c src/span.c \
     src/backend/$T/platform_$T.c src/serial.c src/backend/$T/serial_$T.c src/udp.c src/backend/$T/udp_$T.c \
     src/http.c src/http_core.c src/backend/$T/http_$T.c src/ota.c src/backend/$T/ota_$T.c \
-    src/backend/$T/pulse_$T.c src/backend/$T/timer_$T.c src/backend/$T/span_$T.c \
+    src/backend/$T/pulse_$T.c src/backend/$T/timer_$T.c src/backend/$T/span_$T.c src/backend/$T/journal_$T.c \
     src/backend/$T/sensor_$T.c src/mirror.c src/oimg_loader.c src/kernel_boot.c oevm_image_main.c \
     -o "$W/oevm" -lm 2>/dev/null
 # The breakpoint is named the way custos names it: the method's blob offset from the

@@ -18,21 +18,26 @@
 
 typedef struct { int n; uint32_t pos[512]; uint8_t first[512]; int len[512]; } seen_t;
 
-static int collect(uint32_t pos, const uint8_t *buf, int len, void *ctx) {
-    seen_t *s = ctx;
-    s->pos[s->n] = pos; s->first[s->n] = len ? buf[0] : 0; s->len[s->n] = len; s->n++;
-    return 0;
-}
-
 static void fresh(void) {
     journal_close();
     remove(PATH);
     assert(journal_open() == 1);
 }
 
+/* Every unacked record, oldest first, by feeding each answer's pos back to
+   journal_next — exactly how PortaBridge refills its window. */
 static seen_t walk_unacked(void) {
     seen_t s; memset(&s, 0, sizeof s);
-    assert(journal_walk(journal_last_retired(), collect, &s) == 0);
+    uint32_t after = journal_last_retired(), pos;
+    uint8_t buf[256];
+    int len;
+    while ((len = journal_next(after, &pos, buf, sizeof buf)) >= 0) {
+        assert(pos > after);
+        s.pos[s.n] = pos; s.first[s.n] = len ? buf[0] : 0; s.len[s.n] = len; s.n++;
+        after = pos;
+        assert(s.n < 512);
+    }
+    assert(len == -1);
     return s;
 }
 
@@ -52,6 +57,11 @@ int main(void) {
     { seen_t s = walk_unacked();
       assert(s.n == 3 && s.first[0] == 'a' && s.first[1] == 'b' && s.first[2] == 'c');
       assert(s.len[0] == 40 && s.pos[2] == p3); }
+
+    { uint32_t pos; uint8_t tiny[8];
+      assert(journal_next(0, &pos, tiny, sizeof tiny) == -2);
+      uint8_t big[64];
+      assert(journal_next(p1, &pos, big, sizeof big) == 40 && pos == p2 && big[0] == 'b'); }
 
     /* retire_hides: a marker at p2 leaves only c unacked */
     assert(journal_retire(p2) == 0);

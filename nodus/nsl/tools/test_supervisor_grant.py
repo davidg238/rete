@@ -24,6 +24,7 @@ OEVM_BACKEND = [f"src/backend/{OEVM_TARGET}/platform_{OEVM_TARGET}.c",
                 f"src/backend/{OEVM_TARGET}/pulse_{OEVM_TARGET}.c",
                 f"src/backend/{OEVM_TARGET}/timer_{OEVM_TARGET}.c",
                 f"src/backend/{OEVM_TARGET}/span_{OEVM_TARGET}.c",   # tuvm#61
+                f"src/backend/{OEVM_TARGET}/journal_{OEVM_TARGET}.c",   # rete#443
                 f"src/backend/{OEVM_TARGET}/http_{OEVM_TARGET}.c",
                 f"src/backend/{OEVM_TARGET}/sensor_{OEVM_TARGET}.c",
                 f"src/backend/{OEVM_TARGET}/ota_{OEVM_TARGET}.c"]   # rete#25 (posix-only)

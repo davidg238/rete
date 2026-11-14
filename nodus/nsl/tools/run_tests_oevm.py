@@ -42,6 +42,7 @@ OEVM_BACKEND = [f"src/backend/{OEVM_TARGET}/platform_{OEVM_TARGET}.c",
                 # advanceMillis: moves the span clock by an exact amount and every
                 # bucket assertion in 19_latency stays deterministic.
                 f"src/backend/{OEVM_TARGET}/span_{OEVM_TARGET}.c",
+                f"src/backend/{OEVM_TARGET}/journal_{OEVM_TARGET}.c",   # rete#443
                 f"src/backend/{OEVM_TARGET}/http_{OEVM_TARGET}.c",
                 f"src/backend/{OEVM_TARGET}/sensor_{OEVM_TARGET}.c",
                 # rete#25: the image-push seam. Every OEVM_TARGET has a backend —

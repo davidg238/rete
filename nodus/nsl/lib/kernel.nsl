@@ -4969,6 +4969,22 @@ class Kernel usingPlatform: platform = (
   public sensorRead: kind = ( ^ platform sensorRead: kind )
   public sensorArm: kind post: msg on: path threshold: milli = ( ^ platform sensorArm: kind post: msg on: path threshold: milli )
 
+  (* rete#443 — the outbox journal (oevm/src/journal_backend.h): a ring of opaque records
+     in flash (a file on the host), so PortaBridge's unacked rows survive a reboot. Bytes in,
+     Bytes out; every record has a pos that only grows. `journalOpen` (re)opens it and
+     answers false on a board with none; `journalNextAfter:` answers a List (pos, Bytes) for
+     the oldest record after pos, or nil; `journalTakeDropped` answers the unacked rows the
+     ring dropped since the last take and zeroes it. *)
+  public journalOpen          = ( ^ platform journalOpen )
+  public journalAppend: aBytes = ( ^ platform journalAppend: aBytes rawLeaf )
+  public journalRetire: pos   = ( platform journalRetire: pos. ^ self )
+  public journalLastRetired   = ( ^ platform journalLastRetired )
+  public journalTakeDropped   = ( ^ platform journalTakeDropped )
+  public journalNextAfter: pos = ( | r |
+    r:: platform journalNextAfter: pos.
+    r == nil ifTrue: [ ^ nil ].
+    ^ List with: (r basicAt: 1) with: (Bytes overRaw: (r basicAt: 2)) )
+
   public Object            = ( ^ Object )
   public Array             = ( ^ Array )
   public Collection        = ( ^ Collection )

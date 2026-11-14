@@ -1,0 +1,46 @@
+(* expect:
+open true
+pos ascending true
+next 1 abc
+next 2 de
+after last nil
+retired 0
+after retire true nil-before true
+next after retired de
+reopen true
+still retired true
+dropped 0
+env: OEVM_JOURNAL=/tmp/oevm_journal_39.bin
+env: OEVM_JOURNAL_RESET=1
+*)
+(* rete#443 — the outbox journal's prims over the posix backend (a file). Opaque
+   Bytes in (here CBOR, as PortaBridge writes them), the same Bytes out of
+   `journalNextAfter:`, which answers a List (pos, Bytes) or nil; `journalRetire:`
+   hides every record at or below a pos; a second `journalOpen` re-reads the file,
+   which is how a host test stands in for a reboot. OEVM_JOURNAL_RESET erases the
+   file on the process's first open, so a run never sees the last one's records. *)
+class JournalPrims packageUsing: manifest = () (
+  public main: platform args: args = (
+    | p1 p2 r cbor |
+    cbor:: platform Cbor.
+    ('open ' , platform journalOpen printString) out.
+    p1:: platform journalAppend: (cbor encode: 'abc').
+    p2:: platform journalAppend: (cbor encode: 'de').
+    ('pos ascending ' , (p2 > p1) printString) out.
+    r:: platform journalNextAfter: 0.
+    ('next 1 ' , (cbor decode: (r at: 2) ifInvalid: [ :m | m ])) out.
+    r:: platform journalNextAfter: (r at: 1).
+    ('next 2 ' , (cbor decode: (r at: 2) ifInvalid: [ :m | m ])) out.
+    ('after last ' , (platform journalNextAfter: p2) printString) out.
+    ('retired ' , platform journalLastRetired printString) out.
+    platform journalRetire: p1.
+    ('after retire ' , (platform journalLastRetired = p1) printString ,
+      ' nil-before ' , ((platform journalNextAfter: p2) == nil) printString) out.
+    r:: platform journalNextAfter: platform journalLastRetired.
+    ('next after retired ' , (cbor decode: (r at: 2) ifInvalid: [ :m | m ])) out.
+    ('reopen ' , platform journalOpen printString) out.
+    ('still retired ' , (platform journalLastRetired = p1) printString) out.
+    ('dropped ' , platform journalTakeDropped printString) out.
+  )
+) : (
+)
