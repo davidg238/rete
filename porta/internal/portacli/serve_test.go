@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/davidg238/porta/internal/blockserv"
+	"github.com/davidg238/porta/internal/coapsrv"
 	"github.com/davidg238/porta/internal/serverstat"
 	"github.com/davidg238/porta/internal/space"
 	"github.com/davidg238/rete/protocol/cval"
@@ -24,10 +25,14 @@ var errSentinel = errors.New("sentinel listener failure")
 
 func TestNewServeCmdRegistersFlags(t *testing.T) {
 	cmd := newServeCmd()
-	for _, name := range []string{"http-port", "http-bind", "http-allow-cidr"} {
+	for _, name := range []string{"http-port", "http-bind", "http-allow-cidr", "coap"} {
 		if cmd.Flags().Lookup(name) == nil {
 			t.Errorf("flag --%s not registered", name)
 		}
+	}
+	// rete#505: off unless an address is named, so no harness binds 5683.
+	if f := cmd.Flags().Lookup("coap"); f != nil && f.DefValue != "" {
+		t.Errorf("--coap default = %q, want empty (no CoAP listener)", f.DefValue)
 	}
 }
 
@@ -54,7 +59,7 @@ func TestAwaitServeExitDrainsOnCtxCancel(t *testing.T) {
 	cancel() // SIGINT analog: ctx.Done fires immediately
 
 	done := make(chan error, 1)
-	go func() { done <- awaitServeExit(ctx, udpErr, blocksErr, sweepErr, httpErr) }()
+	go func() { done <- awaitServeExit(ctx, udpErr, blocksErr, nil, sweepErr, httpErr) }()
 
 	// Must not return while any listener is still shutting down.
 	select {
@@ -89,7 +94,7 @@ func TestAwaitServeExitNilHTTPErr(t *testing.T) {
 	cancel()
 
 	done := make(chan error, 1)
-	go func() { done <- awaitServeExit(ctx, udpErr, blocksErr, sweepErr, httpErr) }()
+	go func() { done <- awaitServeExit(ctx, udpErr, blocksErr, nil, sweepErr, httpErr) }()
 	udpErr <- nil
 	blocksErr <- nil
 	sweepErr <- nil
@@ -113,7 +118,7 @@ func TestAwaitServeExitPropagatesListenerErrors(t *testing.T) {
 	udpErr := make(chan error, 1)
 	blocksErr := make(chan error, 1)
 	udpErr <- errSentinel
-	if got := awaitServeExit(ctx, udpErr, blocksErr, make(chan error, 1), nil); got != errSentinel {
+	if got := awaitServeExit(ctx, udpErr, blocksErr, nil, make(chan error, 1), nil); got != errSentinel {
 		t.Errorf("udp error: got %v, want errSentinel", got)
 	}
 
@@ -121,7 +126,7 @@ func TestAwaitServeExitPropagatesListenerErrors(t *testing.T) {
 	udpErr = make(chan error, 1)
 	blocksErr = make(chan error, 1)
 	blocksErr <- errSentinel
-	if got := awaitServeExit(ctx, udpErr, blocksErr, make(chan error, 1), nil); got != errSentinel {
+	if got := awaitServeExit(ctx, udpErr, blocksErr, nil, make(chan error, 1), nil); got != errSentinel {
 		t.Errorf("blocks error: got %v, want errSentinel", got)
 	}
 
@@ -130,7 +135,7 @@ func TestAwaitServeExitPropagatesListenerErrors(t *testing.T) {
 	blocksErr = make(chan error, 1)
 	sweepErr := make(chan error, 1)
 	sweepErr <- errSentinel
-	if got := awaitServeExit(ctx, udpErr, blocksErr, sweepErr, nil); got != errSentinel {
+	if got := awaitServeExit(ctx, udpErr, blocksErr, nil, sweepErr, nil); got != errSentinel {
 		t.Errorf("sweep error: got %v, want errSentinel", got)
 	}
 
@@ -139,7 +144,7 @@ func TestAwaitServeExitPropagatesListenerErrors(t *testing.T) {
 	blocksErr = make(chan error, 1)
 	httpErr := make(chan error, 1)
 	httpErr <- errSentinel
-	if got := awaitServeExit(ctx, udpErr, blocksErr, make(chan error, 1), httpErr); got != errSentinel {
+	if got := awaitServeExit(ctx, udpErr, blocksErr, nil, make(chan error, 1), httpErr); got != errSentinel {
 		t.Errorf("http error: got %v, want errSentinel", got)
 	}
 
@@ -149,7 +154,7 @@ func TestAwaitServeExitPropagatesListenerErrors(t *testing.T) {
 	httpErr = make(chan error, 1)
 	httpErr <- nil
 	udpErr <- errSentinel
-	if got := awaitServeExit(ctx, udpErr, blocksErr, make(chan error, 1), httpErr); got != errSentinel {
+	if got := awaitServeExit(ctx, udpErr, blocksErr, nil, make(chan error, 1), httpErr); got != errSentinel {
 		t.Errorf("clean http then udp error: got %v, want errSentinel", got)
 	}
 }
@@ -232,7 +237,7 @@ func TestAwaitServeExitDoesNotDeadlockOnAlreadyConsumedHTTPErr(t *testing.T) {
 	ctx := newSequencedDoneCtx()
 
 	done := make(chan error, 1)
-	go func() { done <- awaitServeExit(ctx, udpErr, blocksErr, sweepErr, httpErr) }()
+	go func() { done <- awaitServeExit(ctx, udpErr, blocksErr, nil, sweepErr, httpErr) }()
 
 	// Must not return before the other three listeners have anything to
 	// report — proves we are past the main select (httpErr consumed) and
@@ -269,7 +274,7 @@ func TestAwaitServeExitDrainsTheSweep(t *testing.T) {
 	cancel()
 
 	done := make(chan error, 1)
-	go func() { done <- awaitServeExit(ctx, udpErr, blocksErr, sweepErr, httpErr) }()
+	go func() { done <- awaitServeExit(ctx, udpErr, blocksErr, nil, sweepErr, httpErr) }()
 
 	udpErr <- nil
 	blocksErr <- nil
@@ -431,5 +436,93 @@ func TestStartBlocksPlaneServesWhenPortFree(t *testing.T) {
 	case <-ch:
 	case <-time.After(5 * time.Second):
 		t.Fatalf("blocks plane did not exit on ctx cancel")
+	}
+}
+
+// rete#505: the CoAP listener is off unless --coap names an address.
+func TestStartCoAPOffWhenEmpty(t *testing.T) {
+	ch, err := startCoAP(context.Background(), coapsrv.New(nil, nil, nil), "", func(string, ...any) {})
+	if ch != nil || err != nil {
+		t.Fatalf("empty address: got (%v, %v), want (nil, nil)", ch, err)
+	}
+}
+
+// rete#505, unlike rete#176's blocks plane: a ztoit node has no other plane,
+// so a CoAP port already held stops serve at start-up, naming the address.
+func TestStartCoAPFailsWhenPortTaken(t *testing.T) {
+	squatter, err := net.ListenPacket("udp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("squatter bind: %v", err)
+	}
+	defer squatter.Close()
+	addr := squatter.LocalAddr().String()
+	ch, err := startCoAP(context.Background(), coapsrv.New(nil, nil, nil), addr, func(string, ...any) {})
+	if ch != nil {
+		t.Fatalf("bind onto a taken port: want nil channel, got a live listener")
+	}
+	if err == nil || !strings.Contains(err.Error(), addr) {
+		t.Fatalf("err = %v, want one naming %s", err, addr)
+	}
+}
+
+func TestStartCoAPServesAndExitsOnCancel(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	var mu sync.Mutex
+	var logged []string
+	ch, err := startCoAP(ctx, coapsrv.New(nil, nil, nil), "127.0.0.1:0", func(f string, a ...any) {
+		mu.Lock()
+		defer mu.Unlock()
+		logged = append(logged, fmt.Sprintf(f, a...))
+	})
+	if err != nil || ch == nil {
+		cancel()
+		t.Fatalf("free port: got (%v, %v), want a live channel", ch, err)
+	}
+	mu.Lock()
+	if len(logged) == 0 || !strings.Contains(logged[0], "serving CoAP on udp") {
+		t.Errorf("no serving line, logged=%v", logged)
+	}
+	mu.Unlock()
+	cancel()
+	select {
+	case err := <-ch:
+		if err != nil {
+			t.Fatalf("CoAP listener returned %v on cancel, want nil", err)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatalf("CoAP listener did not exit on ctx cancel")
+	}
+}
+
+// As TestAwaitServeExitDrainsOnCtxCancel, for the CoAP channel: serve must not
+// return while the CoAP listener is still shutting down.
+func TestAwaitServeExitDrainsCoAPOnCtxCancel(t *testing.T) {
+	udpErr := make(chan error, 1)
+	blocksErr := make(chan error, 1)
+	coapErr := make(chan error, 1)
+	sweepErr := make(chan error, 1)
+	httpErr := make(chan error, 1)
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	done := make(chan error, 1)
+	go func() { done <- awaitServeExit(ctx, udpErr, blocksErr, coapErr, sweepErr, httpErr) }()
+	udpErr <- nil
+	blocksErr <- nil
+	sweepErr <- nil
+	httpErr <- nil
+	select {
+	case <-done:
+		t.Fatal("returned before draining coapErr")
+	case <-time.After(50 * time.Millisecond):
+	}
+	coapErr <- nil
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Errorf("got %v, want nil", err)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("did not return after coapErr drained")
 	}
 }

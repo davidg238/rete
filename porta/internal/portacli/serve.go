@@ -5,6 +5,7 @@ package portacli
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net"
 	"net/http"
@@ -13,6 +14,7 @@ import (
 
 	"github.com/davidg238/porta/internal/blob"
 	"github.com/davidg238/porta/internal/blockserv"
+	"github.com/davidg238/porta/internal/coapsrv"
 	"github.com/davidg238/porta/internal/httpsrv"
 	"github.com/davidg238/porta/internal/serverstat"
 	"github.com/davidg238/porta/internal/space"
@@ -71,7 +73,7 @@ func sweepLiveness(ctx context.Context, st *space.Store, tick time.Duration, log
 // operator HTTP surface. The two are independent — a node keeps checking in
 // with --http-port 0, and the health endpoint stays up if the mesh is quiet.
 func newServeCmd() *cobra.Command {
-	var udpAddr, httpBind, manifestPath string
+	var udpAddr, httpBind, manifestPath, coapAddr string
 	var httpPort, testDropAck int
 	var testRefuseAll, testDropAll bool
 	var httpAllowCIDR []string
@@ -139,6 +141,22 @@ func newServeCmd() *cobra.Command {
 				srv.SetDropAll(true)
 				log.Printf("porta: TEST-SILENT ACTIVE — every datagram is DROPPED at the door, no reply, nothing ingested (rete#269)")
 			}
+			// rete#505: the CoAP listener binds BEFORE any listener goroutine
+			// runs, so a port already held stops serve here, whole, rather
+			// than half-starting. The blob store opens first because both the
+			// CoAP listener and the blocks plane serve from it.
+			bst, err := blob.Open(blobDir(dbPath))
+			if err != nil {
+				return err
+			}
+			coapErr, err := startCoAP(ctx, coapsrv.New(srv, bst, log.Printf), coapAddr, log.Printf)
+			if err != nil {
+				return err
+			}
+			if coapAddr != "" && (testDropAck > 0 || testDropAll) {
+				log.Printf("porta: --test-drop-ack/--test-drop-all cover UDP only — the CoAP listener on %s still answers (rete#505)", coapAddr)
+			}
+
 			udpErr := make(chan error, 1)
 			go func() { udpErr <- srv.ListenAndServe(ctx, udpAddr) }()
 			log.Printf("porta: serving the space on udp %s (db=%s)", udpAddr, dbPath)
@@ -155,10 +173,6 @@ func newServeCmd() *cobra.Command {
 				return err
 			}
 			blocksAddr := net.JoinHostPort(blocksHost, strconv.Itoa(exPortNum+1))
-			bst, err := blob.Open(blobDir(dbPath))
-			if err != nil {
-				return err
-			}
 			blocksErr := startBlocksPlane(ctx, blockserv.New(bst), blocksAddr, stats, log.Printf)
 
 			// The fourth goroutine: porta's own verdict on which nodes are still
@@ -196,10 +210,12 @@ func newServeCmd() *cobra.Command {
 				log.Printf("porta: serving HTTP on %s:%d", httpBind, httpPort)
 			}
 
-			return awaitServeExit(ctx, udpErr, blocksErr, sweepErr, httpErr)
+			return awaitServeExit(ctx, udpErr, blocksErr, coapErr, sweepErr, httpErr)
 		},
 	}
 	cmd.Flags().StringVar(&udpAddr, "udp", ":6969", "node-facing UDP listen address")
+	cmd.Flags().StringVar(&coapAddr, "coap", "",
+		"node-facing CoAP listen address, e.g. :5683: POST /space, GET /blob/<hash> (empty = no CoAP listener)")
 	cmd.Flags().IntVar(&httpPort, "http-port", 6970, "operator HTTP port (0 = disabled)")
 	cmd.Flags().StringVar(&httpBind, "http-bind", "0.0.0.0", "operator HTTP bind address")
 	cmd.Flags().StringSliceVar(&httpAllowCIDR, "http-allow-cidr",
@@ -244,12 +260,37 @@ func startBlocksPlane(ctx context.Context, srv *blockserv.Server, addr string,
 	return ch
 }
 
+// startCoAP binds and runs the CoAP listener (rete#505). An empty addr is the
+// default and means no listener: (nil, nil). Unlike startBlocksPlane it does
+// NOT degrade: a ztoit node has no other plane and --coap is only ever set on
+// purpose, so a listener silently not there would read as a fleet of dead
+// nodes. A bind failure is returned, naming the address, before any listener
+// goroutine has started.
+func startCoAP(ctx context.Context, srv *coapsrv.Server, addr string, logf func(string, ...any)) (<-chan error, error) {
+	if addr == "" {
+		return nil, nil
+	}
+	ua, err := net.ResolveUDPAddr("udp", addr)
+	if err != nil {
+		return nil, fmt.Errorf("coap: cannot bind udp %s: %w", addr, err)
+	}
+	pc, err := net.ListenUDP("udp", ua)
+	if err != nil {
+		return nil, fmt.Errorf("coap: cannot bind udp %s: %w", addr, err)
+	}
+	ch := make(chan error, 1)
+	go func() { ch <- srv.Serve(ctx, pc) }()
+	logf("porta: serving CoAP on udp %s (POST /space, GET /blob/<hash>)", addr)
+	return ch, nil
+}
+
 // awaitServeExit blocks until a listener goroutine exits or ctx is cancelled.
-// It is transport-agnostic — four error channels; httpErr may be nil (no HTTP
-// listener) and blocksErr may be nil (rete#176: the bulk plane degraded at
-// bind); udp and the liveness sweep are unconditional.
+// It is transport-agnostic — five error channels; httpErr may be nil (no HTTP
+// listener), blocksErr may be nil (rete#176: the bulk plane degraded at bind)
+// and coapErr may be nil (rete#505: no --coap); udp and the liveness sweep are
+// unconditional.
 //
-//   - A listener error (non-nil udpErr, blocksErr, sweepErr or httpErr)
+//   - A listener error (non-nil udpErr, blocksErr, coapErr, sweepErr or httpErr)
 //     propagates verbatim.
 //   - A clean HTTP exit (httpErr delivers nil) while the others still run falls
 //     through to wait on whichever of them reports next.
@@ -260,19 +301,22 @@ func startBlocksPlane(ctx context.Context, srv *blockserv.Server, addr string,
 //     A nil channel's select arm blocks forever and the nil guard skips draining it.
 //
 // The ctx-Done check runs in its OWN non-blocking select before the main one.
-// Putting all five cases in a single select would race: once ctx is cancelled,
+// Putting all six cases in a single select would race: once ctx is cancelled,
 // a listener that has already buffered a value makes its case just as "ready"
 // as ctx.Done(), and Go picks uniformly among ready cases — so a listener's
 // case can win and return early, skipping the drain of the others entirely.
 // That is not just a test artifact: it is the same store-Close race this
 // drain exists to prevent, so ctx cancellation must take priority outright.
-func awaitServeExit(ctx context.Context, udpErr, blocksErr, sweepErr, httpErr <-chan error) error {
+func awaitServeExit(ctx context.Context, udpErr, blocksErr, coapErr, sweepErr, httpErr <-chan error) error {
 	drain := func() error {
 		if udpErr != nil {
 			<-udpErr
 		}
 		if blocksErr != nil {
 			<-blocksErr
+		}
+		if coapErr != nil {
+			<-coapErr
 		}
 		if sweepErr != nil {
 			<-sweepErr
@@ -292,6 +336,8 @@ func awaitServeExit(ctx context.Context, udpErr, blocksErr, sweepErr, httpErr <-
 		return err
 	case err := <-blocksErr:
 		return err
+	case err := <-coapErr:
+		return err
 	case err := <-sweepErr:
 		return err
 	case err := <-httpErr:
@@ -305,7 +351,7 @@ func awaitServeExit(ctx context.Context, udpErr, blocksErr, sweepErr, httpErr <-
 			// only reach this branch after the main select's `case err :=
 			// <-httpErr` has already received httpErr's one and only value (the
 			// sender writes once and never closes the channel), so drain()'s
-			// `<-httpErr` would block forever. udpErr, blocksErr and sweepErr are
+			// `<-httpErr` would block forever. udpErr, blocksErr, coapErr and sweepErr are
 			// still outstanding, so those are what must be drained. The outer
 			// pre-check has consumed nothing yet, so it correctly keeps using
 			// drain() — do not "unify" the two.
@@ -317,6 +363,9 @@ func awaitServeExit(ctx context.Context, udpErr, blocksErr, sweepErr, httpErr <-
 				if blocksErr != nil {
 					<-blocksErr
 				}
+				if coapErr != nil {
+					<-coapErr
+				}
 				if sweepErr != nil {
 					<-sweepErr
 				}
@@ -327,6 +376,8 @@ func awaitServeExit(ctx context.Context, udpErr, blocksErr, sweepErr, httpErr <-
 			case err := <-udpErr:
 				return err
 			case err := <-blocksErr:
+				return err
+			case err := <-coapErr:
 				return err
 			case err := <-sweepErr:
 				return err

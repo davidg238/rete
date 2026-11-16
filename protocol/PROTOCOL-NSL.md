@@ -1,11 +1,10 @@
 # Porta ↔ nsl node protocol — the space-sync model
 
-**Status: design direction — *ratified* 2026-07-14, pre-implementation on the porta
-side.** The node/VM half of the model shipped as oevm **rung 9** (tuvm#32 closed,
-option A: the node's space owns the value-holding channel kind — see §3.1); the
-porta half (bridge job, store, wire) is unbuilt and lands with the phase-3 rungs in
-`review/program-sequence.md`. This document is the conformance spec for
-`kind: "nsl"` nodes.
+**Status: ratified 2026-07-14, built on both ends.** The node/VM half shipped as oevm
+**rung 9** (tuvm#32 closed, option A: the node's space owns the value-holding channel
+kind — see §3.1); the porta half (store, wire, bulk plane) is built, and since rete#505
+(2026-11-16) porta also answers it over CoAP (§5.3). This document is the conformance
+spec for **every node end** porta serves: there is one protocol (§0).
 
 **Companions:**
 - Record schemas per path prefix + the radio size law: [`PROTOCOL-NSL-RECORDS.md`](PROTOCOL-NSL-RECORDS.md).
@@ -20,26 +19,23 @@ porta half (bridge job, store, wire) is unbuilt and lands with the phase-3 rungs
 
 ---
 
-## 0. Scope — one gateway, two node kinds
+## 0. Scope — one gateway, one protocol
 
-Porta carries two node protocols side by side, selected by the existing per-node
-`kind` column (the heterogeneity seam built for exactly this):
+Porta speaks one protocol, this one, and **does not distinguish node kinds**: it has no
+node-kind column and never looks inside an image. The `app` cell (`MANIFEST.cddl`)
+already carries any image — its hash, signature, lifecycle, triggers, runlevel and
+arguments — so a new kind of node needs no porta code, only a node end that speaks this
+document.
 
-- **`kind: "toit"` nodes speak `PROTOCOL.md` (v1), unchanged.** The nodus fleet
-  conforms to it and it works; v1 is *frozen for that kind*, not deprecated. No Toit
-  node changes because of this document.
-- **`kind: "nsl"` nodes (nsl-tuvm / nRF52840 / Zephyr) speak the protocol in this
-  document** — the **space-sync** model.
+There are two implementations of the node end today:
 
-The v1 `st` kind ("Smalltalk → Berry `.bec`") predates the nsl-tuvm pivot and is
-superseded by this document for the Zephyr node class.
+- **nsl nodes** (oevm on Zephyr: nRF52840, ESP32-C6, RP2350) — the nsl kernel's bridge
+  and the VM's C seam, on plain UDP (§5.3).
+- **Toit-on-Zephyr nodes (ztoit)** — a C agent, a porta client over CoAP (§5.3;
+  davidg238/ztoit#10).
 
-> **North star (conditional, not a commitment).** If paths-over-verbs proves out as
-> nsl-tuvm deploys under porta, the intent is to revisit the Toit `nodus` fleet and
-> try to align it onto this same space model — ultimately *replacing* v1's verb
-> protocol rather than carrying both forever. That is an aspiration to be earned by
-> the nsl deployment, not a scheduled migration; §6 treats coexistence as a bridge
-> toward it, not a permanent state.
+The v1 Toit nodes, their verb protocol and the `st` kind are history: v1 was deleted
+with `porta-v1-final`, and its protocol is archived ([`archive/PROTOCOL.md`](archive/PROTOCOL.md)).
 
 ---
 
@@ -612,20 +608,26 @@ transport-agnostic):
   credential. The human-facing name is `goal/name` ↔ `obs/name`, and the bench name of
   the board is the optional `board` field of `obs/build`. Definition and rationale:
   `porta/docs/ARCHITECTURE.md` §3.8.
-- Transport — whatever the node class carries. **Today it is plain UDP carrying
-  CBOR**; the v1 TFTP surface this bullet once named as the day-one carrier was
-  deleted with v1 and carries nothing. **The ratified direction is CoAP** — logged in
-  §8 under its original name, TFTP → CoAP, from when TFTP was the carrier — for
-  `kind: "nsl"` nodes (Zephyr ships a native CoAP client/server, so this rides the
-  same BSD-socket seam already proven for UDP in rungs 5–7). CoAP earns the switch
-  for its **resource model** (paths = URIs), **ETag-conditional GET** (our `seq`/cursor
-  in-protocol), **DTLS** (a real answer to G5), **CBOR content-format**, and
-  **resumable blockwise** image transfer — *not* for throughput (blockwise is
-  stop-and-wait, ≈ TFTP-with-blksize) and *not* for Observe, which is out of scope
-  (non-goal §1). Only the **client-initiated** subset is used, so one profile serves
-  sleepy and always-on nodes alike. Framing is transport-independent by construction;
-  the one thing to retire before committing is the **DTLS RAM footprint** on the most
-  constrained target (§7).
+- Transport — two carriers of the same records, beside each other until rete#507.
+  **Plain UDP carrying CBOR** is what nsl nodes speak: the check-in on the exchange
+  port, images on the bulk plane below. **CoAP is built** (rete#505, 2026-11-16) and is
+  what a ztoit node speaks, on the address `porta serve --coap` names — off by default;
+  a deployment serving Toit nodes passes `:5683`:
+  - `POST /space` — the body is exactly a UDP check-in datagram (a `pull` or a `push`);
+    the reply is 2.04 Changed, `application/cbor`, the exact batch, ack or `#err` the
+    UDP exchange would send. **A refusal stays an `#err` record in a 2.04**; CoAP codes
+    are used only for what the record layer never sees (4.04 unknown path, 4.05 wrong
+    method). Porta's CoAP library runs with its blockwise layer off, so a check-in is
+    one datagram each way.
+  - `GET /blob/<hash>` — `<hash>` is the 64 lowercase hex of the image's SHA-256; 2.05
+    Content, `application/octet-stream`, by Block2 (RFC 7959) at ≤ 256 B, stateless, so
+    resume is asking for any block. Unknown hash 4.04, malformed 4.00.
+
+  No DTLS yet: CoAP without DTLS is built, and the DTLS measurement (§7 q7) now gates
+  DTLS only. Only the **client-initiated** subset is used, and Observe stays out of
+  scope (non-goal §1). The reasons CoAP was ratified — resource model, DTLS as a real
+  answer to G5, CBOR content-format, resumable blockwise — are in the §8 entry of
+  2026-07-15; the envelope over resources is the 2026-11-16 entry.
 
 **The bulk plane, as actually built (rete#25, 2026-08-08).** Images never ride the
 exchange; they are pulled over a second port, **exchange port + 1** — a convention, not a
@@ -635,9 +637,8 @@ porta answers `0x02 ‖ blockNo ‖ more ‖ data` with `data` ≤ 256 B (the va
 radio-honest), and every refusal is `0x7F ‖ text`. Stop-and-wait, one datagram in and
 one out, nothing kept per client — so **resume is the client re-asking from any block number**,
 and a killed transfer costs only the blocks it had not got. This is deliberately the
-shape of a CoAP blockwise GET, so the ratified **TFTP → CoAP** direction above is
-unchanged and the later move is framing, not redesign — still gated on the §7 q7 DTLS
-footprint measurement. Binary rather than CBOR because the fetch loop lives in the node's
+shape of a CoAP blockwise GET, which is why `GET /blob/<hash>` (above) could be framing
+and not redesign. Binary rather than CBOR because the fetch loop lives in the node's
 C seam, which cannot reach the nsl `Cbor` class, and a C encoder for one fixed 37-byte
 request would be more mechanism than the frame it encodes — CoAP, the successor, is
 itself binary-framed. **CBOR stays the law of the space planes; this is the data plane's
@@ -654,18 +655,17 @@ the fleet-sim (RECORDS "the size law").
 
 ## 6. Coexistence & migration
 
-- Porta serves v1 and this protocol side by side, selected by node `kind`. No Toit
-  node changes.
+- **Two transports of one protocol.** nsl nodes check in over plain UDP and fetch
+  images from the binary bulk plane; ztoit nodes do both over CoAP (§5.3). Porta does
+  not know which kind a node is: both transports hand the same records to the same
+  handler. rete#507 moves nsl nodes onto CoAP and deletes the UDP planes.
 - **First implementation target: the G10 host fleet-sim** (N host oevm VMs + porta
   over localhost UDP) — prove the exchange, cursor resync, and kill-mid-transfer
   recovery there before any radio is involved.
 - The nsl node's conformance doc is this file; the bridge job + C seam land with the
   phase-3 (CBOR wire) rungs in `review/program-sequence.md`.
-- **The bridge toward the north star (§0).** Coexistence is the mechanism that lets
-  the nsl model earn its keep in production *before* any Toit node is touched. If it
-  earns it, the follow-on is a v1→space alignment for the `nodus` fleet — the verb
-  protocol retired, not perpetually carried. That step is out of scope here and gated
-  entirely on the nsl deployment going well.
+- **The north star has happened.** The v1 verb protocol is retired, not carried: the
+  Toit nodes that return to porta (ztoit) speak this space model, not v1.
 
 ---
 
@@ -686,10 +686,10 @@ the fleet-sim (RECORDS "the size law").
    the sim vs Thread in the field; where the node's porta-identity pairing lives (G7).
 6. **`obs/**` push shape** — per-path or snapshot-batched on constrained MTUs (Thread
    fragmentation vs chattiness); decided by measurement against the §5.3 size law.
-7. **DTLS RAM footprint on the most constrained target** — the one gate on the
-   TFTP → CoAP transition (§5.3). CoAP message handling is cheap; mbedTLS DTLS
-   handshake/session state is not. Measure it against the dongle's arena budget (a
-   G-series footprint gate) before committing CoAPs; CoAP-without-DTLS is nearly free.
+7. **DTLS RAM footprint on the most constrained target** — the gate on **DTLS only**.
+   CoAP without DTLS is built (rete#505, §5.3). mbedTLS DTLS handshake/session state is
+   not cheap: measure it against the dongle's arena budget (a G-series footprint gate)
+   before committing CoAPs.
 8. **Porta back-pressure hint** — whether porta's check-in response carries an optional
    "you may slow to X" cadence hint (§4.4) or idle backoff on the node alone suffices.
    Keeps porta passive either way; measure fleet load in the sim first.
@@ -753,3 +753,11 @@ Decisions folded into this edition (full reasoning trail in
   node built from here pins it. The bench-named spaces are historical from this date.
   Record: `docs/design/2026-09-11-node-identity-hardware-rooted-design.md` and its
   addendum; board proof `docs/results/2026-10-02-118-node-id-board-proof.md`.
+- **(2026-11-16) rete#505 BUILT: CoAP without DTLS (David).** porta answers the
+  check-in as `POST /space` with today's record as the body — the envelope, over
+  resources (`GET /space?id=&cursor=`), because a pull reports five fields porta
+  records, so it is a POST either way and resources would only add a second decoder —
+  and images as `GET /blob/<hash>` by Block2. Built on
+  `github.com/plgd-dev/go-coap/v3` rather than hand-written, so DTLS has running time
+  before it lands. Beside UDP, not replacing it (rete#507 does that). No manifest
+  change (rete#508). Record: `docs/design/2026-11-16-505-porta-coap-listener-design.md`.

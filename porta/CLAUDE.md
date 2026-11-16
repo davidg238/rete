@@ -66,6 +66,9 @@ next.
   extension is now a path: a new feature adds rows, not tables.
 - `porta/internal/wire/` — pull/push framing as a pure `Handle([]byte) []byte`, wrapped by
   a thin UDP loop.
+- `porta/internal/coapsrv/` — the CoAP listener (rete#505, `serve --coap`): an adapter that
+  hands `POST /space` bodies to `wire.Server.HandleFrom` and answers `GET /blob/<hash>` by
+  Block2. The only package that imports go-coap.
 - `porta/internal/httpsrv/`, `porta/internal/serverstat/` — survived the demolition
   untouched; the allowlist they admit by is `protocol/allowlist`, shared with custos. `httpsrv` now depends on a one-method `NodeCounter` interface rather than a
   concrete store, which is how it outlived v1's store and should outlive the next one.
@@ -134,9 +137,11 @@ next.
   `served_hw`), so `goal/do/*` cannot re-execute across reboots. See
   `porta/docs/design/2026-08-26-space-sync-durability-trio-design.md` and
   `PROTOCOL-NSL.md` §3.
-- Bulk transfer (images, profiler blobs) is **deliberately off the space** and deferred to a
-  CoAP blockwise plane; auth (G5) is out of this rung.
-- Go 1.26, sqlite via `github.com/mattn/go-sqlite3`, cobra. Copyright header
+- Bulk transfer (images, profiler blobs) is **deliberately off the space**. CoAP blockwise
+  (`GET /blob/<hash>`) is built for CoAP clients (rete#505); the binary block plane serves
+  nsl nodes until rete#507. Auth (G5) is out of this rung.
+- Go 1.26, sqlite via `github.com/mattn/go-sqlite3`, cobra, CoAP via
+  `github.com/plgd-dev/go-coap/v3`. Copyright header
   `// Copyright (c) 2026 Ekorau LLC` on every new Go file. `gofmt -l .` must print nothing
   before every commit.
 

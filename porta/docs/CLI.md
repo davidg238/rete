@@ -83,12 +83,13 @@ is silent about which store it wrote to, which is #283.
 
 ## serve
 
-Run the gateway. Four listeners come up, and they are independent: a node keeps checking
+Run the gateway. Four listeners come up, a fifth with `--coap`, and they are independent: a node keeps checking
 in with `--http-port 0`, and `/health` stays up while the mesh is silent.
 
 ```
 porta serve [--udp :6969] [--http-port 6970] [--http-bind 0.0.0.0]
             [--http-allow-cidr …] [--manifest path/to/MANIFEST.cddl]
+            [--coap :5683]
 ```
 
 | Flag | Default | Notes |
@@ -97,6 +98,7 @@ porta serve [--udp :6969] [--http-port 6970] [--http-bind 0.0.0.0]
 | `--http-port` | `6970` | Operator HTTP port; `0` disables the listener and the gateway still serves nodes. |
 | `--http-bind` | `0.0.0.0` | HTTP bind address. |
 | `--http-allow-cidr` | RFC1918 + loopback + Tailscale `100.64.0.0/10` | Repeatable allow-list for the HTTP listener; empty serves any peer. |
+| `--coap` | (none) | Node-facing **CoAP** listen address: `POST /space` (a check-in) and `GET /blob/<hash>` (an image, by Block2). Empty means no CoAP listener; a deployment serving Toit nodes passes `:5683`, CoAP's registered port. A port already in use stops `serve` at start-up (rete#505). |
 | `--manifest` | (none) | Path to `protocol/MANIFEST.cddl`. Arms the kind+schema gate, **persists it into the store**, and serves it at `GET /manifest`. |
 
 ```
@@ -122,6 +124,10 @@ Read those five lines as the listener inventory:
   it must catch is porta hearing nothing — and a view that evaluates only when read is
   silent exactly when everything else is.
 - **the operator HTTP surface** (below).
+- **CoAP**, only when `--coap` names an address (`porta: serving CoAP on udp …`): the
+  same check-in records as the space, carried in `POST /space`, and image blobs by
+  `GET /blob/<hash>` in Block2 blocks of at most 256 B. Not in the transcript above,
+  which passes no `--coap`.
 
 **The manifest gate is persisted, not merely armed.** `put` is its own process against the
 same database, so arming the gate only inside `serve` would leave the CLI door open — the
@@ -163,8 +169,8 @@ scenario manifests in `nodus/oevm/tests/target/` that use them, and nowhere else
 | Flag | What it does |
 |------|--------------|
 | `--test-refuse-all` | Answer every datagram `#err` at the door, ingesting nothing — rete#232's refusing gateway. Gated by `porta-refuse`: a refused node must survive past the 157 s death record. |
-| `--test-drop-all` | **Drop** every datagram at the door: no reply at all — rete#269's silent gateway. Gated by `porta-silent`: a node whose uplink is gone must survive it. |
-| `--test-drop-ack` | Swallow every Nth outbound `#ack` *after* the push is committed, which is the ack-loss case the node must be idempotent under. |
+| `--test-drop-all` | UDP only. **Drop** every datagram at the door: no reply at all — rete#269's silent gateway. Gated by `porta-silent`: a node whose uplink is gone must survive it. |
+| `--test-drop-ack` | UDP only. Swallow every Nth outbound `#ack` *after* the push is committed, which is the ack-loss case the node must be idempotent under. |
 | `--sweep-tick` | Re-form liveness verdicts on a shorter period. The host gate asserts a verdict, and the real 30 s tick outlasts the whole gate. |
 
 ---

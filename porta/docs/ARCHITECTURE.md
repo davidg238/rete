@@ -33,16 +33,18 @@ describes them; §7 says where they went.
                                        │ HTTP (/blob, /node/…) + the store, read-only
    operator ── porta CLI ────►  ┌──────▼──────────────────────────────────┐
    (opens the sqlite file       │              PORTA GATEWAY              │
-    DIRECTLY, on this host —    │   `porta serve` — four loops:           │
+    DIRECTLY, on this host —    │   `porta serve` — five loops (1 opt-in):│
     never a network client)     │     • exchange   udp :6969   pull/push  │
                                 │     • blocks     udp :6970   image bytes│
                                 │     • http       tcp :6970   operator   │
                                 │     • sweep      every 30 s  → gw/**    │
+                                │     • coap  udp --coap  /space /blob,   │
+                                │             off unless set (:5683)      │
                                 │   store: nodes · cells · events ·       │
                                 │          exchanges   (+ gw_runs · meta) │
                                 │   blobs/<sha256> · porta.key · porta.pub│
                                 └──────────────────┬──────────────────────┘
-                                                   │  plain UDP carrying CBOR
+                                                   │  plain UDP carrying CBOR · CoAP (--coap)
         ┌────────────────────────┬─────────────────┴──────────┐ · · · · · · · ·┐
         ▼                        ▼                            ▼                ▼
   ┌────────────┐          ┌────────────┐              ┌────────────┐    ┌────────────┐
@@ -58,7 +60,7 @@ Three planes, three contracts — and note that only one of them is a network pr
 
 | Plane | Who talks | Contract | Transport |
 |-------|-----------|----------|-----------|
-| **Southbound** (gateway ↔ node) | porta ↔ any conforming node | `protocol/PROTOCOL-NSL.md` §§1–4 + `MANIFEST.cddl` | plain UDP + CBOR (the exchange); a binary block plane for bulk bytes |
+| **Southbound** (gateway ↔ node) | porta ↔ any conforming node | `protocol/PROTOCOL-NSL.md` §§1–4 + `MANIFEST.cddl` | plain UDP + CBOR (the exchange); a binary block plane for bulk bytes; CoAP (`POST /space`, `GET /blob/<hash>`) when `--coap` names an address (§4) |
 | **Northbound** (dev tool → gateway) | node-repo tooling → porta | `porta/devsdk` (`exec`, `provision`) | a Go import. v1's `apiclient` went with v1's HTTP API; a dev tool's network path is now custos through the operator routes below |
 | **Operator** (human/agent → gateway) | CLI → the store; browser/agent → custos → porta | the path namespaces themselves; `GET /health`, `GET /manifest`, `POST /blob`, `PUT`/`GET /node/{id}/{path...}` (rete#398); custos's named queries (`custos/internal/gate`) | a local sqlite open (§3.1); HTTP for the five routes; custos reads the store `mode=ro` (live) or a `porta snapshot` file (history) |
 
@@ -209,8 +211,8 @@ defaults the operator HTTP listener is `:6970` **TCP** and the block plane is `:
 
 It holds **no state per client**, which is the property that matters: resume is the node
 re-asking from any block number, so a transfer killed halfway costs only the blocks it
-had not got. The shape is a CoAP blockwise GET's, so the ratified TFTP → CoAP direction
-costs a reframing and not a redesign. Binary rather than CBOR because the fetching half
+had not got. The shape is a CoAP blockwise GET's, and the reframing was done in rete#505:
+`GET /blob/<hash>` by Block2 (§4). This binary plane stays for nsl nodes until rete#507. Binary rather than CBOR because the fetching half
 is the node's C seam, which cannot reach the nsl `Cbor` class — the full argument, plus
 the node-side runner's manifest/marker contract (`manifest.json`, A/B slots,
 `stage/ready.json`, the confirm marker, exit 42, and the trial watchdog that reverts a
@@ -411,7 +413,7 @@ proof: `docs/results/2026-10-02-118-node-id-board-proof.md`.
 
 ## 4. Transports
 
-porta speaks **two** transports, both plain UDP, and neither is a session:
+porta speaks **three** transports, all over UDP, and none is a session:
 
 - **The exchange** (`:6969` by default, `internal/wire`). Two node-initiated,
   idempotent messages carrying CBOR: a **`pull`** that fetches the writes porta holds
@@ -423,6 +425,20 @@ porta speaks **two** transports, both plain UDP, and neither is a session:
   constraints and not preferences.
 - **The block plane** (exchange port **+ 1**, `internal/blockserv`), for bulk image
   bytes. Stateless, resumable from any block number (§3.3).
+- **CoAP** (rete#505, `internal/coapsrv`) — off unless `porta serve --coap` names an
+  address; a deployment serving Toit nodes passes `:5683`, and a port already in use
+  stops `serve` at start-up. Two resources: `POST /space`, whose body and reply are
+  exactly the exchange's datagrams (a refusal stays an `#err` in a 2.04), and
+  `GET /blob/<hash>`, one Block2 block of ≤ 256 B per request, stateless like the block
+  plane. The library's blockwise layer is off so a check-in is one datagram each way.
+  `wire.Server.HandleFrom` now has two callers, so it holds **one mutex** for its whole
+  body and check-ins are handled one at a time whichever listener they came in on;
+  `/blob` takes none. No admission rule, as the UDP listener has none, and **no DTLS**:
+  anyone who can reach the port can read any node's goals, write under any node id and
+  fetch any blob whose hash they know; what holds is that a node installs only an image
+  whose hash porta signed (design `docs/design/2026-11-16-505-porta-coap-listener-design.md`
+  §7). The dependency is `github.com/plgd-dev/go-coap/v3` v3.8.1, and its cost is real:
+  ten modules, pion's DTLS among them, in a binary that had three direct dependencies.
 
 Node-initiated in both directions is the load-bearing choice: a node that deep-sleeps,
 reboots or lives behind a mesh border router has no stable address to be called back on,
