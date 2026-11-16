@@ -58,7 +58,7 @@ becomes `POST /space`. *(Claude's call: note it on ztoit#10; the ztoit design is
 
 ### 5.1 The surface
 
-One UDP port for both resources. *(Claude's call: 5683, CoAP's registered port.)*
+One UDP port for both resources. *(Claude's call: 5683, CoAP's registered port, is the one to deploy on.)*
 
 | Request | Body | Reply |
 |---|---|---|
@@ -93,7 +93,11 @@ One UDP port for both resources. *(Claude's call: 5683, CoAP's registered port.)
 - **The transport is not recorded per check-in.** *(Claude's call, after review.)* The peer address is stored
   as it is for UDP; `coapsrv` logs its own lines as CoAP. A column for it is earned when someone has to ask
   which transport a node used and `obs/build` cannot answer.
-- `porta serve` gains `--coap` (default `:5683`; empty disables it), listening on IPv6 and IPv4.
+- `porta serve` gains `--coap <addr>`, listening on IPv6 and IPv4. **The default is empty: no CoAP listener.**
+  *(Claude's call, after the plan.)* Every harness starts its own `porta serve` (the nsl suite,
+  `porta_sync_host.sh`, the tutorials), and a listener that is on by default would have them all bind 5683 and
+  collide with each other and with a running porta, which breaks the anti-goal in §2. A deployment that serves
+  Toit nodes passes `--coap :5683`. A port already in use is a start-up error.
 - `--test-refuse-all` applies to CoAP for free, because it lives in `HandleFrom`.
 - `--test-drop-all` and `--test-drop-ack` are **not** offered on CoAP. They work by sending nothing, and the
   library answers a confirmable request the handler leaves unanswered with an empty ACK
