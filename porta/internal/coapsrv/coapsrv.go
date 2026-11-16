@@ -46,9 +46,11 @@ func New(ex *wire.Server, blobs *blob.Store, logf func(string, ...any)) *Server 
 func (s *Server) Serve(ctx context.Context, pc *net.UDPConn) error {
 	r := mux.NewRouter()
 	r.SetErrorHandler(func(err error) { s.logf("porta: coap: %v", err) })
-	if err := r.Handle("/space", mux.HandlerFunc(s.space)); err != nil {
-		pc.Close()
-		return err
+	for path, h := range map[string]mux.HandlerFunc{"/space": s.space, "/blob/{hash}": s.blob} {
+		if err := r.Handle(path, h); err != nil {
+			pc.Close()
+			return err
+		}
 	}
 	srv := udp.NewServer(
 		options.WithMux(r),
