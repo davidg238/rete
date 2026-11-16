@@ -1,0 +1,99 @@
+(*
+RadioProbeBle — rete#440 R3 (#458): PortaBridgeNodeBle's bridge, driven to each radio
+policy from porta without a reflash, for the OCM.1 bench (radio off, on, the reconnect
+through the Pixel relay, and the time it takes, which sets the kernel's linkBudget).
+
+THE SWITCH is one goal cell, goal/config/radio/policy, a scalar (MANIFEST config-cell):
+  porta put <node> goal/config/radio/policy '#always'        the default
+  porta put <node> goal/config/radio/policy '#perExchange'   on for each check-in
+  porta put <node> goal/config/radio/policy 600000           off for 600000 ms
+A write lands on the next exchange (under off-for-N, the forced one at N). The node
+echoes what it applied on obs/config/radio/policy, so a tree diff says whether it took,
+and the bridge writes sys/radio. A cell is replayed into every boot, so the policy
+survives a reset. Another symbol, or a number not above 0, is refused on tel/log and
+changes nothing. The porta this node reports to must serve a manifest that declares
+sys/radio (protocol/MANIFEST.cddl, rete#458); an older one keeps the row refused, under
+actor=gate, instead of applying it, and acks the push as usual.
+
+THE READING, one console line per tick (RTT on OCM.1):
+  tick N mode M radio R misses X acked Y skipped S silent Q linkMs L
+linkMs is the last wait, radio on to the relay's channel up (-1 before the first): the
+reconnect the designer reads to set linkBudget. Each linkMs is also a tel/log row.
+
+The cadence is ttgm's chair node's, 60 s, with 4 allowed misses (David, 2026-11-05).
+gwAddr/gwPort/localPort are PortaBridgeNodeBle's: gw's Tailscale IPv6, production porta.
+expect (RTT console, once the relay connects):
+RADIO PROBE READY
+*)
+class RadioProbeBle usingPlatform: platform net: net = (
+  | private space private bridge private timers private ticks ::= 0. private lastLinkMs ::= -1. |
+) (
+  public nodeId = ( ^ platform nodeId )
+  gwAddr    = ( ^ 'fd7a:115c:a1e0::bf01:d921' )   (* gw's Tailscale IPv6, as PortaBridgeNodeBle *)
+  gwPort    = ( ^ 6969 )                         (* production porta *)
+  localPort = ( ^ 16970 )
+  cadence   = ( ^ 60000 )                        (* ttgm's chair cadence, ms *)
+  chip      = ( ^ #nrf52840 )
+
+  public main: platform2 args: args = (
+    | sock tickChan |
+    space:: platform space.
+    sock:: net udpBindPort: self localPort.
+    sock == nil ifTrue: [ ^ self fail: 'bind' ].
+    timers:: platform timers.
+    bridge:: platform PortaBridge
+      socket: sock space: space id: self nodeId peer: self gwAddr port: self gwPort
+      spans: platform Spans new timers: timers.
+    bridge subscribeStream: 'tel/log'.
+    bridge subscribeStream: 'sys/reset'.
+    bridge liveness: self cadence misses: 4.
+    bridge publishBuild: self chip.
+    (space channel: 'goal/config/radio/policy') whenever: '' do: [ :v | self policy: v ].
+    space whenever: 'sys/timer' do: [ :e | timers dispatch: e ].
+    tickChan:: space channel: 'sys/tick'.
+    tickChan whenever: '' do: [ :m | self tick ].
+    bridge startTickingOn: tickChan.
+    'RADIO PROBE READY' println.
+    [ true ] whileTrue: [
+      platform pumpEvents.
+      space drain ].
+    ^ 0
+  )
+
+  (* `=` and never `==`: a decoded Symbol is not the image's interned one. *)
+  policy: v = (
+    v isSymbol ifTrue: [
+      v = #always ifTrue: [ bridge radioAlways. ^ self applied: v ].
+      v = #perExchange ifTrue: [ bridge radioPerExchange. ^ self applied: v ].
+      ^ self refuse: v ].
+    (v > 0) ifFalse: [ ^ self refuse: v ].
+    bridge radioOffFor: v.
+    ^ self applied: v )
+
+  applied: v = (
+    space put: 'obs/config/radio/policy' value: v.
+    ('radio policy ' , v printString) println.
+    ^ self )
+
+  refuse: v = (
+    space out: 'tel/log' value: (platform Record tag: #Log with: #lvl -> #error
+      with: #txt -> ('radio policy refused: ' , v printString)).
+    ^ self )
+
+  tick = (
+    ticks:: ticks + 1.
+    ('tick ' , ticks printString , ' mode ' , bridge radioMode printString
+      , ' radio ' , bridge radioIsOn printString , ' misses ' , bridge misses printString
+      , ' acked ' , bridge acked printString , ' skipped ' , bridge skipped printString
+      , ' silent ' , bridge silent printString , ' linkMs ' , bridge linkMs printString) println.
+    bridge linkMs = lastLinkMs ifFalse: [
+      lastLinkMs:: bridge linkMs.
+      space out: 'tel/log' value: (platform Record tag: #Log with: #lvl -> #info
+        with: #txt -> ('linkMs ' , lastLinkMs printString)) ].
+    bridge checkIn.
+    ^ self )
+
+  fail: msg = ( msg println. ^ 1 )
+) : (
+  public packageUsing: manifest = ( ^ self new )
+)

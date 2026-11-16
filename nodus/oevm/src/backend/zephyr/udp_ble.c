@@ -27,8 +27,19 @@
    ring (readable before the bell). It runs once per frame on the Bluetooth thread, so
    nothing here can spin, and the constant token coalesces a burst into one pending
    wakeup: no reader thread and no parking, and udp_receive's empty answer needs no
-   restore. */
+   restore.
+
+   rete#440 R3 (#458), THE RADIO AND THE LINK. The link is the relay's channel: it is what
+   carries datagrams, so it rings sys/net/link when it opens and when it closes. The radio
+   off is the least that silences it with the bond intact: stop advertising and drop the
+   connection, so the controller has no role and no RF activity, and the advertiser is not
+   restarted while off. The stack stays enabled: bt_disable would also tear down the host,
+   the L2CAP server and the loaded bond, and bring them back on every exchange for no RF
+   saving (with no role the controller is already idle). On is advertising again; the
+   bonded phone reconnects and reopens the channel, and the link rings up. The measured
+   reconnect through the relay sets the kernel's linkBudget (design "Radio"). */
 #include "udp_backend.h"
+#include "radio_backend.h"
 #include "relay_frame.h"
 #include "../../pulse_backend.h"
 #include <errno.h>
@@ -58,6 +69,8 @@ static volatile bool chan_up;
 static bool inited;
 static int sock_port[MAX_SOCKS];      /* 0 = free; under sock_lock */
 static int sock_chan[MAX_SOCKS];      /* rete#440: the doorbell's channel + 1; 0 = none (OTA, the tee) */
+static volatile bool radio_on = true; /* rete#440 R3: off silences the advertiser and the link */
+static volatile int link_chan;        /* rete#440 R3: sys/net/link's channel + 1; 0 = not armed */
 static K_MUTEX_DEFINE(sock_lock);
 
 /* Received datagrams, whole frames, each stored as [u16 len][frame], ONE RING PER SOCKET,
@@ -114,10 +127,17 @@ static int recv_cb(struct bt_l2cap_chan *chan, struct net_buf *buf) {
     return 0;                                             /* the stack frees buf */
 }
 
+/* rete#440 R3: the link changed; the constant token, and the reaction reads net_link_up. */
+static void net_link_ring(void) {
+    int c = link_chan;
+    if (c) pulse_post_isr_value(c - 1, TAG_SMI(0));
+}
+
 static void connected_cb(struct bt_l2cap_chan *chan) {
     printk("ble: relay channel up (tx mtu %u, rx mtu %u)\n",
            BT_L2CAP_LE_CHAN(chan)->tx.mtu, BT_L2CAP_LE_CHAN(chan)->rx.mtu);
     chan_up = true;
+    net_link_ring();
 }
 /* The channel is the only reason the link exists: when it closes, drop the link too,
    so the node advertises again. Left up, a link without a channel holds the node's one
@@ -125,6 +145,7 @@ static void connected_cb(struct bt_l2cap_chan *chan) {
 static void disconnected_cb(struct bt_l2cap_chan *chan) {
     chan_up = false;
     printk("ble: relay channel down\n");
+    net_link_ring();
     if (chan->conn) (void)bt_conn_disconnect(chan->conn, BT_HCI_ERR_REMOTE_USER_TERM_CONN);
 }
 
@@ -161,6 +182,7 @@ static const struct bt_data sd[] = {
 };
 
 static void adv_start(void) {
+    if (!radio_on) return;                                /* rete#440 R3: off stays silent */
     int err = bt_le_adv_start(BT_LE_ADV_CONN_FAST_2, ad, ARRAY_SIZE(ad), sd, ARRAY_SIZE(sd));
     if (err && err != -EALREADY) printk("ble: advertising failed (%d)\n", err);
 }
@@ -254,7 +276,7 @@ int udp_socket_bind(int port) {
 
 static int send_locked(int sock, const char *host, int port, const uint8_t *data, int len) {
     if (sock < 0 || sock >= MAX_SOCKS || sock_port[sock] == 0) { errno = EBADF; return -1; }
-    if (!chan_up) { errno = ENOTCONN; return -1; }
+    if (!chan_up || !radio_on) { errno = ENOTCONN; return -1; }
     size_t hl = strlen(host);
     if (len < 0 || RELAY_FRAME_HDR + hl + (size_t)len > SDU_MTU) { errno = EMSGSIZE; return -1; }
     struct net_buf *buf = net_buf_alloc(&tx_pool, K_NO_WAIT);
@@ -320,6 +342,36 @@ int udp_doorbell(int sock, int chan_id) {
     k_mutex_unlock(&ring_lock);
     return 0;
 }
+
+void net_link_doorbell(int chan_id) { link_chan = chan_id + 1; }
+
+int net_link_up(void) { return radio_on && chan_up; }
+
+static void radio_drop(struct bt_conn *conn, void *data) {
+    (void)data;
+    (void)bt_conn_disconnect(conn, BT_HCI_ERR_REMOTE_USER_TERM_CONN);
+}
+
+/* Off: no advertiser and no connection (the recycled callback sees radio_on false and does
+   not restart the advertiser). On: advertise, and the bonded relay reconnects. Called on
+   the VM thread; the callbacks that read radio_on run on the Bluetooth thread. */
+void radio_set(int on) {
+    k_mutex_lock(&sock_lock, K_FOREVER);
+    open_locked();
+    if (on && !radio_on) {
+        radio_on = true;
+        adv_start();
+        printk("ble: radio on\n");
+    } else if (!on && radio_on) {
+        radio_on = false;
+        (void)bt_le_adv_stop();
+        bt_conn_foreach(BT_CONN_TYPE_LE, radio_drop, NULL);
+        printk("ble: radio off\n");
+    }
+    k_mutex_unlock(&sock_lock);
+}
+
+int radio_is_on(void) { return radio_on; }
 
 void udp_close(int sock) {
     k_mutex_lock(&sock_lock, K_FOREVER);

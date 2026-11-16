@@ -1,0 +1,106 @@
+(*
+env: OEVM_OTA_STAGE=/tmp/rete-nsl-radio-37.stage
+expect:
+set at idle radio false
+check-in linking true radio true sent 0
+link up pulling true sent 1 timed true
+exchange done idle true radio false finished 1
+log ota staging 0
+fetch in flight idle true fetching true radio true finished 1
+ota: block timed out after 5 attempts, block=0
+log ota stage failed
+fetch ended radio false finished 2
+*)
+(* rete#440 R3 (#458) — PER EXCHANGE (design 2026-11-04, "Radio"): the radio is on for
+   each check-in and off when the bridge is idle, which is R5's finished rule, no
+   exchange AND no fetch in flight. On the host the link comes up at the next pump after
+   the radio comes on and rings sys/net/link (udp_posix.c), as a target's does after a
+   reconnect.
+
+   - Setting the policy while idle turns the radio off at once.
+   - A check-in turns the radio on and waits for the link (#linking), sending nothing.
+   - The link's doorbell moves it on: the PULL goes, and the wait is timed (`linkMs`,
+     the reconnect that sets `linkBudget`).
+   - The exchange ends idle: the radio goes off, `finished` is said.
+   - An exchange whose otaCheck starts a fetch ends idle with the fetch in flight: the
+     radio stays on and nothing is said. Only the fetch's end turns it off and says
+     `finished`. *)
+class RadioPerExchange packageUsing: manifest = () (
+
+  public class FakeDatagram = ( | private data | ) (
+    public setData: d = ( data:: d. ^ self )
+    public data = ( ^ data )
+  ) : (
+    public on: d = ( ^ self new setData: d )
+  )
+
+  (* One queued reply, answered once. `sends` counts the exchange's frames; a block
+     request (first byte 1) is the fetch's, never answered here. *)
+  public class FakeSocket = ( | private queued private sends ::= 0. | ) (
+    public doorbell = ( ^ 'test/net' )
+    public hold: bytes = ( queued:: bytes. ^ self )
+    public sends = ( ^ sends )
+    public sendTo: host port: p data: bytes = (
+      (bytes u8At: 1) = 1 ifFalse: [ sends:: sends + 1 ].
+      ^ self )
+    public receive = ( | q |
+      queued == nil ifTrue: [ ^ nil ].
+      q:: queued. queued:: nil.
+      ^ FakeDatagram on: q )
+  ) : ()
+
+  public main: platform args: args = (
+    | space timers bridge sock ack batch finished goal |
+    space:: platform space.
+    timers:: platform timers.
+    space whenever: 'sys/timer' do: [ :t | timers dispatch: t ].
+    finished:: 0.
+    (space channel: 'sys/porta/exchange') whenever: '' do: [ :v | finished:: finished + 1 ].
+    (space channel: 'tel/log') whenever: '' do: [ :v | ('log ' , (v at: #txt ifAbsent: [ '?' ])) println ].
+    space put: 'obs/health' value: 11.
+    ack:: platform Cbor encode: (platform Record tag: #ack with: #hw -> 1).
+    batch:: platform Cbor encode: (platform Record tag: #batch with: #hi -> 0 with: #ent -> (platform List with: (platform List with: 1 with: 'goal/name' with: 2 with: 'x'))).
+    sock:: FakeSocket new.
+    bridge:: platform PortaBridge socket: sock space: space id: 'n1' peer: '::1' port: 6969
+      spans: platform Spans new timers: timers.
+    bridge otaFetch discard.
+
+    bridge radioPerExchange.
+    ('set at idle radio ' , bridge radioIsOn printString) println.
+
+    bridge checkIn.
+    ('check-in linking ' , (bridge state = #linking) printString , ' radio ' , bridge radioIsOn printString
+      , ' sent ' , sock sends printString) println.
+    platform pumpEvents.
+    space drain.
+    ('link up pulling ' , (bridge state = #pulling) printString , ' sent ' , sock sends printString
+      , ' timed ' , (bridge linkMs >= 0) printString) println.
+
+    sock hold: batch. space out: 'test/net' value: 1. space drain.
+    sock hold: ack. space out: 'test/net' value: 1. space drain.
+    ('exchange done idle ' , (bridge state = #idle) printString , ' radio ' , bridge radioIsOn printString
+      , ' finished ' , finished printString) println.
+
+    (* The goal names an image this node is not running: the exchange's otaCheck starts
+       the fetch, and nobody answers its blocks. *)
+    goal:: platform Record tag: #App
+      with: #image -> (platform Record tag: #BlobRef
+        with: #hash -> (platform ByteArray fromHex: '1783f1f6842889ff855d25b6d45d33dd7401ffa94eb93704f6a374c264cde486')
+        with: #size -> 600)
+      with: #sig -> (platform ByteArray fromHex: 'ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00').
+    space put: 'goal/apps/main' value: goal.
+    space drain.
+    bridge checkIn.
+    platform pumpEvents. space drain.
+    sock hold: batch. space out: 'test/net' value: 1. space drain.
+    sock hold: ack. space out: 'test/net' value: 1. space drain.
+    ('fetch in flight idle ' , (bridge state = #idle) printString , ' fetching ' , bridge otaFetch busy printString
+      , ' radio ' , bridge radioIsOn printString , ' finished ' , finished printString) println.
+
+    1 to: 5 do: [ :i | platform advanceMillis: 1000. space drain ].
+    ('fetch ended radio ' , bridge radioIsOn printString , ' finished ' , finished printString) println.
+    ^ 0
+  )
+) : (
+  public packageUsing: manifest = ( ^ self new )
+)

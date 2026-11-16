@@ -25,4 +25,11 @@ void udp_close(int sock);
    Answers 0, or -1 when sock cannot have a bell (no room, no reader): a socket that
    never rings is a deaf node, so the caller fails its bind rather than keep it. */
 int  udp_doorbell(int sock, int chan_id);
+/* rete#440 R3 (#458), the link: whether the link that carries the VM's datagrams is up
+   (BLE: the relay's channel open; Thread: attached; WiFi: associated; host: the radio
+   on). net_link_doorbell registers sys/net/link's channel; from then on every change of
+   the link rings it, token TAG_SMI(0), a constant (design "Arrivals", invariant 2), and
+   the reaction reads net_link_up for the state. Registering again re-points it. */
+void net_link_doorbell(int chan_id);
+int  net_link_up(void);
 #endif

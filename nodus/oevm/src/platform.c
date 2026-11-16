@@ -20,6 +20,8 @@ uint32_t platform_app_cad_ms(void) { return s_app_cad_ms; }
 #include "ota.h"             /* rete#25: the image-push seam, prims 145-150 */
 #include "ota_backend.h"     /* rete#440 R5: the stage, prims 148 and 166-168 */
 #include "reboot_note.h"    /* rete#215: the retained panic note, prims 153-154 */
+#include "radio_backend.h"  /* rete#440 R3: the radio verb, prim 169 */
+#include "udp_backend.h"    /* rete#440 R3: the link, prim 170 */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -1694,6 +1696,22 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
         size_t n = 0;
         const uint8_t *p = ota_leaf_bytes(args[0], &n);
         *out = (p != NULL && n == 32 && ota_stage_matches(p)) ? true_symbol : false_symbol;
+        return 1;
+    }
+    /* rete#440 R3 (#458): the radio and the link. The link's doorbell is armed on the first
+       call to either, on the VM thread (space_intern is the VM's): the bridge asks at
+       construction, so `sys/net/link` rings before any exchange can wait on it. */
+    case PRIM_pf_radioOn:
+    case PRIM_pf_linkUp: {
+        static int link_armed;
+        if (!link_armed) { net_link_doorbell(space_intern("sys/net/link", 12)); link_armed = 1; }
+        if (pid == PRIM_pf_radioOn) {
+            /* is_truthy, not `== true_symbol`: the kernel sends the image's own literal. */
+            radio_set(is_truthy(args[0]));
+            *out = radio_is_on() ? true_symbol : false_symbol;
+        } else {
+            *out = net_link_up() ? true_symbol : false_symbol;
+        }
         return 1;
     }
     case PRIM_pf_httpRespond: {                /* httpRespondId: id status: n body: s */

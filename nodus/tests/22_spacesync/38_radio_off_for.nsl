@@ -1,0 +1,106 @@
+(*
+expect:
+last call pulling true sent 1
+carried liveness 20 radio #offFor 10000
+off radio false mode #off finished 1
+silent 3 sent 2 finished 4
+at N linking true radio true
+forced pulling true sent 3
+after N mode #always radio true liveness 4 radio #always finished 5
+app on mode #always radio true armed 0 sent 6
+*)
+(* rete#440 R3 (#458) — OFF FOR N (design 2026-11-04, "Radio"; David 2026-11-05: off
+   always has a duration). Liveness is declared at 2 s x 4 misses, so the gap is visible.
+
+   - `radioOffFor:` while idle begins the last exchange at once: it carries sys/radio
+     (#offFor, N) and obs/liveness re-declared with the gap, ceil((N + linkBudget) / 2 s)
+     = 16 misses more: 20, so porta reads the silence as planned, not as death.
+   - That exchange over, the radio goes off and N is armed.
+   - Check-ins while off are counted (`silent`), send nothing, and say `finished`.
+   - At N, one exchange whatever the app does: the radio comes on, the bridge waits for
+     the link and exchanges; that exchange carries the policy it returns to (#always)
+     and the declared liveness (4), and the radio stays on.
+   - The app may turn the radio back on before N: the timer is cancelled (nothing
+     armed), and N's expiry, had it come, would be ignored; nothing more is sent. *)
+class RadioOffFor packageUsing: manifest = () (
+
+  public class FakeDatagram = ( | private data | ) (
+    public setData: d = ( data:: d. ^ self )
+    public data = ( ^ data )
+  ) : (
+    public on: d = ( ^ self new setData: d )
+  )
+
+  public class FakeSocket = ( | private queued private sends ::= 0. | ) (
+    public doorbell = ( ^ 'test/net' )
+    public hold: bytes = ( queued:: bytes. ^ self )
+    public sends = ( ^ sends )
+    public sendTo: host port: p data: bytes = ( sends:: sends + 1. ^ self )
+    public receive = ( | q |
+      queued == nil ifTrue: [ ^ nil ].
+      q:: queued. queued:: nil.
+      ^ FakeDatagram on: q )
+  ) : ()
+
+  cell: path in: space = ( ^ (space channel: path) peek: '' ifAbsent: [ nil ] )
+
+  exchange: sock batch: batch ack: ack space: space = (
+    sock hold: batch. space out: 'test/net' value: 1. space drain.
+    sock hold: ack. space out: 'test/net' value: 1. space drain.
+    ^ self )
+
+  public main: platform args: args = (
+    | space timers bridge sock ack batch finished r |
+    space:: platform space.
+    timers:: platform timers.
+    space whenever: 'sys/timer' do: [ :t | timers dispatch: t ].
+    finished:: 0.
+    (space channel: 'sys/porta/exchange') whenever: '' do: [ :v | finished:: finished + 1 ].
+    space put: 'obs/health' value: 11.
+    ack:: platform Cbor encode: (platform Record tag: #ack with: #hw -> 1).
+    batch:: platform Cbor encode: (platform Record tag: #batch with: #hi -> 0
+      with: #ent -> (platform List with: (platform List with: 1 with: 'goal/name' with: 2 with: 'x'))).
+    sock:: FakeSocket new.
+    bridge:: platform PortaBridge socket: sock space: space id: 'n1' peer: '::1' port: 6969
+      spans: platform Spans new timers: timers.
+    bridge liveness: 2000 misses: 4.
+
+    bridge radioOffFor: 10000.
+    ('last call pulling ' , (bridge state = #pulling) printString , ' sent ' , sock sends printString) println.
+    sock hold: batch. space out: 'test/net' value: 1. space drain.
+    r:: self cell: 'sys/radio' in: space.
+    ('carried liveness ' , ((self cell: 'obs/liveness' in: space) at: #misses ifAbsent: [ nil ]) printString
+      , ' radio ' , (r at: #pol ifAbsent: [ nil ]) printString , ' ' , (r at: #ms ifAbsent: [ nil ]) printString) println.
+    sock hold: ack. space out: 'test/net' value: 1. space drain.
+    ('off radio ' , bridge radioIsOn printString , ' mode ' , bridge radioMode printString
+      , ' finished ' , finished printString) println.
+
+    bridge checkIn. bridge checkIn. bridge checkIn.
+    space drain.
+    ('silent ' , bridge silent printString , ' sent ' , sock sends printString
+      , ' finished ' , finished printString) println.
+
+    platform advanceMillis: 10000.
+    space drain.
+    ('at N linking ' , (bridge state = #linking) printString , ' radio ' , bridge radioIsOn printString) println.
+    platform pumpEvents.
+    space drain.
+    ('forced pulling ' , (bridge state = #pulling) printString , ' sent ' , sock sends printString) println.
+    self exchange: sock batch: batch ack: ack space: space.
+    ('after N mode ' , bridge radioMode printString , ' radio ' , bridge radioIsOn printString
+      , ' liveness ' , ((self cell: 'obs/liveness' in: space) at: #misses ifAbsent: [ nil ]) printString
+      , ' radio ' , ((self cell: 'sys/radio' in: space) at: #pol ifAbsent: [ nil ]) printString
+      , ' finished ' , finished printString) println.
+
+    bridge radioOffFor: 10000.
+    self exchange: sock batch: batch ack: ack space: space.
+    bridge radioAlways.
+    platform advanceMillis: 10000.
+    space drain.
+    ('app on mode ' , bridge radioMode printString , ' radio ' , bridge radioIsOn printString
+      , ' armed ' , timers pendingCount printString , ' sent ' , sock sends printString) println.
+    ^ 0
+  )
+) : (
+  public packageUsing: manifest = ( ^ self new )
+)

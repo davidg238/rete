@@ -1,0 +1,6 @@
+name: r3-radio
+pattern: Port
+intent: "one radio verb at the seam (radio_* over BLE, Thread and WiFi), one cell sys/radio holding its state, sys/net/link announcing the link, and the app's radio policy carried out by PortaBridge: always, per exchange, off for N (rete #440 R3, #458; design 2026-11-04 Radio)"
+compromise: "PortaBridge is nsl and stays unbound under r3-radio/ until invarlint reads nsl (invarlint#177); the Radio card lands in cards/ with radio_*. linkBudget is set from the reconnect measured on OCM.1 through the Pixel relay, not before. Thread and WiFi bodies are held by the C6 link, BLE by OCM.1"
+ops:
+  - card: {file: radio.yaml}

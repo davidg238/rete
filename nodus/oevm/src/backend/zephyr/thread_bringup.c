@@ -30,6 +30,7 @@
 #include <openthread/thread.h>
 #include <openthread/message.h>
 #include "thread_bringup.h"
+#include "radio_backend.h"
 
 void oevm_thread_bringup(void) {
     (void)openthread_init();                        /* idempotent: L2 inited at boot */
@@ -84,4 +85,34 @@ int oevm_thread_tx_queued(void)
 	otMessageGetBufferInfo(ot, &info);
 	openthread_mutex_unlock();
 	return info.mIp6Queue.mNumMessages + info.m6loSendQueue.mNumMessages;
+}
+
+/* rete#440 R3 (#458): the radio, Thread's body (radio_backend.h). Off is Thread disabled
+   (openthread_stop: otThreadSetEnabled false), so the MTD stops polling its parent and the
+   802.15.4 radio sleeps; the dataset stays in OpenThread's settings. On is openthread_run,
+   which enables Thread again and re-attaches from that dataset. The link follows the role
+   (the OT L2 turns the net_if dormant while detached), and Net rings sys/net/link on it
+   (udp_zephyr.c net_link_*). Stateless: OpenThread's role is the answer to "is it on". */
+void radio_set(int on)
+{
+	if (!on == !radio_is_on()) {
+		return;                                 /* already there: no restart, no log */
+	}
+	int rc = on ? openthread_run() : openthread_stop();
+
+	printk("thread: radio %s (%d)\n", on ? "on" : "off", rc);
+}
+
+int radio_is_on(void)
+{
+	otInstance *inst = openthread_get_default_instance();
+	otDeviceRole role;
+
+	if (inst == NULL) {
+		return 0;
+	}
+	openthread_mutex_lock();
+	role = otThreadGetDeviceRole(inst);
+	openthread_mutex_unlock();
+	return role != OT_DEVICE_ROLE_DISABLED;
 }

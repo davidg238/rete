@@ -603,4 +603,11 @@
 #define PRIM_pf_otaStageAppend    166
 #define PRIM_pf_otaStageTruncate  167
 #define PRIM_pf_otaStageMatches   168
+/* rete#440 R3 (#458): the radio, one verb across BLE, Thread and WiFi (radio_backend.h), and
+   the link it carries (udp_backend.h net_link_*). `radioOn: aBoolean` switches the radio and
+   answers whether it is now on; `linkUp` answers whether the link is up. Either arms the
+   link's doorbell on its first call, so `sys/net/link` rings on every change from then on.
+   Appended after otaStageMatches, 169-170 by COUNTING PRIM_NAMES. Platform-dispatched. */
+#define PRIM_pf_radioOn           169
+#define PRIM_pf_linkUp            170
 #endif /* OEVM_PRIM_IDS_H */
