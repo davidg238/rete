@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"sync"
 
 	"github.com/davidg238/porta/internal/space"
 	"github.com/davidg238/rete/protocol/cval"
@@ -15,6 +16,9 @@ import (
 type Server struct {
 	st   *space.Store
 	logf func(string, ...any)
+
+	// mu is held for the whole of HandleFrom: see its comment (rete#505).
+	mu sync.Mutex
 
 	// TEST-ONLY fault injection — see SetDropAckEvery. acks is a FLEET-WIDE
 	// counter (one Server serves every node on the port), so "every Nth ack"
@@ -117,7 +121,13 @@ func (s *Server) Handle(req []byte) []byte { return s.HandleFrom(req, "") }
 // HandleFrom is Handle plus the address the datagram arrived from, stamped on
 // the exchange so the fleet keeps the transport breakdown v1 read out of
 // nodes.source_addr (design §4.2). An empty peer is legal and never clobbers.
+//
+// Two listeners call it — the UDP loop and coapsrv — so it takes one mutex for
+// its whole body, and check-ins are handled one at a time whichever listener
+// they came in on (rete#505). /blob does not pass through here.
 func (s *Server) HandleFrom(req []byte, peer string) []byte {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	if s.refuseAll {
 		s.logf("porta: TEST-REFUSE: refusing datagram from %s (%d bytes)", peer, len(req))
 		return encodeErr("refused by TEST-REFUSE (--test-refuse-all)")
