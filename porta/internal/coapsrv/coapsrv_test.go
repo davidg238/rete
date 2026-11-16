@@ -5,9 +5,11 @@ package coapsrv
 import (
 	"bytes"
 	"context"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"net"
+	"os"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -315,5 +317,24 @@ func TestBothFamilies(t *testing.T) {
 		if tag, _ := recordTag(t, body); tag != "batch" {
 			t.Fatalf("%s: tag = %s", host, tag)
 		}
+	}
+}
+
+// The interop gate's record is pinned to the encoder, so it cannot drift.
+func TestInteropFixtureIsThePull(t *testing.T) {
+	raw, err := os.ReadFile("../../tests/fixtures/pull.hex")
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := hex.DecodeString(strings.TrimSpace(string(raw)))
+	if err != nil {
+		t.Fatalf("pull.hex: %v", err)
+	}
+	want, err := wire.EncodePull("0123456789ab", 0, 1, 0, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(got, want) {
+		t.Fatalf("pull.hex = %x, want %x", got, want)
 	}
 }
