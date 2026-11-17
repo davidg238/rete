@@ -109,11 +109,23 @@ func TestManifestGateGateway(t *testing.T) {
 	s := testStore(t)
 	s.SetManifest(loadRealManifest(t))
 	live := enc(t, cval.Symbol("live"))
-	if err := s.WriteGateway("n1", store.PathLiveness, live, "sweep"); err != nil {
+	if err := s.WriteGateway("n1", store.PathLiveness, live, "porta", "sweep"); err != nil {
 		t.Fatalf("gw/liveness refused: %v", err)
 	}
-	if err := s.WriteGateway("n1", "gw/bogus", live, "sweep"); err == nil {
+	if err := s.WriteGateway("n1", "gw/bogus", live, "porta", "sweep"); err == nil {
 		t.Fatal("unknown gw path accepted")
+	}
+	// rete#515: gw/apps/<name> takes an AppDebug and nothing else.
+	dbg := enc(t, cval.Record{Tag: "AppDebug", Fields: cval.Map{
+		{K: cval.Symbol("program"), V: cval.Bytes(make([]byte, 16))},
+		{K: cval.Symbol("snapshot"), V: cval.Record{Tag: "BlobRef", Fields: cval.Map{
+			{K: cval.Symbol("hash"), V: cval.Bytes(make([]byte, 32))}}}},
+	}})
+	if err := s.WriteGateway("n1", "gw/apps/main", dbg, "faber", "install"); err != nil {
+		t.Fatalf("gw/apps AppDebug refused: %v", err)
+	}
+	if err := s.WriteGateway("n1", "gw/apps/main", live, "faber", "install"); err == nil {
+		t.Fatal("a symbol accepted at gw/apps/main")
 	}
 }
 
@@ -163,7 +175,7 @@ func TestIngestRefusesAForgedGatewayVerdict(t *testing.T) {
 	s.SetManifest(loadRealManifest(t))
 	silent := enc(t, cval.Symbol("silent"))
 	forged := enc(t, cval.Symbol("live"))
-	if err := s.WriteGateway("n1", store.PathLiveness, silent, "silence sweep"); err != nil {
+	if err := s.WriteGateway("n1", store.PathLiveness, silent, "porta", "silence sweep"); err != nil {
 		t.Fatal(err)
 	}
 	hw, _, err := s.Ingest("n1", 9, []Entry{

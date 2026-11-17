@@ -9,9 +9,9 @@
 ; <var> matches exactly one path segment; a literal entry shadows a wildcard
 ; entry; two overlapping wildcard entries are a lint error
 ; (protocol/tools/manifest_lint.py). dir is who writes the path: up = the
-; node, down = porta, gw = porta's own verdicts about a node (never on the
-; wire). Several ;# lines may stack above one rule (obs/X reuses goal/X's
-; shape by design).
+; node, down = porta, gw = held at porta about a node — its own verdicts, or an
+; operator's record (gw/apps) — and never on the wire. Several ;# lines may
+; stack above one rule (obs/X reuses goal/X's shape by design).
 ;
 ; FULL-WIRE SPELLING: rules describe the exact bytes — records are tag 27,
 ; symbols tag 39, and every symbol key is a named sym-* rule (zcbor 0.9.1
@@ -32,6 +32,7 @@
 
 ; --- record names ---
 sym-App         = #6.39("App")
+sym-AppDebug    = #6.39("AppDebug")
 sym-AppObs      = #6.39("AppObs")
 sym-BlobRef     = #6.39("BlobRef")
 sym-Build       = #6.39("Build")
@@ -92,6 +93,7 @@ sym-hnl         = #6.39("hnl")
 sym-hsz         = #6.39("hsz")
 sym-image       = #6.39("image")
 sym-id          = #6.39("id")
+sym-keep        = #6.39("keep")
 sym-lb          = #6.39("lb")
 sym-lfb         = #6.39("lfb")
 sym-lifecycle   = #6.39("lifecycle")
@@ -116,6 +118,7 @@ sym-pco         = #6.39("pco")
 sym-pdr         = #6.39("pdr")
 sym-pol         = #6.39("pol")
 sym-port        = #6.39("port")
+sym-program     = #6.39("program")
 sym-pst         = #6.39("pst")
 sym-pto         = #6.39("pto")
 sym-qhw         = #6.39("qhw")
@@ -127,6 +130,7 @@ sym-sdk         = #6.39("sdk")
 sym-sdr         = #6.39("sdr")
 sym-sig         = #6.39("sig")
 sym-size        = #6.39("size")
+sym-snapshot    = #6.39("snapshot")
 sym-span        = #6.39("span")
 sym-state       = #6.39("state")
 sym-sumUsHi     = #6.39("sumUsHi")
@@ -159,6 +163,7 @@ name-cell = tstr
 ;# path=goal/apps/<name>  kind=cell  class=routine  dir=down
 app = #6.27([sym-App, {
     sym-sig       => bstr,     ; REQUIRED — the bridge refuses an App without it (#25)
+  ? sym-keep      => bool,     ; false = run once, then erase (rete#515); a Toit node honours it, nsl ignores it
     sym-image     => blobref,
   ? sym-runlevel  => uint,
   ? sym-triggers  => any,      ; wire truth is [* anysym]: a list of symbols. zcbor
@@ -394,8 +399,17 @@ span-capture = #6.27([sym-SpanCapture, {
 }])
 
 ; =====================================================================
-; gw/** — gateway-authored verdicts (dir=gw; never on the wire)
+; gw/** — held at porta about a node (dir=gw; never on the wire)
 ; =====================================================================
+
+;# path=gw/apps/<name>  kind=cell  class=routine  dir=gw
+; What porta keeps beside goal/apps/<name> to decode a crash, and the node never
+; needs: written by an operator through porta, never on the wire (rete#515). Its
+; own cell because an App carrying both would pass the 256 B value cap.
+app-debug = #6.27([sym-AppDebug, {
+  sym-program  => bstr .size 16, ; the Toit program id its sys/panic and sys/trace carry
+  sym-snapshot => blobref,       ; the debug snapshot blob, for `toit decode`
+}])
 
 ;# path=gw/liveness  kind=cell  class=routine  dir=gw
 gw-verdict = #6.39("live") / #6.39("silent") / #6.39("neverSeen") / #6.39("unknown") / #6.39("stalled")

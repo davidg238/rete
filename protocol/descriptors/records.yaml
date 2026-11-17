@@ -727,6 +727,13 @@ records:
           image it judges; the C staging seam checks only the content hash, which is
           transfer integrity and not authentication.
         refs: [rete#25]
+      - key: keep
+        name: keep
+        unit: bool
+        kind: config
+        meaning: false = run the app once, then erase it
+        validity: Optional; absent means keep. A Toit node's supervisor honours it; the nsl node ignores it.
+        refs: [rete#515]
       - key: image
         name: image
         unit: blobref
@@ -755,6 +762,29 @@ records:
         kind: config
         meaning: the state porta wants the app in
         validity: Uninstall is this field written to a stopped value. Genuine removal is an action on a do/ stream.
+
+  app-debug:
+    record: AppDebug
+    paths: ["gw/apps/<name>"]
+    status: specified
+    summary: >
+      What porta keeps beside goal/apps/<name> to decode a Toit crash: written by an
+      operator (faber) through porta, never sent to the node. Its own cell because an
+      App carrying a second BlobRef and the program id would pass the 256 B cap.
+    fields:
+      - key: program
+        name: program
+        unit: opaque
+        kind: identity
+        meaning: the 16-byte Toit program id, the key its sys/panic and sys/trace carry
+        validity: porta's history finds the snapshot by it (rete#516).
+        refs: [rete#515]
+      - key: snapshot
+        name: snapshot
+        unit: blobref
+        kind: identity
+        meaning: BlobRef for the debug snapshot that decodes a crash of this program
+        refs: [rete#515]
 
   mode:
     record: Mode

@@ -290,9 +290,12 @@ const PathDeclared = "obs/liveness"
 // has none — porta's out_seq is one space, the node's push counter the other.
 // The log's own `id` orders these rows.
 //
+// actor is "porta" for porta's own verdicts (gw/liveness) and the operator's
+// name for a record it keeps about a node (gw/apps/<name>, rete#515).
+//
 // It writes a CELL and only a cell: a verdict is the current state of porta's
 // opinion, and there is no gw stream. When one is needed, it is added then.
-func (s *Store) WriteGateway(nodeID, path string, value []byte, reason string) error {
+func (s *Store) WriteGateway(nodeID, path string, value []byte, actor, reason string) error {
 	if len(value) > MaxValueBytes {
 		return fmt.Errorf("value is %d bytes, over the %d byte cap", len(value), MaxValueBytes)
 	}
@@ -323,7 +326,7 @@ func (s *Store) WriteGateway(nodeID, path string, value []byte, reason string) e
 	if err := upsertCell(tx, nodeID, path, 0, cval.KindCell, value, now, store.DirectionGateway, boot); err != nil {
 		return err
 	}
-	if err := appendEvent(tx, nodeID, path, 0, cval.KindCell, value, now, store.DirectionGateway, "porta", reason, boot); err != nil {
+	if err := appendEvent(tx, nodeID, path, 0, cval.KindCell, value, now, store.DirectionGateway, actor, reason, boot); err != nil {
 		return err
 	}
 	return tx.Commit()

@@ -198,7 +198,7 @@ func TestLogRendersAGatewayVerdictAsCrossingNoBoundary(t *testing.T) {
 		{Seq: 1, Path: "obs/health", Kind: cval.KindCell, Value: mustEnc(t, int64(1))},
 	})
 	if err := st.WriteGateway("c6spare", store.PathLiveness,
-		mustEnc(t, cval.Symbol("silent")), "silent: 7100 ms since last exchange, cadence 2000 ms"); err != nil {
+		mustEnc(t, cval.Symbol("silent")), "porta", "silent: 7100 ms since last exchange, cadence 2000 ms"); err != nil {
 		t.Fatal(err)
 	}
 	st.Close()
@@ -239,7 +239,7 @@ func TestGetNeverCallsAGatewayVerdictStale(t *testing.T) {
 	st.Ingest("c6spare", 44, []space.Entry{
 		{Seq: 1, Path: "obs/health", Kind: cval.KindCell, Value: mustEnc(t, int64(1))},
 	})
-	st.WriteGateway("c6spare", store.PathLiveness, mustEnc(t, cval.Symbol("silent")), "test")
+	st.WriteGateway("c6spare", store.PathLiveness, mustEnc(t, cval.Symbol("silent")), "porta", "test")
 	// The node reboots and republishes nothing yet: boot 45 is current, and the
 	// gw row still carries 44.
 	st.Ingest("c6spare", 45, []space.Entry{
