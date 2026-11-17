@@ -78,6 +78,10 @@ target_sources(app PRIVATE
   # assuming the omission was the safer choice.
   ${OEVM_SRC}/src/ota.c
   ${OEVM_SRC}/src/backend/zephyr/ota_zephyr.c
+  # rete#443: the outbox journal. NOT optional either — platform.c's prims 171-176 call
+  # the seam unconditionally. Linked on every board; the file answers journal_open 0
+  # unless the board has CONFIG_FCB and an `outbox` partition (its header comment).
+  ${OEVM_SRC}/src/backend/zephyr/journal_zephyr.c
 )
 target_include_directories(app PRIVATE ${OEVM_SRC}/src src src/ed25519)
 # rete#233 T4: the public key that signed a pushed program, porta's `porta.pub`, as 64

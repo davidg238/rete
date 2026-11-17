@@ -25,3 +25,17 @@ settings_storage:
   end_address: 0x100000
   region: flash_primary
   size: 0x2000
+# rete#443: the outbox journal (src/backend/zephyr/journal_zephyr.c, FCB) on the board's
+# SPI NOR, for OCM.1 and ACC01: their overlays (in ~/workspace/ocm and ~/workspace/ttgm)
+# choose `nordic,pm-ext-flash = &nor`, which is what creates the external_flash region.
+# Under the partition manager a devicetree partition is invisible to FIXED_PARTITION_*
+# (flash_map_pm.h), so the partition is declared here. A build with no such chosen node
+# (the bare DK) has no external_flash region, PM leaves this entry out, and the firmware
+# answers journalOpen false. 255 x 4 KB = 1020 KB (FCB's sector count is a uint8_t; 4 KB
+# erases need CONFIG_SPI_NOR_FLASH_LAYOUT_PAGE_SIZE=4096 in the board conf).
+outbox:
+  address: 0x0
+  end_address: 0xff000
+  region: external_flash
+  device: DT_CHOSEN(nordic_pm_ext_flash)
+  size: 0xff000

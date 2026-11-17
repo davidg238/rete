@@ -180,6 +180,19 @@
 			label = "program-b";
 			reg = <0x2E0000 DT_SIZE_K(768)>;
 		};
+		/* rete#443 — the outbox journal (src/backend/zephyr/journal_zephyr.c, FCB). The
+		 * full 1020 KB fits, past everything that exists today, so nothing moves:
+		 *   declared flash   esp32c6_wroom_n8.dtsi: reg <0x0 DT_SIZE_M(8)> = 0x000000-0x800000
+		 *   last partition   partitions_0x0_default_4M.dtsi: coredump 0x3FF000 + 4 KB = 0x400000
+		 *   free             0x400000-0x800000 = 4096 KB
+		 *   outbox           255 sectors x 4 KB = 1020 KB = 0xFF000 -> 0x400000-0x4FF000
+		 * 255 because FCB's sector count is a uint8_t; 4 KB is this flash's
+		 * erase-block-size (esp32c6_common.dtsi). The image header must say 8 MB for the
+		 * ROM to reach past 4 MB: run.sh flashes with ESPTOOL_FLASH_SIZE="8MB". */
+		outbox: partition@400000 {
+			label = "outbox";
+			reg = <0x400000 DT_SIZE_K(1020)>;
+		};
 	};
 };
 / {
