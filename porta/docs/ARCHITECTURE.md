@@ -124,10 +124,11 @@ What the gateway *is*:
   the budget the node itself declared (§3.5).
 - **The operator surface.** Five HTTP routes: `GET /health`, `GET /manifest`, and since
   rete#398 the HTTP twins of three CLI commands. `POST /blob` is `porta blob put` (the
-  bytes stored content-addressed, their SHA-256 signed with `porta.key`; answers `{Hash,
+  bytes stored content-addressed, their SHA-256 signed with `porta.key`, so it fails until `porta key gen` has run; answers `{Hash,
   Size, Sig, Record}`, `Record` the `App` value as hex). `PUT /node/{id}/{path...}` is
   `porta put --raw`, for `goal/**` cells and `dbg/req` stream rows, porta's whole inbound
-  authority and nothing else (rete#415; one closed cval encoding through the same
+  authority, plus `gw/apps/<name>` — an operator's `AppDebug` porta keeps and never sends
+  (rete#515) — and nothing else (rete#415; one closed cval encoding through the same
   `Store.Write` door, so the gw/ ban, the 256 B cap and the manifest gate hold; the
   actor is `X-Porta-Actor` or the peer address; answers `{Seq}`). `GET
   /node/{id}/{path...}` is one cell of `porta get`, the raw CBOR with its seq in
