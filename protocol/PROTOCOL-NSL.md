@@ -596,11 +596,12 @@ transport-agnostic):
 - **Pull** — node requests `space?id=<id>&cursor=<n>` → body = CBOR array of
   `[seq, path, kind, value]` for outbound entries with `seq > n`, plus the new
   high-water. Empty body = up to date.
-- **Push** — node sends CBOR array of `[nodeSeq, path, kind, value, ageMs]`; gateway dedupes
-  on `nodeSeq` high-water and acks it. `ageMs` (rete#444) is how long before this push the
-  node captured the entry — a stream row's wait in the outbox, 0 for a cell — recomputed
-  for every push; porta stamps the row arrival − `ageMs` (RECORDS §3, G6). A pull's
-  entries stay four elements.
+- **Push** — node sends `#push{#id, #bid, #mono, #ent}`, `#ent` a CBOR array of
+  `[nodeSeq, path, kind, value, bid, monoMs]`; gateway dedupes on `nodeSeq` high-water and
+  acks it. `(bid, monoMs)` is the entry's ORIGIN — the boot it was captured in and that
+  boot's `monoMs` at capture (#443) — kept by a journal row replayed in a later boot, so it
+  may differ from the envelope's `#bid`; `#mono` is the node's `monoMs` at this push.
+  porta stamps the row by RECORDS §3's time rule. A pull's entries stay four elements.
 - **The `id`** (rete#118, 2026-10-02) — the node's factory address as lowercase hex, most
   significant byte first, no separators: 12 characters for a board with a radio (its
   48-bit link address, the sticker value), 16 for one without (its flash serial). It is

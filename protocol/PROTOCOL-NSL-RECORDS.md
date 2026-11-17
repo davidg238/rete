@@ -318,11 +318,16 @@ monotonic-only; porta maps it to wall-clock at ingest using porta's own clock.
   obstacle, since every `prj_*_thread.conf` already mounts NVS for OpenThread's own
   dataset, so this cost one settings key (`oevm/bootid`) and no new subsystem.
 
-**A row's time is its capture, not its arrival** (rete#444). A stream row waits in the
-node's outbox while the link is down; the push carries each entry's `ageMs` — the node's
-`monoMs` now minus at capture — and porta stamps it arrival − `ageMs`. The error is the
-one-way transit, whatever the outage, and porta keeps no per-boot clock state. A cell
-carries age 0: the space keeps no write time, and a cell is the latest value.
+**A row's time is its capture, not its arrival** (rete#444, #443). A stream row waits in
+the node's journal while the link is down, possibly across reboots; each push entry
+carries its origin `(bid, monoMs)` and the envelope the node's `monoMs` now (`#mono`).
+porta keeps one clock anchor per (node, boot), arrival − `#mono`, refreshed by every push
+of that boot, and stamps a row its origin boot's anchor + `monoMs`: for a row of the
+pushing boot that is arrival − its age, error one-way transit; for a row replayed from an
+earlier boot porta heard from, that boot's last anchor; for a boot porta never heard from,
+**no time** (NULL) — the row is stored in journal order, which is its `(bootId, monoMs)` order, never guessed. A
+cell always comes from the pushing boot: the space keeps no write time, and a cell is the
+latest value.
 
 The pair `(bootId, monoMs)` totally orders every observation a node ever makes, across
 reboots, **without a clock**. A node that reboots does not emit timestamps that appear

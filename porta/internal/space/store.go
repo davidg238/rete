@@ -29,15 +29,21 @@ type Entry struct {
 	Path  string
 	Kind  cval.Kind
 	Value []byte
-	// AgeMs is how long before the push the node captured this entry: a stream
-	// row held in the node's outbox, 0 for a cell (rete#444, G6). Ingest stamps
-	// the row arrival - AgeMs. Zero for porta-authored entries.
-	AgeMs int64
+	// BootID and MonoMs are the entry's ORIGIN (#443): the boot it was captured
+	// in and that boot's monotonic ms at capture. A journal row replayed in a
+	// later boot keeps its origin, so BootID may differ from the push's own
+	// boot. Ingest derives the row's time from them (rule 5, Ingest). Zero for
+	// porta-authored entries, which never pass through Ingest.
+	BootID int64
+	MonoMs int64
 }
 
+// Event is a log row. Its BootID is events.boot_id, the boot that PUBLISHED the
+// row, and shadows Entry.BootID, which Events does not read. TsMs is NULL for a
+// row whose origin boot porta never heard from (#443): it has no honest time.
 type Event struct {
 	Entry
-	TsMs      int64
+	TsMs      sql.NullInt64
 	Direction string
 	Actor     string
 	Reason    string
@@ -124,7 +130,11 @@ func Open(path string, nowMs func() int64) (*Store, error) {
 		db.Close()
 		return nil, err
 	}
-	// The rebuild drops the old table and its indexes with it. schema is
+	if err := migrateEventsTimeNullable(db); err != nil {
+		db.Close()
+		return nil, err
+	}
+	// Each rebuild drops the old table and its indexes with it. schema is
 	// idempotent (every statement is IF NOT EXISTS), so re-running it restores
 	// them and does nothing else.
 	if _, err := db.Exec(schema); err != nil {
@@ -209,11 +219,14 @@ func upsertCell(tx *sql.Tx, nodeID, path string, seq int64, kind cval.Kind, valu
 	return err
 }
 
-func appendEvent(tx *sql.Tx, nodeID, path string, seq int64, kind cval.Kind, value []byte, nowMs int64, direction, actor, reason string, bootID int64) error {
+// stamped is a known time; an events row may also carry none (Ingest, #443).
+func stamped(ms int64) sql.NullInt64 { return sql.NullInt64{Int64: ms, Valid: true} }
+
+func appendEvent(tx *sql.Tx, nodeID, path string, seq int64, kind cval.Kind, value []byte, at sql.NullInt64, direction, actor, reason string, bootID int64) error {
 	_, err := tx.Exec(`
 		INSERT INTO events (node_id, path, seq, kind, value_cbor, ts_ms, direction, actor, reason, boot_id)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		nodeID, path, seq, int(kind), value, nowMs, direction, actor, reason, bootID)
+		nodeID, path, seq, int(kind), value, at, direction, actor, reason, bootID)
 	return err
 }
 
@@ -267,7 +280,7 @@ func (s *Store) Write(nodeID, path string, kind cval.Kind, value []byte, actor, 
 			return 0, err
 		}
 	}
-	if err := appendEvent(tx, nodeID, path, seq, kind, value, now, "out", actor, reason, 0); err != nil {
+	if err := appendEvent(tx, nodeID, path, seq, kind, value, stamped(now), "out", actor, reason, 0); err != nil {
 		return 0, err
 	}
 	return seq, tx.Commit()
@@ -326,7 +339,7 @@ func (s *Store) WriteGateway(nodeID, path string, value []byte, actor, reason st
 	if err := upsertCell(tx, nodeID, path, 0, cval.KindCell, value, now, store.DirectionGateway, boot); err != nil {
 		return err
 	}
-	if err := appendEvent(tx, nodeID, path, 0, cval.KindCell, value, now, store.DirectionGateway, actor, reason, boot); err != nil {
+	if err := appendEvent(tx, nodeID, path, 0, cval.KindCell, value, stamped(now), store.DirectionGateway, actor, reason, boot); err != nil {
 		return err
 	}
 	return tx.Commit()
@@ -395,7 +408,17 @@ func (s *Store) OutboundSince(nodeID string, cursor int64, maxBytes int) ([]Entr
 // the dedupe observable (e.g. a log line) instead of it only being provable
 // by the absence of a duplicate — which is equally consistent with the node
 // never having re-pushed at all.
-func (s *Store) Ingest(nodeID string, bootID int64, entries []Entry) (hw int64, skipped int, err error) {
+//
+// TIME IS HONEST (#443 design, rule 5). mono is the node's monotonic ms at this
+// push, so arrival − mono is this boot's clock ANCHOR, refreshed in boot_anchors
+// on every push of the boot. A row is stamped anchor(its origin boot) + MonoMs:
+// for a row of this boot that is arrival − (mono − MonoMs), the age rete#444
+// sent; for a journal row replayed from an earlier boot porta heard from, that
+// boot's last anchor; for a boot porta never heard from there is no anchor and
+// the row is stored with NULL time, ordered by id (journal order). A replay may
+// repeat a row porta already committed (the lost-ack window): it is stored
+// again with the same origin, never refused.
+func (s *Store) Ingest(nodeID string, bootID, mono int64, entries []Entry) (hw int64, skipped int, err error) {
 	now := s.nowMs()
 	tx, err := s.db.Begin()
 	if err != nil {
@@ -437,6 +460,26 @@ func (s *Store) Ingest(nodeID string, bootID int64, entries []Entry) (hw int64, 
 	if bootID != storedBoot && bootID != 0 && storedBoot != 0 {
 		hw = 0
 	}
+	if _, err := tx.Exec(`
+		INSERT INTO boot_anchors (node_id, boot_id, anchor_ms) VALUES (?, ?, ?)
+		ON CONFLICT(node_id, boot_id) DO UPDATE SET anchor_ms = excluded.anchor_ms`,
+		nodeID, bootID, now-mono); err != nil {
+		return 0, 0, err
+	}
+	anchors := map[int64]sql.NullInt64{bootID: stamped(now - mono)}
+	anchorOf := func(bid int64) (sql.NullInt64, error) {
+		if a, ok := anchors[bid]; ok {
+			return a, nil
+		}
+		var a sql.NullInt64
+		err := tx.QueryRow(`SELECT anchor_ms FROM boot_anchors WHERE node_id = ? AND boot_id = ?`,
+			nodeID, bid).Scan(&a)
+		if err != nil && !errors.Is(err, sql.ErrNoRows) {
+			return a, err
+		}
+		anchors[bid] = a
+		return a, nil
+	}
 	for _, e := range entries {
 		if e.Seq <= hw {
 			skipped++
@@ -456,7 +499,7 @@ func (s *Store) Ingest(nodeID string, bootID int64, entries []Entry) (hw int64, 
 		// is a build error to fix at the bench, not a runtime condition to
 		// negotiate with.
 		if err := s.manifest.Check(e.Path, e.Kind, manifest.DirUp, e.Value); err != nil {
-			if aerr := appendEvent(tx, nodeID, e.Path, e.Seq, e.Kind, e.Value, now, "in", "gate", err.Error(), bootID); aerr != nil {
+			if aerr := appendEvent(tx, nodeID, e.Path, e.Seq, e.Kind, e.Value, stamped(now), "in", "gate", err.Error(), bootID); aerr != nil {
 				return 0, 0, aerr
 			}
 			hw = e.Seq
@@ -467,11 +510,25 @@ func (s *Store) Ingest(nodeID string, bootID int64, entries []Entry) (hw int64, 
 		// rebooted node's tree arrives over seconds, so a read taken mid-rewrite
 		// otherwise blends two boots and cannot be told from a coherent one
 		// (rete#210). The value costs nothing to carry — it is already in hand.
-		// rete#444: the row's time is when the node CAPTURED it, which for a row
-		// held through an outage is long before it arrived. last_seen stays now.
-		at := now - e.AgeMs
+		// rete#444/#443: the row's time is when the node CAPTURED it, which for
+		// a row held through an outage is long before it arrived. last_seen
+		// stays now.
+		anchor, err := anchorOf(e.BootID)
+		if err != nil {
+			return 0, 0, err
+		}
+		var at sql.NullInt64
+		if anchor.Valid {
+			at = stamped(anchor.Int64 + e.MonoMs)
+		}
 		if e.Kind == cval.KindCell {
-			if err := upsertCell(tx, nodeID, e.Path, e.Seq, e.Kind, e.Value, at, "in", bootID); err != nil {
+			// A cell is never journaled, so its origin is this boot and it
+			// always has an anchor. cells.ts_ms is NOT NULL: a node that broke
+			// that gets arrival, the one time porta does know, on both rows.
+			if !at.Valid {
+				at = stamped(now)
+			}
+			if err := upsertCell(tx, nodeID, e.Path, e.Seq, e.Kind, e.Value, at.Int64, "in", bootID); err != nil {
 				return 0, 0, err
 			}
 		}

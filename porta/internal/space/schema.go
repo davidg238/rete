@@ -9,6 +9,7 @@ package space
 import (
 	"database/sql"
 	"fmt"
+	"regexp"
 	"strings"
 )
 
@@ -80,6 +81,10 @@ CREATE INDEX IF NOT EXISTS idx_cells_seq ON cells(node_id, direction, seq);
 -- cannot do, since cells keeps only the latest value per path and could answer
 -- at most "paths whose LAST write fell in boot N" while promising otherwise.
 --
+-- ts_ms is NULL for a row whose origin boot porta never heard from (#443): a
+-- journal row replayed from a boot with no anchor in boot_anchors has no honest
+-- time, and is ordered by id, which is the node's journal order.
+--
 -- KEEP COLUMN COMMENTS ABOVE THE STATEMENT, NEVER INSIDE THE PARENTHESES.
 -- sqlite implements ALTER TABLE ... DROP COLUMN by editing this DDL text, and an
 -- interior comment makes the rewritten statement unparseable ("incomplete
@@ -92,7 +97,7 @@ CREATE TABLE IF NOT EXISTS events (
   seq        INTEGER NOT NULL,
   kind       INTEGER NOT NULL,
   value_cbor BLOB NOT NULL,
-  ts_ms      INTEGER NOT NULL,
+  ts_ms      INTEGER,
   direction  TEXT NOT NULL CHECK (direction IN ('in','out','gw')),
   actor      TEXT NOT NULL DEFAULT '',
   reason     TEXT NOT NULL DEFAULT '',
@@ -100,6 +105,17 @@ CREATE TABLE IF NOT EXISTS events (
 );
 CREATE INDEX IF NOT EXISTS idx_events_node ON events(node_id, id);
 CREATE INDEX IF NOT EXISTS idx_events_out ON events(node_id, direction, seq);
+
+-- One clock anchor per (node, boot) (#443 design, rule 5): arrival − the node's
+-- monotonic ms, refreshed by every push of that boot. A journal row replayed in
+-- a later boot is stamped its origin boot's anchor + its monoMs. This is per-boot
+-- state rete#444 avoided — the price of rows that outlive their boot.
+CREATE TABLE IF NOT EXISTS boot_anchors (
+  node_id   TEXT NOT NULL,
+  boot_id   INTEGER NOT NULL,
+  anchor_ms INTEGER NOT NULL,
+  PRIMARY KEY (node_id, boot_id)
+);
 
 -- One row per REQUEST, not per check-in: a check-in is a pull followed by a
 -- push, and handlePull/handlePush (internal/wire/server.go) each call
@@ -280,6 +296,55 @@ func migrateDirectionAcceptsGw(db *sql.DB) error {
 		}
 	}
 	return nil
+}
+
+// migrateEventsTimeNullable drops NOT NULL from events.ts_ms on a store created
+// before #443, which sqlite can only do by a rebuild. It is the same rebuild as
+// migrateDirectionAcceptsGw — the new DDL derived from the table's own stored
+// DDL, `INSERT … SELECT *`, ids carried verbatim — and is detected by the column
+// itself (PRAGMA table_info), so a second Open is a no-op. A stored DDL whose
+// ts_ms text this does not recognise is an error at Open, never a silent skip.
+func migrateEventsTimeNullable(db *sql.DB) error {
+	var notNull int
+	if err := db.QueryRow(
+		`SELECT "notnull" FROM pragma_table_info('events') WHERE name = 'ts_ms'`).Scan(&notNull); err != nil {
+		return fmt.Errorf("read events.ts_ms: %w", err)
+	}
+	if notNull == 0 {
+		return nil
+	}
+	var ddl string
+	if err := db.QueryRow(
+		`SELECT sql FROM sqlite_master WHERE type='table' AND name='events'`).Scan(&ddl); err != nil {
+		return fmt.Errorf("read events DDL: %w", err)
+	}
+	notNullTs := regexp.MustCompile(`(ts_ms\s+INTEGER)\s+NOT NULL`)
+	if len(notNullTs.FindAllStringIndex(ddl, -1)) != 1 {
+		return fmt.Errorf("events.ts_ms is NOT NULL but its DDL is a shape this code did not write:\n%s", ddl)
+	}
+	const tmp = "events_migrating"
+	newDDL := notNullTs.ReplaceAllString(ddl, "$1")
+	newDDL = regexp.MustCompile(`^CREATE TABLE\s+("?events"?)\s*\(`).ReplaceAllString(newDDL, "CREATE TABLE "+tmp+" (")
+	if !strings.HasPrefix(newDDL, "CREATE TABLE "+tmp+" (") {
+		return fmt.Errorf("events DDL does not start as this code expects:\n%s", ddl)
+	}
+	tx, err := db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	for _, stmt := range []string{
+		`DROP TABLE IF EXISTS ` + tmp,
+		newDDL,
+		`INSERT INTO ` + tmp + ` SELECT * FROM events`,
+		`DROP TABLE events`,
+		`ALTER TABLE ` + tmp + ` RENAME TO events`,
+	} {
+		if _, err := tx.Exec(stmt); err != nil {
+			return fmt.Errorf("migrate events: %s: %w", stmt, err)
+		}
+	}
+	return tx.Commit()
 }
 
 // assertDirectionAcceptsGw is the check migrateDirectionAcceptsGw's own

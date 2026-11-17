@@ -267,11 +267,15 @@ func (s *Server) handlePush(r cval.Record, peer string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	mono, err := intField(r.Fields, "mono")
+	if err != nil {
+		return nil, err
+	}
 	ev, ok := field(r.Fields, "ent")
 	if !ok {
 		return nil, fmt.Errorf("%w: missing #ent", errShape)
 	}
-	entries, err := pushEntries(ev)
+	entries, err := pushEntries(ev, bootID, mono)
 	if err != nil {
 		return nil, err
 	}
@@ -279,7 +283,7 @@ func (s *Server) handlePush(r cval.Record, peer string) ([]byte, error) {
 	if len(entries) > 0 {
 		lo = entries[0].Seq
 	}
-	hw, skipped, err := s.st.Ingest(id, bootID, entries)
+	hw, skipped, err := s.st.Ingest(id, bootID, mono, entries)
 	if err != nil {
 		return nil, err
 	}

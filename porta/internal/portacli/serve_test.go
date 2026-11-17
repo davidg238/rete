@@ -333,7 +333,7 @@ func TestSweepLivenessLogsOnlyTransitions(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, _, err := st.Ingest("n1", 41, []space.Entry{
+	if _, _, err := st.Ingest("n1", 41, 0, []space.Entry{
 		{Seq: 1, Path: space.PathDeclared, Kind: cval.KindCell, Value: rec},
 	}); err != nil {
 		t.Fatal(err)

@@ -66,7 +66,7 @@ func TestPullAtHighWaterIsEmpty(t *testing.T) {
 
 func TestPushIngestsAndAcks(t *testing.T) {
 	srv, st := testServer(t)
-	req, _ := EncodePush("n1", 7, []space.Entry{
+	req, _ := EncodePush("n1", 7, 0, []space.Entry{
 		{Seq: 1, Path: "obs/health", Kind: cval.KindCell, Value: mustEnc(t, int64(42))},
 		{Seq: 2, Path: "tel/log", Kind: cval.KindStream, Value: mustEnc(t, "hello")},
 	})
@@ -97,7 +97,7 @@ func TestRebootedNodeIsNotMistakenForADuplicate(t *testing.T) {
 	st.Write("n1", "goal/name", cval.KindCell, mustEnc(t, "alpha"), "david", "")
 	pull, _ := EncodePull("n1", 1, 1, 0, 0)
 	srv.Handle(pull)
-	req, _ := EncodePush("n1", 1, []space.Entry{
+	req, _ := EncodePush("n1", 1, 0, []space.Entry{
 		{Seq: 40, Path: "obs/health", Kind: cval.KindCell, Value: mustEnc(t, int64(1))},
 	})
 	if hw, _ := DecodeAck(srv.Handle(req)); hw != 40 {
@@ -112,7 +112,7 @@ func TestRebootedNodeIsNotMistakenForADuplicate(t *testing.T) {
 	if _, _, err := DecodeBatch(srv.Handle(pull)); err != nil {
 		t.Fatalf("pull after reboot: %v", err)
 	}
-	req, _ = EncodePush("n1", 2, []space.Entry{
+	req, _ = EncodePush("n1", 2, 0, []space.Entry{
 		{Seq: 1, Path: "obs/health", Kind: cval.KindCell, Value: mustEnc(t, int64(2))},
 	})
 	hw, err := DecodeAck(srv.Handle(req))
@@ -144,7 +144,7 @@ func TestRebootReusesSeqValues(t *testing.T) {
 	st.Write("n1", "goal/name", cval.KindCell, mustEnc(t, "alpha"), "david", "")
 	pull, _ := EncodePull("n1", 1, 1, 0, 0) // first boot, goal applied
 	srv.Handle(pull)
-	first, _ := EncodePush("n1", 1, []space.Entry{
+	first, _ := EncodePush("n1", 1, 0, []space.Entry{
 		{Seq: 1, Path: "tel/log", Kind: cval.KindStream, Value: mustEnc(t, "boot1-a")},
 		{Seq: 2, Path: "obs/health", Kind: cval.KindCell, Value: mustEnc(t, int64(11))},
 	})
@@ -153,7 +153,7 @@ func TestRebootReusesSeqValues(t *testing.T) {
 	pull, _ = EncodePull("n1", 0, 2, 0, 0) // rebooted: boot counter 1 -> 2
 	srv.Handle(pull)
 
-	second, _ := EncodePush("n1", 2, []space.Entry{
+	second, _ := EncodePush("n1", 2, 0, []space.Entry{
 		{Seq: 1, Path: "tel/log", Kind: cval.KindStream, Value: mustEnc(t, "boot2-a")},
 		{Seq: 2, Path: "obs/health", Kind: cval.KindCell, Value: mustEnc(t, int64(22))},
 	})
@@ -199,7 +199,7 @@ func TestMissedAckIsNotMistakenForAReboot(t *testing.T) {
 	// The node pulls, applies goal/name, and pushes. porta commits at hw 5.
 	pull, _ := EncodePull("n1", 0, 1, 0, 0)
 	srv.Handle(pull)
-	push, _ := EncodePush("n1", 1, []space.Entry{
+	push, _ := EncodePush("n1", 1, 0, []space.Entry{
 		{Seq: 5, Path: "tel/log", Kind: cval.KindStream, Value: mustEnc(t, "one")},
 	})
 	srv.Handle(push)
@@ -238,7 +238,7 @@ func TestNodePortaHasNeverWrittenToStillDetectsAReboot(t *testing.T) {
 	// stays 0 for the whole of its life — exactly c6-bell's situation.
 	pull, _ := EncodePull("n1", 0, 1, 0, 0)
 	srv.Handle(pull)
-	push, _ := EncodePush("n1", 1, []space.Entry{
+	push, _ := EncodePush("n1", 1, 0, []space.Entry{
 		{Seq: 3981, Path: "obs/build", Kind: cval.KindCell, Value: mustEnc(t, "old")},
 	})
 	if hw, _ := DecodeAck(srv.Handle(push)); hw != 3981 {
@@ -249,7 +249,7 @@ func TestNodePortaHasNeverWrittenToStillDetectsAReboot(t *testing.T) {
 	// The boot counter is the only thing that moved.
 	pull, _ = EncodePull("n1", 0, 2, 0, 0)
 	srv.Handle(pull)
-	push, _ = EncodePush("n1", 2, []space.Entry{
+	push, _ = EncodePush("n1", 2, 0, []space.Entry{
 		{Seq: 1, Path: "obs/build", Kind: cval.KindCell, Value: mustEnc(t, "new")},
 	})
 	hw, err := DecodeAck(srv.Handle(push))
@@ -277,13 +277,13 @@ func TestLostPullStillRewindsOnThePush(t *testing.T) {
 	srv, st := testServer(t)
 	pull, _ := EncodePull("n1", 0, 1, 0, 0)
 	srv.Handle(pull)
-	push, _ := EncodePush("n1", 1, []space.Entry{
+	push, _ := EncodePush("n1", 1, 0, []space.Entry{
 		{Seq: 500, Path: "obs/health", Kind: cval.KindCell, Value: mustEnc(t, int64(1))},
 	})
 	srv.Handle(push)
 
 	// Reboot, and the new boot's pull never arrives. Its push is first contact.
-	push, _ = EncodePush("n1", 2, []space.Entry{
+	push, _ = EncodePush("n1", 2, 0, []space.Entry{
 		{Seq: 1, Path: "obs/health", Kind: cval.KindCell, Value: mustEnc(t, int64(2))},
 	})
 	hw, err := DecodeAck(srv.Handle(push))
@@ -310,7 +310,7 @@ func TestNoPersistentBootIdentityDoesNotGuess(t *testing.T) {
 	srv, _ := testServer(t)
 	pull, _ := EncodePull("n1", 0, 0, 0, 0)
 	srv.Handle(pull)
-	push, _ := EncodePush("n1", 0, []space.Entry{
+	push, _ := EncodePush("n1", 0, 0, []space.Entry{
 		{Seq: 7, Path: "tel/log", Kind: cval.KindStream, Value: mustEnc(t, "one")},
 	})
 	srv.Handle(push)
@@ -331,14 +331,14 @@ func TestStalePullDoesNotDuplicate(t *testing.T) {
 	st.Write("n1", "goal/name", cval.KindCell, mustEnc(t, "alpha"), "david", "")
 	pull, _ := EncodePull("n1", 1, 1, 0, 0)
 	srv.Handle(pull)
-	push, _ := EncodePush("n1", 1, []space.Entry{
+	push, _ := EncodePush("n1", 1, 0, []space.Entry{
 		{Seq: 5, Path: "tel/log", Kind: cval.KindStream, Value: mustEnc(t, "one")},
 	})
 	srv.Handle(push)
 
 	srv.Handle(pull) // the duplicate, arriving late
 
-	next, _ := EncodePush("n1", 1, []space.Entry{
+	next, _ := EncodePush("n1", 1, 0, []space.Entry{
 		{Seq: 6, Path: "tel/log", Kind: cval.KindStream, Value: mustEnc(t, "two")},
 	})
 	srv.Handle(next)
@@ -358,7 +358,7 @@ func TestStalePullDoesNotDuplicate(t *testing.T) {
 // The property that removes the need for a retransmit layer.
 func TestReplayedPushIsIdempotent(t *testing.T) {
 	srv, st := testServer(t)
-	req, _ := EncodePush("n1", 7, []space.Entry{
+	req, _ := EncodePush("n1", 7, 0, []space.Entry{
 		{Seq: 1, Path: "tel/log", Kind: cval.KindStream, Value: mustEnc(t, "one")},
 	})
 	srv.Handle(req)
@@ -384,7 +384,7 @@ func TestReplayedPushLogsSkipCount(t *testing.T) {
 		lines = append(lines, fmt.Sprintf(format, args...))
 	})
 
-	req, _ := EncodePush("n1", 7, []space.Entry{
+	req, _ := EncodePush("n1", 7, 0, []space.Entry{
 		{Seq: 1, Path: "tel/log", Kind: cval.KindStream, Value: mustEnc(t, "one")},
 	})
 
@@ -633,13 +633,14 @@ func TestPullWithoutACountIsRefused(t *testing.T) {
 	}
 }
 
-// rete#444: a row is stamped when the node CAPTURED it, not when it arrived. Each
-// push entry carries its age, so a row held through an outage keeps its own time.
+// rete#444/#443: a row is stamped when the node CAPTURED it, not when it arrived.
+// Each push entry carries its origin (bid, monoMs) and the envelope the node's
+// mono now, so a row held through an outage keeps its own time.
 func TestPushStampsCaptureTimeNotArrival(t *testing.T) {
 	srv, st := testServer(t)
-	req, _ := EncodePush("n1", 7, []space.Entry{
-		{Seq: 1, Path: "tel/log", Kind: cval.KindStream, Value: mustEnc(t, "held"), AgeMs: 60_000},
-		{Seq: 2, Path: "tel/log", Kind: cval.KindStream, Value: mustEnc(t, "fresh")},
+	req, _ := EncodePush("n1", 7, 90_000, []space.Entry{
+		{Seq: 1, Path: "tel/log", Kind: cval.KindStream, Value: mustEnc(t, "held"), BootID: 7, MonoMs: 30_000},
+		{Seq: 2, Path: "tel/log", Kind: cval.KindStream, Value: mustEnc(t, "fresh"), BootID: 7, MonoMs: 90_000},
 	})
 	if _, err := DecodeAck(srv.Handle(req)); err != nil {
 		t.Fatalf("DecodeAck: %v", err)
@@ -650,22 +651,53 @@ func TestPushStampsCaptureTimeNotArrival(t *testing.T) {
 	}
 	ts := map[int64]int64{}
 	for _, e := range evs {
-		ts[e.Seq] = e.TsMs
+		ts[e.Seq] = e.TsMs.Int64
 	}
 	if got := ts[2] - ts[1]; got != 60_000 {
 		t.Fatalf("fresh - held = %d ms, want 60000 (ts %v)", got, ts)
 	}
 }
 
-// A negative age is refused: it would stamp a row in the future.
-func TestPushWithNegativeAgeIsRefused(t *testing.T) {
+// A row of this boot captured after the envelope's mono, or a negative monoMs,
+// is refused: either would stamp a row in the future or before its boot.
+func TestPushWithFutureCaptureIsRefused(t *testing.T) {
+	for name, row := range map[string]cval.List{
+		"future":   {int64(1), "tel/log", int64(1), "x", int64(7), int64(1_001)},
+		"negative": {int64(1), "tel/log", int64(1), "x", int64(6), int64(-5)},
+	} {
+		srv, _ := testServer(t)
+		req, _ := cval.Encode(cval.Record{Tag: "push", Fields: cval.Map{
+			{K: cval.Symbol("id"), V: "n1"},
+			{K: cval.Symbol("bid"), V: int64(7)},
+			{K: cval.Symbol("mono"), V: int64(1_000)},
+			{K: cval.Symbol("ent"), V: cval.List{row}},
+		}})
+		if _, err := DecodeAck(srv.Handle(req)); err == nil {
+			t.Fatalf("%s: the push was acked", name)
+		}
+	}
+}
+
+// #443: one row shape on the wire. The pre-#443 five-element entry
+// [seq, path, kind, value, ageMs] is refused, never read as something else;
+// so is a push without the envelope's #mono.
+func TestPushRefusesTheOldShape(t *testing.T) {
 	srv, _ := testServer(t)
 	req, _ := cval.Encode(cval.Record{Tag: "push", Fields: cval.Map{
 		{K: cval.Symbol("id"), V: "n1"},
 		{K: cval.Symbol("bid"), V: int64(7)},
-		{K: cval.Symbol("ent"), V: cval.List{cval.List{int64(1), "tel/log", int64(1), "x", int64(-5)}}},
+		{K: cval.Symbol("mono"), V: int64(1_000)},
+		{K: cval.Symbol("ent"), V: cval.List{cval.List{int64(1), "tel/log", int64(1), "x", int64(0)}}},
 	}})
-	if _, err := DecodeAck(srv.Handle(req)); err == nil {
-		t.Fatalf("a push with a negative age was acked")
+	if msg := decodeErrReply(t, srv.Handle(req)); !strings.Contains(msg, "6-element") {
+		t.Fatalf("reply = %q, want an #err naming the 6-element shape", msg)
+	}
+	req, _ = cval.Encode(cval.Record{Tag: "push", Fields: cval.Map{
+		{K: cval.Symbol("id"), V: "n1"},
+		{K: cval.Symbol("bid"), V: int64(7)},
+		{K: cval.Symbol("ent"), V: cval.List{}},
+	}})
+	if msg := decodeErrReply(t, srv.Handle(req)); !strings.Contains(msg, "mono") {
+		t.Fatalf("reply = %q, want an #err naming mono", msg)
 	}
 }

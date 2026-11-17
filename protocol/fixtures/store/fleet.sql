@@ -34,11 +34,17 @@ CREATE TABLE events (
   seq        INTEGER NOT NULL,
   kind       INTEGER NOT NULL,
   value_cbor BLOB NOT NULL,
-  ts_ms      INTEGER NOT NULL,
+  ts_ms      INTEGER,
   direction  TEXT NOT NULL CHECK (direction IN ('in','out','gw')),
   actor      TEXT NOT NULL DEFAULT '',
   reason     TEXT NOT NULL DEFAULT '',
   boot_id    INTEGER NOT NULL DEFAULT 0
+);
+CREATE TABLE boot_anchors (
+  node_id   TEXT NOT NULL,
+  boot_id   INTEGER NOT NULL,
+  anchor_ms INTEGER NOT NULL,
+  PRIMARY KEY (node_id, boot_id)
 );
 CREATE TABLE exchanges (
   id         INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -74,6 +80,9 @@ INSERT INTO "events" VALUES(4,'n1','obs/name',1,2,X'6A62617468726F6F6D2D31',1700
 INSERT INTO "events" VALUES(5,'n2','goal/name',1,2,X'65706F726368',1700000004000,'out','david','commission',0);
 INSERT INTO "events" VALUES(6,'n2','obs/name',1,2,X'626E32',1700000005000,'in','n2','',7);
 INSERT INTO "events" VALUES(7,'n2','gw/liveness',0,2,X'D8276673696C656E74',1700000006000,'gw','porta','silent: 90000 ms since the last check-in',7);
+INSERT INTO "boot_anchors" VALUES('n1',41,1700000002000);
+INSERT INTO "boot_anchors" VALUES('n1',42,1700000003000);
+INSERT INTO "boot_anchors" VALUES('n2',7,1700000005000);
 DELETE FROM sqlite_sequence;
 INSERT INTO "sqlite_sequence" VALUES('events',7);
 CREATE INDEX idx_cells_seq ON cells(node_id, direction, seq);

@@ -223,7 +223,7 @@ func writeContent(t *testing.T, st *Store) {
 	if _, err := st.Write("n1", "goal/name", cval.KindCell, val, "op", "commission"); err != nil {
 		t.Fatal(err)
 	}
-	if _, _, err := st.Ingest("n1", 41, []Entry{
+	if _, _, err := st.Ingest("n1", 41, 0, []Entry{
 		{Seq: 1, Path: "obs/name", Kind: cval.KindCell, Value: val},
 	}); err != nil {
 		t.Fatal(err)
@@ -240,7 +240,7 @@ func metricsStore(t *testing.T, path string) {
 		{42, 1, 512, 1},
 	} {
 		val := metricsRecord(t, map[string]any{"lfb": s.lfb, "gcc": s.gcc, "hsz": int64(131072)})
-		if _, _, err := st.Ingest("n1", s.boot, []Entry{
+		if _, _, err := st.Ingest("n1", s.boot, 0, []Entry{
 			{Seq: s.seq, Path: "sys/metrics", Kind: cval.KindCell, Value: val},
 		}); err != nil {
 			t.Fatal(err)
@@ -257,7 +257,7 @@ func fleetStore(t *testing.T, path string) {
 	if _, err := st.Write("n1", "goal/name", cval.KindCell, enc("bathroom-1"), "david", "commission"); err != nil {
 		t.Fatal(err)
 	}
-	if _, _, err := st.Ingest("n1", 41, []Entry{
+	if _, _, err := st.Ingest("n1", 41, 0, []Entry{
 		{Seq: 1, Path: "obs/name", Kind: cval.KindCell, Value: enc("bathroom-1")},
 		{Seq: 2, Path: "obs/mode", Kind: cval.KindCell, Value: enc(cval.Symbol("run"))},
 	}); err != nil {
@@ -265,7 +265,7 @@ func fleetStore(t *testing.T, path string) {
 	}
 	// n1 reboots into boot 42 and has so far republished only obs/name, so
 	// obs/mode is the rete#210 mixed-read row.
-	if _, _, err := st.Ingest("n1", 42, []Entry{
+	if _, _, err := st.Ingest("n1", 42, 0, []Entry{
 		{Seq: 1, Path: "obs/name", Kind: cval.KindCell, Value: enc("bathroom-1")},
 	}); err != nil {
 		t.Fatal(err)
@@ -273,7 +273,7 @@ func fleetStore(t *testing.T, path string) {
 	if _, err := st.Write("n2", "goal/name", cval.KindCell, enc("porch"), "david", "commission"); err != nil {
 		t.Fatal(err)
 	}
-	if _, _, err := st.Ingest("n2", 7, []Entry{
+	if _, _, err := st.Ingest("n2", 7, 0, []Entry{
 		{Seq: 1, Path: "obs/name", Kind: cval.KindCell, Value: enc("n2")},
 	}); err != nil {
 		t.Fatal(err)
@@ -292,7 +292,7 @@ func porchStore(t *testing.T, path string) {
 	if _, err := st.Write("n1", "goal/name", cval.KindCell, enc("porch"), "david", "commission"); err != nil {
 		t.Fatal(err)
 	}
-	if _, _, err := st.Ingest("n1", 3, []Entry{
+	if _, _, err := st.Ingest("n1", 3, 0, []Entry{
 		{Seq: 1, Path: "obs/name", Kind: cval.KindCell, Value: enc("porch")},
 	}); err != nil {
 		t.Fatal(err)
@@ -320,7 +320,7 @@ func retiredStore(t *testing.T, path string) {
 	st, clock := fixtureStore(t, path)
 	ingest := func(node string, boot int64, path string, v []byte) {
 		t.Helper()
-		if _, _, err := st.Ingest(node, boot, []Entry{{Seq: *clock, Path: path, Kind: cval.KindCell, Value: v}}); err != nil {
+		if _, _, err := st.Ingest(node, boot, 0, []Entry{{Seq: *clock, Path: path, Kind: cval.KindCell, Value: v}}); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -367,7 +367,7 @@ func historyStore(t *testing.T, path string) {
 	put := func(node string, boot int64, path string, v []byte) {
 		t.Helper()
 		seq++
-		if _, _, err := st.Ingest(node, boot, []Entry{{Seq: seq, Path: path, Kind: cval.KindCell, Value: v}}); err != nil {
+		if _, _, err := st.Ingest(node, boot, 0, []Entry{{Seq: seq, Path: path, Kind: cval.KindCell, Value: v}}); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -452,7 +452,7 @@ func acceptanceStore(t *testing.T, path string) {
 	put := func(node string, boot int64, path string, v []byte) {
 		t.Helper()
 		seq[node]++
-		if _, _, err := st.Ingest(node, boot, []Entry{{Seq: seq[node], Path: path, Kind: cval.KindCell, Value: v}}); err != nil {
+		if _, _, err := st.Ingest(node, boot, 0, []Entry{{Seq: seq[node], Path: path, Kind: cval.KindCell, Value: v}}); err != nil {
 			t.Fatal(err)
 		}
 	}

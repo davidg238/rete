@@ -193,7 +193,7 @@ await obs/health
 
 ```
   obs/build      seq=2   boot=1  #Build{#chip: #host, #build: "host"}
-  obs/health     seq=9   boot=1  #Health{#up: 2002, #bid: 1, #pto: 0, #ref: 0, #rej: 0, #sdr: 0, #wak: 1}
+  obs/health     seq=9   boot=1  #Health{#up: 2002, #bid: 1, #jhw: 0, #pto: 0, #ref: 0, #rej: 0, #sdr: 0, #wak: 1}
   obs/liveness   seq=6   boot=1  #Liveness{#misses: 16, #telCad: 2000}
   obs/name       seq=12  boot=1  "bench"
 ```

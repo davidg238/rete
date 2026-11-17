@@ -20,7 +20,7 @@ func TestSnapshotIntoOpensImmutableAndLeavesSourceIntact(t *testing.T) {
 	if _, err := st.Write("n1", "goal/name", cval.KindCell, enc(t, "bathroom-1"), "op", "commission"); err != nil {
 		t.Fatalf("Write: %v", err)
 	}
-	if _, _, err := st.Ingest("n1", 41, []Entry{{Seq: 1, Path: "obs/name", Kind: cval.KindCell, Value: enc(t, "bathroom-1")}}); err != nil {
+	if _, _, err := st.Ingest("n1", 41, 0, []Entry{{Seq: 1, Path: "obs/name", Kind: cval.KindCell, Value: enc(t, "bathroom-1")}}); err != nil {
 		t.Fatalf("Ingest: %v", err)
 	}
 

@@ -52,7 +52,7 @@ func TestManifestGateWireDoor(t *testing.T) {
 	s.SetManifest(loadRealManifest(t))
 	health := enc(t, cval.Record{Tag: "Health", Fields: cval.Map{{K: cval.Symbol("up"), V: int64(1)}}})
 	bad := enc(t, cval.Record{Tag: "Metrics"}) // wrong record at obs/health
-	hw, skipped, err := s.Ingest("n1", 7, []Entry{
+	hw, skipped, err := s.Ingest("n1", 7, 0, []Entry{
 		{Seq: 1, Path: "obs/health", Kind: cval.KindCell, Value: health},
 		{Seq: 2, Path: "obs/health", Kind: cval.KindCell, Value: bad},
 		{Seq: 3, Path: "obs/health", Kind: cval.KindCell, Value: health},
@@ -92,7 +92,7 @@ func TestManifestGateDirection(t *testing.T) {
 	s.SetManifest(loadRealManifest(t))
 	v := enc(t, "x")
 	// a node writing goal/** is refused-but-kept at the wire door
-	if _, _, err := s.Ingest("n1", 1, []Entry{
+	if _, _, err := s.Ingest("n1", 1, 0, []Entry{
 		{Seq: 1, Path: "goal/name", Kind: cval.KindCell, Value: v}}); err != nil {
 		t.Fatal(err)
 	}
@@ -178,7 +178,7 @@ func TestIngestRefusesAForgedGatewayVerdict(t *testing.T) {
 	if err := s.WriteGateway("n1", store.PathLiveness, silent, "porta", "silence sweep"); err != nil {
 		t.Fatal(err)
 	}
-	hw, _, err := s.Ingest("n1", 9, []Entry{
+	hw, _, err := s.Ingest("n1", 9, 0, []Entry{
 		{Seq: 1, Path: store.PathLiveness, Kind: cval.KindCell, Value: forged}})
 	if err != nil {
 		t.Fatal(err)

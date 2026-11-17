@@ -635,14 +635,19 @@ func (g *Gate) copyDecoded(ctx context.Context, s *scratch, td *tableDef, src st
 	for rows.Next() {
 		var (
 			nodeID, storedPath string
-			tsMs, bootID, seq  int64
+			bootID, seq        int64
+			tsMs               sql.NullInt64 // NULL: a row with no honest time (#443)
 			blob               []byte
 		)
 		if err = rows.Scan(&nodeID, &storedPath, &tsMs, &bootID, &seq, &blob); err != nil {
 			return 0, err
 		}
 		vals := make([]any, 0, len(identityColumns)+len(keys))
-		vals = append(vals, nodeID, storedPath, tsMs, bootID, seq)
+		var ts any
+		if tsMs.Valid {
+			ts = tsMs.Int64
+		}
+		vals = append(vals, nodeID, storedPath, ts, bootID, seq)
 		if td.scalar {
 			var v any
 			if v, err = cval.Decode(blob); err != nil {

@@ -48,7 +48,7 @@ func TestRefuseAll(t *testing.T) {
 	if err != nil {
 		t.Fatalf("EncodePull: %v", err)
 	}
-	push, err := EncodePush("n1", 7, []space.Entry{
+	push, err := EncodePush("n1", 7, 0, []space.Entry{
 		{Seq: 1, Path: "tel/log", Kind: cval.KindStream, Value: mustEnc(t, "hello")},
 	})
 	if err != nil {

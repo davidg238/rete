@@ -51,8 +51,14 @@ func newLogCmd() *cobra.Command {
 				if err == nil {
 					text = cval.Format(v)
 				}
+				// A NULL time is a row from a boot porta never heard from
+				// (#443): it has no honest time, so it prints none.
+				when := "-"
+				if e.TsMs.Valid {
+					when = time.UnixMilli(e.TsMs.Int64).Format(time.RFC3339)
+				}
 				fmt.Fprintf(c.OutOrStdout(), "%s %s %-28s seq=%-6d %-9s %-12s %s\n",
-					time.UnixMilli(e.TsMs).Format(time.RFC3339), dir, e.Path, e.Seq,
+					when, dir, e.Path, e.Seq,
 					eventBootLabel(e), e.Actor, text)
 			}
 			return nil

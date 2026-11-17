@@ -34,11 +34,17 @@ CREATE TABLE events (
   seq        INTEGER NOT NULL,
   kind       INTEGER NOT NULL,
   value_cbor BLOB NOT NULL,
-  ts_ms      INTEGER NOT NULL,
+  ts_ms      INTEGER,
   direction  TEXT NOT NULL CHECK (direction IN ('in','out','gw')),
   actor      TEXT NOT NULL DEFAULT '',
   reason     TEXT NOT NULL DEFAULT '',
   boot_id    INTEGER NOT NULL DEFAULT 0
+);
+CREATE TABLE boot_anchors (
+  node_id   TEXT NOT NULL,
+  boot_id   INTEGER NOT NULL,
+  anchor_ms INTEGER NOT NULL,
+  PRIMARY KEY (node_id, boot_id)
 );
 CREATE TABLE exchanges (
   id         INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -73,6 +79,10 @@ INSERT INTO "events" VALUES(3,'aaaa00000001','obs/build',1700000002000,2,X'D81B8
 INSERT INTO "events" VALUES(4,'bench2','obs/name',1700000003000,2,X'6662656E636832',1700000004000,'in','bench2','',9);
 INSERT INTO "events" VALUES(5,'aaaa00000002','obs/build',1700000004000,2,X'D81B82D827654275696C64A3D8276463686970D8276765737033326336D82765626F6172646662656E636832D827656275696C646474657374',1700000005000,'in','aaaa00000002','',1);
 INSERT INTO "events" VALUES(6,'bench2','obs/name',1700000005000,2,X'6662656E636832',1700000006000,'in','bench2','',9);
+INSERT INTO "boot_anchors" VALUES('bench1',4,1700000002000);
+INSERT INTO "boot_anchors" VALUES('aaaa00000001',1,1700000003000);
+INSERT INTO "boot_anchors" VALUES('bench2',9,1700000006000);
+INSERT INTO "boot_anchors" VALUES('aaaa00000002',1,1700000005000);
 DELETE FROM sqlite_sequence;
 INSERT INTO "sqlite_sequence" VALUES('events',6);
 CREATE INDEX idx_cells_seq ON cells(node_id, direction, seq);

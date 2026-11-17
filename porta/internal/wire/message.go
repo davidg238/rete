@@ -93,11 +93,14 @@ func listToEntries(v any) ([]space.Entry, error) {
 	return out, nil
 }
 
-// pushEntries decodes a #push's [[seq, path, kind, value, ageMs], …] (rete#444):
-// ageMs is how long before this push the node captured the entry, so Ingest
-// stamps arrival - age. A negative age is refused rather than stamped in the
-// future. A batch (porta -> node) keeps the 4-element shape: listToEntries.
-func pushEntries(v any) ([]space.Entry, error) {
+// pushEntries decodes a #push's [[seq, path, kind, value, bid, monoMs], …]
+// (#443): (bid, monoMs) is the entry's ORIGIN — the boot it was captured in and
+// that boot's monotonic ms at capture — which a journal row replayed in a later
+// boot keeps. Ingest turns it into a time (space.Entry). A negative monoMs, or a
+// row of this boot captured after the envelope's #mono, is refused rather than
+// stamped before its boot or in the future. A batch (porta -> node) keeps the
+// 4-element shape: listToEntries.
+func pushEntries(v any, bootID, mono int64) ([]space.Entry, error) {
 	l, ok := v.(cval.List)
 	if !ok {
 		return nil, fmt.Errorf("%w: #ent is not a list", errShape)
@@ -105,24 +108,26 @@ func pushEntries(v any) ([]space.Entry, error) {
 	out := make([]space.Entry, 0, len(l))
 	for _, item := range l {
 		row, ok := item.(cval.List)
-		if !ok || len(row) != 5 {
-			return nil, fmt.Errorf("%w: a push entry is not a 5-element list", errShape)
+		if !ok || len(row) != 6 {
+			return nil, fmt.Errorf("%w: a push entry is not a 6-element list", errShape)
 		}
 		seq, ok1 := row[0].(int64)
 		path, ok2 := row[1].(string)
 		kind, ok3 := row[2].(int64)
-		age, ok4 := row[4].(int64)
-		if !ok1 || !ok2 || !ok3 || !ok4 {
+		bid, ok4 := row[4].(int64)
+		monoMs, ok5 := row[5].(int64)
+		if !ok1 || !ok2 || !ok3 || !ok4 || !ok5 {
 			return nil, fmt.Errorf("%w: push entry header types", errShape)
 		}
 		raw, err := cval.Encode(row[3])
 		if err != nil {
 			return nil, err
 		}
-		if age < 0 {
-			return nil, fmt.Errorf("%w: push entry age %d is negative", errShape, age)
+		if monoMs < 0 || (bid == bootID && monoMs > mono) {
+			return nil, fmt.Errorf("%w: push entry origin (%d, %d) is impossible at mono %d of boot %d",
+				errShape, bid, monoMs, mono, bootID)
 		}
-		out = append(out, space.Entry{Seq: seq, Path: path, Kind: cval.Kind(kind), Value: raw, AgeMs: age})
+		out = append(out, space.Entry{Seq: seq, Path: path, Kind: cval.Kind(kind), Value: raw, BootID: bid, MonoMs: monoMs})
 	}
 	return out, nil
 }
@@ -137,18 +142,21 @@ func EncodePull(id string, cursor, bootID, hw, wak int64) ([]byte, error) {
 	}})
 }
 
-func EncodePush(id string, bootID int64, entries []space.Entry) ([]byte, error) {
+// EncodePush is the node's #push, for tests and tools: mono is the node's
+// monotonic ms now, and each entry carries its own origin (BootID, MonoMs).
+func EncodePush(id string, bootID, mono int64, entries []space.Entry) ([]byte, error) {
 	l := make(cval.List, 0, len(entries))
 	for _, e := range entries {
 		v, err := cval.Decode(e.Value)
 		if err != nil {
 			return nil, fmt.Errorf("stored value at %s is not decodable: %w", e.Path, err)
 		}
-		l = append(l, cval.List{e.Seq, e.Path, int64(e.Kind), v, e.AgeMs})
+		l = append(l, cval.List{e.Seq, e.Path, int64(e.Kind), v, e.BootID, e.MonoMs})
 	}
 	return cval.Encode(cval.Record{Tag: "push", Fields: cval.Map{
 		{K: cval.Symbol("id"), V: id},
 		{K: cval.Symbol("bid"), V: bootID},
+		{K: cval.Symbol("mono"), V: mono},
 		{K: cval.Symbol("ent"), V: l},
 	}})
 }

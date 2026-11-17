@@ -34,11 +34,17 @@ CREATE TABLE events (
   seq        INTEGER NOT NULL,
   kind       INTEGER NOT NULL,
   value_cbor BLOB NOT NULL,
-  ts_ms      INTEGER NOT NULL,
+  ts_ms      INTEGER,
   direction  TEXT NOT NULL CHECK (direction IN ('in','out','gw')),
   actor      TEXT NOT NULL DEFAULT '',
   reason     TEXT NOT NULL DEFAULT '',
   boot_id    INTEGER NOT NULL DEFAULT 0
+);
+CREATE TABLE boot_anchors (
+  node_id   TEXT NOT NULL,
+  boot_id   INTEGER NOT NULL,
+  anchor_ms INTEGER NOT NULL,
+  PRIMARY KEY (node_id, boot_id)
 );
 CREATE TABLE exchanges (
   id         INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -314,6 +320,11 @@ INSERT INTO "events" VALUES(236,'leaky','gw/liveness',0,2,X'D827646C697665',1780
 INSERT INTO "events" VALUES(237,'porch','gw/liveness',0,2,X'D827677374616C6C6564',1780187200016,'gw','porta','stalled: 2 ticks in 30000 ms between samples, declared one per 1000 ms — 28.0 periods behind',3);
 INSERT INTO "events" VALUES(238,'quiet','gw/liveness',0,2,X'D8276673696C656E74',1780187200017,'gw','porta','silent: 3600000 ms since the last check-in — 120.0 missed check-ins of 30000 ms, 3 tolerated',0);
 INSERT INTO "events" VALUES(239,'ghost','gw/liveness',0,2,X'D827696E657665725365656E',1780187200018,'gw','porta','neverSeen: no exchange has ever arrived from this node',0);
+INSERT INTO "boot_anchors" VALUES('leaky',1,1776133600002);
+INSERT INTO "boot_anchors" VALUES('leaky',2,1780036000002);
+INSERT INTO "boot_anchors" VALUES('leaky',3,1780122400002);
+INSERT INTO "boot_anchors" VALUES('leaky',4,1780183600002);
+INSERT INTO "boot_anchors" VALUES('porch',3,1780183600006);
 INSERT INTO "exchanges" VALUES(1,'leaky',1776112000001,1,0,0,0,0);
 INSERT INTO "exchanges" VALUES(2,'leaky',1776133600003,1,0,0,0,0);
 INSERT INTO "exchanges" VALUES(3,'leaky',1780000000001,2,0,0,0,0);

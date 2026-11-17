@@ -116,7 +116,7 @@ func TestOutboundStopsAtBatchCap(t *testing.T) {
 func TestOutboundNeverEchoesIngestedCells(t *testing.T) {
 	st := testStore(t)
 	st.Write("n1", "goal/name", cval.KindCell, enc(t, "alpha"), "david", "")
-	if _, _, err := st.Ingest("n1", 7, []Entry{
+	if _, _, err := st.Ingest("n1", 7, 0, []Entry{
 		{Seq: 1, Path: "obs/name", Kind: cval.KindCell, Value: enc(t, "alpha")},
 		{Seq: 2, Path: "obs/health", Kind: cval.KindCell, Value: enc(t, int64(99))},
 	}); err != nil {
@@ -149,11 +149,11 @@ func TestIngestDedupesOnHighWater(t *testing.T) {
 		{Seq: 1, Path: "tel/log", Kind: cval.KindStream, Value: enc(t, "one")},
 		{Seq: 2, Path: "tel/log", Kind: cval.KindStream, Value: enc(t, "two")},
 	}
-	hw, skipped, err := st.Ingest("n1", 7, batch)
+	hw, skipped, err := st.Ingest("n1", 7, 0, batch)
 	if err != nil || hw != 2 || skipped != 0 {
 		t.Fatalf("Ingest = %d, %d, %v; want 2, 0, nil", hw, skipped, err)
 	}
-	if hw, skipped, err = st.Ingest("n1", 7, batch); hw != 2 || skipped != 2 || err != nil {
+	if hw, skipped, err = st.Ingest("n1", 7, 0, batch); hw != 2 || skipped != 2 || err != nil {
 		t.Fatalf("replayed Ingest = %d, %d, %v; want 2, 2, nil", hw, skipped, err)
 	}
 	evs, _ := st.Events("n1", 100, 0)
@@ -243,14 +243,14 @@ func TestEmptyPeerAddressDoesNotClobber(t *testing.T) {
 // as a coherent answer and nearly inverted a hardware finding (rete#210/#161).
 func TestTreeReportsWhichBootPublishedEachCell(t *testing.T) {
 	st := testStore(t)
-	if _, _, err := st.Ingest("n1", 40, []Entry{
+	if _, _, err := st.Ingest("n1", 40, 0, []Entry{
 		{Seq: 1, Path: "diag/spans/pushTrim", Kind: cval.KindCell, Value: enc(t, int64(51923))},
 		{Seq: 2, Path: "diag/spans/checkIn", Kind: cval.KindCell, Value: enc(t, int64(243307))},
 	}); err != nil {
 		t.Fatalf("boot 40 Ingest: %v", err)
 	}
 	// The node reboots and has republished only part of its tree so far.
-	if _, _, err := st.Ingest("n1", 41, []Entry{
+	if _, _, err := st.Ingest("n1", 41, 0, []Entry{
 		{Seq: 1, Path: "diag/spans/checkIn", Kind: cval.KindCell, Value: enc(t, int64(235037))},
 	}); err != nil {
 		t.Fatalf("boot 41 Ingest: %v", err)
@@ -279,8 +279,8 @@ func TestTreeReportsWhichBootPublishedEachCell(t *testing.T) {
 // lives here and not on get.
 func TestEventsFilterByBoot(t *testing.T) {
 	st := testStore(t)
-	st.Ingest("n1", 40, []Entry{{Seq: 1, Path: "tel/log", Kind: cval.KindStream, Value: enc(t, "old")}})
-	st.Ingest("n1", 41, []Entry{{Seq: 1, Path: "tel/log", Kind: cval.KindStream, Value: enc(t, "new")}})
+	st.Ingest("n1", 40, 0, []Entry{{Seq: 1, Path: "tel/log", Kind: cval.KindStream, Value: enc(t, "old")}})
+	st.Ingest("n1", 41, 0, []Entry{{Seq: 1, Path: "tel/log", Kind: cval.KindStream, Value: enc(t, "new")}})
 	all, _ := st.Events("n1", 100, 0)
 	if len(all) != 2 {
 		t.Fatalf("unfiltered log has %d rows, want 2", len(all))
@@ -296,7 +296,7 @@ func TestEventsFilterByBoot(t *testing.T) {
 func TestOutboundRowsCarryNoBoot(t *testing.T) {
 	st := testStore(t)
 	st.Write("n1", "goal/name", cval.KindCell, enc(t, "alpha"), "david", "")
-	st.Ingest("n1", 41, []Entry{{Seq: 1, Path: "obs/name", Kind: cval.KindCell, Value: enc(t, "alpha")}})
+	st.Ingest("n1", 41, 0, []Entry{{Seq: 1, Path: "obs/name", Kind: cval.KindCell, Value: enc(t, "alpha")}})
 	tree, _ := st.Tree("n1", "")
 	for _, c := range tree {
 		switch c.Path {
@@ -318,7 +318,7 @@ func TestOutboundRowsCarryNoBoot(t *testing.T) {
 // CONFIG_SETTINGS returns 0 from platform_backend_boot_id).
 func TestBootlessNodeStoresZeroRatherThanInventingOne(t *testing.T) {
 	st := testStore(t)
-	st.Ingest("n1", 0, []Entry{{Seq: 1, Path: "obs/health", Kind: cval.KindCell, Value: enc(t, int64(1))}})
+	st.Ingest("n1", 0, 0, []Entry{{Seq: 1, Path: "obs/health", Kind: cval.KindCell, Value: enc(t, int64(1))}})
 	tree, _ := st.Tree("n1", "")
 	if len(tree) != 1 || tree[0].BootID != 0 {
 		t.Fatalf("tree = %+v, want one row with boot 0", tree)
@@ -352,7 +352,7 @@ func TestOpenAddsBootIDToAPreExistingStore(t *testing.T) {
 		t.Fatalf("reopen of a pre-boot_id store: %v", err)
 	}
 	defer st2.Close()
-	if _, _, err := st2.Ingest("n1", 41, []Entry{
+	if _, _, err := st2.Ingest("n1", 41, 0, []Entry{
 		{Seq: 1, Path: "obs/health", Kind: cval.KindCell, Value: enc(t, int64(7))},
 	}); err != nil {
 		t.Fatalf("Ingest after migration: %v", err)
@@ -601,7 +601,7 @@ func TestDirectionMigrationIsANoOpOnASecondOpen(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Open: %v", err)
 	}
-	st.Ingest("n1", 41, []Entry{{Seq: 1, Path: "obs/health", Kind: cval.KindCell, Value: enc(t, int64(1))}})
+	st.Ingest("n1", 41, 0, []Entry{{Seq: 1, Path: "obs/health", Kind: cval.KindCell, Value: enc(t, int64(1))}})
 	st.Close()
 
 	st2, err := Open(path, func() int64 { return 2000 })
@@ -629,7 +629,7 @@ func TestDirectionMigrationIsANoOpOnASecondOpen(t *testing.T) {
 // node may author.
 func TestGatewayVerdictNeverRidesTheWire(t *testing.T) {
 	st := testStore(t)
-	st.Ingest("n1", 41, []Entry{{Seq: 1, Path: "obs/health", Kind: cval.KindCell, Value: enc(t, int64(1))}})
+	st.Ingest("n1", 41, 0, []Entry{{Seq: 1, Path: "obs/health", Kind: cval.KindCell, Value: enc(t, int64(1))}})
 	if err := st.WriteGateway("n1", store.PathLiveness, enc(t, cval.Symbol("silent")), "porta", "test"); err != nil {
 		t.Fatalf("WriteGateway: %v", err)
 	}
@@ -668,7 +668,7 @@ func TestGatewayVerdictNeverRidesTheWire(t *testing.T) {
 // a row porta wrote itself).
 func TestGatewayVerdictCarriesTheNodesCurrentBoot(t *testing.T) {
 	st := testStore(t)
-	st.Ingest("n1", 44, []Entry{{Seq: 1, Path: "obs/health", Kind: cval.KindCell, Value: enc(t, int64(1))}})
+	st.Ingest("n1", 44, 0, []Entry{{Seq: 1, Path: "obs/health", Kind: cval.KindCell, Value: enc(t, int64(1))}})
 	if err := st.WriteGateway("n1", store.PathLiveness, enc(t, cval.Symbol("silent")), "porta", "no exchange"); err != nil {
 		t.Fatalf("WriteGateway: %v", err)
 	}
@@ -778,7 +778,7 @@ func TestDeclaredLivenessReadsTheNodesOwnRecord(t *testing.T) {
 	if err != nil {
 		t.Fatalf("encode: %v", err)
 	}
-	if _, _, err := st.Ingest("n1", 1, []Entry{
+	if _, _, err := st.Ingest("n1", 1, 0, []Entry{
 		{Seq: 1, Path: PathDeclared, Kind: cval.KindCell, Value: rec},
 	}); err != nil {
 		t.Fatalf("Ingest: %v", err)
@@ -815,7 +815,7 @@ func TestDeclaredLivenessSurvivesAGarbledDeclaration(t *testing.T) {
 			// so a fixed seq would silently test the FIRST case five times —
 			// and every case expects the same answer, so the skip would be
 			// invisible. `skipped` is asserted for exactly that reason.
-			_, skipped, err := st.Ingest("n1", 1, []Entry{
+			_, skipped, err := st.Ingest("n1", 1, 0, []Entry{
 				{Seq: int64(i + 1), Path: PathDeclared, Kind: cval.KindCell, Value: b},
 			})
 			if err != nil || skipped != 0 {
@@ -1111,5 +1111,149 @@ func TestFreshStoreRowsServeAfterAnImpossibleCursor(t *testing.T) {
 	}
 	if len(got) != 2 {
 		t.Fatalf("fresh store serves %+v, want both rows — the guard ate the store's future", got)
+	}
+}
+
+// clockStore is a store whose clock the test sets, so a stamped time is exact.
+func clockStore(t *testing.T) (*Store, *int64) {
+	t.Helper()
+	clock := new(int64)
+	st, err := Open(t.TempDir()+"/t.db", func() int64 { return *clock })
+	if err != nil {
+		t.Fatalf("Open: %v", err)
+	}
+	t.Cleanup(func() { st.Close() })
+	return st, clock
+}
+
+// eventTimes answers each event's seq -> ts_ms, oldest first; an unstamped row is invalid.
+func eventTimes(t *testing.T, st *Store) []Event {
+	t.Helper()
+	evs, err := st.Events("n1", 100, 0)
+	if err != nil {
+		t.Fatalf("Events: %v", err)
+	}
+	for i, j := 0, len(evs)-1; i < j; i, j = i+1, j-1 {
+		evs[i], evs[j] = evs[j], evs[i]
+	}
+	return evs
+}
+
+// #443 rule 5: a row from the push's own boot is stamped arrival − (mono − monoMs).
+func TestIngestSameBootTime(t *testing.T) {
+	st, clock := clockStore(t)
+	*clock = 100_000
+	if _, _, err := st.Ingest("n1", 41, 50_000, []Entry{
+		{Seq: 1, Path: "tel/log", Kind: cval.KindStream, Value: enc(t, "x"), BootID: 41, MonoMs: 40_000},
+	}); err != nil {
+		t.Fatalf("Ingest: %v", err)
+	}
+	evs := eventTimes(t, st)
+	if len(evs) != 1 || !evs[0].TsMs.Valid || evs[0].TsMs.Int64 != 90_000 {
+		t.Fatalf("events = %+v, want one row at 90000", evs)
+	}
+}
+
+// A replayed row from an earlier boot porta heard from is stamped that boot's
+// anchor + monoMs, the anchor being arrival − mono of that boot's last push.
+func TestIngestEarlierBootAnchored(t *testing.T) {
+	st, clock := clockStore(t)
+	*clock = 100_000
+	if _, _, err := st.Ingest("n1", 40, 50_000, []Entry{
+		{Seq: 1, Path: "tel/log", Kind: cval.KindStream, Value: enc(t, "a"), BootID: 40, MonoMs: 50_000},
+	}); err != nil {
+		t.Fatalf("Ingest boot 40: %v", err)
+	}
+	*clock = 200_000
+	if _, _, err := st.Ingest("n1", 41, 1_000, []Entry{
+		{Seq: 1, Path: "tel/log", Kind: cval.KindStream, Value: enc(t, "b"), BootID: 40, MonoMs: 60_000},
+	}); err != nil {
+		t.Fatalf("Ingest boot 41: %v", err)
+	}
+	evs := eventTimes(t, st)
+	if len(evs) != 2 || !evs[1].TsMs.Valid || evs[1].TsMs.Int64 != 110_000 {
+		t.Fatalf("events = %+v, want the replayed row at 50000+60000", evs)
+	}
+}
+
+// A row from a boot porta never heard from has no honest time: stored, unstamped.
+func TestIngestUnseenBootNullTime(t *testing.T) {
+	st, clock := clockStore(t)
+	*clock = 100_000
+	hw, _, err := st.Ingest("n1", 41, 1_000, []Entry{
+		{Seq: 1, Path: "tel/log", Kind: cval.KindStream, Value: enc(t, "lost"), BootID: 39, MonoMs: 5},
+		{Seq: 2, Path: "tel/log", Kind: cval.KindStream, Value: enc(t, "now"), BootID: 41, MonoMs: 1_000},
+	})
+	if err != nil || hw != 2 {
+		t.Fatalf("Ingest: hw=%d err=%v, want 2 accepted", hw, err)
+	}
+	evs := eventTimes(t, st)
+	if len(evs) != 2 || evs[0].TsMs.Valid || !evs[1].TsMs.Valid || evs[1].TsMs.Int64 != 100_000 {
+		t.Fatalf("events = %+v, want seq 1 unstamped and seq 2 at 100000", evs)
+	}
+}
+
+// Review Focus 1: porta committed a row, the ack was lost, the node rebooted and
+// replayed it under a fresh seq. porta stores it again — at-least-once, never an
+// error — and both copies carry the same time, so a reader can spot the pair.
+func TestIngestReplayDuplicateStored(t *testing.T) {
+	st, clock := clockStore(t)
+	*clock = 100_000
+	row := Entry{Seq: 5, Path: "tel/log", Kind: cval.KindStream, Value: enc(t, "once"), BootID: 40, MonoMs: 45_000}
+	if _, _, err := st.Ingest("n1", 40, 50_000, []Entry{row}); err != nil {
+		t.Fatalf("Ingest boot 40: %v", err)
+	}
+	*clock = 130_000
+	row.Seq = 1
+	if _, _, err := st.Ingest("n1", 41, 2_000, []Entry{row}); err != nil {
+		t.Fatalf("Ingest replay in boot 41: %v", err)
+	}
+	evs := eventTimes(t, st)
+	if len(evs) != 2 || evs[0].TsMs != evs[1].TsMs || evs[0].TsMs.Int64 != 95_000 {
+		t.Fatalf("events = %+v, want two rows both at 95000", evs)
+	}
+}
+
+// A store whose events.ts_ms predates #443 (NOT NULL) must open, keep its rows
+// and ids, and accept an unstamped row. The gateway's store is such a store.
+func TestOpenMakesEventsTimeNullable(t *testing.T) {
+	path := t.TempDir() + "/old.db"
+	st, err := Open(path, func() int64 { return 1_000 })
+	if err != nil {
+		t.Fatalf("Open: %v", err)
+	}
+	// Re-create events in its pre-#443 shape, with one row at a non-1 id.
+	for _, stmt := range []string{
+		`DROP TABLE events`,
+		strings.Replace(legacyEventsDDL, "('in','out')", "('in','out','gw')", 1),
+		`INSERT INTO events (id,node_id,path,seq,kind,value_cbor,ts_ms,direction,actor,reason,boot_id)
+		 VALUES (77,'n1','tel/log',3,1,x'01',500,'in','n1','',40)`,
+	} {
+		if _, err := st.DB().Exec(stmt); err != nil {
+			t.Fatalf("%s: %v", stmt, err)
+		}
+	}
+	st.Close()
+
+	st, err = Open(path, func() int64 { return 2_000 })
+	if err != nil {
+		t.Fatalf("reopen of a NOT NULL store: %v", err)
+	}
+	defer st.Close()
+	if _, _, err := st.Ingest("n1", 41, 10, []Entry{
+		{Seq: 1, Path: "tel/log", Kind: cval.KindStream, Value: enc(t, "x"), BootID: 39, MonoMs: 1},
+	}); err != nil {
+		t.Fatalf("Ingest an unstamped row: %v", err)
+	}
+	var n int
+	if err := st.DB().QueryRow(`SELECT COUNT(*) FROM events WHERE id = 77 AND ts_ms = 500`).Scan(&n); err != nil || n != 1 {
+		t.Fatalf("old row after migration: n=%d err=%v", n, err)
+	}
+	if err := st.DB().QueryRow(`SELECT COUNT(*) FROM events WHERE id > 77 AND ts_ms IS NULL`).Scan(&n); err != nil || n != 1 {
+		t.Fatalf("new unstamped row: n=%d err=%v", n, err)
+	}
+	if err := st.DB().QueryRow(
+		`SELECT COUNT(*) FROM sqlite_master WHERE type='index' AND name IN ('idx_events_node','idx_events_out')`).Scan(&n); err != nil || n != 2 {
+		t.Fatalf("events indexes after migration: n=%d err=%v, want 2", n, err)
 	}
 }

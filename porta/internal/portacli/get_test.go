@@ -55,11 +55,11 @@ func TestGetAnnouncesAMixedReadOnStdout(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	st.Ingest("c6spare", 40, []space.Entry{
+	st.Ingest("c6spare", 40, 0, []space.Entry{
 		{Seq: 1, Path: "diag/spans/pushTrim", Kind: cval.KindCell, Value: mustEnc(t, int64(51923))},
 		{Seq: 2, Path: "diag/spans/checkIn", Kind: cval.KindCell, Value: mustEnc(t, int64(243307))},
 	})
-	st.Ingest("c6spare", 41, []space.Entry{
+	st.Ingest("c6spare", 41, 0, []space.Entry{
 		{Seq: 1, Path: "diag/spans/checkIn", Kind: cval.KindCell, Value: mustEnc(t, int64(235037))},
 	})
 	st.Close()
@@ -92,7 +92,7 @@ func TestGetIsSilentWhenTheTreeIsCoherent(t *testing.T) {
 	path := getTestDB(t)
 	st, _ := space.Open(path, func() int64 { return 1000 })
 	st.Write("c6spare", "goal/name", cval.KindCell, mustEnc(t, "bench"), "david", "")
-	st.Ingest("c6spare", 41, []space.Entry{
+	st.Ingest("c6spare", 41, 0, []space.Entry{
 		{Seq: 1, Path: "obs/name", Kind: cval.KindCell, Value: mustEnc(t, "bench")},
 		{Seq: 2, Path: "obs/health", Kind: cval.KindCell, Value: mustEnc(t, int64(1))},
 	})
@@ -114,7 +114,7 @@ func TestGetIsSilentWhenTheTreeIsCoherent(t *testing.T) {
 func TestGetReportsABootlessNodeAsUnknown(t *testing.T) {
 	path := getTestDB(t)
 	st, _ := space.Open(path, func() int64 { return 1000 })
-	st.Ingest("hostnode", 0, []space.Entry{
+	st.Ingest("hostnode", 0, 0, []space.Entry{
 		{Seq: 1, Path: "obs/health", Kind: cval.KindCell, Value: mustEnc(t, int64(1))},
 	})
 	st.Close()
@@ -132,10 +132,10 @@ func TestGetReportsABootlessNodeAsUnknown(t *testing.T) {
 func TestLogFiltersByBoot(t *testing.T) {
 	path := getTestDB(t)
 	st, _ := space.Open(path, func() int64 { return 1000 })
-	st.Ingest("c6spare", 40, []space.Entry{
+	st.Ingest("c6spare", 40, 0, []space.Entry{
 		{Seq: 1, Path: "tel/log", Kind: cval.KindStream, Value: mustEnc(t, "old")},
 	})
-	st.Ingest("c6spare", 41, []space.Entry{
+	st.Ingest("c6spare", 41, 0, []space.Entry{
 		{Seq: 1, Path: "tel/log", Kind: cval.KindStream, Value: mustEnc(t, "new")},
 	})
 	st.Close()
@@ -194,7 +194,7 @@ func TestLogRendersAGatewayVerdictAsCrossingNoBoundary(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	st.Ingest("c6spare", 44, []space.Entry{
+	st.Ingest("c6spare", 44, 0, []space.Entry{
 		{Seq: 1, Path: "obs/health", Kind: cval.KindCell, Value: mustEnc(t, int64(1))},
 	})
 	if err := st.WriteGateway("c6spare", store.PathLiveness,
@@ -236,13 +236,13 @@ func TestGetNeverCallsAGatewayVerdictStale(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	st.Ingest("c6spare", 44, []space.Entry{
+	st.Ingest("c6spare", 44, 0, []space.Entry{
 		{Seq: 1, Path: "obs/health", Kind: cval.KindCell, Value: mustEnc(t, int64(1))},
 	})
 	st.WriteGateway("c6spare", store.PathLiveness, mustEnc(t, cval.Symbol("silent")), "porta", "test")
 	// The node reboots and republishes nothing yet: boot 45 is current, and the
 	// gw row still carries 44.
-	st.Ingest("c6spare", 45, []space.Entry{
+	st.Ingest("c6spare", 45, 0, []space.Entry{
 		{Seq: 1, Path: "obs/build", Kind: cval.KindCell, Value: mustEnc(t, "gdeadbeef")},
 	})
 	st.Close()
@@ -252,5 +252,20 @@ func TestGetNeverCallsAGatewayVerdictStale(t *testing.T) {
 		if strings.Contains(l, store.PathLiveness) && strings.Contains(l, "STALE") {
 			t.Errorf("gw row marked STALE: %q", l)
 		}
+	}
+}
+
+// #443: a row from a boot porta never heard from has no time, and prints none.
+func TestLogPrintsANullTimeAsADash(t *testing.T) {
+	path := getTestDB(t)
+	st, _ := space.Open(path, func() int64 { return 1000 })
+	st.Ingest("c6spare", 41, 0, []space.Entry{
+		{Seq: 1, Path: "tel/log", Kind: cval.KindStream, Value: mustEnc(t, "orphan"), BootID: 39, MonoMs: 5},
+	})
+	st.Close()
+
+	stdout, _ := runSplit(t, "--db", path, "log", "c6spare")
+	if l := lineContaining(stdout, "orphan"); !strings.HasPrefix(l, "- ") {
+		t.Fatalf("an unstamped row should print '-' for its time: %q", l)
 	}
 }
