@@ -630,7 +630,7 @@ func TestDirectionMigrationIsANoOpOnASecondOpen(t *testing.T) {
 func TestGatewayVerdictNeverRidesTheWire(t *testing.T) {
 	st := testStore(t)
 	st.Ingest("n1", 41, []Entry{{Seq: 1, Path: "obs/health", Kind: cval.KindCell, Value: enc(t, int64(1))}})
-	if err := st.WriteGateway("n1", store.PathLiveness, enc(t, cval.Symbol("silent")), "test"); err != nil {
+	if err := st.WriteGateway("n1", store.PathLiveness, enc(t, cval.Symbol("silent")), "porta", "test"); err != nil {
 		t.Fatalf("WriteGateway: %v", err)
 	}
 	entries, hi, err := st.OutboundSince("n1", 0, MaxBatchBytes)
@@ -669,7 +669,7 @@ func TestGatewayVerdictNeverRidesTheWire(t *testing.T) {
 func TestGatewayVerdictCarriesTheNodesCurrentBoot(t *testing.T) {
 	st := testStore(t)
 	st.Ingest("n1", 44, []Entry{{Seq: 1, Path: "obs/health", Kind: cval.KindCell, Value: enc(t, int64(1))}})
-	if err := st.WriteGateway("n1", store.PathLiveness, enc(t, cval.Symbol("silent")), "no exchange"); err != nil {
+	if err := st.WriteGateway("n1", store.PathLiveness, enc(t, cval.Symbol("silent")), "porta", "no exchange"); err != nil {
 		t.Fatalf("WriteGateway: %v", err)
 	}
 	tree, _ := st.Tree("n1", store.PathLiveness)
@@ -698,7 +698,7 @@ func TestGatewayVerdictCarriesTheNodesCurrentBoot(t *testing.T) {
 // row the node can never receive would put a permanent hole in that cursor.
 func TestGatewayWriteDoesNotConsumeTheOutboundSeq(t *testing.T) {
 	st := testStore(t)
-	st.WriteGateway("n1", store.PathLiveness, enc(t, cval.Symbol("live")), "test")
+	st.WriteGateway("n1", store.PathLiveness, enc(t, cval.Symbol("live")), "porta", "test")
 	seq, err := st.Write("n1", "goal/name", cval.KindCell, enc(t, "alpha"), "david", "")
 	if err != nil {
 		t.Fatalf("Write: %v", err)

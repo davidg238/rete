@@ -278,7 +278,7 @@ func fleetStore(t *testing.T, path string) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	if err := st.WriteGateway("n2", store.PathLiveness, enc(cval.Symbol("silent")),
+	if err := st.WriteGateway("n2", store.PathLiveness, enc(cval.Symbol("silent")), "porta",
 		"silent: 90000 ms since the last check-in"); err != nil {
 		t.Fatal(err)
 	}
@@ -297,7 +297,7 @@ func porchStore(t *testing.T, path string) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	if err := st.WriteGateway("n1", store.PathLiveness, enc(cval.Symbol("live")), "live: fine"); err != nil {
+	if err := st.WriteGateway("n1", store.PathLiveness, enc(cval.Symbol("live")), "porta", "live: fine"); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -526,7 +526,7 @@ func acceptanceStore(t *testing.T, path string) {
 		{"quiet", "silent", "silent: 3600000 ms since the last check-in — 120.0 missed check-ins of 30000 ms, 3 tolerated"},
 		{"ghost", "neverSeen", "neverSeen: no exchange has ever arrived from this node"},
 	} {
-		if err := st.WriteGateway(v.node, store.PathLiveness, enc(cval.Symbol(v.verdict)), v.reason); err != nil {
+		if err := st.WriteGateway(v.node, store.PathLiveness, enc(cval.Symbol(v.verdict)), "porta", v.reason); err != nil {
 			t.Fatal(err)
 		}
 	}

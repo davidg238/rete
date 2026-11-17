@@ -106,7 +106,7 @@ func TestOpsRefusals(t *testing.T) {
 		want               int
 	}{
 		{"an obs/ write is not intent", "PUT", "/node/n1/obs/apps/main", one, 400},
-		{"a gw/ write is not intent", "PUT", "/node/n1/gw/liveness", one, 400},
+		{"gw/liveness is porta's own verdict", "PUT", "/node/n1/gw/liveness", one, 400},
 		{"dbg/resp is the node's", "PUT", "/node/n1/dbg/resp", one, 400},
 		{"not a closed cval encoding", "PUT", "/node/n1/goal/x", []byte{0xff, 0x00}, 400},
 		{"over the value cap", "PUT", "/node/n1/goal/x", make([]byte, space.MaxValueBytes+1), 413},
@@ -169,5 +169,41 @@ func TestOpsBlobWithoutAKeyRefuses(t *testing.T) {
 	defer srv.Close()
 	if resp, body := do(t, srv, "POST", "/blob", []byte("x")); resp.StatusCode != 400 {
 		t.Fatalf("keyless POST /blob: %d %s", resp.StatusCode, body)
+	}
+}
+
+// rete#515: gw/apps/<name> is an operator's record porta keeps about a node.
+// It lands as a gateway row under the caller's actor, reads back through GET,
+// and never rides to the node.
+func TestOpsGatewayAppRecord(t *testing.T) {
+	srv, db := opsServer(t)
+	rec, _ := cval.Encode(cval.Record{Tag: "AppDebug", Fields: cval.Map{
+		{K: cval.Symbol("program"), V: cval.Bytes(make([]byte, 16))},
+		{K: cval.Symbol("snapshot"), V: cval.Record{Tag: "BlobRef", Fields: cval.Map{
+			{K: cval.Symbol("hash"), V: cval.Bytes(make([]byte, 32))}}}},
+	}})
+	req, _ := http.NewRequest("PUT", srv.URL+"/node/n1/gw/apps/main", bytes.NewReader(rec))
+	req.Header.Set("X-Porta-Actor", "faber")
+	resp, err := srv.Client().Do(req)
+	if err != nil || resp.StatusCode != 200 {
+		t.Fatalf("PUT gw/apps: %v %v", err, resp)
+	}
+	resp.Body.Close()
+	resp, body := do(t, srv, "GET", "/node/n1/gw/apps/main", nil)
+	if resp.StatusCode != 200 || !bytes.Equal(body, rec) {
+		t.Fatalf("GET gw/apps: %d", resp.StatusCode)
+	}
+	st, err := space.Open(db, nowMs)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer st.Close()
+	out, _, err := st.OutboundSince("n1", 0, 4096)
+	if err != nil || len(out) != 0 {
+		t.Fatalf("a gw row must never ride to the node: %v %+v", err, out)
+	}
+	evs, err := st.Events("n1", 10, 0)
+	if err != nil || len(evs) != 1 || evs[0].Path != "gw/apps/main" || evs[0].Actor != "faber" || evs[0].Direction != "gw" {
+		t.Fatalf("want one gw event by faber: %v %+v", err, evs)
 	}
 }

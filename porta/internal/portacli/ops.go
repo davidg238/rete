@@ -49,12 +49,16 @@ func mountOps(mux *http.ServeMux, st *space.Store, db string) {
 		path := r.PathValue("path")
 		// porta's inbound authority, exactly (PROTOCOL-NSL §3): goal/** as cells,
 		// and dbg/req, the one stream porta writes. Nothing else is intent.
+		// gw/apps/** is the one operator record porta keeps ABOUT a node and
+		// never sends it (rete#515); gw/liveness stays porta's own verdict.
 		kind := cval.KindCell
+		atPorta := strings.HasPrefix(path, "gw/apps/")
 		switch {
 		case path == "dbg/req":
 			kind = cval.KindStream
+		case atPorta:
 		case !strings.HasPrefix(path, "goal/"):
-			http.Error(w, fmt.Sprintf("porta: %q is neither under goal/ nor dbg/req; the HTTP write is intent only", path), http.StatusBadRequest)
+			http.Error(w, fmt.Sprintf("porta: %q is not under goal/ or gw/apps/, nor dbg/req; the HTTP write is intent only", path), http.StatusBadRequest)
 			return
 		}
 		value, err := io.ReadAll(http.MaxBytesReader(w, r.Body, space.MaxValueBytes))
@@ -65,6 +69,15 @@ func mountOps(mux *http.ServeMux, st *space.Store, db string) {
 		actor := r.Header.Get("X-Porta-Actor")
 		if actor == "" {
 			actor = "http:" + r.RemoteAddr
+		}
+		if atPorta {
+			// No seq: a gw row joins no sequence space (WriteGateway).
+			if err := st.WriteGateway(r.PathValue("id"), path, value, actor, r.URL.Query().Get("reason")); err != nil {
+				http.Error(w, "porta: "+err.Error(), http.StatusBadRequest)
+				return
+			}
+			answerJSON(w, map[string]any{"Seq": 0})
+			return
 		}
 		seq, err := st.Write(r.PathValue("id"), path, kind, value, actor, r.URL.Query().Get("reason"))
 		if err != nil {

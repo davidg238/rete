@@ -680,7 +680,7 @@ func TestSweepStoredLiveWithNoMarkIsUnknownOnce(t *testing.T) {
 	st := storeAtClock(t, &clock)
 	listening(t, st)
 	declare(t, st, "n1", 2_000, 16)
-	if err := st.WriteGateway("n1", store.PathLiveness, livenessLive, "live: written by the pre-#272 binary"); err != nil {
+	if err := st.WriteGateway("n1", store.PathLiveness, livenessLive, "porta", "live: written by the pre-#272 binary"); err != nil {
 		t.Fatal(err)
 	}
 	n := &fakeNode{id: "n1", boot: 41}

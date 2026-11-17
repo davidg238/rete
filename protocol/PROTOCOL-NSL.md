@@ -187,8 +187,9 @@ Recorded because it tells us what to steal and what to leave:
   └──────────────────────────┘             └──────────────────────────┘
        porta writes ONLY goal/** and dbg/req;    the bridge job holds the
        the node writes ONLY its own node/<id>/** radio capability + these grants
-       gw/** is porta's own verdict ABOUT a node: gateway-authored, never on
-       the wire, and excluded from the exchange by the store's direction
+       gw/** is held at porta ABOUT a node: its own verdicts (gw/liveness)
+       and an operator's record (gw/apps/<name>, rete#515) — never on the
+       wire, and excluded from the exchange by the store's direction
        column rather than by a filter (design 2026-08-10 §6.1)
 ```
 

@@ -173,7 +173,7 @@ func (s *Store) Sweep() ([]LivenessChange, error) {
 			continue
 		}
 		if !bytes.Equal(n.stored, j.want) {
-			if err := s.WriteGateway(n.id, store.PathLiveness, j.want, j.reason); err != nil {
+			if err := s.WriteGateway(n.id, store.PathLiveness, j.want, "porta", j.reason); err != nil {
 				errs = append(errs, fmt.Errorf("node %s: write verdict: %w", n.id, err))
 				continue // the mark judged this verdict; it must not move without it
 			}
