@@ -236,34 +236,8 @@ class PortaBridgeNodeC6 usingPlatform: platform net: net = (
      number that says the observability itself is lying — a delivery fact about this
      node's reporting, not a VM internal. *)
   publishHealth = (
-    | pairs |
-    pairs:: platform OrderedCollection new.
-    pairs add: #up -> platform monotonicMillis.
-    (* The same latched value the push envelope carries, so the record and the
-       envelope cannot disagree — they did, and obs/health is the only place the
-       boot id reaches a path (rete#211). See PortaBridgeNode.nsl for the full
-       reasoning. *)
-    pairs add: #bid -> bridge bootId.
-    pairs add: #wak -> ticks.
-    pairs add: #pto -> bridge misses.
-    pairs add: #sdr -> bridge dropped.
-    (* rete#199 — REFUSED, and it is not `pto`. A node the gateway is uniformly
-       rejecting gets a reply to every exchange, so `pto` reads 0 the whole way to
-       its death; without this field the record is identical for a healthy node and
-       for one that has been shouting into a closed door since boot. This is the
-       one number that separates "the gateway is unreachable" from "the gateway
-       refuses me", and they are different problems with different fixes. *)
-    pairs add: #ref -> bridge refused.
-    (* rete#232 rider — REJECTED inbound entries, and it is not `ref`. The
-       bridge counts-and-drops a malformed, out-of-authority or kind-mismatched
-       entry and the cursor advances past it — and under porta's replay guard
-       (2026-08-26 D1) that entry is now gone for good, not replayed next boot.
-       A permanent loss nobody can see is a silent divergence between what the
-       operator wrote and what the node runs; this field is the whole of the
-       "surface the drop" decision. *)
-    pairs add: #rej -> bridge rejected.
-    space put: 'obs/health' value:
-      (platform Record tag: #Health fields: (platform Map fromPairs: pairs)).
+    (* The record is the bridge's, PortaBridge>>health: (rete#443); the app owns its tick count. *)
+    space put: 'obs/health' value: (bridge health: ticks).
     ^ self
   )
 

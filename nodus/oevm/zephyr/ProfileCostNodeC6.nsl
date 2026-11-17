@@ -291,17 +291,8 @@ class ProfileCostNodeC6 usingPlatform: platform net: net = (
   )
 
   publishHealth = (
-    | pairs |
-    pairs:: platform OrderedCollection new.
-    pairs add: #up -> platform monotonicMillis.
-    (* The same latched value the push envelope carries (rete#211); see
-       PortaBridgeNode.nsl for why the literal was wrong. *)
-    pairs add: #bid -> bridge bootId.
-    pairs add: #wak -> ticks.
-    pairs add: #pto -> bridge misses.
-    pairs add: #sdr -> bridge dropped.
-    space put: 'obs/health' value:
-      (platform Record tag: #Health fields: (platform Map fromPairs: pairs)).
+    (* The record is the bridge's, PortaBridge>>health: (rete#443); the app owns its tick count. *)
+    space put: 'obs/health' value: (bridge health: ticks).
     ^ self
   )
 

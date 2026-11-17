@@ -152,17 +152,8 @@ class SilentProbeC6 usingPlatform: platform net: net = (
      that is the condition under test, and the WRITING is the allocation
      pressure that matters, not the delivery. *)
   publishHealth = (
-    | pairs |
-    pairs:: platform OrderedCollection new.
-    pairs add: #up -> platform monotonicMillis.
-    pairs add: #bid -> bridge bootId.
-    pairs add: #wak -> ticks.
-    pairs add: #pto -> bridge misses.
-    pairs add: #sdr -> bridge dropped.
-    pairs add: #ref -> bridge refused.
-    pairs add: #rej -> bridge rejected.
-    space put: 'obs/health' value:
-      (platform Record tag: #Health fields: (platform Map fromPairs: pairs)).
+    (* The record is the bridge's, PortaBridge>>health: (rete#443); the app owns its tick count. *)
+    space put: 'obs/health' value: (bridge health: ticks).
     ^ self
   )
 

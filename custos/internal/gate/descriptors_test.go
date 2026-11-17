@@ -289,7 +289,7 @@ func TestEveryLiveRecordHasReadingRules(t *testing.T) {
 // annotator go through.
 func TestNoteAndColumns(t *testing.T) {
 	_, d := loadBoth(t)
-	if got := d.Columns("health"); len(got) != 7 || got[0] != "up" {
+	if got := d.Columns("health"); len(got) != 8 || got[0] != "up" {
 		t.Errorf("obs/health columns = %v", got)
 	}
 	f := d.Note("metrics", "lfb")

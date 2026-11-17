@@ -506,6 +506,15 @@ records:
           every node for three rungs, so data before 2026-08-15 cannot be segmented
           by it.
         refs: [rete#162, rete#211]
+      - key: jhw
+        name: journalHighWater
+        unit: count
+        kind: high-water
+        meaning: the most unacked rows the outbox journal has held this boot
+        validity: >
+          0 on a board with no journal (RAM-only queue). Read beside sdr to judge a
+          link: a high jhw with sdr 0 is an outage the journal rode out.
+        refs: [rete#443]
       - key: pto
         name: pollTimeouts
         unit: count

@@ -2329,6 +2329,27 @@ class Kernel usingPlatform: platform = (
     public journaled = ( ^ journaled )
     public journalHighWater = ( ^ journalHw )
 
+    (* obs/health — liveness and delivery, one record for every app (rete#443 moved it
+       here from nine per-app copies, two of which had drifted: missing #ref/#rej, and
+       #bid the literal 1 that rete#211 fixed everywhere else). The app owns only its
+       tick count, `wak`. `bid` is the latched bootId the push envelope carries, so the
+       two cannot disagree (rete#211). `ref` is not `pto`: a gateway refusing every
+       exchange still replies, so `pto` reads 0 (rete#199). `rej` counts inbound entries
+       dropped, a permanent loss under porta's replay guard (rete#232). `jhw` is the
+       most unacked rows the journal has held, 0 with no journal (rete#443). *)
+    public health: ticks = (
+      | pairs |
+      pairs:: OrderedCollection new.
+      pairs add: #up -> platform monotonicMillis.
+      pairs add: #bid -> self bootId.
+      pairs add: #wak -> ticks.
+      pairs add: #pto -> self misses.
+      pairs add: #sdr -> self dropped.
+      pairs add: #ref -> self refused.
+      pairs add: #rej -> self rejected.
+      pairs add: #jhw -> journalHw.
+      ^ Record tag: #Health fields: (Map fromPairs: pairs) )
+
     (* ---- the pull half ---------------------------------------------------- *)
     (* The cursor sent is the one already APPLIED, which is what makes "the
        node's cursor passed seq N" better evidence of delivery than any

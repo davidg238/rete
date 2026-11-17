@@ -134,17 +134,8 @@ class RefusedProbeC6 usingPlatform: platform net: net = (
   (* The donor's record verbatim (see PortaBridgeNodeC6 for the field notes) —
      the workload must write what the real node writes. *)
   publishHealth = (
-    | pairs |
-    pairs:: platform OrderedCollection new.
-    pairs add: #up -> platform monotonicMillis.
-    pairs add: #bid -> bridge bootId.
-    pairs add: #wak -> ticks.
-    pairs add: #pto -> bridge misses.
-    pairs add: #sdr -> bridge dropped.
-    pairs add: #ref -> bridge refused.
-    pairs add: #rej -> bridge rejected.
-    space put: 'obs/health' value:
-      (platform Record tag: #Health fields: (platform Map fromPairs: pairs)).
+    (* The record is the bridge's, PortaBridge>>health: (rete#443); the app owns its tick count. *)
+    space put: 'obs/health' value: (bridge health: ticks).
     ^ self
   )
 

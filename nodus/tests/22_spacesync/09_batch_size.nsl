@@ -1,9 +1,9 @@
 (*
 expect:
-health 83
+health 92
 metrics 108
 cheap 62
-batch 415
+batch 468
 *)
 (* #56 design §9.1, landed as a REGRESSION GUARD.
 
@@ -46,7 +46,9 @@ batch 415
    large as the wake count of a node refused since boot) -> 407 (rete#232 rider,
    Health gains #rej for the same 11 B and the same worst-legal reasoning) -> 415
    (rete#444, each entry's age: 1 B for each of three cells, 5 B for a tel/log row
-   held 30 d — 97 B of headroom remain). Note 385 appears TWICE
+   held 30 d — 97 B of headroom remain) -> 468 (rete#443: the age became the origin
+   pair, a saturated bid and a 30 d monoMs on every row, the envelope gained its own
+   #mono, and Health gained #jhw for 9 B — 44 B of headroom remain). Note 385 appears TWICE
    in that series and the two are unrelated: the first is the frame mid-rename,
    the second is the one #199 grew from.
 
@@ -135,6 +137,9 @@ class BatchSize packageUsing: manifest = () (
        mis-keyed goal tree, a kind war) rejects at most one entry per pull per
        row, bounded by the same 30-day tick count. *)
     pairs add: #rej -> 1296000.
+    (* rete#443 — the journal high-water, worst legal: a 1020 KB ring of records no
+       smaller than ~22 B holds under 65536 rows, so 65535 is the widest it gets (3 B). *)
+    pairs add: #jhw -> 65535.
     ^ platform Record tag: #Health fields: (platform Map fromPairs: pairs) )
 
   (* The eleven fields kernel.nsl builds, with the WROOM-32 values 05_record_size.nsl
@@ -181,12 +186,11 @@ class BatchSize packageUsing: manifest = () (
     ^ platform Record tag: #Log with: #lvl -> #info
                               with: #txt -> 'tick 1296000' )
 
-  (* rete#444: a push entry's 5th field is its AGE in ms. A cell's is 0; a stream
-     row's is how long it waited in the outbox. Worst legal width for the tel/log
-     row: a row held 30 d (5 B), the same 30 d the other fields use. *)
-  row: platform seq: s path: p value: v = ( ^ self row: platform seq: s path: p value: v age: 0 )
-  row: platform seq: s path: p value: v age: a = (
-    ^ platform List with: s with: p with: 2 with: v with: a )
+  (* rete#444 gave a push entry its capture time; rete#443 made that the ORIGIN pair
+     (bid, monoMs at capture), the only form that survives a reboot. A cell's origin is
+     this boot and the scan. Worst legal widths: a saturated bid, 30 d of uptime. *)
+  row: platform seq: s path: p value: v = (
+    ^ platform List with: s with: p with: 2 with: v with: 1073741823 with: 2592000000 )
 
 public main: platform args: args = (
   | cbor rows |
@@ -198,7 +202,7 @@ public main: platform args: args = (
   rows:: platform OrderedCollection new.
   rows add: (self row: platform seq: 1296000 path: 'obs/health' value: (self health: platform)).
   rows add: (self row: platform seq: 1296001 path: 'sys/metrics' value: (self metrics: platform)).
-  rows add: (self row: platform seq: 1296002 path: 'tel/log' value: (self log: platform) age: 2592000000).
+  rows add: (self row: platform seq: 1296002 path: 'tel/log' value: (self log: platform)).
   (* rete#190: publishCheap writes this every check-in, immediately after
      sys/metrics — so it carries the HIGHEST seq of the four and is the first row
      pushFrame's tail-trim drops. It belongs in the frame the guard measures. *)
@@ -208,6 +212,8 @@ public main: platform args: args = (
       (* The ENVELOPE's bootId, which is a different field from Health's and was
          left at 1 until 2026-08-11. Worst legal value, same reasoning. *)
       with: #bid -> 1073741823
+      (* rete#443: this boot's monoMs, so porta can age each row's origin. *)
+      with: #mono -> 2592000000
       with: #ent -> (platform List fromCollection: rows))) byteSize printString) println.
 )
 ) : (

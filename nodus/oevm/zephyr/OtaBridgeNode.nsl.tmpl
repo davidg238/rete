@@ -111,15 +111,8 @@ class OtaBridgeNode usingPlatform: platform net: net = (
   nameChanged: v = ( space put: 'obs/name' value: v. ^ self )
 
   publishHealth = (
-    | pairs |
-    pairs:: platform OrderedCollection new.
-    pairs add: #up -> platform monotonicMillis.
-    pairs add: #bid -> 1.
-    pairs add: #wak -> ticks.
-    pairs add: #pto -> bridge misses.
-    pairs add: #sdr -> bridge dropped.
-    space put: 'obs/health' value:
-      (platform Record tag: #Health fields: (platform Map fromPairs: pairs)).
+    (* The record is the bridge's, PortaBridge>>health: (rete#443); the app owns its tick count. *)
+    space put: 'obs/health' value: (bridge health: ticks).
     ^ self
   )
 
