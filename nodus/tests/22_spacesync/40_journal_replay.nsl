@@ -1,0 +1,66 @@
+(* expect:
+journaled true
+a pending 3
+a after ack 2
+b pending 2
+b values b,c
+b origin ok true
+b seqs fresh true
+b seqs ascending true
+cell after rows true
+wire row size 6
+env: OEVM_JOURNAL=/tmp/oevm_journal_40.bin
+env: OEVM_JOURNAL_RESET=1
+*)
+(* rete#443 — a row survives a reboot. Bridge A captures three tel/log rows (each is
+   journaled at capture), porta acks the first, and then bridge B is built over the
+   same journal file: building a bridge (re)opens the journal, which is how a host test
+   stands in for a reboot. B's window holds the two unacked rows, in capture order,
+   carrying their ORIGIN (bid, monoMs from A's capture) but stamped with B's own seqs,
+   which come before any cell written after B came up — so the push frame stays
+   ascending and porta's restart rule needs no change.
+
+   A row on the wire is [seq, path, kind, value, bid, monoMs] (rete#443 replaced
+   rete#444's age with the origin pair; porta derives the time). *)
+class JournalReplay packageUsing: manifest = () (
+  public main: platform args: args = (
+    | space spans a b rows t0 seqA vals ok asc lastSeq cellSeq |
+    space:: platform space.
+    spans:: platform Spans new.
+    a:: platform PortaBridge socket: nil space: space id: 'n1' peer: '::1' port: 6969 spans: spans timers: platform timers.
+    ('journaled ' , a journaled printString) out.
+    a subscribeStream: 'tel/log'.
+    t0:: platform monotonicMillis.
+    space out: 'tel/log' value: 'a'. space drain.
+    platform advanceMillis: 1000.
+    space out: 'tel/log' value: 'b'. space drain.
+    platform advanceMillis: 1000.
+    space out: 'tel/log' value: 'c'. space drain.
+    ('a pending ' , a pendingSize printString) out.
+    seqA:: (a pendingRows at: 3) at: 1.
+    a applyAck: (platform Cbor encode: (Record tag: #ack with: #hw -> ((a pendingRows at: 1) at: 1))).
+    ('a after ack ' , a pendingSize printString) out.
+
+    b:: platform PortaBridge socket: nil space: space id: 'n1' peer: '::1' port: 6969 spans: spans timers: platform timers.
+    rows:: b pendingRows.
+    ('b pending ' , rows size printString) out.
+    vals:: (rows at: 1) at: 4.
+    vals:: vals , ',' , ((rows at: 2) at: 4).
+    ('b values ' , vals) out.
+    ok:: ((rows at: 1) at: 5) = a bootId
+      and: [ ((rows at: 1) at: 6) = (t0 + 1000) and: [ ((rows at: 2) at: 6) = (t0 + 2000) ] ].
+    ('b origin ok ' , ok printString) out.
+    ('b seqs fresh ' , (((rows at: 1) at: 1) > seqA) printString) out.
+    ('b seqs ascending ' , (((rows at: 2) at: 1) > ((rows at: 1) at: 1)) printString) out.
+    space put: 'obs/name' value: 'bench'.
+    space drain.
+    rows:: b collectOutbound.
+    lastSeq:: 0. cellSeq:: 0.
+    rows do: [ :r |
+      ((r at: 2) = 'tel/log' and: [ (r at: 1) > lastSeq ]) ifTrue: [ lastSeq:: r at: 1 ].
+      (r at: 2) = 'obs/name' ifTrue: [ cellSeq:: r at: 1 ] ].
+    ('cell after rows ' , (cellSeq > lastSeq) printString) out.
+    ('wire row size ' , (rows at: 1) size printString) out.
+  )
+) : (
+)

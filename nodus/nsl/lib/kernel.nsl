@@ -374,6 +374,7 @@ class Kernel usingPlatform: platform = (
     public with: a with: b with: c = ( | arr | arr:: platform basicNew: Array indexable: 3. arr at: 1 put: a. arr at: 2 put: b. arr at: 3 put: c. ^ self new setItems: arr )
     public with: a with: b with: c with: d = ( | arr | arr:: platform basicNew: Array indexable: 4. arr at: 1 put: a. arr at: 2 put: b. arr at: 3 put: c. arr at: 4 put: d. ^ self new setItems: arr )
     public with: a with: b with: c with: d with: e = ( | arr | arr:: platform basicNew: Array indexable: 5. arr at: 1 put: a. arr at: 2 put: b. arr at: 3 put: c. arr at: 4 put: d. arr at: 5 put: e. ^ self new setItems: arr )
+    public with: a with: b with: c with: d with: e with: f = ( | arr | arr:: platform basicNew: Array indexable: 6. arr at: 1 put: a. arr at: 2 put: b. arr at: 3 put: c. arr at: 4 put: d. arr at: 5 put: e. arr at: 6 put: f. ^ self new setItems: arr )
     public fromCollection: aCollection = ( | n arr i |
       n:: aCollection size.
       arr:: platform basicNew: Array indexable: n.
@@ -2051,6 +2052,13 @@ class Kernel usingPlatform: platform = (
          now that the cadence half of goal/liveness is honoured (rete#240.2). *)
       private tickChannel ::= nil. private tickToken ::= nil.
       private pending ::= OrderedCollection new.
+      (* rete#443: the outbox journal. `journaled` is latched at construction (a board
+         with no journal keeps the RAM-only queue); `journalCursor` is the pos of the last
+         journal record loaded into `pending`, which is then a WINDOW onto the journal;
+         `journalLast` the newest pos appended; `journalHw` the most unacked rows ever
+         waiting, reported as obs/health `jhw`. *)
+      private journaled ::= false. private journalCursor ::= 0. private journalLast ::= 0.
+      private journalHw ::= 0.
       (* tuvm#107 follow-on: the six spans that decompose an exchange. See the
          bracket comment on checkIn for what each one covers and why the sends are
          separated from the waits.
@@ -2089,6 +2097,15 @@ class Kernel usingPlatform: platform = (
          `bootId` gives: this send is what performs the NVS write, and it must
          not happen inside a measured check-in. *)
       bootId:: platform bootId.
+      (* rete#443: open the journal and load the window with whatever a previous boot
+         left unacked. Done before anything is subscribed, so replayed rows take this
+         boot's first seqs, ahead of any row or cell it writes. *)
+      journaled:: outer journalOpen.
+      journaled ifTrue: [
+        dropped:: dropped + outer journalTakeDropped.
+        journalCursor:: outer journalLastRetired.
+        journalLast:: journalCursor.
+        self refillWindow ].
       sPullSend::  sn register: #pullSend.
       sPullWait::  sn register: #pullWait.
       sApplyIn::   sn register: #applyIn.
@@ -2255,11 +2272,26 @@ class Kernel usingPlatform: platform = (
     public subscribeStream: absolutePath = (
       (space channel: absolutePath) whenever: '' do: [ :v | self capture: absolutePath value: v ].
       ^ self )
+    (* rete#443: with a journal, a captured row is written to flash FIRST and reaches
+       `pending` only through the window refill, which loads journal records in order —
+       so a row's seq is stamped when it enters the window, after every older unacked
+       row, and the frame stays ascending. Without a journal (no `outbox` partition, no
+       OEVM_JOURNAL) `pending` is the whole queue, bounded at maxPending, as before.
+       A pending row is a 7-slot Array: seq, path, kind, value, bid, monoMs (the ORIGIN
+       of the capture, rete#444's pair), and the journal pos (nil without a journal). *)
     capture: absolutePath value: v = (
-      | evicted |
-      (* rete#444: the 5th field is monoMs at CAPTURE, so a row held through an outage
-         keeps its own time; collectOutbound turns it into an age for the wire. *)
-      pending add: (List with: space stamp with: absolutePath with: 1 with: v with: platform monotonicMillis).
+      | evicted pos |
+      journaled ifTrue: [
+        pos:: outer journalAppend: (Cbor new encode: (List with: absolutePath with: 1 with: v
+                 with: bootId with: platform monotonicMillis)).
+        dropped:: dropped + outer journalTakeDropped.
+        pos == nil ifFalse: [
+          journalLast:: pos.
+          (journalLast - outer journalLastRetired) > journalHw ifTrue: [ journalHw:: journalLast - outer journalLastRetired ].
+          self refillWindow.
+          ^ self ] ].
+      pending add: (self row: space stamp path: absolutePath kind: 1 value: v
+                      bid: bootId mono: platform monotonicMillis pos: nil).
       [ pending size > self maxPending ] whileTrue: [
         evicted:: pending removeFirst.
         (* rete#114: an evicted OFFER must not read as a delivered one. With
@@ -2270,6 +2302,32 @@ class Kernel usingPlatform: platform = (
         ((evicted at: 2) = 'sys/panic') ifTrue: [ panicSeq:: 0 ].
         dropped:: dropped + 1 ].
       ^ self )
+
+    row: seq path: p kind: k value: v bid: b mono: m pos: pos = ( | r |
+      r:: platform basicNew: Array indexable: 7.
+      r at: 1 put: seq. r at: 2 put: p. r at: 3 put: k. r at: 4 put: v.
+      r at: 5 put: b. r at: 6 put: m. r at: 7 put: pos.
+      ^ r )
+
+    (* Load journal records after `journalCursor` into the window until it holds
+       maxPending rows or the journal has no more. A record that does not decode (it
+       cannot happen short of a bug: the journal checks every record's CRC) is skipped
+       and counted as dropped, never allowed to wedge the window. *)
+    refillWindow = (
+      | r rec bad |
+      [ pending size < self maxPending and: [ ((r:: outer journalNextAfter: journalCursor) == nil) not ] ] whileTrue: [
+        journalCursor:: r at: 1.
+        bad:: false.
+        rec:: Cbor new decode: (r at: 2) ifInvalid: [ :m | bad:: true. nil ].
+        bad
+          ifTrue: [ dropped:: dropped + 1 ]
+          ifFalse: [
+            pending add: (self row: space stamp path: (rec at: 1) kind: (rec at: 2) value: (rec at: 3)
+                            bid: (rec at: 4) mono: (rec at: 5) pos: journalCursor) ] ].
+      ^ self )
+
+    public journaled = ( ^ journaled )
+    public journalHighWater = ( ^ journalHw )
 
     (* ---- the pull half ---------------------------------------------------- *)
     (* The cursor sent is the one already APPLIED, which is what makes "the
@@ -2628,6 +2686,7 @@ class Kernel usingPlatform: platform = (
       ^ Cbor new encode: (Record tag: #push
           with: #id -> nodeId
           with: #bid -> self bootId
+          with: #mono -> platform monotonicMillis
           with: #ent -> (List fromCollection: rows)) )
 
     (* ALL THREE prefixes are the node's own authority (PROTOCOL-NSL §4.1 grants the
@@ -2653,12 +2712,14 @@ class Kernel usingPlatform: platform = (
       rows:: OrderedCollection new.
       i:: 1.
       now:: platform monotonicMillis.
-      (* rete#444: an entry's 5th field on the wire is its AGE, ms between capture and
-         this push, so porta stamps it arrival - age (G6) with no clock or state of
-         its own. Rebuilt every push, so a re-sent row's age is never stale. *)
+      (* rete#443: an entry on the wire is [seq, path, kind, value, bid, monoMs] — the
+         ORIGIN of the capture, which survives a reboot where rete#444's age could not.
+         The push envelope carries this boot's monoMs, so porta derives a current-boot
+         row's time exactly as before (arrival - (mono - monoMs)) and an earlier boot's
+         from what it saw of that boot. *)
       [ i <= pending size ] whileTrue: [
         r:: pending at: i.
-        rows add: (List with: (r at: 1) with: (r at: 2) with: (r at: 3) with: (r at: 4) with: now - (r at: 5)).
+        rows add: (List with: (r at: 1) with: (r at: 2) with: (r at: 3) with: (r at: 4) with: (r at: 5) with: (r at: 6)).
         i:: i + 1 ].
       self addCellsFrom: 'obs' into: rows.
       self addCellsFrom: 'sys' into: rows.
@@ -2666,13 +2727,14 @@ class Kernel usingPlatform: platform = (
       ^ self sortedBySeq: rows )
 
     addCellsFrom: prefix into: rows = (
-      | cells i r |
+      | cells i r now |
+      now:: platform monotonicMillis.
       cells:: (space channel: prefix) changedSince: acked max: self maxRows.
       i:: 1.
       [ i <= cells size ] whileTrue: [
         r:: cells at: i.
         (self valueFits: (r at: 3))
-          ifTrue: [ rows add: (List with: (r at: 2) with: (r at: 1) with: 2 with: (r at: 3) with: 0) ]
+          ifTrue: [ rows add: (List with: (r at: 2) with: (r at: 1) with: 2 with: (r at: 3) with: bootId with: now) ]
           ifFalse: [ rejected:: rejected + 1 ].
         i:: i + 1 ].
       ^ self )
@@ -2701,7 +2763,7 @@ class Kernel usingPlatform: platform = (
        trimmed push acks LOWER than we offered — which is correct, and is why the
        watermark is taken from the reply and never from what we sent. *)
     public applyAck: aBytes = (
-      | bad r hw keep i row |
+      | bad r hw keep i row retire |
       bad:: false.
       r:: Cbor new decode: aBytes ifInvalid: [ :m | bad:: true. nil ].
       bad ifTrue: [ ^ false ].
@@ -2716,12 +2778,21 @@ class Kernel usingPlatform: platform = (
       (outer rankOf: hw) = 2 ifFalse: [ ^ false ].
       hw > acked ifTrue: [ acked:: hw ].
       keep:: OrderedCollection new.
+      retire:: 0.
       i:: 1.
       [ i <= pending size ] whileTrue: [
         row:: pending at: i.
-        (row at: 1) > acked ifTrue: [ keep add: row ].
+        (row at: 1) > acked
+          ifTrue: [ keep add: row ]
+          ifFalse: [ (((row at: 7) == nil) not and: [ (row at: 7) > retire ]) ifTrue: [ retire:: row at: 7 ] ].
         i:: i + 1 ].
       pending:: keep.
+      (* rete#443: every journal record at or below the highest acked pos is done. The
+         window holds rows in pos order, so no unacked row lies below it. *)
+      (journaled and: [ retire > 0 ]) ifTrue: [
+        outer journalRetire: retire.
+        dropped:: dropped + outer journalTakeDropped.
+        self refillWindow ].
       ^ true )
 
     (* Answers FALSE like every other non-ack path: the caller's question is "did

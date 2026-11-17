@@ -30,6 +30,7 @@ static int      nsec;
 static uint32_t gen[256];
 static int      ws, wo;       /* write sector, write offset in it */
 static uint32_t next_pos, retired;
+static uint32_t loaded;      /* highest pos journal_next has handed out since open */
 static int      lost_at_open;
 /* The read cursor: where the last journal_next answer ended. A call whose `after` is
    that answer's pos resumes there; any other call (or a sector rotated since) starts
@@ -92,7 +93,7 @@ static int note_open(int type, uint32_t pos, const uint8_t *pl, int len, void *c
 }
 static int count_unacked(int type, uint32_t pos, const uint8_t *pl, int len, void *ctx) {
     (void)pl; (void)len;
-    if (type == T_DATA && pos > retired) ++*(int *)ctx;
+    if (type == T_DATA && pos > retired && pos > loaded) ++*(int *)ctx;
     return 0;
 }
 
@@ -119,7 +120,7 @@ int journal_open(void) {
         memset(img + got, 0xFF, (size_t)nsec * JSECTOR - got);
         fseek(jf, 0, SEEK_SET); fwrite(img, 1, (size_t)nsec * JSECTOR, jf); fflush(jf);
     }
-    lost_at_open = 0; next_pos = 1; retired = 0; ws = -1;
+    lost_at_open = 0; next_pos = 1; retired = 0; loaded = 0; ws = -1;
     int foreign = 0, used = 0;
     for (int s = 0; s < nsec; s++) {
         gen[s] = 0;
@@ -204,6 +205,7 @@ int journal_next(uint32_t after, uint32_t *pos, uint8_t *buf, int cap) {
             memcpy(buf, r + 7, (size_t)len);
             *pos = rd32(r + 3);
             cs = s; coff = off; cpos = *pos; cgen = gen[s];
+            if (*pos > loaded) loaded = *pos;
             return len;
         }
     }

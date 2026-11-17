@@ -3,7 +3,7 @@ expect:
 one row 113
 overflowing rows 8
 frame fits true
-frame bytes 485
+frame bytes 497
 frame entries 4
 dropped the tail true
 kept the lowest seqs true
@@ -27,6 +27,10 @@ one more would not fit true
    This file is the guard on that: it pins the trim's OUTPUT, so a future change to
    either the codec or the trim that breaks the equivalence shows up as a number
    moving rather than as a frame quietly losing rows.
+
+   rete#443 moved `frame bytes` 485 -> 497 and nothing else: every row now carries its
+   origin (bid, monoMs) where it carried an age, and the envelope gains `mono`. The trim's
+   choice of rows (4 entries, the lowest seqs) did not change.
 
    THE NUMBERS ARE MEASURED, NOT DERIVED, and they were confirmed identical against
    the pre-bisection walk before being pinned — which is what makes this a

@@ -105,6 +105,18 @@ int main(void) {
         assert(journal_retire(p) == 0);
     }
 
+    /* loaded_rows_are_not_dropped: a record already handed out by journal_next is in
+       the caller's RAM window and will still be delivered, so a rotation that erases it
+       does not count it as dropped. Load the first 10, wrap: dropped excludes them. */
+    fresh();
+    { uint32_t p, after = 0, got; uint8_t b[64]; int n = 0, r = 0, in_s0 = 0;
+      for (int k = 0; k < 10; k++) assert(journal_append(row, 40, &p) == 0);
+      for (int k = 0; k < 10; k++) { assert(journal_next(after, &got, b, sizeof b) == 40); after = got; }
+      n = 10;
+      while ((r = journal_append(row, 40, &p)) == 0) { n++; assert(n < 1000); }
+      in_s0 = (4096 - 16) / 48;               /* records sector 0 held: 85 */
+      assert(r == in_s0 - 10); }
+
     /* torn_tail_is_not_corruption: garbage after the last record (a write cut by a
        power loss) ends that sector, keeps the earlier records, and the next append
        still lands and walks. */

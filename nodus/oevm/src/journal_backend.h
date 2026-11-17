@@ -12,8 +12,10 @@
    delete one entry, so retirement is a later record, never an edit.
 
    When the ring is full the next append erases the OLDEST sector, and the answer is
-   how many of that sector's data records were still unacked (they are lost, and the
-   caller counts them into `sdr`). */
+   how many of that sector's data records were still unacked AND never handed out by
+   journal_next (they are lost, and the caller counts them into `sdr`). A record the
+   caller already loaded sits in its RAM window and will still be delivered this boot,
+   so erasing its flash copy is not a loss to count. */
 #include <stdint.h>
 
 /* Answers 1 when this board has a journal (opening it, and erasing it if its sector

@@ -72,13 +72,13 @@
 
 **Files:**
 - Modify: `nodus/nsl/lib/kernel.nsl` — PortaBridge `capture:value:` (~2232), `applyAck:` (~2677), the constructor (~2076, where `bootId` is read), `collectOutbound` (~2626)
-- Test: `nodus/tests/22_spacesync/37_journal_replay.nsl`, `38_journal_wrap.nsl`; update `31_row_age.nsl` for the new row shape
+- Test: `nodus/tests/22_spacesync/40_journal_replay.nsl`, `41_journal_wrap.nsl`; update `31_row_age.nsl` for the new row shape
 
 **Interfaces:**
 - Consumes: Task 2's accessors.
 - Produces: a pending row is `List with: seq with: path with: kind with: value with: bid with: monoMs with: pos` (pos nil when no journal). The journaled record is the CBOR of `List with: path with: kind with: value with: bid with: monoMs`. `collectOutbound` emits `[seq, path, kind, value, bid, monoMs]`; cells emit their own boot's `bid` and the scan's `monoMs`. New public `journalHighWater` (max unacked rows seen).
 
-- [ ] **Step 1:** Write `37_journal_replay.nsl`: bridge A captures 3 rows on `tel/log`, acks the first (fed `applyAck:` bytes, as `16_refused_node.nsl` does); bridge B built over the same journal file (stands in for the reboot) has `pendingSize` 2, its rows carry seqs 1 and 2 of B's space and A's `bid`/`monoMs`, in capture order, ahead of any cell. Write `38_journal_wrap.nsl` with `env: OEVM_JOURNAL_SECTORS=2`: capture until a rotation, assert `dropped` equals the rows lost and the newest row is still pending.
+- [ ] **Step 1:** Write `40_journal_replay.nsl`: bridge A captures 3 rows on `tel/log`, acks the first (fed `applyAck:` bytes, as `16_refused_node.nsl` does); bridge B built over the same journal file (stands in for the reboot) has `pendingSize` 2, its rows carry seqs 1 and 2 of B's space and A's `bid`/`monoMs`, in capture order, ahead of any cell. Write `41_journal_wrap.nsl` with `env: OEVM_JOURNAL_SECTORS=2`: capture until a rotation, assert `dropped` equals the rows lost and the newest row is still pending.
 - [ ] **Step 2:** Run both; fail.
 - [ ] **Step 3:** Implement: the constructor calls `journalOpen`, then replays from `journalLastRetired`, re-stamping each with `space stamp`; `capture:` appends and adds `dropped`; `applyAck:` retires the highest `pos` among rows it drops; `maxPending` eviction runs only when `journalOpen` was false; `journalLostAtOpen` is added to `dropped` at boot. `sys/panic` handling unchanged.
 - [ ] **Step 4:** Run both, then `31_row_age.nsl` (updated: assert `bid` and `monoMs` instead of age) and `05_pending_bound.nsl` (unchanged, no journal) — all pass.

@@ -1,0 +1,43 @@
+(* expect:
+journaled true
+wrapped true
+window full true
+newest survives true
+conserved true
+env: OEVM_JOURNAL=/tmp/oevm_journal_41.bin
+env: OEVM_JOURNAL_RESET=1
+env: OEVM_JOURNAL_SECTORS=2
+*)
+(* rete#443 — a link outage longer than the journal holds. With porta silent nothing
+   is acked, so the ring fills and each rotation erases the oldest sector: the newest
+   rows survive, the RAM window stays at its bound, and every row written is accounted
+   for exactly once — still in flash, held in the window, or counted in `dropped`
+   (which porta reads as obs/health `sdr`). A two-sector ring wraps in a few hundred rows.
+
+   Conservation is exact: n == dropped + (unacked rows still in flash that the window
+   has not loaded) + (window rows). A row the window already loaded is not counted as
+   dropped when its flash copy is erased, because it will still be delivered. *)
+class JournalWrap packageUsing: manifest = () (
+  public main: platform args: args = (
+    | space spans br n r last after inFlash cbor maxWin |
+    space:: platform space.
+    spans:: platform Spans new.
+    cbor:: platform Cbor.
+    br:: platform PortaBridge socket: nil space: space id: 'n1' peer: '::1' port: 6969 spans: spans timers: platform timers.
+    ('journaled ' , br journaled printString) out.
+    br subscribeStream: 'tel/log'.
+    n:: 400.
+    1 to: n do: [ :i | space out: 'tel/log' value: i. space drain ].
+    ('wrapped ' , (br dropped > 0) printString) out.
+    ('window full ' , (br pendingSize = br maxPending) printString) out.
+    (* walk flash past the window: the rows after the window's last loaded pos *)
+    maxWin:: 0.
+    br pendingRows do: [ :row | (row at: 7) > maxWin ifTrue: [ maxWin:: row at: 7 ] ].
+    after:: maxWin. inFlash:: 0. last:: nil.
+    [ (r:: platform journalNextAfter: after) == nil ] whileFalse: [
+      inFlash:: inFlash + 1. after:: r at: 1. last:: r at: 2 ].
+    ('newest survives ' , (((cbor decode: last ifInvalid: [ :m | nil ]) at: 3) = n) printString) out.
+    ('conserved ' , (n = (br dropped + inFlash + br pendingSize)) printString) out.
+  )
+) : (
+)

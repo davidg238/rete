@@ -1,9 +1,10 @@
 (*
 expect:
 entries 3
-held age 60000
-cell age 0
-fresh age 0
+held captured at 0
+cell as of the scan 60000
+fresh captured at 60000
+all this boot true
 *)
 (* rete#444 — a row is stamped with when it was CAPTURED, not when it reached porta.
    A stream row records monoMs at capture; collectOutbound turns that into its AGE at
@@ -14,15 +15,21 @@ fresh age 0
    The held row waits 60 s on the host's virtual clock before the push is collected,
    standing in for a link outage; the fresh row is captured just before the push.
    Without the fix the held row would go out with no age, and porta would stamp it
-   at arrival — the ACC01's captures that came in at 11:12 on 2026-10-24. *)
+   at arrival — the ACC01's captures that came in at 11:12 on 2026-10-24.
+
+   rete#443 replaced the age with the ORIGIN pair (bid, monoMs at capture), the only
+   form that survives a reboot: the push envelope carries this boot's monoMs and porta
+   computes arrival - (mono - monoMs), which is the same age. A cell's origin is the
+   scan: it is "the latest value", as before. Times are printed relative to t0. *)
 class RowAge packageUsing: manifest = () (
   public main: platform args: args = (
-    | space bridge spans rows |
+    | space bridge spans rows t0 bidsOk |
     space:: platform space.
     spans:: platform Spans new.
     bridge:: platform PortaBridge socket: nil space: space id: 'n1' peer: '::1' port: 6969 spans: spans timers: platform timers.
     bridge subscribeStream: 'tel/log'.
 
+    t0:: platform monotonicMillis.
     space out: 'tel/log' value: 'held'.
     space drain.
     platform advanceMillis: 60000.
@@ -32,10 +39,13 @@ class RowAge packageUsing: manifest = () (
 
     rows:: bridge collectOutbound.
     ('entries ' , rows size printString) out.
+    bidsOk:: true.
     rows do: [ :r |
-      (r at: 4) = 'held' ifTrue: [ ('held age ' , (r at: 5) printString) out ].
-      (r at: 4) = 'fresh' ifTrue: [ ('fresh age ' , (r at: 5) printString) out ].
-      (r at: 2) = 'obs/name' ifTrue: [ ('cell age ' , (r at: 5) printString) out ] ].
+      (r at: 5) = bridge bootId ifFalse: [ bidsOk:: false ].
+      (r at: 4) = 'held' ifTrue: [ ('held captured at ' , ((r at: 6) - t0) printString) out ].
+      (r at: 4) = 'fresh' ifTrue: [ ('fresh captured at ' , ((r at: 6) - t0) printString) out ].
+      (r at: 2) = 'obs/name' ifTrue: [ ('cell as of the scan ' , ((r at: 6) - t0) printString) out ] ].
+    ('all this boot ' , bidsOk printString) out.
   )
 ) : (
 )
