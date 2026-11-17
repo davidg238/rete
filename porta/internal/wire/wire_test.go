@@ -67,8 +67,8 @@ func TestPullAtHighWaterIsEmpty(t *testing.T) {
 func TestPushIngestsAndAcks(t *testing.T) {
 	srv, st := testServer(t)
 	req, _ := EncodePush("n1", 7, 0, []space.Entry{
-		{Seq: 1, Path: "obs/health", Kind: cval.KindCell, Value: mustEnc(t, int64(42))},
-		{Seq: 2, Path: "tel/log", Kind: cval.KindStream, Value: mustEnc(t, "hello")},
+		{Seq: 1, Path: "obs/health", Kind: cval.KindCell, Value: mustEnc(t, int64(42)), BootID: 7},
+		{Seq: 2, Path: "tel/log", Kind: cval.KindStream, Value: mustEnc(t, "hello"), BootID: 7},
 	})
 	hw, err := DecodeAck(srv.Handle(req))
 	if err != nil {
@@ -98,7 +98,7 @@ func TestRebootedNodeIsNotMistakenForADuplicate(t *testing.T) {
 	pull, _ := EncodePull("n1", 1, 1, 0, 0)
 	srv.Handle(pull)
 	req, _ := EncodePush("n1", 1, 0, []space.Entry{
-		{Seq: 40, Path: "obs/health", Kind: cval.KindCell, Value: mustEnc(t, int64(1))},
+		{Seq: 40, Path: "obs/health", Kind: cval.KindCell, Value: mustEnc(t, int64(1)), BootID: 1},
 	})
 	if hw, _ := DecodeAck(srv.Handle(req)); hw != 40 {
 		t.Fatalf("first session hw = %d, want 40", hw)
@@ -113,7 +113,7 @@ func TestRebootedNodeIsNotMistakenForADuplicate(t *testing.T) {
 		t.Fatalf("pull after reboot: %v", err)
 	}
 	req, _ = EncodePush("n1", 2, 0, []space.Entry{
-		{Seq: 1, Path: "obs/health", Kind: cval.KindCell, Value: mustEnc(t, int64(2))},
+		{Seq: 1, Path: "obs/health", Kind: cval.KindCell, Value: mustEnc(t, int64(2)), BootID: 2},
 	})
 	hw, err := DecodeAck(srv.Handle(req))
 	if err != nil {
@@ -145,8 +145,8 @@ func TestRebootReusesSeqValues(t *testing.T) {
 	pull, _ := EncodePull("n1", 1, 1, 0, 0) // first boot, goal applied
 	srv.Handle(pull)
 	first, _ := EncodePush("n1", 1, 0, []space.Entry{
-		{Seq: 1, Path: "tel/log", Kind: cval.KindStream, Value: mustEnc(t, "boot1-a")},
-		{Seq: 2, Path: "obs/health", Kind: cval.KindCell, Value: mustEnc(t, int64(11))},
+		{Seq: 1, Path: "tel/log", Kind: cval.KindStream, Value: mustEnc(t, "boot1-a"), BootID: 1},
+		{Seq: 2, Path: "obs/health", Kind: cval.KindCell, Value: mustEnc(t, int64(11)), BootID: 1},
 	})
 	srv.Handle(first)
 
@@ -154,8 +154,8 @@ func TestRebootReusesSeqValues(t *testing.T) {
 	srv.Handle(pull)
 
 	second, _ := EncodePush("n1", 2, 0, []space.Entry{
-		{Seq: 1, Path: "tel/log", Kind: cval.KindStream, Value: mustEnc(t, "boot2-a")},
-		{Seq: 2, Path: "obs/health", Kind: cval.KindCell, Value: mustEnc(t, int64(22))},
+		{Seq: 1, Path: "tel/log", Kind: cval.KindStream, Value: mustEnc(t, "boot2-a"), BootID: 2},
+		{Seq: 2, Path: "obs/health", Kind: cval.KindCell, Value: mustEnc(t, int64(22)), BootID: 2},
 	})
 	if hw, err := DecodeAck(srv.Handle(second)); err != nil || hw != 2 {
 		t.Fatalf("second boot ack = %d, %v; want 2, nil", hw, err)
@@ -200,7 +200,7 @@ func TestMissedAckIsNotMistakenForAReboot(t *testing.T) {
 	pull, _ := EncodePull("n1", 0, 1, 0, 0)
 	srv.Handle(pull)
 	push, _ := EncodePush("n1", 1, 0, []space.Entry{
-		{Seq: 5, Path: "tel/log", Kind: cval.KindStream, Value: mustEnc(t, "one")},
+		{Seq: 5, Path: "tel/log", Kind: cval.KindStream, Value: mustEnc(t, "one"), BootID: 1},
 	})
 	srv.Handle(push)
 
@@ -239,7 +239,7 @@ func TestNodePortaHasNeverWrittenToStillDetectsAReboot(t *testing.T) {
 	pull, _ := EncodePull("n1", 0, 1, 0, 0)
 	srv.Handle(pull)
 	push, _ := EncodePush("n1", 1, 0, []space.Entry{
-		{Seq: 3981, Path: "obs/build", Kind: cval.KindCell, Value: mustEnc(t, "old")},
+		{Seq: 3981, Path: "obs/build", Kind: cval.KindCell, Value: mustEnc(t, "old"), BootID: 1},
 	})
 	if hw, _ := DecodeAck(srv.Handle(push)); hw != 3981 {
 		t.Fatalf("first boot hw = %d, want 3981", hw)
@@ -250,7 +250,7 @@ func TestNodePortaHasNeverWrittenToStillDetectsAReboot(t *testing.T) {
 	pull, _ = EncodePull("n1", 0, 2, 0, 0)
 	srv.Handle(pull)
 	push, _ = EncodePush("n1", 2, 0, []space.Entry{
-		{Seq: 1, Path: "obs/build", Kind: cval.KindCell, Value: mustEnc(t, "new")},
+		{Seq: 1, Path: "obs/build", Kind: cval.KindCell, Value: mustEnc(t, "new"), BootID: 2},
 	})
 	hw, err := DecodeAck(srv.Handle(push))
 	if err != nil {
@@ -278,13 +278,13 @@ func TestLostPullStillRewindsOnThePush(t *testing.T) {
 	pull, _ := EncodePull("n1", 0, 1, 0, 0)
 	srv.Handle(pull)
 	push, _ := EncodePush("n1", 1, 0, []space.Entry{
-		{Seq: 500, Path: "obs/health", Kind: cval.KindCell, Value: mustEnc(t, int64(1))},
+		{Seq: 500, Path: "obs/health", Kind: cval.KindCell, Value: mustEnc(t, int64(1)), BootID: 1},
 	})
 	srv.Handle(push)
 
 	// Reboot, and the new boot's pull never arrives. Its push is first contact.
 	push, _ = EncodePush("n1", 2, 0, []space.Entry{
-		{Seq: 1, Path: "obs/health", Kind: cval.KindCell, Value: mustEnc(t, int64(2))},
+		{Seq: 1, Path: "obs/health", Kind: cval.KindCell, Value: mustEnc(t, int64(2)), BootID: 2},
 	})
 	hw, err := DecodeAck(srv.Handle(push))
 	if err != nil {
@@ -332,14 +332,14 @@ func TestStalePullDoesNotDuplicate(t *testing.T) {
 	pull, _ := EncodePull("n1", 1, 1, 0, 0)
 	srv.Handle(pull)
 	push, _ := EncodePush("n1", 1, 0, []space.Entry{
-		{Seq: 5, Path: "tel/log", Kind: cval.KindStream, Value: mustEnc(t, "one")},
+		{Seq: 5, Path: "tel/log", Kind: cval.KindStream, Value: mustEnc(t, "one"), BootID: 1},
 	})
 	srv.Handle(push)
 
 	srv.Handle(pull) // the duplicate, arriving late
 
 	next, _ := EncodePush("n1", 1, 0, []space.Entry{
-		{Seq: 6, Path: "tel/log", Kind: cval.KindStream, Value: mustEnc(t, "two")},
+		{Seq: 6, Path: "tel/log", Kind: cval.KindStream, Value: mustEnc(t, "two"), BootID: 1},
 	})
 	srv.Handle(next)
 
@@ -359,7 +359,7 @@ func TestStalePullDoesNotDuplicate(t *testing.T) {
 func TestReplayedPushIsIdempotent(t *testing.T) {
 	srv, st := testServer(t)
 	req, _ := EncodePush("n1", 7, 0, []space.Entry{
-		{Seq: 1, Path: "tel/log", Kind: cval.KindStream, Value: mustEnc(t, "one")},
+		{Seq: 1, Path: "tel/log", Kind: cval.KindStream, Value: mustEnc(t, "one"), BootID: 7},
 	})
 	srv.Handle(req)
 	srv.Handle(req)
@@ -385,7 +385,7 @@ func TestReplayedPushLogsSkipCount(t *testing.T) {
 	})
 
 	req, _ := EncodePush("n1", 7, 0, []space.Entry{
-		{Seq: 1, Path: "tel/log", Kind: cval.KindStream, Value: mustEnc(t, "one")},
+		{Seq: 1, Path: "tel/log", Kind: cval.KindStream, Value: mustEnc(t, "one"), BootID: 7},
 	})
 
 	srv.Handle(req) // fresh push: nothing to skip

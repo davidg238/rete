@@ -294,7 +294,7 @@ porta log <node> [--limit 50] [--boot N]
 | Flag | Default | Notes |
 |------|---------|-------|
 | `--limit` | `50` | Maximum rows. |
-| `--boot` | (all) | Only rows the node published during boot **N**. |
+| `--boot` | (all) | Only rows the node captured during boot **N** (a replayed journal row keeps its capture boot, #443). |
 
 ```
 $ porta log --db ./porta.db c6bench

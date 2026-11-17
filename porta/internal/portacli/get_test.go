@@ -56,11 +56,11 @@ func TestGetAnnouncesAMixedReadOnStdout(t *testing.T) {
 		t.Fatal(err)
 	}
 	st.Ingest("c6spare", 40, 0, []space.Entry{
-		{Seq: 1, Path: "diag/spans/pushTrim", Kind: cval.KindCell, Value: mustEnc(t, int64(51923))},
-		{Seq: 2, Path: "diag/spans/checkIn", Kind: cval.KindCell, Value: mustEnc(t, int64(243307))},
+		{Seq: 1, Path: "diag/spans/pushTrim", Kind: cval.KindCell, Value: mustEnc(t, int64(51923)), BootID: 40},
+		{Seq: 2, Path: "diag/spans/checkIn", Kind: cval.KindCell, Value: mustEnc(t, int64(243307)), BootID: 40},
 	})
 	st.Ingest("c6spare", 41, 0, []space.Entry{
-		{Seq: 1, Path: "diag/spans/checkIn", Kind: cval.KindCell, Value: mustEnc(t, int64(235037))},
+		{Seq: 1, Path: "diag/spans/checkIn", Kind: cval.KindCell, Value: mustEnc(t, int64(235037)), BootID: 41},
 	})
 	st.Close()
 
@@ -93,8 +93,8 @@ func TestGetIsSilentWhenTheTreeIsCoherent(t *testing.T) {
 	st, _ := space.Open(path, func() int64 { return 1000 })
 	st.Write("c6spare", "goal/name", cval.KindCell, mustEnc(t, "bench"), "david", "")
 	st.Ingest("c6spare", 41, 0, []space.Entry{
-		{Seq: 1, Path: "obs/name", Kind: cval.KindCell, Value: mustEnc(t, "bench")},
-		{Seq: 2, Path: "obs/health", Kind: cval.KindCell, Value: mustEnc(t, int64(1))},
+		{Seq: 1, Path: "obs/name", Kind: cval.KindCell, Value: mustEnc(t, "bench"), BootID: 41},
+		{Seq: 2, Path: "obs/health", Kind: cval.KindCell, Value: mustEnc(t, int64(1)), BootID: 41},
 	})
 	st.Close()
 
@@ -133,10 +133,10 @@ func TestLogFiltersByBoot(t *testing.T) {
 	path := getTestDB(t)
 	st, _ := space.Open(path, func() int64 { return 1000 })
 	st.Ingest("c6spare", 40, 0, []space.Entry{
-		{Seq: 1, Path: "tel/log", Kind: cval.KindStream, Value: mustEnc(t, "old")},
+		{Seq: 1, Path: "tel/log", Kind: cval.KindStream, Value: mustEnc(t, "old"), BootID: 40},
 	})
 	st.Ingest("c6spare", 41, 0, []space.Entry{
-		{Seq: 1, Path: "tel/log", Kind: cval.KindStream, Value: mustEnc(t, "new")},
+		{Seq: 1, Path: "tel/log", Kind: cval.KindStream, Value: mustEnc(t, "new"), BootID: 41},
 	})
 	st.Close()
 
@@ -195,7 +195,7 @@ func TestLogRendersAGatewayVerdictAsCrossingNoBoundary(t *testing.T) {
 		t.Fatal(err)
 	}
 	st.Ingest("c6spare", 44, 0, []space.Entry{
-		{Seq: 1, Path: "obs/health", Kind: cval.KindCell, Value: mustEnc(t, int64(1))},
+		{Seq: 1, Path: "obs/health", Kind: cval.KindCell, Value: mustEnc(t, int64(1)), BootID: 44},
 	})
 	if err := st.WriteGateway("c6spare", store.PathLiveness,
 		mustEnc(t, cval.Symbol("silent")), "porta", "silent: 7100 ms since last exchange, cadence 2000 ms"); err != nil {
@@ -237,13 +237,13 @@ func TestGetNeverCallsAGatewayVerdictStale(t *testing.T) {
 		t.Fatal(err)
 	}
 	st.Ingest("c6spare", 44, 0, []space.Entry{
-		{Seq: 1, Path: "obs/health", Kind: cval.KindCell, Value: mustEnc(t, int64(1))},
+		{Seq: 1, Path: "obs/health", Kind: cval.KindCell, Value: mustEnc(t, int64(1)), BootID: 44},
 	})
 	st.WriteGateway("c6spare", store.PathLiveness, mustEnc(t, cval.Symbol("silent")), "porta", "test")
 	// The node reboots and republishes nothing yet: boot 45 is current, and the
 	// gw row still carries 44.
 	st.Ingest("c6spare", 45, 0, []space.Entry{
-		{Seq: 1, Path: "obs/build", Kind: cval.KindCell, Value: mustEnc(t, "gdeadbeef")},
+		{Seq: 1, Path: "obs/build", Kind: cval.KindCell, Value: mustEnc(t, "gdeadbeef"), BootID: 45},
 	})
 	st.Close()
 

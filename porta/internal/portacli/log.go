@@ -69,7 +69,7 @@ func newLogCmd() *cobra.Command {
 	// a filter over rows that each record their own. The cell tree keeps only
 	// the latest value per path and could never reconstruct a past boot, which
 	// is why `get` has no such flag (rete#210).
-	cmd.Flags().Int64Var(&boot, "boot", 0, "show only rows the node published during boot N")
+	cmd.Flags().Int64Var(&boot, "boot", 0, "show only rows the node captured during boot N")
 	return cmd
 }
 

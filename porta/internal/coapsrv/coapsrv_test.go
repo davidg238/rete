@@ -180,7 +180,7 @@ func TestPullMatchesHandleFrom(t *testing.T) {
 func mustPush(t *testing.T) []byte {
 	t.Helper()
 	req, err := wire.EncodePush("n1", 1, 0, []space.Entry{
-		{Seq: 1, Path: "tel/log", Kind: cval.KindStream, Value: mustEnc(t, "hello")},
+		{Seq: 1, Path: "tel/log", Kind: cval.KindStream, Value: mustEnc(t, "hello"), BootID: 1},
 	})
 	if err != nil {
 		t.Fatal(err)

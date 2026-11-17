@@ -38,16 +38,15 @@ type Entry struct {
 	MonoMs int64
 }
 
-// Event is a log row. Its BootID is events.boot_id, the boot that PUBLISHED the
-// row, and shadows Entry.BootID, which Events does not read. TsMs is NULL for a
-// row whose origin boot porta never heard from (#443): it has no honest time.
+// Event is a log row. Its Entry.BootID and Entry.MonoMs are the row's origin,
+// events.boot_id and events.mono_ms (#443; mono_ms NULL reads 0). TsMs is NULL
+// for a row whose origin boot porta never heard from: it has no honest time.
 type Event struct {
 	Entry
 	TsMs      sql.NullInt64
 	Direction string
 	Actor     string
 	Reason    string
-	BootID    int64
 }
 
 // Cell is a row of the operator's tree read. Entry is deliberately NOT extended
@@ -137,7 +136,7 @@ func Open(path string, nowMs func() int64) (*Store, error) {
 	// Each rebuild drops the old table and its indexes with it. schema is
 	// idempotent (every statement is IF NOT EXISTS), so re-running it restores
 	// them and does nothing else.
-	if _, err := db.Exec(schema); err != nil {
+	if _, err := db.Exec(schema + columnIndexes); err != nil {
 		db.Close()
 		return nil, err
 	}
@@ -222,11 +221,12 @@ func upsertCell(tx *sql.Tx, nodeID, path string, seq int64, kind cval.Kind, valu
 // stamped is a known time; an events row may also carry none (Ingest, #443).
 func stamped(ms int64) sql.NullInt64 { return sql.NullInt64{Int64: ms, Valid: true} }
 
-func appendEvent(tx *sql.Tx, nodeID, path string, seq int64, kind cval.Kind, value []byte, at sql.NullInt64, direction, actor, reason string, bootID int64) error {
+// bootID and mono are the row's origin (#443); mono is NULL for porta's own rows.
+func appendEvent(tx *sql.Tx, nodeID, path string, seq int64, kind cval.Kind, value []byte, at sql.NullInt64, direction, actor, reason string, bootID int64, mono sql.NullInt64) error {
 	_, err := tx.Exec(`
-		INSERT INTO events (node_id, path, seq, kind, value_cbor, ts_ms, direction, actor, reason, boot_id)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		nodeID, path, seq, int(kind), value, at, direction, actor, reason, bootID)
+		INSERT INTO events (node_id, path, seq, kind, value_cbor, ts_ms, direction, actor, reason, boot_id, mono_ms)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		nodeID, path, seq, int(kind), value, at, direction, actor, reason, bootID, mono)
 	return err
 }
 
@@ -280,7 +280,7 @@ func (s *Store) Write(nodeID, path string, kind cval.Kind, value []byte, actor, 
 			return 0, err
 		}
 	}
-	if err := appendEvent(tx, nodeID, path, seq, kind, value, stamped(now), "out", actor, reason, 0); err != nil {
+	if err := appendEvent(tx, nodeID, path, seq, kind, value, stamped(now), "out", actor, reason, 0, sql.NullInt64{}); err != nil {
 		return 0, err
 	}
 	return seq, tx.Commit()
@@ -339,7 +339,7 @@ func (s *Store) WriteGateway(nodeID, path string, value []byte, actor, reason st
 	if err := upsertCell(tx, nodeID, path, 0, cval.KindCell, value, now, store.DirectionGateway, boot); err != nil {
 		return err
 	}
-	if err := appendEvent(tx, nodeID, path, 0, cval.KindCell, value, stamped(now), store.DirectionGateway, actor, reason, boot); err != nil {
+	if err := appendEvent(tx, nodeID, path, 0, cval.KindCell, value, stamped(now), store.DirectionGateway, actor, reason, boot, sql.NullInt64{}); err != nil {
 		return err
 	}
 	return tx.Commit()
@@ -499,17 +499,20 @@ func (s *Store) Ingest(nodeID string, bootID, mono int64, entries []Entry) (hw i
 		// is a build error to fix at the bench, not a runtime condition to
 		// negotiate with.
 		if err := s.manifest.Check(e.Path, e.Kind, manifest.DirUp, e.Value); err != nil {
-			if aerr := appendEvent(tx, nodeID, e.Path, e.Seq, e.Kind, e.Value, stamped(now), "in", "gate", err.Error(), bootID); aerr != nil {
+			if aerr := appendEvent(tx, nodeID, e.Path, e.Seq, e.Kind, e.Value, stamped(now), "in", "gate", err.Error(), e.BootID, stamped(e.MonoMs)); aerr != nil {
 				return 0, 0, aerr
 			}
 			hw = e.Seq
 			continue
 		}
-		// bootID is stamped on the row, not merely on the node: it is the only
-		// thing that can later say WHICH boot published this value, and a
+		// The boot is stamped on the row, not merely on the node: it is the
+		// only thing that can later say WHICH boot produced this value, and a
 		// rebooted node's tree arrives over seconds, so a read taken mid-rewrite
 		// otherwise blends two boots and cannot be told from a coherent one
-		// (rete#210). The value costs nothing to carry — it is already in hand.
+		// (rete#210). On the event it is the ORIGIN boot (#443) — a replayed
+		// journal row was produced by the boot that captured it — and mono_ms
+		// beside it lets a reader spot a replay duplicate. The cell takes the
+		// pushing boot, which for a never-journaled cell is the same boot.
 		// rete#444/#443: the row's time is when the node CAPTURED it, which for
 		// a row held through an outage is long before it arrived. last_seen
 		// stays now.
@@ -532,7 +535,7 @@ func (s *Store) Ingest(nodeID string, bootID, mono int64, entries []Entry) (hw i
 				return 0, 0, err
 			}
 		}
-		if err := appendEvent(tx, nodeID, e.Path, e.Seq, e.Kind, e.Value, at, "in", nodeID, "", bootID); err != nil {
+		if err := appendEvent(tx, nodeID, e.Path, e.Seq, e.Kind, e.Value, at, "in", nodeID, "", e.BootID, stamped(e.MonoMs)); err != nil {
 			return 0, 0, err
 		}
 		hw = e.Seq
@@ -834,13 +837,14 @@ func (s *Store) CurrentBoot(nodeID string) (int64, error) {
 
 // Events returns the most recent log rows, newest first — porta log.
 //
-// boot > 0 restricts the read to one boot. That question is answerable HERE and
-// not on the cell tree: the log is append-only, so "what did the node publish
-// during boot N" is a filter, whereas cells holds only the latest value per path
-// and could answer at most "paths whose last write happened to fall in boot N".
+// boot > 0 restricts the read to rows CAPTURED in one boot (their origin, #443).
+// That question is answerable HERE and not on the cell tree: the log is
+// append-only, so "what did the node capture during boot N" is a filter, whereas
+// cells holds only the latest value per path and could answer at most "paths
+// whose last write happened to fall in boot N".
 func (s *Store) Events(nodeID string, limit int, boot int64) ([]Event, error) {
 	rows, err := s.db.Query(`
-		SELECT seq, path, kind, value_cbor, ts_ms, direction, actor, reason, boot_id
+		SELECT seq, path, kind, value_cbor, ts_ms, direction, actor, reason, boot_id, COALESCE(mono_ms, 0)
 		FROM events WHERE node_id = ? AND (? = 0 OR boot_id = ?)
 		ORDER BY id DESC LIMIT ?`,
 		nodeID, boot, boot, limit)
@@ -852,7 +856,7 @@ func (s *Store) Events(nodeID string, limit int, boot int64) ([]Event, error) {
 	for rows.Next() {
 		var e Event
 		var k int
-		if err := rows.Scan(&e.Seq, &e.Path, &k, &e.Value, &e.TsMs, &e.Direction, &e.Actor, &e.Reason, &e.BootID); err != nil {
+		if err := rows.Scan(&e.Seq, &e.Path, &k, &e.Value, &e.TsMs, &e.Direction, &e.Actor, &e.Reason, &e.BootID, &e.MonoMs); err != nil {
 			return nil, err
 		}
 		e.Kind = cval.Kind(k)

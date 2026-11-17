@@ -224,7 +224,10 @@ because that rung spans both halves.
 ### 3.4 Every stored row records which boot published it (rete#210, recorded 2026-08-15)
 
 `cells` and `events` each carry a **`boot_id`**, and `porta get` marks any row that predates
-the node's current boot.
+the node's current boot. On `events` it is the row's **origin** boot — the boot that captured
+it, which a journal row replayed by a later boot keeps — beside `mono_ms`, that boot's
+monotonic ms at capture; a row stored twice (its ack lost before a reboot) is two rows with
+one `(node_id, boot_id, mono_ms)` (#443).
 
 The reason is a silent wrong answer, not a nicety. `cells` holds the latest value per
 `(node, path)`, and a rebooted node rewrites its whole tree **over several seconds** — sixteen

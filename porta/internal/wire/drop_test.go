@@ -45,7 +45,7 @@ func dropHarness(t *testing.T, dropEvery int) (*Server, *space.Store, func(seq i
 	push := func(seq int64, text string) bool {
 		t.Helper()
 		req, err := EncodePush("n1", 1, 0, []space.Entry{
-			{Seq: seq, Path: "tel/log", Kind: cval.KindStream, Value: mustEnc(t, text)},
+			{Seq: seq, Path: "tel/log", Kind: cval.KindStream, Value: mustEnc(t, text), BootID: 1},
 		})
 		if err != nil {
 			t.Fatalf("EncodePush: %v", err)

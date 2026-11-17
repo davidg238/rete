@@ -64,7 +64,7 @@ func silentFrames(t *testing.T) (pull, push []byte) {
 		t.Fatalf("EncodePull: %v", err)
 	}
 	if push, err = EncodePush("n1", 7, 0, []space.Entry{
-		{Seq: 1, Path: "tel/log", Kind: cval.KindStream, Value: mustEnc(t, "hello")},
+		{Seq: 1, Path: "tel/log", Kind: cval.KindStream, Value: mustEnc(t, "hello"), BootID: 7},
 	}); err != nil {
 		t.Fatalf("EncodePush: %v", err)
 	}

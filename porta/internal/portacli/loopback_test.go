@@ -60,7 +60,7 @@ func (n *fakeNode) push(path string, kind cval.Kind, v any) int64 {
 		n.t.Fatal(err)
 	}
 	n.seq++
-	req, err := wire.EncodePush(n.id, n.bootID, 0, []space.Entry{{Seq: n.seq, Path: path, Kind: kind, Value: raw}})
+	req, err := wire.EncodePush(n.id, n.bootID, 0, []space.Entry{{Seq: n.seq, Path: path, Kind: kind, Value: raw, BootID: n.bootID}})
 	if err != nil {
 		n.t.Fatal(err)
 	}
@@ -147,7 +147,7 @@ func TestLoopbackGate(t *testing.T) {
 	node.seq++
 	raw, _ := cval.Encode("boot complete")
 	req, _ := wire.EncodePush(node.id, node.bootID, 0, []space.Entry{
-		{Seq: node.seq, Path: "tel/log", Kind: cval.KindStream, Value: raw},
+		{Seq: node.seq, Path: "tel/log", Kind: cval.KindStream, Value: raw, BootID: node.bootID},
 	})
 	node.roundTrip(req)
 	node.roundTrip(req) // the same datagram again, as a lossy radio would

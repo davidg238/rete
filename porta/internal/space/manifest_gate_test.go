@@ -53,9 +53,9 @@ func TestManifestGateWireDoor(t *testing.T) {
 	health := enc(t, cval.Record{Tag: "Health", Fields: cval.Map{{K: cval.Symbol("up"), V: int64(1)}}})
 	bad := enc(t, cval.Record{Tag: "Metrics"}) // wrong record at obs/health
 	hw, skipped, err := s.Ingest("n1", 7, 0, []Entry{
-		{Seq: 1, Path: "obs/health", Kind: cval.KindCell, Value: health},
-		{Seq: 2, Path: "obs/health", Kind: cval.KindCell, Value: bad},
-		{Seq: 3, Path: "obs/health", Kind: cval.KindCell, Value: health},
+		{Seq: 1, Path: "obs/health", Kind: cval.KindCell, Value: health, BootID: 7},
+		{Seq: 2, Path: "obs/health", Kind: cval.KindCell, Value: bad, BootID: 7},
+		{Seq: 3, Path: "obs/health", Kind: cval.KindCell, Value: health, BootID: 7},
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -93,7 +93,7 @@ func TestManifestGateDirection(t *testing.T) {
 	v := enc(t, "x")
 	// a node writing goal/** is refused-but-kept at the wire door
 	if _, _, err := s.Ingest("n1", 1, 0, []Entry{
-		{Seq: 1, Path: "goal/name", Kind: cval.KindCell, Value: v}}); err != nil {
+		{Seq: 1, Path: "goal/name", Kind: cval.KindCell, Value: v, BootID: 1}}); err != nil {
 		t.Fatal(err)
 	}
 	evs, err := s.Events("n1", 10, 0)
@@ -179,7 +179,7 @@ func TestIngestRefusesAForgedGatewayVerdict(t *testing.T) {
 		t.Fatal(err)
 	}
 	hw, _, err := s.Ingest("n1", 9, 0, []Entry{
-		{Seq: 1, Path: store.PathLiveness, Kind: cval.KindCell, Value: forged}})
+		{Seq: 1, Path: store.PathLiveness, Kind: cval.KindCell, Value: forged, BootID: 9}})
 	if err != nil {
 		t.Fatal(err)
 	}

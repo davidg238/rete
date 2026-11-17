@@ -38,7 +38,8 @@ CREATE TABLE events (
   direction  TEXT NOT NULL CHECK (direction IN ('in','out','gw')),
   actor      TEXT NOT NULL DEFAULT '',
   reason     TEXT NOT NULL DEFAULT '',
-  boot_id    INTEGER NOT NULL DEFAULT 0
+  boot_id    INTEGER NOT NULL DEFAULT 0,
+  mono_ms    INTEGER
 );
 CREATE TABLE boot_anchors (
   node_id   TEXT NOT NULL,
@@ -73,13 +74,13 @@ INSERT INTO "cells" VALUES('n1','obs/mode',2,2,X'D8276372756E',1700000002000,'in
 INSERT INTO "cells" VALUES('n2','goal/name',1,2,X'65706F726368',1700000004000,'out',0);
 INSERT INTO "cells" VALUES('n2','obs/name',1,2,X'626E32',1700000005000,'in',7);
 INSERT INTO "cells" VALUES('n2','gw/liveness',0,2,X'D8276673696C656E74',1700000006000,'gw',7);
-INSERT INTO "events" VALUES(1,'n1','goal/name',1,2,X'6A62617468726F6F6D2D31',1700000001000,'out','david','commission',0);
-INSERT INTO "events" VALUES(2,'n1','obs/name',1,2,X'6A62617468726F6F6D2D31',1700000002000,'in','n1','',41);
-INSERT INTO "events" VALUES(3,'n1','obs/mode',2,2,X'D8276372756E',1700000002000,'in','n1','',41);
-INSERT INTO "events" VALUES(4,'n1','obs/name',1,2,X'6A62617468726F6F6D2D31',1700000003000,'in','n1','',42);
-INSERT INTO "events" VALUES(5,'n2','goal/name',1,2,X'65706F726368',1700000004000,'out','david','commission',0);
-INSERT INTO "events" VALUES(6,'n2','obs/name',1,2,X'626E32',1700000005000,'in','n2','',7);
-INSERT INTO "events" VALUES(7,'n2','gw/liveness',0,2,X'D8276673696C656E74',1700000006000,'gw','porta','silent: 90000 ms since the last check-in',7);
+INSERT INTO "events" VALUES(1,'n1','goal/name',1,2,X'6A62617468726F6F6D2D31',1700000001000,'out','david','commission',0,NULL);
+INSERT INTO "events" VALUES(2,'n1','obs/name',1,2,X'6A62617468726F6F6D2D31',1700000002000,'in','n1','',41,0);
+INSERT INTO "events" VALUES(3,'n1','obs/mode',2,2,X'D8276372756E',1700000002000,'in','n1','',41,0);
+INSERT INTO "events" VALUES(4,'n1','obs/name',1,2,X'6A62617468726F6F6D2D31',1700000003000,'in','n1','',42,0);
+INSERT INTO "events" VALUES(5,'n2','goal/name',1,2,X'65706F726368',1700000004000,'out','david','commission',0,NULL);
+INSERT INTO "events" VALUES(6,'n2','obs/name',1,2,X'626E32',1700000005000,'in','n2','',7,0);
+INSERT INTO "events" VALUES(7,'n2','gw/liveness',0,2,X'D8276673696C656E74',1700000006000,'gw','porta','silent: 90000 ms since the last check-in',7,NULL);
 INSERT INTO "boot_anchors" VALUES('n1',41,1700000002000);
 INSERT INTO "boot_anchors" VALUES('n1',42,1700000003000);
 INSERT INTO "boot_anchors" VALUES('n2',7,1700000005000);
@@ -90,3 +91,4 @@ CREATE INDEX idx_events_node ON events(node_id, id);
 CREATE INDEX idx_events_out ON events(node_id, direction, seq);
 CREATE INDEX idx_exchanges_node ON exchanges(node_id, ts_ms);
 CREATE INDEX idx_gw_runs_started ON gw_runs(started_ms);
+CREATE INDEX idx_events_origin ON events(node_id, boot_id, mono_ms);

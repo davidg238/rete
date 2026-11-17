@@ -76,10 +76,16 @@ CREATE INDEX IF NOT EXISTS idx_cells_seq ON cells(node_id, direction, seq);
 -- tombstone column: stopped state is written explicitly as a value, and
 -- genuine removal is an action on a do/ stream.
 --
--- boot_id has the same meaning as cells.boot_id, and here it is what lets
--- "porta log --boot N" reconstruct one boot truthfully — which the cell tree
--- cannot do, since cells keeps only the latest value per path and could answer
--- at most "paths whose LAST write fell in boot N" while promising otherwise.
+-- boot_id and mono_ms are the row's ORIGIN (#443): the boot that CAPTURED it
+-- and that boot's monotonic ms at capture. For a cell, a porta-authored row and
+-- a stream row of the pushing boot, boot_id is the publishing boot, as in
+-- cells.boot_id; a journal row replayed by a later boot keeps its capture boot.
+-- boot_id is what lets "porta log --boot N" reconstruct one boot truthfully —
+-- which the cell tree cannot do, since cells keeps only the latest value per
+-- path and could answer at most "paths whose LAST write fell in boot N". The
+-- pair is what spots a replay duplicate (a row stored twice because its ack was
+-- lost before a reboot): same (node_id, boot_id, mono_ms), different seq.
+-- mono_ms is NULL for porta-authored rows and rows stored before #443.
 --
 -- ts_ms is NULL for a row whose origin boot porta never heard from (#443): a
 -- journal row replayed from a boot with no anchor in boot_anchors has no honest
@@ -101,7 +107,8 @@ CREATE TABLE IF NOT EXISTS events (
   direction  TEXT NOT NULL CHECK (direction IN ('in','out','gw')),
   actor      TEXT NOT NULL DEFAULT '',
   reason     TEXT NOT NULL DEFAULT '',
-  boot_id    INTEGER NOT NULL DEFAULT 0
+  boot_id    INTEGER NOT NULL DEFAULT 0,
+  mono_ms    INTEGER
 );
 CREATE INDEX IF NOT EXISTS idx_events_node ON events(node_id, id);
 CREATE INDEX IF NOT EXISTS idx_events_out ON events(node_id, direction, seq);
@@ -191,6 +198,7 @@ CREATE TABLE IF NOT EXISTS meta (
 var addColumns = []string{
 	`ALTER TABLE cells  ADD COLUMN boot_id INTEGER NOT NULL DEFAULT 0`,
 	`ALTER TABLE events ADD COLUMN boot_id INTEGER NOT NULL DEFAULT 0`,
+	`ALTER TABLE events ADD COLUMN mono_ms INTEGER`,
 	// The replay guard's state (design 2026-08-26 D1): the max cursor this
 	// node has ever acked as applied. Distinct from cursor_acked, which is
 	// the LATEST declared cursor and rewinds to 0 on every reboot — this one
@@ -228,6 +236,13 @@ var addColumns = []string{
 // KEEP THE `nodes` AND `exchanges` COLUMN COMMENTS ABOVE THE STATEMENT, NEVER
 // INSIDE THE PARENTHESES: sqlite implements DROP COLUMN by editing the stored
 // DDL text, and an interior comment makes the rewritten statement unparseable.
+// columnIndexes index columns that addColumns may have just added, so they run
+// with the LAST schema pass in Open, after addColumns and every rebuild (a
+// rebuild drops the table's indexes); in schema an old store would fail on them.
+const columnIndexes = `
+CREATE INDEX IF NOT EXISTS idx_events_origin ON events(node_id, boot_id, mono_ms);
+`
+
 var dropColumns = []string{
 	`ALTER TABLE nodes DROP COLUMN cadence_ms`,
 	`ALTER TABLE exchanges DROP COLUMN leg`,

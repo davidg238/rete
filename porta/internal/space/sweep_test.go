@@ -71,7 +71,7 @@ func declare(t *testing.T, st *Store, node string, telCadMs, misses int64) {
 		t.Fatalf("encode: %v", err)
 	}
 	if _, _, err := st.Ingest(node, 41, 0, []Entry{
-		{Seq: 1, Path: PathDeclared, Kind: cval.KindCell, Value: rec},
+		{Seq: 1, Path: PathDeclared, Kind: cval.KindCell, Value: rec, BootID: 41},
 	}); err != nil {
 		t.Fatalf("Ingest: %v", err)
 	}
@@ -574,7 +574,7 @@ func TestSweepReMarksWhenTheCadenceMoves(t *testing.T) {
 		{K: cval.Symbol("misses"), V: int64(32)},
 		{K: cval.Symbol("telCad"), V: int64(1_000)},
 	}})
-	if _, _, err := st.Ingest("n1", n.boot, 0, []Entry{{Seq: 2, Path: PathDeclared, Kind: cval.KindCell, Value: rec}}); err != nil {
+	if _, _, err := st.Ingest("n1", n.boot, 0, []Entry{{Seq: 2, Path: PathDeclared, Kind: cval.KindCell, Value: rec, BootID: n.boot}}); err != nil {
 		t.Fatal(err)
 	}
 	n.ticks(t, st, &clock, 3, 2_000) // still at the old period this window

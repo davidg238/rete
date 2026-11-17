@@ -327,7 +327,9 @@ pushing boot that is arrival − its age, error one-way transit; for a row repla
 earlier boot porta heard from, that boot's last anchor; for a boot porta never heard from,
 **no time** (NULL) — the row is stored in journal order, which is its `(bootId, monoMs)` order, never guessed. A
 cell always comes from the pushing boot: the space keeps no write time, and a cell is the
-latest value.
+latest value. porta stores the origin: `events.boot_id` is the origin boot and
+`events.mono_ms` its `monoMs`, so a row stored twice (its ack lost before a reboot, replayed
+under a fresh seq) reads as two rows with one origin.
 
 The pair `(bootId, monoMs)` totally orders every observation a node ever makes, across
 reboots, **without a clock**. A node that reboots does not emit timestamps that appear
@@ -342,9 +344,9 @@ check-in. A node in this state must never be *guessed* about, because the guess 
 rewind a watermark on a node whose ack was merely lost — the one case the `seq <= hw`
 dedupe cannot survive.
 
-`bootId` rides the **batch envelope, not every record** — it is constant for every entry
-in a check-in, and paying 3–9 bytes per entry for it would be real money against a 512-byte
-batch. Individual records carry only `monoMs` where they need a stamp.
+`bootId` rides the **envelope and every push entry** — the entry's copy is its origin,
+which differs from the envelope's only for a journal row replayed in a later boot (#443).
+Individual records carry only `monoMs` where they need a stamp.
 
 ---
 
