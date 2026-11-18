@@ -436,7 +436,9 @@ is honest in both directions here: no node holds a runlevel or a trigger list ye
 one image and one world), and `size`/`alg` are porta's facts about a blob porta stored,
 not something the node observes. The four fields stay pinned, because this record is what
 `goal/apps/<name>` is diffed against — a field the node learns to answer later is then a
-write, not a schema edit.
+write, not a schema edit. **ztoit nodes also write `lifecycle: #erased`** (David,
+2026-11-18): after a run-once (`keep: false`) image is erased at boot, so the erase is
+observable (ztoit#31, ztoit `4b791ed`); no schema change, `lifecycle` is any symbol.
 
 **`obs/liveness` replaced an inference, and that is the whole point (rete#231 D4).** porta
 used to infer each node's cadence from the median of its last ten inter-arrival gaps and
