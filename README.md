@@ -1,7 +1,7 @@
 # rete
 
 An embedded fleet system in one repository: **nodus**, the device end — a small VM and a
-Smalltalk-family language running on Zephyr boards — and **porta**, the gateway that
+Newspeak-derived language running on Zephyr boards — and **porta**, the gateway that
 orchestrates a fleet of them, with the wire contract they share in `protocol/`.
 
 The two halves are coupled **only over the wire**; they never import each other's code.
