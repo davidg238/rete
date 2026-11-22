@@ -117,6 +117,18 @@ restarts or quarantines the job (Milestone D, `nodus/oevm/docs/MILESTONE_D.md`).
   the reactor's **progress** against the shortest declared timer period; the kernel
   owns a base tick so a deadline always exists; a wedge dumps, reboots and leaves a
   `RebootNote`.
+- **Outbox journal** (`src/journal_backend.h`, rete#443): a captured stream row is written
+  to flash **before** it can be sent, so unacked rows survive a reboot and are pushed again
+  with their origin `(bid, monoMs)`. Rows reach `PortaBridge`'s `pending` only through a
+  window refill (`maxPending` rows) in journal order, so seqs are assigned at replay and stay
+  ascending; an ack appends a marker that retires its position. Backends: a file on the host
+  (`backend/posix/journal_posix.c`, specified by `tests/test_journal_posix.c`) and Zephyr's
+  FCB on an `outbox` partition (`backend/zephyr/journal_zephyr.c`: a devicetree partition on
+  the C6, a Partition Manager one on nRF, `pm_static_dk.yml`). A board without one answers
+  `journalOpen` false and keeps the RAM queue. A wrap drops the oldest unacked rows into
+  `sdr`; `obs/health` `jhw` is the most unacked rows held this boot. Board gate PASS on
+  OCM.1's external NOR, 2026-11-21. Record:
+  `docs/design/2026-11-14-443-outbox-journal-design.md`.
 - **porta** (`porta/`, Go) mirrors each node's space over plain UDP + CBOR in two
   node-initiated messages, `pull` and `push`. The contract is `protocol/`. The two
   halves never import each other.

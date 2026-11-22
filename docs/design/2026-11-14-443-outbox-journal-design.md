@@ -124,3 +124,14 @@ flash fits 1020 KB (else the largest that fits, recorded); where `capture:` call
 
 `protocol/PROTOCOL-NSL-RECORDS.md` §3 (row shape, time rules, health field),
 `porta/docs/ARCHITECTURE.md` (per-boot anchor), `nodus/oevm/docs/vm.md` (the journal seam).
+
+## Addendum 2026-11-21 — board gate, measured on OCM.1
+
+PASS on OCM.1's MX25R1635F (master `cfa3b099`, ocm `b1a0343`). The JEDEC id check is the
+open itself: `journal: outbox 255 x 4096 B` prints only after Zephyr's spi-nor driver has
+accepted `jedec-id [c2 28 15]`. With porta blocked, 6 rows were captured. A J-Link reset
+followed (a reset clears RAM `pending` as a power cycle does). After the unblock, gw stored
+boot 3's seq 1–6 once each and in order, timed at capture (12:27–13:47), then boot 4's first
+row. Rate with the room empty: 1 row per 16 min. Capture latency: not measured, so batching
+is still unearned. The plan's "≥ 50 rows" became ≥ 5 (David): 50 < `maxPending` 64 exercised
+no refill, and refill and wrap are covered by host tests 40 and 41. Detail: #443.
