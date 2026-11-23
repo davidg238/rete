@@ -87,6 +87,7 @@ The RP2350 stays a supported board (it is cabot's target), with three limits rec
 |---|---|---|
 | **Firmware over the air** | The firmware itself replaced over the radio; 0.1 replaces only the nsl program | Deferred ([code-push design](design/2026-08-07-code-push-host-slice-design.md) §10) |
 | **1.0.0** — the freeze | The surface enumerated, pinned and versioned; protection by level | Drafts: [the frozen surface](design/2026-10-02-frozen-1.0-surface.md), [security levels](design/2026-10-02-security-levels-design.md) |
+| **Vision** | What embedded programming should be when agents write the code, and where rete stands against it | Draft brainstorm: [embedded in an age of agents](design/2026-11-22-embedded-in-the-age-of-agents-vision.md) |
 | **Later** | Gateways serving several versions, gateways talking to gateways, cellular, Meshtastic | Sketched: [federation and transports](design/2026-09-14-porta-federation-and-transports-design.md) |
 
 **What can be ignored until 0.1 is out:** everything in this last table. Those documents exist so the thinking is not lost, not because they block anything.
