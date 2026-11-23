@@ -1,7 +1,7 @@
 # Embedded programming in an age of agents — a vision, and where rete stands against it
 
 **Status: DRAFT, 2026-11-22. A brainstorm written up at David's request; nothing here is decided, built or
-scheduled. No issue tracks it yet.** It proposes no mechanism. Where it names work, that work is either an
+scheduled. Its open questions (§6) are rete#532.** It proposes no mechanism. Where it names work, that work is either an
 existing issue (cited) or labelled **not designed**.
 
 **Sources, and their limits.** Read on 2026-11-22: the Newspeak home page (its "Vision" section), the paper and
