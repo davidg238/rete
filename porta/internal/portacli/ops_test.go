@@ -207,3 +207,50 @@ func TestOpsGatewayAppRecord(t *testing.T) {
 		t.Fatalf("want one gw event by faber: %v %+v", err, evs)
 	}
 }
+
+// A path ending in / lists that subtree (rete#517): every goal/apps/<name>
+// of a node, in path order, and nothing from a sibling such as goal/appsX.
+// An empty subtree is an answer, not a 404.
+func TestOpsListSubtree(t *testing.T) {
+	srv, _ := opsServer(t)
+	resp, body := do(t, srv, "GET", "/node/n1/goal/apps/", nil)
+	if resp.StatusCode != 200 || string(bytes.TrimSpace(body)) != `{"Boot":0,"Cells":[]}` {
+		t.Fatalf("empty list: %d %s", resp.StatusCode, body)
+	}
+	a, _ := cval.Encode(cval.Symbol("a"))
+	b, _ := cval.Encode(cval.Symbol("b"))
+	for _, w := range []struct {
+		path string
+		v    []byte
+	}{{"goal/apps/zeta", b}, {"goal/apps/main", a}, {"goal/appsX", a}} {
+		if resp, body := do(t, srv, "PUT", "/node/n1/"+w.path, w.v); resp.StatusCode != 200 {
+			t.Fatalf("PUT %s: %d %s", w.path, resp.StatusCode, body)
+		}
+	}
+	resp, body = do(t, srv, "GET", "/node/n1/goal/apps/", nil)
+	if resp.StatusCode != 200 || resp.Header.Get("Content-Type") != "application/json" {
+		t.Fatalf("list: %d %s", resp.StatusCode, body)
+	}
+	var got struct {
+		Boot  int64
+		Cells []struct {
+			Path  string
+			Seq   int64
+			Boot  int64
+			Value string
+		}
+	}
+	if err := json.Unmarshal(body, &got); err != nil {
+		t.Fatal(err)
+	}
+	if len(got.Cells) != 2 ||
+		got.Cells[0].Path != "goal/apps/main" || got.Cells[0].Value != hex.EncodeToString(a) || got.Cells[0].Seq != 2 ||
+		got.Cells[1].Path != "goal/apps/zeta" || got.Cells[1].Value != hex.EncodeToString(b) || got.Cells[1].Seq != 1 {
+		t.Fatalf("list: %s", body)
+	}
+	// Without the trailing slash the route is unchanged: one cell, raw CBOR.
+	resp, body = do(t, srv, "GET", "/node/n1/goal/apps/main", nil)
+	if resp.StatusCode != 200 || !bytes.Equal(body, a) {
+		t.Fatalf("single cell: %d %s", resp.StatusCode, body)
+	}
+}
