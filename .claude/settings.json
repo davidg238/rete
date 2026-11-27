@@ -5,7 +5,8 @@
       "Bash(gofmt -l *)",
       "Bash(./porta get *)",
       "Bash(./porta log *)",
-      "mcp__claude-in-chrome__read_console_messages"
+      "mcp__claude-in-chrome__read_console_messages",
+      "Bash(gh pr merge *)"
     ]
   },
   "hooks": {
