@@ -151,3 +151,17 @@ func TestSHA256AndRawFilled(t *testing.T) {
 		t.Fatalf("Raw/SHA256 not filled: %d bytes, %q", len(tbl.Raw), tbl.SHA256)
 	}
 }
+
+// ztoit#52: f58c's PM2.5 reading is a bare int cell; before the rule it was
+// acked and kept under actor=gate, never applied.
+func TestVinPm25(t *testing.T) {
+	tbl := load(t)
+	i, _ := cval.Encode(int64(12))
+	if err := tbl.Check("obs/vin/pm25", cval.KindCell, DirUp, i); err != nil {
+		t.Fatalf("int at obs/vin/pm25 refused: %v", err)
+	}
+	s, _ := cval.Encode("12")
+	if err := tbl.Check("obs/vin/pm25", cval.KindCell, DirUp, s); err == nil {
+		t.Fatal("tstr at obs/vin/pm25 accepted")
+	}
+}

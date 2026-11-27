@@ -285,6 +285,11 @@ build = #6.27([sym-Build, {
   ? sym-image => bstr,
 }])
 
+;# path=obs/vin/pm25  kind=cell  class=routine  dir=up
+; ztoit node f58c's Vindriktning PM2.5 reading, ug/m3 (ztoit#52), pushed once a
+; check-in. Literal, not obs/<app>/<name>: that wildcard overlaps obs/apps/<name>.
+vin-pm25 = int
+
 ; =====================================================================
 ; tel/** — telemetry (dir=up, drop-first by policy)
 ; =====================================================================
