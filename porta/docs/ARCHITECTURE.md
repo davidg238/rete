@@ -134,7 +134,9 @@ What the gateway *is*:
   `Store.Write` door, so the gw/ ban, the 256 B cap and the manifest gate hold; the
   actor is `X-Porta-Actor` or the peer address; answers `{Seq}`). `GET
   /node/{id}/{path...}` is one cell of `porta get`, the raw CBOR with its seq in
-  `X-Porta-Seq`. They are general on purpose: a push is a blob and a goal write, the
+  `X-Porta-Seq`; a path ending in `/` is `porta get <node> <prefix>` whole (rete#517):
+  `{Boot, Cells: [{Path, Seq, Boot, Value}]}`, `Value` hex, in path order, the node's
+  `Boot` beside each row's so a caller can apply the MIXED READ guard (rete#210). They are general on purpose: a push is a blob and a goal write, the
   same write carries `goal/debug/main`, `goal/console`, `goal/profile` and a debugger's `dbg/req` line, and porta never learns what an app is. Admission
   is the listener's CIDR allowlist and nothing else, a known gap for 0.1
   (`../../docs/design/2026-10-12-398-load-through-porta-design.md` Q3). v1's dashboard, JSON API and MCP server are deferred → operator surface

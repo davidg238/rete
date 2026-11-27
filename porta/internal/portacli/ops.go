@@ -13,6 +13,8 @@ package portacli
 //	POST /blob                   the bytes; answers {Hash, Size, Sig, Record} (hex)
 //	PUT  /node/{id}/{path...}    one closed cval encoding to a goal/ cell, or a dbg/req row; answers {Seq}
 //	GET  /node/{id}/{path...}    the cell's value as raw CBOR, its seq in X-Porta-Seq
+//	GET  /node/{id}/{prefix}/    the subtree (rete#517), as `porta get <node> <prefix>`:
+//	                             {Boot, Cells: [{Path, Seq, Boot, Value (hex)}]} in path order
 
 import (
 	"encoding/hex"
@@ -87,10 +89,30 @@ func mountOps(mux *http.ServeMux, st *space.Store, db string) {
 		answerJSON(w, map[string]any{"Seq": seq})
 	})
 	mux.HandleFunc("GET /node/{id}/{path...}", func(w http.ResponseWriter, r *http.Request) {
-		path := r.PathValue("path")
-		rows, err := st.Tree(r.PathValue("id"), path)
+		id, path := r.PathValue("id"), r.PathValue("path")
+		rows, err := st.Tree(id, path)
 		if err != nil {
 			http.Error(w, "porta: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+		if strings.HasSuffix(path, "/") {
+			// The node's boot rides along so a caller can apply `porta get`'s
+			// MIXED READ guard (rete#210): a row whose Boot differs predates it.
+			boot, err := st.CurrentBoot(id)
+			if err != nil {
+				http.Error(w, "porta: "+err.Error(), http.StatusInternalServerError)
+				return
+			}
+			type cell struct {
+				Path      string
+				Seq, Boot int64
+				Value     string
+			}
+			cells := []cell{}
+			for _, c := range rows {
+				cells = append(cells, cell{c.Path, c.Seq, c.BootID, hex.EncodeToString(c.Value)})
+			}
+			answerJSON(w, map[string]any{"Boot": boot, "Cells": cells})
 			return
 		}
 		for _, c := range rows {
